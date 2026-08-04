@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, Settings } from "lucide-react";
+import { Bell, Settings, Users } from "lucide-react";
 import { Wordmark } from "@/components/logo";
 import { Avatar } from "@/components/avatar";
 import type { CurrentUser } from "@/lib/auth";
@@ -23,6 +23,13 @@ export function TopBar({
           </span>
         </div>
         <div className="flex items-center gap-1">
+          <Link
+            href="/people"
+            aria-label="People directory"
+            className="rounded-full p-2 text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+          >
+            <Users className="size-5" aria-hidden />
+          </Link>
           <Link
             href="/notifications"
             aria-label={

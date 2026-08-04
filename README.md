@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Huddl
 
-## Getting Started
+**Your campus, in one huddle.** Huddl is an all-in-one communication platform for
+college students — Discord-style course and campus channels with a
+community-first, campus-by-campus operating model.
 
-First, run the development server:
+Every account is verified with a university email, so each campus is a real,
+closed community. Course enrollment drives channel membership automatically:
+connect **Canvas by Instructure** and your course channels appear, or upload a
+picture of your schedule (processed **on your device**, with a notification
+audit trail if you choose to store it), or pick courses manually. Student
+organizations and clubs get Band-style spaces with their own chat, roster and
+events.
+
+## Features
+
+- **University-verified communities** — sign up with your school email
+  (launching at UC Davis, then the UC system, then CSUs)
+- **Course channels** — auto-created and auto-joined from Canvas sync,
+  schedule-image confirm, or manual picking
+- **Campus channels** — general, study-buddies, campus-events, asks-and-offers
+  on every campus, plus student-created topic channels
+- **Clubs & organizations** — found a club, get a chat channel + roster +
+  events board; open joining, officer roles
+- **Real-time chat** — threads, reactions, edits, soft deletes (Supabase
+  Realtime)
+- **Direct messages** — 1:1 threads with read state and notifications
+- **Note sharing** — per-course files with uploader credit and signed downloads
+- **Study sessions & meetups** — events with RSVPs, capacity, course/club links
+- **Public profiles & people directory** — majors, grad years, shared courses,
+  optional phone-verification trust badge
+- **Privacy by design** — schedule images OCR'd in-browser; every storage or
+  access event generates a user-facing notification, enforced by database
+  triggers
+
+## Stack
+
+- [Next.js 15](https://nextjs.org) (App Router) + TypeScript + Tailwind CSS 4,
+  mobile-first PWA
+- [Supabase](https://supabase.com): Auth (email verification), Postgres with
+  row-level security on every table, Realtime, Storage
+- Vitest for unit tests
+
+## Getting started
+
+1. Create a Supabase project and run each file in `supabase/migrations/` in
+   order, then `supabase/seed.sql` (SQL editor or `supabase db push`).
+2. `cp .env.example .env.local` and fill in the project URL and publishable
+   key. Phone verification runs in `stub` mode without Twilio credentials.
+3. Install and run:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Checks: `npm run build && npm run lint && npm test`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Repository layout
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+supabase/migrations/  Full schema: tables, RLS policies, triggers, RPCs
+supabase/seed.sql     Universities + default campus channels (no sample content)
+src/app/              App Router routes: (auth), (app) shell, marketing landing
+src/features/         Feature modules (auth, chat, dm, clubs, events, notes, ...)
+src/lib/              Shared contracts: types, supabase clients, auth, utils
+src/components/       Shared UI (avatar, empty state, logo, nav, top bar)
+docs/                 Brand guide and campus operations playbook
+```
 
-## Learn More
+## Operating model
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Huddl launches campus-by-campus (density before breadth): UC Davis first, then
+the rest of the UC system, then CSUs. See `docs/OPERATIONS.md` for the launch
+playbook and revenue model, and `docs/BRAND.md` for the brand system.

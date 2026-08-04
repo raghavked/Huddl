@@ -1,18 +1,21 @@
--- Huddl seed data: starter university catalog with default campus channels
--- and a current term + sample courses per school. Extend freely — signup just
--- needs the user's email domain to match a universities row.
+-- Huddl seed: structural data only — no sample content. Courses, clubs and
+-- everything else come from users. Universities are the allow-list that makes
+-- "verified per university" work; default campus channels are product
+-- infrastructure every campus starts with.
+--
+-- Rollout order: UC Davis first, then the rest of the UC system, then CSUs
+-- (see docs/OPERATIONS.md). Add a CSU by inserting its row here.
 
 insert into public.universities (name, short_name, email_domain, city, state) values
+  ('University of California, Davis', 'UC Davis', 'ucdavis.edu', 'Davis', 'CA'),
   ('University of California, Berkeley', 'UC Berkeley', 'berkeley.edu', 'Berkeley', 'CA'),
-  ('Stanford University', 'Stanford', 'stanford.edu', 'Stanford', 'CA'),
-  ('Massachusetts Institute of Technology', 'MIT', 'mit.edu', 'Cambridge', 'MA'),
-  ('University of Michigan', 'UMich', 'umich.edu', 'Ann Arbor', 'MI'),
-  ('University of Texas at Austin', 'UT Austin', 'utexas.edu', 'Austin', 'TX'),
-  ('New York University', 'NYU', 'nyu.edu', 'New York', 'NY'),
-  ('Georgia Institute of Technology', 'Georgia Tech', 'gatech.edu', 'Atlanta', 'GA'),
-  ('University of Washington', 'UW', 'uw.edu', 'Seattle', 'WA'),
-  ('University of Illinois Urbana-Champaign', 'UIUC', 'illinois.edu', 'Urbana', 'IL'),
-  ('Purdue University', 'Purdue', 'purdue.edu', 'West Lafayette', 'IN')
+  ('University of California, Los Angeles', 'UCLA', 'ucla.edu', 'Los Angeles', 'CA'),
+  ('University of California, San Diego', 'UC San Diego', 'ucsd.edu', 'La Jolla', 'CA'),
+  ('University of California, Irvine', 'UC Irvine', 'uci.edu', 'Irvine', 'CA'),
+  ('University of California, Santa Barbara', 'UC Santa Barbara', 'ucsb.edu', 'Santa Barbara', 'CA'),
+  ('University of California, Santa Cruz', 'UC Santa Cruz', 'ucsc.edu', 'Santa Cruz', 'CA'),
+  ('University of California, Riverside', 'UC Riverside', 'ucr.edu', 'Riverside', 'CA'),
+  ('University of California, Merced', 'UC Merced', 'ucmerced.edu', 'Merced', 'CA')
 on conflict (email_domain) do nothing;
 
 -- Default campus channels — every student is auto-joined at signup.
@@ -27,22 +30,16 @@ cross join (values
 ) as c(name, slug, description)
 on conflict (university_id, slug) do nothing;
 
--- Current term for each school.
+-- Current academic term per campus (UC quarter system; Berkeley/Merced run
+-- semesters). Used only to group courses; safe to adjust each term.
 insert into public.terms (university_id, name, starts_on, ends_on, is_current)
-select id, 'Fall 2026', date '2026-08-24', date '2026-12-18', true
-from public.universities
-on conflict (university_id, name) do nothing;
-
--- A few sample courses per school so manual course-pick has content in dev.
-insert into public.courses (university_id, term_id, code, title)
-select u.id, t.id, c.code, c.title
+select u.id,
+       case when u.email_domain in ('berkeley.edu', 'ucmerced.edu')
+            then 'Fall 2026' else 'Fall Quarter 2026' end,
+       case when u.email_domain in ('berkeley.edu', 'ucmerced.edu')
+            then date '2026-08-26' else date '2026-09-21' end,
+       case when u.email_domain in ('berkeley.edu', 'ucmerced.edu')
+            then date '2026-12-18' else date '2026-12-11' end,
+       true
 from public.universities u
-join public.terms t on t.university_id = u.id and t.is_current
-cross join (values
-  ('CS 101', 'Introduction to Computer Science'),
-  ('MATH 201', 'Multivariable Calculus'),
-  ('ECON 110', 'Principles of Economics'),
-  ('PSYCH 100', 'Introduction to Psychology'),
-  ('ENGL 120', 'College Writing')
-) as c(code, title)
-on conflict (university_id, term_id, code) do nothing;
+on conflict (university_id, name) do nothing;

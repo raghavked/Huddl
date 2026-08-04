@@ -95,12 +95,40 @@ export interface ScheduleUploadEvent {
   created_at: string;
 }
 
-export type ChannelKind = "campus" | "course" | "topic";
+export type ClubCategory =
+  | "academic"
+  | "professional"
+  | "cultural"
+  | "sports"
+  | "social"
+  | "service"
+  | "other";
+
+export interface Club {
+  id: string;
+  university_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  category: ClubCategory;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface ClubMember {
+  club_id: string;
+  user_id: string;
+  role: "member" | "officer" | "owner";
+  joined_at: string;
+}
+
+export type ChannelKind = "campus" | "course" | "topic" | "club";
 
 export interface Channel {
   id: string;
   university_id: string;
   course_id: string | null;
+  club_id: string | null;
   kind: ChannelKind;
   name: string;
   slug: string;
@@ -179,6 +207,7 @@ export interface CampusEvent {
   id: string;
   university_id: string;
   course_id: string | null;
+  club_id: string | null;
   creator_id: string;
   kind: EventKind;
   title: string;
