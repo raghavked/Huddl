@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+/* Huddl design tokens — warm, collegiate, mobile-first.
+   Brand: "campus coral" primary on warm paper neutrals; deep ink for text.
+   Both themes are first-class: chat surfaces flip to a Discord-ish dark. */
+:root {
+  --background: #faf8f5;
+  --foreground: #201f33;
+  --surface: #ffffff;
+  --surface-2: #f2efe9;
+  --surface-3: #e9e5dd;
+  --border: #e3dfd6;
+  --muted: #716c7f;
+  --brand: #e85d3d;
+  --brand-strong: #cf4526;
+  --brand-soft: #fdece6;
+  --brand-fg: #ffffff;
+  --accent: #2a6f77;
+  --accent-soft: #e3f0f1;
+  --success: #2e7d4f;
+  --danger: #c73a3a;
+  --warning: #b97e12;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #16151f;
+    --foreground: #eceaf2;
+    --surface: #1e1d2a;
+    --surface-2: #262435;
+    --surface-3: #2f2d40;
+    --border: #363348;
+    --muted: #9b97ad;
+    --brand: #f0704f;
+    --brand-strong: #e85d3d;
+    --brand-soft: #3a2620;
+    --brand-fg: #ffffff;
+    --accent: #4fa3ac;
+    --accent-soft: #1e3335;
+    --success: #4caf7d;
+    --danger: #e06060;
+    --warning: #d9a13a;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-fg: var(--brand-fg);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --radius-card: 1rem;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Respect notches / home indicators on mobile. */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+::selection {
+  background: var(--brand-soft);
+}
