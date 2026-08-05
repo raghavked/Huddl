@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
  * `channel_id=eq.<uuid>`) and hand each new row to the callback. Shared by
  * chat, DMs and notifications so realtime wiring lives in one place.
  */
-export function useRealtimeInserts<T extends Record<string, unknown>>(
+export function useRealtimeInserts<T extends object>(
   table: string,
   filter: string | undefined,
   onInsert: (row: T) => void
