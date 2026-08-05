@@ -3,7 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * v2 page header: optional back link, coral eyebrow, big tight title,
+ * v2 page header: optional back link, violet eyebrow, big tight title,
  * muted description, and a right-aligned action slot.
  */
 export function PageHeader({

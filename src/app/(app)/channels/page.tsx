@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { DiscoverScene } from "@/components/illustrations";
 import {
   PageHeader,
   SectionHeader,
@@ -102,6 +103,7 @@ export default async function ChannelsPage() {
       {channels.length === 0 ? (
         <div className="mt-6 rounded-card border border-dashed border-border">
           <EmptyState
+            illustration={<DiscoverScene />}
             icon={Hash}
             title="No channels yet"
             description="Add your courses and you'll land in a channel for each class automatically — campus channels come free with your profile."

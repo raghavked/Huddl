@@ -295,7 +295,7 @@ export function ThreadPanel({
       <div className="absolute inset-y-0 right-0 flex w-full flex-col border-l border-border bg-surface shadow-lift sm:max-w-md">
         <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
               <CornerDownRight className="size-4" aria-hidden />
             </span>
             <div className="min-w-0">

@@ -336,7 +336,7 @@ export function PrivacyDashboard({
                         key={event.id}
                         className="flex items-start gap-3 py-2.5"
                       >
-                        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
+                        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
                           <Icon className="size-3.5" aria-hidden />
                         </span>
                         <div className="min-w-0 flex-1">

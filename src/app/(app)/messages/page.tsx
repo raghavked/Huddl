@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AlertCircle, MessageCircle, UserRoundSearch } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { ChatScene } from "@/components/illustrations";
 import { PageHeader, buttonClasses } from "@/components/ui";
 import { ThreadListItem } from "@/features/dm/thread-list-item";
 import { getCurrentUser } from "@/lib/auth";
@@ -139,6 +140,7 @@ export default async function MessagesPage({
       {threads.length === 0 ? (
         <div className="mt-6 rounded-card border border-dashed border-border">
           <EmptyState
+            illustration={<ChatScene />}
             icon={MessageCircle}
             title="No conversations yet"
             description="DM classmates to trade notes, plan study sessions, or just say hi. Find people from your courses to get started."

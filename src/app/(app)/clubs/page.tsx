@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus, Sparkles } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { HuddleScene } from "@/components/illustrations";
 import { PageHeader, buttonClasses } from "@/components/ui";
 import { ClubCard } from "@/features/clubs/club-card";
 import { getCurrentUser } from "@/lib/auth";
@@ -121,6 +122,7 @@ export default async function ClubsPage({
       {clubs.length === 0 ? (
         <div className="mt-6 rounded-card border border-dashed border-border">
           <EmptyState
+            illustration={<HuddleScene />}
             icon={Sparkles}
             title={active ? `No ${active} clubs yet` : "No clubs yet"}
             description={

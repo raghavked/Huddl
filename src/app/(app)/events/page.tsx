@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
+import { CalendarScene } from "@/components/illustrations";
 import {
   Badge,
   PageHeader,
@@ -171,6 +172,7 @@ export default async function EventsPage({
       {events.length === 0 ? (
         <div className="mt-6 rounded-card border border-dashed border-border">
           <EmptyState
+            illustration={showPast ? undefined : <CalendarScene />}
             icon={showPast ? History : CalendarDays}
             title={
               showPast

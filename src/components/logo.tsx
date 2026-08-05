@@ -19,7 +19,7 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-/** The mark on a coral→sunset gradient tile — app icon energy. */
+/** The mark on a violet→raspberry gradient tile — app icon energy. */
 export function LogoTile({ className }: { className?: string }) {
   return (
     <span

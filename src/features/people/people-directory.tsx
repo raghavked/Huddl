@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Lock, Search, SearchX, UsersRound } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
+import { HuddleScene } from "@/components/illustrations";
 import { Badge, Button, cardClasses } from "@/components/ui";
 
 /**
@@ -156,6 +157,7 @@ export function PeopleDirectory({
 
       {people.length === 0 ? (
         <EmptyState
+          illustration={<HuddleScene />}
           icon={UsersRound}
           title="No one here yet"
           description="As classmates join with their school email, they'll show up in the directory automatically."

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
+import { NotesScene } from "@/components/illustrations";
 import { buttonClasses, cardClasses } from "@/components/ui";
 import { NoteUpload } from "@/features/notes/note-upload";
 import { createClient } from "@/lib/supabase/client";
@@ -155,6 +156,7 @@ export function NotesSection({
 
       {visible.length === 0 ? (
         <EmptyState
+          illustration={<NotesScene />}
           icon={FileText}
           title="No notes yet"
           description="Be the first to share lecture notes, study guides or slides with your classmates."

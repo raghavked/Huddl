@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Bell, ShieldCheck } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { ShieldScene } from "@/components/illustrations";
 import { PageHeader, buttonClasses } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -83,6 +84,7 @@ export default async function PrivacySettingsPage() {
         {uploads.length === 0 ? (
           <div className="rounded-card border border-dashed border-border">
             <EmptyState
+              illustration={<ShieldScene />}
               icon={ShieldCheck}
               title="No schedule images yet"
               description="If you set up courses from a photo of your schedule, its full audit trail will show up here."

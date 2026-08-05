@@ -644,7 +644,7 @@ function ChatVignette() {
   return (
     <VignetteFrame>
       <div className="flex items-center gap-2.5 border-b border-border/70 pb-3">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
           <Hash className="size-4" />
         </span>
         <span className="text-sm font-bold">econ-101a</span>
@@ -843,7 +843,7 @@ function NotesVignette() {
           key={file.name}
           className="flex items-center gap-3 rounded-xl border border-border/60 bg-background px-3 py-2"
         >
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-ink">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand-ink">
             <FileText className="size-4" />
           </span>
           <div className="min-w-0 flex-1">
