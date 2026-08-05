@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { PhoneVerify } from "@/features/settings/phone-verify";
 
 export const metadata: Metadata = {
@@ -14,6 +15,18 @@ export const metadata: Metadata = {
 export default async function PhoneSettingsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+
+  // Prefill from the owner-only phone_verifications table — the number is no
+  // longer stored on the public profiles row.
+  const supabase = await createClient();
+  const { data: lastVerification } = await supabase
+    .from("phone_verifications")
+    .select("phone")
+    .eq("user_id", user.userId)
+    .not("verified_at", "is", null)
+    .order("verified_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
@@ -36,7 +49,9 @@ export default async function PhoneSettingsPage() {
       </header>
       <div className="mt-6">
         <PhoneVerify
-          initialPhone={user.profile.phone}
+          initialPhone={
+            (lastVerification as { phone: string } | null)?.phone ?? null
+          }
           verifiedAt={user.profile.phone_verified_at}
         />
       </div>

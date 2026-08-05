@@ -29,7 +29,8 @@ export interface Profile {
   bio: string | null;
   major: string | null;
   grad_year: number | null;
-  phone: string | null;
+  // The verified phone number itself is never exposed on this world-readable
+  // row; it lives in phone_verifications (owner-only). Only the badge remains.
   phone_verified_at: string | null;
   is_public: boolean;
   created_at: string;

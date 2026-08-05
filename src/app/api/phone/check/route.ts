@@ -87,13 +87,15 @@ export async function POST(request: Request) {
   }
 
   const now = new Date().toISOString();
+  // The verified number stays in phone_verifications (owner-only). profiles
+  // only gets the badge timestamp — the number is never on the public row.
   await supabase
     .from("phone_verifications")
     .update({ verified_at: now })
     .eq("id", row.id);
   const { error: profileError } = await supabase
     .from("profiles")
-    .update({ phone: normalized, phone_verified_at: now })
+    .update({ phone_verified_at: now })
     .eq("id", user.id);
   if (profileError) {
     return jsonError(
