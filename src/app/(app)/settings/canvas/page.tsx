@@ -37,8 +37,9 @@ export default async function CanvasSettingsPage() {
       <header className="mt-3">
         <h1 className="text-2xl font-bold tracking-tight">Canvas connection</h1>
         <p className="mt-1 text-sm text-muted">
-          Keep your course channels in step with Canvas — re-sync after
-          add/drop, or disconnect to delete your stored token.
+          Re-sync to pull in newly added Canvas courses, or disconnect to
+          delete your stored token. To leave a class you dropped, use the drop
+          button on that course in your Courses list.
         </p>
       </header>
       <div className="mt-6">

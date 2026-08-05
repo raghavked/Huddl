@@ -53,7 +53,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What happens to the photo of my schedule?",
-    a: "It's read in your browser, on your device, to suggest your courses — nothing is uploaded during that step. You confirm the courses before anything is saved. If you choose to store the image for your records, every single access to it is logged and shows up in your notifications. That audit trail is enforced by the database itself, not by policy.",
+    a: "It's read in your browser, on your device, to suggest your courses — nothing is uploaded during that step. You confirm the courses before anything is saved. If you choose to store the image for your records, each time the app accesses it that access is logged — and a database trigger turns every logged event into a notification you'll see, so those receipts can't be quietly dropped.",
   },
   {
     q: "Can professors or administrators see my messages?",
@@ -332,7 +332,7 @@ export default function LandingPage() {
                 step={3}
                 icon={BellRing}
                 title="Notified access, always"
-                body="Choose to store the image, and every access to it is logged and lands in your notifications. The database enforces it — it isn't a policy, it's a trigger."
+                body="Choose to store the image, and each access is logged — and a database trigger turns every logged event into a notification, so the receipt can't be silently skipped."
               />
             </ol>
           </div>

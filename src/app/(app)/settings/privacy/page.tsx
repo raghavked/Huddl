@@ -64,10 +64,10 @@ export default async function PrivacySettingsPage() {
             <p className="mt-1 text-sm text-muted">
               Your schedule photos are read on your device, and nothing is
               stored unless you switch it on. Every event below — processing,
-              storing, accessing, deleting — is written to an audit log, and
-              the database itself turns each one into a notification to you.
-              App code can&apos;t skip it, so if something touches your image,
-              you hear about it.
+              storing, accessing, deleting — is written to an audit log, and a
+              database trigger turns each logged event into a notification to
+              you. That last step can&apos;t be silently skipped, so when the
+              app touches your image, you hear about it.
             </p>
             <Link
               href="/notifications"
