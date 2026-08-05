@@ -26,9 +26,9 @@ export function AppNav() {
   return (
     <nav
       aria-label="Main"
-      className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface md:inset-y-0 md:left-0 md:right-auto md:w-56 md:border-r md:border-t-0"
+      className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/85 backdrop-blur-lg md:inset-y-0 md:left-0 md:right-auto md:w-56 md:border-r md:border-t-0 md:bg-surface/70"
     >
-      <ul className="flex justify-around md:mt-20 md:flex-col md:justify-start md:gap-1 md:px-3">
+      <ul className="flex justify-around px-1 py-1 md:mt-20 md:flex-col md:justify-start md:gap-1 md:px-3 md:py-0">
         {TABS.map(({ href, label, icon: Icon }) => {
           const active =
             pathname === href || pathname.startsWith(`${href}/`);
@@ -38,13 +38,22 @@ export function AppNav() {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-3 py-2 text-[11px] font-medium transition-colors md:flex-row md:gap-3 md:rounded-lg md:px-3 md:py-2.5 md:text-sm",
+                  "group flex flex-col items-center gap-1 rounded-2xl px-3 py-1.5 text-[11px] font-semibold transition-colors md:flex-row md:gap-3 md:px-3 md:py-2.5 md:text-sm",
                   active
-                    ? "text-brand md:bg-brand-soft md:text-brand-strong"
-                    : "text-muted hover:text-foreground"
+                    ? "text-brand-strong md:bg-brand-gradient md:text-white md:shadow-glow"
+                    : "text-muted hover:text-foreground md:hover:bg-surface-2"
                 )}
               >
-                <Icon className="size-5" aria-hidden />
+                <span
+                  className={cn(
+                    "flex size-9 items-center justify-center rounded-full transition-all md:size-auto md:rounded-none md:bg-transparent",
+                    active
+                      ? "bg-brand-gradient text-white shadow-glow md:bg-none md:shadow-none"
+                      : "bg-transparent"
+                  )}
+                >
+                  <Icon className="size-5" aria-hidden />
+                </span>
                 {label}
               </Link>
             </li>

@@ -21,11 +21,11 @@ export function EmptyState({
         className
       )}
     >
-      <span className="flex size-14 items-center justify-center rounded-full bg-surface-2">
-        <Icon className="size-6 text-muted" aria-hidden />
+      <span className="flex size-16 items-center justify-center rounded-full bg-brand-gradient-soft ring-1 ring-border">
+        <Icon className="size-7 text-brand-strong" aria-hidden />
       </span>
       <div>
-        <p className="font-semibold">{title}</p>
+        <p className="text-lg font-bold tracking-tight">{title}</p>
         {description ? (
           <p className="mt-1 max-w-sm text-sm text-muted">{description}</p>
         ) : null}

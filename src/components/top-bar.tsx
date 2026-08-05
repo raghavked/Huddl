@@ -12,13 +12,13 @@ export function TopBar({
   unreadCount?: number;
 }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-surface/90 backdrop-blur md:pl-56">
+    <header className="sticky top-0 z-30 border-b border-border bg-surface/80 backdrop-blur-lg md:pl-56">
       <div className="flex h-14 items-center justify-between gap-3 px-4">
         <div className="flex min-w-0 items-center gap-3">
           <Link href="/home" aria-label="Huddl home">
             <Wordmark />
           </Link>
-          <span className="hidden truncate rounded-full bg-surface-2 px-3 py-1 text-xs font-medium text-muted sm:block">
+          <span className="hidden truncate rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-strong sm:block">
             {user.university.short_name}
           </span>
         </div>
@@ -41,7 +41,7 @@ export function TopBar({
           >
             <Bell className="size-5" aria-hidden />
             {unreadCount > 0 ? (
-              <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-brand text-[9px] font-bold text-brand-fg">
+              <span className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-brand-gradient text-[9px] font-bold text-white shadow-glow">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             ) : null}
@@ -62,6 +62,7 @@ export function TopBar({
               name={user.profile.display_name}
               src={user.profile.avatar_url}
               size="sm"
+              className="ring-2 ring-brand-soft"
             />
           </Link>
         </div>

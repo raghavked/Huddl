@@ -96,7 +96,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/signup"
-              className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className="rounded-full bg-brand-gradient px-5 py-2 text-sm font-bold text-white shadow-glow transition-transform hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               Join
             </Link>
@@ -112,18 +112,19 @@ export default function LandingPage() {
           aria-labelledby="hero-heading"
           className="relative overflow-hidden"
         >
-          {/* Decorative wash built from token colors only. */}
+          {/* Decorative gradient wash + floating blobs. */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-linear-to-b from-brand/10 via-transparent to-transparent"
+            className="pointer-events-none absolute inset-0 bg-brand-gradient-soft"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -top-24 right-[-10%] size-72 rounded-full bg-accent/10 blur-3xl"
+            className="pointer-events-none absolute -top-24 right-[-10%] size-72 rounded-full bg-brand-gradient opacity-20 blur-3xl animate-float-blob"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -left-24 top-40 size-72 rounded-full bg-brand/10 blur-3xl"
+            className="pointer-events-none absolute -left-24 top-40 size-72 rounded-full bg-brand-gradient opacity-15 blur-3xl animate-float-blob"
+            style={{ animationDelay: "-4s" }}
           />
 
           <div className="relative mx-auto max-w-5xl px-4 pb-14 pt-14 sm:px-6 sm:pt-20">
@@ -137,9 +138,10 @@ export default function LandingPage() {
               </p>
               <h1
                 id="hero-heading"
-                className="mt-5 text-4xl font-bold tracking-tight text-balance sm:text-5xl md:text-6xl"
+                className="mt-5 text-4xl font-extrabold tracking-tight text-balance sm:text-5xl md:text-6xl"
               >
-                Your campus, in one huddle.
+                Your campus, in{" "}
+                <span className="text-gradient">one huddle.</span>
               </h1>
               <p className="mt-5 max-w-xl text-base text-muted text-pretty sm:text-lg">
                 Course chat that sets itself up from your schedule. Notes that
@@ -150,7 +152,7 @@ export default function LandingPage() {
               <div className="mt-8 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
                 <Link
                   href="/signup"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand px-7 py-3.5 text-base font-semibold text-brand-fg shadow-sm transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:w-auto"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-gradient px-7 py-3.5 text-base font-bold text-white shadow-glow transition-transform hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:w-auto"
                 >
                   Join with your school email
                   <ArrowRight aria-hidden="true" className="size-4" />
@@ -379,21 +381,29 @@ export default function LandingPage() {
           aria-labelledby="cta-heading"
           className="mx-auto w-full max-w-5xl px-4 pb-20 sm:px-6"
         >
-          <div className="relative overflow-hidden rounded-card border border-border bg-linear-to-br from-brand/15 via-surface to-accent/10 px-6 py-12 text-center sm:px-12 sm:py-16">
-            <LogoMark className="mx-auto size-10 text-brand" />
+          <div className="relative overflow-hidden rounded-card bg-brand-gradient px-6 py-12 text-center shadow-glow sm:px-12 sm:py-16">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-10 -top-10 size-48 rounded-full bg-white/15 blur-2xl"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-12 -left-8 size-48 rounded-full bg-white/10 blur-2xl"
+            />
+            <LogoMark className="relative mx-auto size-12" />
             <h2
               id="cta-heading"
-              className="mt-4 text-2xl font-bold tracking-tight text-balance sm:text-3xl"
+              className="relative mt-4 text-2xl font-extrabold tracking-tight text-balance text-white sm:text-3xl"
             >
               Your classmates are one huddle away
             </h2>
-            <p className="mx-auto mt-3 max-w-md text-sm text-muted sm:text-base">
+            <p className="relative mx-auto mt-3 max-w-md text-sm text-white/85 sm:text-base">
               It takes your school email and about a minute. Your course
               channels are already waiting.
             </p>
             <Link
               href="/signup"
-              className="mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-brand px-7 py-3.5 text-base font-semibold text-brand-fg shadow-sm transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className="relative mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-bold text-brand-strong shadow-sm transition-transform hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               Join with your school email
               <ArrowRight aria-hidden="true" className="size-4" />

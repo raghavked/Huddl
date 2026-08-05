@@ -1,194 +1,93 @@
-# Huddl Brand Guide
+# Huddl — Brand Guide
 
-Huddl is what happens when your best group chat meets your favorite study spot.
-Everything in this guide exists to protect that feeling: warm, collegiate,
-energetic — and trustworthy enough that students hand us their course schedule.
+## The name
 
-We are **not** corporate SaaS. If a screen, a sentence, or a color would look at
-home in an enterprise dashboard, redo it.
-
----
-
-## 1. The name
-
-**huddl** (always lowercase in the wordmark, "Huddl" in prose).
-
-- A *huddle* is the tightest formation a team makes: heads in, everyone talking,
-  nobody outside the circle. That's the product — your campus, in one huddle.
-- The dropped "e" is student shorthand, the way "u" replaces "you" in a text.
-  It signals: built by people who text like you do.
-- It's a verb waiting to happen. "Huddl up before the midterm" is the behavior
-  we want, written into the name.
+**Huddl** — a huddle is what a team does before it matters: heads together,
+quick, in it together. Dropping the *e* keeps it fast and app-native. The
+product turns a campus into a series of huddles — course channels, clubs, study
+sessions, DMs.
 
 **Tagline:** *Your campus, in one huddle.*
 
-Use the tagline verbatim on the landing page, app store copy, and posters. Don't
-riff on it in-product ("huddle up!" as button copy is fine at launch events, not
-in the app).
+## Positioning
 
----
+Huddl is a **student-first, campus-scoped** communication app — the energy of
+BeReal and Yik Yak (social, colorful, expressive, gen-Z native) with the
+structure of Discord (channels, threads, DMs). It is warm and playful, but it
+earns trust: verified campuses, on-device schedule reading, notified access.
 
-## 2. Voice & tone
+## Voice & tone
 
-Huddl sounds like the classmate who has their act together and shares their
-notes anyway. Specifically:
+Warm, plainspoken, a little witty — a helpful classmate, never a corporation.
+Short sentences. Confident, not hypey. We say what the product does and what it
+won't do.
 
-| Principle | It means | Not |
-| --- | --- | --- |
-| **Warm, not chummy** | Talk *to* students, never *at* them or *down* to them | Forced slang, "Hey bestie!", corporate "we're thrilled" |
-| **Concrete over clever** | Name the real thing: textbooks, rides, Week 5 notes | Vague "collaboration", "connect & engage" |
-| **Energy with a plan** | Every screen tells you the next useful thing to do | Hype with no action, exclamation-point confetti |
-| **Straight about privacy** | Plain sentences about what we do with data, mechanisms over promises | Legalese, or worse, cuteness about serious things |
-| **Empty states recruit** | An empty list is an invitation to be first, not a dead end | "No data found." |
+Example in-app strings:
+- "Your campus, in one huddle."
+- "Now open at UC Davis — the UC system is next."
+- "Course chat that sets itself up from your schedule."
+- "Notes that don't die in group chats."
+- "We never sell student data and never run ads in course channels."
 
-### Five real strings from the app (and why they work)
+## The vibrant-playful system
 
-1. **"Campus-wide chat — say hi!"** — *#general channel description.* Seven
-   words, one action. Warm without trying hard.
-2. **"Be the first — add a course and its chat channel opens up for everyone
-   in it."** — *empty course list.* Turns emptiness into agency; the reader is
-   the spark, not the victim of a cold start.
-3. **"DM classmates to trade notes, plan study sessions, or just say hi."** —
-   *empty DM inbox.* Three concrete, low-stakes reasons to send a first message.
-4. **"Textbooks, rides, sublets, help"** — *#asks-and-offers description.* Four
-   nouns, zero fluff. This is "concrete over clever" in its purest form.
-5. **"If you set up courses from a photo of your schedule, its full audit trail
-   will show up here."** — *privacy notifications.* The privacy voice: calm,
-   specific, mechanical. No "we take your privacy seriously" — we show the log.
+The identity is **gradient-forward**: a signature violet → pink → orange sweep,
+big rounded shapes, bold friendly type, generous space. Both light and dark are
+first-class; everything is token-driven (see `src/app/globals.css`) so the
+palette cascades — never hardcode hex in components.
 
-### Writing mechanics
+### Signature gradient
 
-- Sentence case everywhere: headings, buttons, labels. Never Title Case Buttons.
-- Contractions always ("you'll", "don't"). Second person ("your channels").
-- Em dashes and commas over semicolons. One exclamation point per screen, max,
-  and only where a human would actually use one.
-- Course codes are proper nouns: "ECON 101A", channel slugs lowercase:
-  `#econ-101a`.
-- Never say "users". Say students, classmates, or you.
+`--grad-from #8b5cf6` (violet) → `--grad-via #ec4899` (pink) → `--grad-to
+#fb7a34` (orange). Exposed as utilities:
 
----
-
-## 3. Logo
-
-The mark is **rounded figures leaning into a huddle** — heads together, one
-shape. It's drawn in `currentColor`, so it inherits whatever text color you set.
-
-| Usage | Rule |
+| Utility | Use |
 | --- | --- |
-| Component | Always render via `<LogoMark />` or `<Wordmark />` from `src/components/logo.tsx`. Never re-draw or export flattened copies. |
-| Color | Mark in `text-brand` next to foreground-colored wordmark text (the default). One-color contexts: all-foreground or all-`brand-fg` on brand backgrounds. |
-| Wordmark | "huddl", lowercase, bold, tight tracking — exactly as `<Wordmark />` renders it. |
-| Minimum size | Mark: 20 px. Wordmark: 88 px wide. Below that, use the mark alone. |
-| Clear space | Keep a margin of at least the height of one "head" circle on all sides. |
+| `bg-brand-gradient` | primary CTAs, active nav, badges, avatar fallbacks, hero |
+| `bg-brand-gradient-soft` | section/card background washes |
+| `text-gradient` | headline accents (pair with `font-extrabold`) |
+| `ring-gradient` | gradient border on a surface fill |
+| `shadow-glow` | colored glow under CTAs/cards |
+| `animate-float-blob` | drifting decorative blobs (reduced-motion safe) |
 
-**Don't:** rotate it, add gradients or shadows to it, outline it, recolor it
-outside the token palette, put it on photos without a surface behind it, or
-spell the wordmark "Huddle".
+### Palette tokens
 
----
-
-## 4. Color
-
-All color in the product comes from CSS tokens in `src/app/globals.css` —
-components use token classes (`bg-brand`, `text-muted`, …), never raw hex.
-Both themes are first-class; check every screen in both.
-
-The palette idea: **campus coral** on warm paper neutrals with deep ink text.
-Dark mode flips to a cozy late-night-library scheme, not pure black.
-
-### Light theme
-
-| Token | Hex | Role |
+| Token | Light | Dark |
 | --- | --- | --- |
-| `background` | `#faf8f5` | Page background (warm paper) |
-| `foreground` | `#201f33` | Text (deep ink) |
-| `surface` | `#ffffff` | Cards, sheets |
-| `surface-2` | `#f2efe9` | Subtle fills, hovers, chat bubbles |
-| `surface-3` | `#e9e5dd` | Pressed states, deeper fills |
-| `border` | `#e3dfd6` | Hairlines |
-| `muted` | `#716c7f` | Secondary text |
-| `brand` | `#e85d3d` | Campus coral — primary actions, the mark |
-| `brand-strong` | `#cf4526` | Hover/pressed brand, text on `brand-soft` |
-| `brand-soft` | `#fdece6` | Chips, active states, soft callouts |
-| `brand-fg` | `#ffffff` | Text/icons on `brand` |
-| `accent` | `#2a6f77` | Teal — trust, links-adjacent, secondary identity |
-| `accent-soft` | `#e3f0f1` | Soft accent fills |
-| `success` | `#2e7d4f` | Confirmations, "synced" |
-| `danger` | `#c73a3a` | Destructive, errors |
-| `warning` | `#b97e12` | Caution |
+| background | `#fdf7ff` | `#130f1f` |
+| foreground | `#1a1330` | `#f3eefb` |
+| surface | `#ffffff` | `#1d1630` |
+| surface-2 | `#f7eefb` | `#271d3f` |
+| border | `#ece0f5` | `#382a55` |
+| muted | `#6d6382` | `#a99cc4` |
+| brand | `#9d2ee0` | `#c26cf2` |
+| brand-strong | `#7d1cc4` | `#b04fe8` |
+| brand-soft | `#f6e7fd` | `#2d1c44` |
+| accent (pink) | `#ec4899` | `#f472b6` |
+| success | `#16a34a` | `#4ade80` |
+| danger | `#e11d48` | `#fb7185` |
+| warning | `#ea9412` | `#fbbf24` |
 
-### Dark theme
+### Logo
 
-| Token | Hex | Role |
-| --- | --- | --- |
-| `background` | `#16151f` | Page background |
-| `foreground` | `#eceaf2` | Text |
-| `surface` | `#1e1d2a` | Cards |
-| `surface-2` | `#262435` | Subtle fills |
-| `surface-3` | `#2f2d40` | Deeper fills |
-| `border` | `#363348` | Hairlines |
-| `muted` | `#9b97ad` | Secondary text |
-| `brand` | `#f0704f` | Coral, lifted for dark contrast |
-| `brand-strong` | `#e85d3d` | Hover/pressed brand |
-| `brand-soft` | `#3a2620` | Chips, active states |
-| `brand-fg` | `#ffffff` | Text/icons on `brand` |
-| `accent` | `#4fa3ac` | Teal, lifted |
-| `accent-soft` | `#1e3335` | Soft accent fills |
-| `success` | `#4caf7d` | Confirmations |
-| `danger` | `#e06060` | Destructive, errors |
-| `warning` | `#d9a13a` | Caution |
+The mark is four rounded figures leaning into a huddle, on a rounded-square
+gradient tile (`src/components/logo.tsx`). Pair with the lowercase `huddl`
+wordmark in `font-extrabold`. The mark's gradient uses the same tokens, so it
+recolors with the theme. PWA icons live in `public/icons/`.
 
-### Color rules
+### Type
 
-- Coral (`brand`) is for **the** action on a screen, active states, and the
-  mark. If everything is coral, nothing is.
-- Teal (`accent`) carries trust and secondary identity (verification, privacy,
-  info). Never use it for primary CTAs.
-- Marketing surfaces may build gradients and washes **from token colors only**
-  (e.g. `from-brand/10`, `bg-accent/10`). In-app screens stay flat.
-- `danger` is reserved for destruction and errors — never for emphasis.
+Geist (sans). Headings `font-extrabold tracking-tight`, often `text-balance`.
+Body in `text-muted` for secondary text. Big and confident.
 
----
+## Do / don't
 
-## 5. Typography
-
-- **Geist** (`--font-geist-sans`) for everything. It's warm-neutral, reads well
-  at small chat sizes, and never looks like a bank.
-- **Geist Mono** (`--font-geist-mono`) only for genuinely monospaced content:
-  codes, tokens, technical identifiers.
-- Hierarchy comes from **weight and spacing, not many sizes**: bold + tight
-  tracking (`font-bold tracking-tight`) for headings, regular for body,
-  `text-sm`/`text-xs` + `text-muted` for metadata.
-- Marketing headlines: `tracking-tight`, sentence case, balance line breaks
-  (`text-balance`). No all-caps except tiny kickers/labels
-  (`uppercase tracking-widest text-xs`).
-
----
-
-## 6. Component do / don't
-
-**Do**
-
-- Round generously: `rounded-card` (1rem) for cards, `rounded-full` for
-  buttons, chips, avatars. Softness is part of the warmth.
-- Give every list an `<EmptyState />` with a recruiting message and, where
-  possible, an action.
-- Give every async action a pending state: disabled control + `Loader2` with
-  `animate-spin`. No dead clicks, ever.
-- Use `<Avatar />` with initials fallback — people are the product; faces (or
-  initials) should be everywhere messages are.
-- Keep touch targets ≥ 44 px on mobile; design mobile-first, then let md+
-  breathe.
-- Ship visible focus states (`focus-visible:outline-*` with brand color) on
-  every interactive element.
-
-**Don't**
-
-- Don't use raw hex, arbitrary colors, or grays outside the token set.
-- Don't use sharp corners, heavy shadows, or 1-px-border-everything enterprise
-  chrome. One hairline (`border-border`) and soft elevation is plenty.
-- Don't stack more than one coral CTA per view.
-- Don't write "No data" / "Nothing here" — empty states recruit (see voice).
-- Don't introduce new icon sets; it's `lucide-react` only, generally at
-  `size-4`/`size-5`, `text-muted` unless meaningful.
-- Don't ship a screen you haven't looked at in dark mode.
+- **Do** use the gradient for the moments that matter (primary CTA, active
+  state, hero, closing card) — it should feel special, not wallpaper.
+- **Do** keep everything rounded: `rounded-2xl`/`rounded-3xl`/`rounded-full`;
+  buttons are pills.
+- **Do** keep white text on gradient fills; keep visible focus rings and aria
+  labels.
+- **Don't** hardcode hex — use tokens so light/dark both work.
+- **Don't** stack multiple gradient fills next to each other; give each one air.
+- **Don't** put ads in course channels, ever. It's a brand promise.

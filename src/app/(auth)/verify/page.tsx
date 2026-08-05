@@ -41,9 +41,9 @@ function VerifyContent() {
   }
 
   return (
-    <div className="rounded-card border border-border bg-surface p-6 text-center">
-      <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-soft">
-        <MailCheck className="size-7 text-brand-strong" aria-hidden />
+    <div className="text-center">
+      <span className="mx-auto flex size-16 items-center justify-center rounded-full bg-brand-gradient text-white shadow-glow">
+        <MailCheck className="size-8" aria-hidden />
       </span>
       <h1 className="mt-4 text-xl font-bold tracking-tight">
         Check your inbox
