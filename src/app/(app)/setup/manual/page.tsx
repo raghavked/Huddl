@@ -42,7 +42,6 @@ export default async function ManualSetupPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Setup"
         backHref="/setup"
         backLabel="Setup"
         title="Pick your courses"

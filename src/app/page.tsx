@@ -13,10 +13,9 @@ import {
   MailCheck,
   MapPin,
   MessagesSquare,
+  Plus,
   ScanLine,
   Send,
-  ShieldCheck,
-  Sparkles,
   Users,
 } from "lucide-react";
 import { LogoMark, Wordmark } from "@/components/logo";
@@ -24,9 +23,9 @@ import { buttonClasses, cardClasses } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
-/* Marketing landing page — the UI v2 showpiece. Server component; the */
-/* only interactivity is the FAQ, which uses native <details> so no    */
-/* client JS is needed.                                                */
+/* Marketing landing page — the hearth (UI v3) front porch. Server     */
+/* component; the only interactivity is the FAQ, which uses native     */
+/* <details> so no client JS is needed.                                */
 /* ------------------------------------------------------------------ */
 
 const SCHOOLS = [
@@ -112,27 +111,23 @@ export default function LandingPage() {
           aria-labelledby="hero-heading"
           className="relative overflow-hidden"
         >
-          {/* Decorative wash built from token colors only. */}
+          {/* Quiet ambient washes — warm hearth tones, tokens only. */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-linear-to-b from-brand/10 via-transparent to-transparent"
+            className="pointer-events-none absolute inset-0 bg-linear-to-b from-brand/8 via-transparent to-transparent"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -top-24 right-[-10%] size-80 rounded-full bg-accent/10 blur-3xl"
+            className="pointer-events-none absolute -top-24 right-[-10%] size-80 rounded-full bg-accent/8 blur-3xl"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -left-24 top-40 size-80 rounded-full bg-brand/10 blur-3xl"
+            className="pointer-events-none absolute -left-24 top-40 size-80 rounded-full bg-brand-2/10 blur-3xl"
           />
 
           <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 sm:pt-24">
             <div className="mx-auto flex max-w-2xl animate-fade-up flex-col items-center text-center">
-              <p className="inline-flex items-center gap-2 rounded-full border border-brand/20 bg-brand-soft px-3.5 py-1.5 text-xs font-semibold text-brand-ink shadow-soft">
-                <span
-                  aria-hidden="true"
-                  className="size-1.5 rounded-full bg-brand"
-                />
+              <p className="text-sm font-medium text-muted">
                 Now open at UC Davis — the UC system is next
               </p>
               <h1
@@ -140,7 +135,25 @@ export default function LandingPage() {
                 className="mt-6 text-4xl font-bold tracking-tight text-balance sm:text-6xl lg:text-7xl"
               >
                 Your campus, in{" "}
-                <span className="text-gradient-brand">one huddle</span>.
+                <span className="relative inline-block">
+                  one huddle
+                  {/* Hand-drawn underline — one wobbly ember stroke. */}
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 200 12"
+                    preserveAspectRatio="none"
+                    fill="none"
+                    className="absolute -bottom-[0.08em] left-0 h-[0.16em] w-full"
+                  >
+                    <path
+                      d="M5 8c30-5 61-6.5 95-4.5 34 2 66 2.5 95 0"
+                      className="stroke-brand"
+                      strokeWidth="5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+                .
               </h1>
               <p className="mt-6 max-w-xl text-base text-muted text-pretty sm:text-lg">
                 Course chat that sets itself up from your schedule. Notes that
@@ -152,7 +165,6 @@ export default function LandingPage() {
                 <Link
                   href="/signup"
                   className={buttonClasses({
-                    variant: "gradient",
                     size: "lg",
                     className: "w-full sm:w-auto",
                   })}
@@ -193,7 +205,7 @@ export default function LandingPage() {
               aria-hidden="true"
               className="relative mx-auto mt-14 max-w-md select-none sm:mt-16 md:max-w-4xl"
             >
-              <div className="pointer-events-none absolute inset-x-12 top-6 h-72 rounded-full bg-gradient-brand opacity-15 blur-3xl" />
+              <div className="pointer-events-none absolute inset-x-12 top-6 h-72 rounded-full bg-brand-2/15 blur-3xl" />
               <div className="relative z-10 mx-auto md:max-w-md">
                 <ChatVignette />
               </div>
@@ -207,7 +219,7 @@ export default function LandingPage() {
 
             {/* Supported-schools strip */}
             <div className="mt-16">
-              <h2 className="text-center text-xs font-semibold uppercase tracking-widest text-muted">
+              <h2 className="text-center text-sm font-semibold text-muted">
                 Rolling out across the UC system
               </h2>
               <ul className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -224,7 +236,7 @@ export default function LandingPage() {
                   </li>
                 ))}
                 <li className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-muted">
-                  <Sparkles aria-hidden="true" className="size-3.5 text-accent" />
+                  <Plus aria-hidden="true" className="size-3.5 text-accent" />
                   Your school next
                 </li>
               </ul>
@@ -281,12 +293,9 @@ export default function LandingPage() {
           className="mx-auto w-full max-w-5xl px-4 py-16 sm:px-6 sm:py-24"
         >
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-widest text-brand">
-              Why Huddl
-            </p>
             <h2
               id="features-heading"
-              className="mt-2 text-3xl font-bold tracking-tight text-balance sm:text-4xl"
+              className="text-3xl font-bold tracking-tight text-balance sm:text-4xl"
             >
               Everything your semester runs on
             </h2>
@@ -299,7 +308,6 @@ export default function LandingPage() {
           <div className="mt-12 grid gap-4 md:grid-cols-2">
             <FeatureCard
               icon={BookOpen}
-              kicker="Course channels"
               title="Synced straight from Canvas"
               body="Connect Canvas — or snap a photo of your schedule — and a channel for every one of your classes is waiting for you. Your classmates are already in it, because their schedules put them there too."
               points={[
@@ -311,7 +319,6 @@ export default function LandingPage() {
             />
             <FeatureCard
               icon={FileText}
-              kicker="Notes"
               title="Notes that don't die in group chats"
               body="Week 5 slides shouldn't be 400 messages deep in someone else's thread. On Huddl, notes live with the course — uploader credit, one tap to download, there for everyone all term."
               points={[
@@ -323,7 +330,6 @@ export default function LandingPage() {
             />
             <FeatureCard
               icon={CalendarDays}
-              kicker="Study sessions & meetups"
               title="Plans people actually show up to"
               body="Spin up a review session before the midterm, a club meetup, or a Sunday pickup game. RSVPs, capacity and location up front — so you know who's in before you head out."
               points={[
@@ -335,7 +341,6 @@ export default function LandingPage() {
             />
             <FeatureCard
               icon={MessagesSquare}
-              kicker="DMs & campus channels"
               title="Your whole campus, on speaking terms"
               body="Trade notes over DMs, find your people in #study-buddies, pass on a textbook in #asks-and-offers. Every campus starts with places to talk — and students open new channels from there."
               points={[
@@ -361,13 +366,9 @@ export default function LandingPage() {
           />
           <div className="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="mx-auto max-w-2xl text-center">
-              <p className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3.5 py-1.5 text-xs font-semibold uppercase tracking-widest text-accent">
-                <ShieldCheck aria-hidden="true" className="size-4" />
-                Built on trust
-              </p>
               <h2
                 id="trust-heading"
-                className="mt-4 text-3xl font-bold tracking-tight text-balance sm:text-4xl"
+                className="text-3xl font-bold tracking-tight text-balance sm:text-4xl"
               >
                 How verification works
               </h2>
@@ -409,12 +410,9 @@ export default function LandingPage() {
           className="mx-auto w-full max-w-3xl px-4 py-16 sm:px-6 sm:py-24"
         >
           <div className="text-center">
-            <p className="text-xs font-semibold uppercase tracking-widest text-brand">
-              FAQ
-            </p>
             <h2
               id="faq-heading"
-              className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl"
+              className="text-3xl font-bold tracking-tight sm:text-4xl"
             >
               Questions, answered
             </h2>
@@ -440,41 +438,31 @@ export default function LandingPage() {
         </section>
 
         {/* -------------------------------------------------------- */}
-        {/* Closing CTA — brand gradient panel                        */}
+        {/* Closing CTA — one calm ember panel                        */}
         {/* -------------------------------------------------------- */}
         <section
           aria-labelledby="cta-heading"
           className="mx-auto w-full max-w-5xl px-4 pb-24 sm:px-6"
         >
-          <div className="relative overflow-hidden rounded-card bg-gradient-brand px-6 py-14 text-center shadow-lift sm:px-12 sm:py-20">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -top-24 left-1/4 size-72 rounded-full bg-on-solid/15 blur-3xl"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -bottom-28 right-[-10%] size-80 rounded-full bg-on-solid/10 blur-3xl"
-            />
-            <div className="relative">
-              <LogoMark className="mx-auto size-10 text-brand-fg" />
-              <h2
-                id="cta-heading"
-                className="mt-4 text-2xl font-bold tracking-tight text-balance text-brand-fg sm:text-4xl"
-              >
-                Your classmates are one huddle away
-              </h2>
-              <p className="mx-auto mt-3 max-w-md text-sm text-brand-fg sm:text-base">
-                It takes your school email and about a minute. Your course
-                channels are already waiting.
-              </p>
-              <Link
-                href="/signup"
-                className="mt-8 inline-flex select-none items-center justify-center gap-2 rounded-full bg-surface px-7 py-3.5 text-base font-semibold text-foreground shadow-lift transition-all hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-fg active:scale-[0.98]"
-              >
-                Join with your school email
-                <ArrowRight aria-hidden="true" className="size-4" />
-              </Link>
-            </div>
+          <div className="rounded-card bg-brand px-6 py-14 text-center shadow-lift sm:px-12 sm:py-20">
+            <LogoMark className="mx-auto size-10 text-brand-fg" />
+            <h2
+              id="cta-heading"
+              className="mt-4 text-2xl font-bold tracking-tight text-balance text-brand-fg sm:text-4xl"
+            >
+              Your classmates are one huddle away
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-sm text-brand-fg sm:text-base">
+              It takes your school email and about a minute. Your course
+              channels are already waiting.
+            </p>
+            <Link
+              href="/signup"
+              className="mt-8 inline-flex select-none items-center justify-center gap-2 rounded-full bg-surface px-7 py-3.5 text-base font-semibold text-foreground shadow-lift transition-all hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-fg active:scale-[0.98]"
+            >
+              Join with your school email
+              <ArrowRight aria-hidden="true" className="size-4" />
+            </Link>
           </div>
         </section>
       </main>
@@ -525,14 +513,12 @@ export default function LandingPage() {
 
 function FeatureCard({
   icon: Icon,
-  kicker,
   title,
   body,
   points,
   vignette,
 }: {
   icon: LucideIcon;
-  kicker: string;
   title: string;
   body: string;
   points: string[];
@@ -542,14 +528,9 @@ function FeatureCard({
     <article
       className={cardClasses({ padding: "lg", className: "flex flex-col" })}
     >
-      <div className="flex items-center justify-between gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
-          <Icon aria-hidden className="size-5" />
-        </span>
-        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-ink">
-          {kicker}
-        </span>
-      </div>
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+        <Icon aria-hidden className="size-5" />
+      </span>
       <h3 className="mt-4 text-xl font-bold tracking-tight text-balance">
         {title}
       </h3>
@@ -591,9 +572,7 @@ function TrustStep({
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
           <Icon aria-hidden className="size-5" />
         </span>
-        <span className="text-xs font-semibold uppercase tracking-widest text-muted">
-          Step {step}
-        </span>
+        <span className="text-xs font-semibold text-muted">Step {step}</span>
       </div>
       <h3 className="text-base font-bold">{title}</h3>
       <p className="text-sm leading-relaxed text-muted">{body}</p>
@@ -639,7 +618,7 @@ function FakeAvatar({ label, accent }: { label: string; accent?: boolean }) {
   );
 }
 
-/** Hero center panel: a course channel with a glass composer. */
+/** Hero center panel: a course channel with its composer. */
 function ChatVignette() {
   return (
     <VignetteFrame>
@@ -676,9 +655,9 @@ function ChatVignette() {
             </p>
           </div>
         </div>
-        <div className="glass flex items-center gap-2 rounded-full border border-border/70 px-3.5 py-2 shadow-soft">
+        <div className="flex items-center gap-2 rounded-full border border-border/70 bg-surface-2 px-3.5 py-2 shadow-soft">
           <span className="flex-1 text-xs text-muted">Message #econ-101a…</span>
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-brand text-brand-fg">
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand text-brand-fg">
             <Send className="size-3" />
           </span>
         </div>
@@ -692,9 +671,7 @@ function DmVignette() {
   return (
     <VignetteFrame className="p-3.5 sm:p-4">
       <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
-          Messages
-        </span>
+        <span className="text-[11px] font-bold text-muted">Messages</span>
         <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-semibold text-brand-ink">
           2 new
         </span>

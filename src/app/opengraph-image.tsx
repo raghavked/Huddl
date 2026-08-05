@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 /* Social share card. ImageResponse renders outside the app's CSS, so token
    classes don't exist here — this file is the one sanctioned home for raw
-   hex (brand violet #6c3df4 → raspberry #d6336c, the v2 gradient). The mark
+   hex (brand violet #b5502f → raspberry #d97742, the v2 gradient). The mark
    geometry is copied verbatim from src/components/logo.tsx; keep them in
    sync if the logo ever changes. */
 
@@ -21,7 +21,7 @@ export default function OpengraphImage() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #6c3df4 0%, #d6336c 100%)",
+          background: "linear-gradient(135deg, #b5502f 0%, #d97742 100%)",
           color: "#ffffff",
           fontFamily:
             'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',

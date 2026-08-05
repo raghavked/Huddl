@@ -57,7 +57,6 @@ export default function SetupPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Setup"
         title="Add your courses"
         description="Every course gets its own chat — add yours and you're automatically in with your classmates."
       />

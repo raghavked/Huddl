@@ -27,7 +27,6 @@ export default async function CanvasSettingsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Settings"
         title="Canvas connection"
         description="Re-sync to pull in newly added Canvas courses, or disconnect to delete your stored token. To leave a class you dropped, use the drop button on that course in your Courses list."
         backHref="/settings"

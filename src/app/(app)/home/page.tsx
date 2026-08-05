@@ -108,7 +108,6 @@ export default async function HomePage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Home"
         title={`Hey ${firstName}`}
         description="Here's what's happening on campus."
       />

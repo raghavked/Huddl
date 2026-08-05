@@ -3,12 +3,11 @@ import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * v2 page header: optional back link, violet eyebrow, big tight title,
- * muted description, and a right-aligned action slot.
+ * v3 page header: optional back link, big display title that carries its
+ * own weight (no kickers), muted description, right-aligned action slot.
  */
 export function PageHeader({
   title,
-  eyebrow,
   description,
   action,
   backHref,
@@ -16,7 +15,6 @@ export function PageHeader({
   className,
 }: {
   title: React.ReactNode;
-  eyebrow?: string;
   description?: React.ReactNode;
   action?: React.ReactNode;
   backHref?: string;
@@ -36,12 +34,7 @@ export function PageHeader({
       ) : null}
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <div className="min-w-0">
-          {eyebrow ? (
-            <p className="text-xs font-semibold uppercase tracking-widest text-brand">
-              {eyebrow}
-            </p>
-          ) : null}
-          <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-balance sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight text-balance sm:text-3xl">
             {title}
           </h1>
           {description ? (

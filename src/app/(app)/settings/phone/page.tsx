@@ -30,7 +30,6 @@ export default async function PhoneSettingsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Settings"
         title="Phone verification"
         description="Verifying adds a trust badge to your profile so classmates know you're a real person. It's optional, and your number is never shown to other students."
         backHref="/settings"

@@ -16,7 +16,6 @@ export default async function AccountSettingsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Settings"
         title="Account"
         description="How you show up to classmates across channels, DMs and the people directory."
         backHref="/settings"

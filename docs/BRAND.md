@@ -76,7 +76,7 @@ shape. It's drawn in `currentColor`, so it inherits whatever text color you set.
 | Usage | Rule |
 | --- | --- |
 | Component | Always render via `<LogoMark />` or `<Wordmark />` from `src/components/logo.tsx`. Never re-draw or export flattened copies. |
-| Color | Mark in `text-brand` next to foreground-colored wordmark text (the default). One-color contexts: all-foreground or all-`brand-fg` on brand backgrounds. |
+| Color | Mark in `text-brand` next to foreground-colored wordmark text (the default). One-color contexts: all-foreground or all-`brand-fg` on brand backgrounds. App-icon / tile contexts: `brand-fg` mark on a **solid ember** (`bg-brand`) tile — the gradient tile is retired. |
 | Wordmark | "huddl", lowercase, bold, tight tracking — exactly as `<Wordmark />` renders it. |
 | Minimum size | Mark: 20 px. Wordmark: 88 px wide. Below that, use the mark alone. |
 | Clear space | Keep a margin of at least the height of one "head" circle on all sides. |
@@ -95,31 +95,30 @@ Both themes are first-class; check every screen in both. Since UI v2, students
 can also pin a theme with the in-app toggle (light / system / dark) — the
 tokens handle it, components never branch on theme.
 
-The palette idea: **campus violet** on cool paper neutrals with deep
-violet-ink text, a **raspberry** partner that exists only inside the brand
-gradient, and **jade** for trust. Dark mode flips to a midnight-quad scheme,
-not pure black.
+The palette idea: **ember** terracotta on warm cream paper with espresso-ink
+text, **clay** softs for chips and callouts, and **fern** for trust. Dark
+mode is a candle-lit den — warm browns, never blue-black.
 
 ### Light theme
 
 | Token | Hex | Role |
 | --- | --- | --- |
-| `background` | `#f8f7fc` | Page background (cool paper) |
-| `foreground` | `#17142b` | Text (violet ink) |
-| `surface` | `#ffffff` | Cards, sheets |
-| `surface-2` | `#f0edf8` | Subtle fills, hovers, chat bubbles |
-| `surface-3` | `#e7e3f4` | Pressed states, deeper fills |
-| `border` | `#e4e0f0` | Hairlines |
-| `muted` | `#5f5b73` | Secondary text |
-| `brand` | `#6c3df4` | Campus violet — primary fills, active states, the mark |
-| `brand-strong` | `#5527d9` | Hover/pressed brand fills |
-| `brand-soft` | `#ece6fe` | Chips, active states, soft callouts |
-| `brand-2` | `#d6336c` | Raspberry — gradient partner ONLY |
-| `brand-fg` | `#ffffff` | Text/icons ON brand + gradient fills (AA at every stop) |
-| `brand-ink` | `#5527d9` | Readable brand-colored text on soft/neutral fills |
+| `background` | `#faf6ee` | Page background (warm cream paper) |
+| `foreground` | `#2b2118` | Text (espresso ink) |
+| `surface` | `#fffcf5` | Cards, sheets |
+| `surface-2` | `#f3ecdd` | Subtle fills, hovers, chat bubbles |
+| `surface-3` | `#eae1cd` | Pressed states, deeper fills |
+| `border` | `#e6dcc8` | Hairlines |
+| `muted` | `#6b5d4f` | Secondary text |
+| `brand` | `#b5502f` | Ember — primary fills, active states, the mark |
+| `brand-strong` | `#9c3f22` | Hover/pressed brand fills |
+| `brand-soft` | `#f6e3d7` | Clay — chips, active states, soft callouts |
+| `brand-2` | `#d97742` | Warm ember highlight — decorative fills only (illustration accents) |
+| `brand-fg` | `#ffffff` | Text/icons ON brand fills (AA) |
+| `brand-ink` | `#8f3a1f` | Readable brand-colored text on soft/neutral fills (AA on `brand-soft`) |
 | `on-solid` | `#ffffff` | White text on saturated status fills (accent/success/danger) |
-| `accent` | `#0b6e69` | Jade — trust, links-adjacent, secondary identity |
-| `accent-soft` | `#d9f2ee` | Soft accent fills |
+| `accent` | `#56682d` | Fern — trust, links-adjacent, secondary identity |
+| `accent-soft` | `#e9edd8` | Soft accent fills |
 | `success` | `#25683f` | Confirmations, "synced" |
 | `danger` | `#b32d2d` | Destructive, errors |
 | `warning` | `#8a5c00` | Caution |
@@ -128,22 +127,22 @@ not pure black.
 
 | Token | Hex | Role |
 | --- | --- | --- |
-| `background` | `#131020` | Page background |
-| `foreground` | `#eeecf6` | Text |
-| `surface` | `#1b1730` | Cards |
-| `surface-2` | `#241f3d` | Subtle fills |
-| `surface-3` | `#2e2849` | Deeper fills |
-| `border` | `#363052` | Hairlines |
-| `muted` | `#a09cb8` | Secondary text |
-| `brand` | `#7a52f5` | Violet, lifted for dark contrast |
-| `brand-strong` | `#6c3df4` | Hover/pressed brand fills |
-| `brand-soft` | `#2c2151` | Chips, active states |
-| `brand-2` | `#d6336c` | Raspberry — gradient partner ONLY |
-| `brand-fg` | `#ffffff` | Text/icons ON brand + gradient fills |
-| `brand-ink` | `#b39dff` | Readable brand-colored text on soft/neutral fills |
+| `background` | `#1c1612` | Page background (candle-lit den — warm brown, never blue-black) |
+| `foreground` | `#f2ebe1` | Text |
+| `surface` | `#262019` | Cards |
+| `surface-2` | `#322a21` | Subtle fills |
+| `surface-3` | `#3e352a` | Deeper fills |
+| `border` | `#453b2e` | Hairlines |
+| `muted` | `#b3a28e` | Secondary text |
+| `brand` | `#e0764b` | Ember, lifted for dark contrast |
+| `brand-strong` | `#cf5f33` | Hover/pressed brand fills |
+| `brand-soft` | `#40291c` | Chips, active states |
+| `brand-2` | `#e8955f` | Warm ember highlight — decorative fills only (illustration accents) |
+| `brand-fg` | `#2b1408` | Dark-espresso text/icons ON brand fills (light ember needs dark, not white) |
+| `brand-ink` | `#eda07b` | Readable brand-colored text on soft/neutral fills |
 | `on-solid` | `#ffffff` | White text on saturated status fills |
-| `accent` | `#3ec9b8` | Jade, lifted |
-| `accent-soft` | `#123230` | Soft accent fills |
+| `accent` | `#8ba852` | Fern, lifted |
+| `accent-soft` | `#262e1a` | Soft accent fills |
 | `success` | `#4caf7d` | Confirmations |
 | `danger` | `#e06060` | Destructive, errors |
 | `warning` | `#d9a13a` | Caution |
@@ -151,21 +150,28 @@ not pure black.
 
 ### Color rules
 
-- Violet (`brand`) is for **the** action on a screen, active states, and the
-  mark. If everything is violet, nothing is.
-- Jade (`accent`) carries trust and secondary identity (verification, privacy,
+- Ember (`brand`) is for **the** action on a screen, active states, and the
+  mark. If everything is ember, nothing is.
+- Fern (`accent`) carries trust and secondary identity (verification, privacy,
   info). Never use it for primary CTAs.
-- `brand-2` never appears alone — only inside `.bg-gradient-brand` /
-  `.text-gradient-brand`. The gradient is the v2 signature: hero CTAs,
-  marketing headlines, the logo tile, and at most *the* single CTA on a
-  setup or empty screen in-app.
-- Marketing surfaces may build gradients and washes **from token colors only**
-  (e.g. `from-brand/10`, `bg-accent/10`). In-app screens stay calm: soft
-  elevation (`shadow-soft`), not gradients.
+- `brand-2` is decorative only — the warm highlight inside illustrations
+  (steam, crumbs) and tiny ornament fills. Never a flat UI fill, never a
+  text color.
+- **No gradient utilities** — `.bg-gradient-brand` and `.text-gradient-brand`
+  were retired in v3. Emphasis comes from weight and size, never gradient
+  text. Kickers/eyebrows above headings are banned per the craft-floor rules
+  — headings carry their own weight.
+- Soft washes built **from token colors only** (e.g. `bg-brand/10`,
+  `bg-accent/10`) are fine on marketing surfaces. In-app screens stay calm:
+  soft elevation (`shadow-soft`), nothing louder.
+- Never gray on a colored surface: secondary text on a tinted fill
+  (`bg-brand-soft`, `bg-accent-soft`) tints from the surface hue
+  (`text-brand-ink`, `text-accent`), not `text-muted`.
 - `danger` is reserved for destruction and errors — never for emphasis.
 
-See `docs/UI.md` for the UI v2 system itself: elevation scale, motion,
-glass surfaces, primitives (`src/components/ui/`), and layout patterns.
+See `docs/UI.md` for the UI v3 "hearth" system itself: elevation scale,
+motion, glass surfaces, primitives (`src/components/ui/`), and layout
+patterns.
 
 ---
 
@@ -186,8 +192,8 @@ An open-source (OFL) humanist pairing, loaded via `next/font` in
   tracking (`font-bold tracking-tight`) for headings, regular for body,
   `text-sm`/`text-xs` + `text-muted` for metadata.
 - Marketing headlines: `tracking-tight`, sentence case, balance line breaks
-  (`text-balance`). No all-caps except tiny kickers/labels
-  (`uppercase tracking-widest text-xs`).
+  (`text-balance`). No all-caps, and no kickers/eyebrows above headings —
+  they're banned; headings carry their own weight.
 
 ---
 
@@ -195,7 +201,7 @@ An open-source (OFL) humanist pairing, loaded via `next/font` in
 
 **Do**
 
-- Round generously: `rounded-card` (1rem) for cards, `rounded-full` for
+- Round generously: `rounded-card` (1.25rem) for cards, `rounded-full` for
   buttons, chips, avatars. Softness is part of the warmth.
 - Give every list an `<EmptyState />` with a recruiting message and, where
   possible, an action.
@@ -213,7 +219,10 @@ An open-source (OFL) humanist pairing, loaded via `next/font` in
 - Don't use raw hex, arbitrary colors, or grays outside the token set.
 - Don't use sharp corners, heavy shadows, or 1-px-border-everything enterprise
   chrome. One hairline (`border-border`) and soft elevation is plenty.
-- Don't stack more than one violet CTA per view.
+- Don't stack more than one ember CTA per view.
+- Don't reach for sparkles or gradient text — they're the AI tells. Decorative
+  accents are homey and hand-drawn: steam curls, crumb dots, stitch dashes
+  (see `@/components/illustrations`).
 - Don't write "No data" / "Nothing here" — empty states recruit (see voice).
 - Don't introduce new icon sets; it's `lucide-react` only, generally at
   `size-4`/`size-5`, `text-muted` unless meaningful.

@@ -57,7 +57,6 @@ export default async function NewEventPage({
       <PageHeader
         backHref={club ? `/clubs/${club.id}` : "/events"}
         backLabel={club ? club.name : "All events"}
-        eyebrow="Events"
         title="Plan an event"
         description={
           club

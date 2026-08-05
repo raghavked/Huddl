@@ -107,7 +107,6 @@ export function NotificationList({
   return (
     <div>
       <PageHeader
-        eyebrow="You"
         title="Notifications"
         description={
           <span aria-live="polite">
@@ -171,14 +170,24 @@ export function NotificationList({
                       {notification.title}
                     </span>
                     {notification.body ? (
-                      <span className="mt-0.5 line-clamp-2 block text-sm text-muted">
+                      <span
+                        className={cn(
+                          "mt-0.5 line-clamp-2 block text-sm",
+                          // On the tinted unread row, secondary text tints from
+                          // the surface hue — never gray on a colored surface.
+                          unread ? "text-brand-ink/80" : "text-muted"
+                        )}
+                      >
                         {notification.body}
                       </span>
                     ) : null}
                     <time
                       dateTime={notification.created_at}
                       suppressHydrationWarning
-                      className="mt-1 block text-xs text-muted"
+                      className={cn(
+                        "mt-1 block text-xs",
+                        unread ? "text-brand-ink/60" : "text-muted"
+                      )}
                     >
                       {formatDistanceToNow(new Date(notification.created_at), {
                         addSuffix: true,

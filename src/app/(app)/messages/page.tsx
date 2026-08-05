@@ -111,7 +111,6 @@ export default async function MessagesPage({
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Messages"
         title="Direct messages"
         description="Trade notes, plan study sessions, or just say hi."
         action={

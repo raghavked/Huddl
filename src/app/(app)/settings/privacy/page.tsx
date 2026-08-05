@@ -44,7 +44,6 @@ export default async function PrivacySettingsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Settings"
         title="Privacy & schedule images"
         description="Everything Huddl has ever done with your schedule images, in one place — with a receipt for each step."
         backHref="/settings"

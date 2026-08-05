@@ -1,11 +1,12 @@
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
-/* Huddl illustration library — original, hand-drawn SVG scenes in a   */
-/* soft geometric-humanist style. Everything is token-driven           */
-/* (fill-brand, fill-accent-soft, …) so scenes recolor with the theme  */
-/* and stay on-palette by construction. All scenes are decorative:     */
-/* render them aria-hidden next to real text.                          */
+/* Huddl illustration library — original SVG scenes in a warm,         */
+/* hand-drawn style: tilted shapes, steam curls, crumb dots, stitch    */
+/* dashes. Everything is token-driven (fill-brand, fill-accent-soft,   */
+/* …) so scenes recolor with the theme and stay on-palette by          */
+/* construction. All scenes are decorative: render them aria-hidden    */
+/* next to real text.                                                  */
 /* ------------------------------------------------------------------ */
 
 type SceneProps = { className?: string };
@@ -26,9 +27,50 @@ function Scene({
   );
 }
 
-function Sparkle({ x, y, r = 6, className }: { x: number; y: number; r?: number; className?: string }) {
-  const d = `M ${x} ${y - r} Q ${x + r * 0.18} ${y - r * 0.18} ${x + r} ${y} Q ${x + r * 0.18} ${y + r * 0.18} ${x} ${y + r} Q ${x - r * 0.18} ${y + r * 0.18} ${x - r} ${y} Q ${x - r * 0.18} ${y - r * 0.18} ${x} ${y - r} Z`;
-  return <path d={d} className={cn("fill-brand-2", className)} opacity="0.9" />;
+/* Hand-drawn accents. Each scene carries one or two, never more. */
+
+type AccentProps = { x: number; y: number; className?: string };
+
+/** Three short S-curves of rising steam — kettle-warm, drawn loose. */
+function Steam({ x, y, className }: AccentProps) {
+  return (
+    <g
+      className={cn("stroke-brand-2", className)}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      fill="none"
+      opacity="0.75"
+    >
+      <path d={`M ${x - 7} ${y + 10} c 3 -3.5 -3 -7 0 -10.5`} />
+      <path d={`M ${x + 1} ${y + 13} c 3 -4.5 -3 -9 0 -13.5`} />
+      <path d={`M ${x + 9} ${y + 10} c 3 -3.5 -3 -7 0 -10.5`} />
+    </g>
+  );
+}
+
+/** A scatter of three tiny round crumbs — someone's been snacking here. */
+function Crumbs({ x, y, className }: AccentProps) {
+  return (
+    <g className={cn("fill-brand-2", className)} opacity="0.7">
+      <circle cx={x} cy={y} r="2.5" />
+      <circle cx={x + 8} cy={y + 6} r="1.8" />
+      <circle cx={x + 2} cy={y + 12} r="1.4" />
+    </g>
+  );
+}
+
+/** A short dashed arc — a stitch of thread on fabric. */
+function Stitch({ x, y, className }: AccentProps) {
+  return (
+    <path
+      d={`M ${x - 12} ${y + 4} q 12 -10 24 0`}
+      className={cn("stroke-brand-soft", className)}
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeDasharray="5 6"
+      fill="none"
+    />
+  );
 }
 
 /** Two speech bubbles leaning into each other — chat, DMs, channels. */
@@ -51,8 +93,8 @@ export function ChatScene({ className }: SceneProps) {
         <rect x="108" y="62" width="46" height="6" rx="3" className="fill-surface-3" />
         <rect x="108" y="76" width="32" height="6" rx="3" className="fill-brand-2" opacity="0.8" />
       </g>
-      <Sparkle x={182} y={34} r={8} />
-      <Sparkle x={16} y={22} r={5} className="fill-brand" />
+      <Steam x={176} y={22} />
+      <Crumbs x={14} y={20} className="fill-brand" />
     </Scene>
   );
 }
@@ -75,8 +117,8 @@ export function CalendarScene({ className }: SceneProps) {
         <circle cx="124" cy="90" r="13" className="fill-accent" />
         <path d="M118 90 l4.5 4.5 8 -9" className="stroke-on-solid" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </g>
-      <Sparkle x={164} y={24} r={7} />
-      <Sparkle x={34} y={40} r={5} className="fill-brand" />
+      <Stitch x={164} y={24} />
+      <Crumbs x={30} y={36} className="fill-brand" />
     </Scene>
   );
 }
@@ -98,8 +140,8 @@ export function NotesScene({ className }: SceneProps) {
         <circle cx="120" cy="100" r="10" className="fill-brand-2" opacity="0.9" />
         <path d="M116.5 100 l2.6 2.6 4.6 -5.2" className="stroke-on-solid" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </g>
-      <Sparkle x={172} y={36} r={7} />
-      <Sparkle x={36} y={26} r={5} className="fill-accent" />
+      <Crumbs x={168} y={32} />
+      <Stitch x={36} y={26} className="stroke-accent-soft" />
     </Scene>
   );
 }
@@ -125,8 +167,8 @@ export function HuddleScene({ className }: SceneProps) {
       <circle cx="100" cy="48" r="19" className="fill-brand-soft" />
       <circle cx="100" cy="44" r="8.5" className="fill-brand" />
       <path d="M80 94 a20 22 0 0 1 40 0 v20 h-40 z" className="fill-brand" />
-      <Sparkle x={176} y={30} r={7} />
-      <Sparkle x={24} y={36} r={5} className="fill-brand" />
+      <Stitch x={176} y={28} />
+      <Crumbs x={22} y={32} className="fill-brand" />
     </Scene>
   );
 }
@@ -153,8 +195,8 @@ export function ShieldScene({ className }: SceneProps) {
         strokeLinejoin="round"
         fill="none"
       />
-      <Sparkle x={156} y={30} r={7} />
-      <Sparkle x={44} y={26} r={5} className="fill-brand" />
+      <Stitch x={156} y={28} />
+      <Crumbs x={40} y={22} className="fill-brand" />
     </Scene>
   );
 }
@@ -177,7 +219,7 @@ export function DiscoverScene({ className }: SceneProps) {
       <path d="M112 54 l-8 22 -14 6 8 -22 z" className="fill-brand" />
       <circle cx="100" cy="70" r="4" className="fill-surface" />
       <circle cx="182" cy="44" r="7" className="fill-brand-2" />
-      <Sparkle x={36} y={34} r={6} />
+      <Crumbs x={32} y={28} />
     </Scene>
   );
 }

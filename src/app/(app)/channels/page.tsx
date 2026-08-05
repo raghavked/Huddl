@@ -75,7 +75,6 @@ export default async function ChannelsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Channels"
         title="Your channels"
         description="Campus, courses, topics, clubs — every conversation you're in."
         action={

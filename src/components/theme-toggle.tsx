@@ -24,7 +24,7 @@ function readPref(): ThemePref {
   return stored === "light" || stored === "dark" ? stored : "system";
 }
 
-const THEME_COLORS = { light: "#f8f7fc", dark: "#131020" } as const;
+const THEME_COLORS = { light: "#faf6ee", dark: "#1c1612" } as const;
 
 /* Keep the browser-chrome color in step with a pinned theme; with "system"
    each meta's own media query takes back over. */

@@ -31,7 +31,6 @@ export default async function NewClubPage() {
       <PageHeader
         backHref="/clubs"
         backLabel="All clubs"
-        eyebrow="Clubs"
         title="Start a club"
         description={`Found a new student org at ${user.university.short_name}. Here's what you get:`}
       />

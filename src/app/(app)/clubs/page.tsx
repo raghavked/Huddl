@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, UsersRound } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { HuddleScene } from "@/components/illustrations";
 import { PageHeader, buttonClasses } from "@/components/ui";
@@ -90,7 +90,6 @@ export default async function ClubsPage({
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Clubs"
         title="Clubs"
         description={`Student orgs at ${user.university.short_name} — find your people or found them.`}
         action={clubs.length === 0 ? undefined : startButton}
@@ -123,7 +122,7 @@ export default async function ClubsPage({
         <div className="mt-6 rounded-card border border-dashed border-border">
           <EmptyState
             illustration={<HuddleScene />}
-            icon={Sparkles}
+            icon={UsersRound}
             title={active ? `No ${active} clubs yet` : "No clubs yet"}
             description={
               active

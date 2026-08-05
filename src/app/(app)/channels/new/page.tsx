@@ -29,7 +29,6 @@ export default async function NewChannelPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Channels"
         title="Start a topic channel"
         description={`Dorm gossip, intramural soccer, late-night ramen runs — if it's a thing at ${user.university.short_name}, it deserves a channel.`}
         backHref="/channels"

@@ -2,7 +2,6 @@ import { cn } from "@/lib/utils";
 
 export type ButtonVariant =
   | "primary"
-  | "gradient"
   | "secondary"
   | "soft"
   | "ghost"
@@ -18,8 +17,6 @@ const BASE =
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-brand text-brand-fg shadow-soft hover:bg-brand-strong",
-  gradient:
-    "bg-gradient-brand text-brand-fg shadow-soft hover:shadow-lift hover:brightness-105",
   secondary:
     "border border-border bg-surface shadow-soft hover:bg-surface-2 hover:border-brand/30",
   soft: "bg-brand-soft text-brand-ink hover:bg-brand hover:text-brand-fg",

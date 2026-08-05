@@ -100,7 +100,6 @@ export default async function ClubPage({
       <PageHeader
         backHref="/clubs"
         backLabel="All clubs"
-        eyebrow="Clubs"
         title={club.name}
       />
 

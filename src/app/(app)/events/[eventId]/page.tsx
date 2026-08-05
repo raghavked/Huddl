@@ -166,7 +166,6 @@ export default async function EventPage({
         <PageHeader
           backHref={`/events/${event.id}`}
           backLabel="Back to event"
-          eyebrow="Events"
           title="Edit event"
         />
         <div
@@ -217,7 +216,6 @@ export default async function EventPage({
       <PageHeader
         backHref="/events"
         backLabel="All events"
-        eyebrow="Events"
         title={event.title}
         description={
           event.creator ? (

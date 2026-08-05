@@ -19,12 +19,12 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-/** The mark on a violet→raspberry gradient tile — app icon energy. */
+/** The mark on a solid ember tile — app icon energy, no gradient. */
 export function LogoTile({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "flex size-10 items-center justify-center rounded-xl bg-gradient-brand text-brand-fg shadow-soft",
+        "flex size-10 items-center justify-center rounded-xl bg-brand text-brand-fg shadow-soft",
         className
       )}
     >

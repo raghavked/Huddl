@@ -87,7 +87,6 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Settings"
         title="Settings"
         description="Your profile, trust badge and privacy — all in one place."
       />

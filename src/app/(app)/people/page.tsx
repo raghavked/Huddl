@@ -69,7 +69,6 @@ export default async function PeoplePage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Campus"
         title="People"
         description={`${count} ${count === 1 ? "student" : "students"} at ${user.university.short_name} — find classmates to trade notes or study with.`}
       />
