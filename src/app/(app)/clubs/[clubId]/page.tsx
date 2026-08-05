@@ -19,6 +19,7 @@ import {
   cardClasses,
 } from "@/components/ui";
 import { CategoryBadge, MembershipActions } from "@/features/clubs/club-card";
+import { DateTile } from "@/features/events/event-chips";
 import { ClubEditor, DisbandClubButton } from "@/features/clubs/club-form";
 import { Roster, sortRoster, type RosterEntry } from "@/features/clubs/roster";
 import { getCurrentUser } from "@/lib/auth";
@@ -41,23 +42,6 @@ export async function generateMetadata({
   return { title: club?.name ?? "Club" };
 }
 
-/** Weekday-over-day date tile — accent for calendar-ish rows. */
-function DateTile({ iso }: { iso: string }) {
-  const d = new Date(iso);
-  return (
-    <span
-      aria-hidden
-      className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl bg-accent-soft text-accent"
-    >
-      <span className="text-[10px] font-bold uppercase leading-none tracking-wide">
-        {d.toLocaleDateString([], { weekday: "short" })}
-      </span>
-      <span className="mt-0.5 text-lg font-bold leading-none">
-        {d.getDate()}
-      </span>
-    </span>
-  );
-}
 
 export default async function ClubPage({
   params,
@@ -132,7 +116,7 @@ export default async function ClubPage({
             {roster.length} {roster.length === 1 ? "member" : "members"}
           </Badge>
           {myRole ? (
-            <Badge tone="success">
+            <Badge tone="brand">
               <Check className="size-3" aria-hidden />
               {myRole === "member"
                 ? "Joined"

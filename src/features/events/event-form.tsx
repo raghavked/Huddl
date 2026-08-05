@@ -230,7 +230,7 @@ export function EventForm({
                 <span
                   className={cn(
                     "inline-flex items-center gap-1.5 text-sm font-semibold",
-                    active && "text-brand-strong"
+                    active && "text-brand-ink"
                   )}
                 >
                   <Icon className="size-4" aria-hidden />

@@ -99,7 +99,7 @@ function PersonCard({
                   </Badge>
                 ) : null}
                 {person.grad_year ? (
-                  <Badge tone="accent">Class of {person.grad_year}</Badge>
+                  <Badge tone="neutral">Class of {person.grad_year}</Badge>
                 ) : null}
               </span>
             ) : null}

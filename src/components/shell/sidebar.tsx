@@ -42,7 +42,7 @@ function NavLink({
       className={cn(
         "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
         active
-          ? "bg-brand-soft font-semibold text-brand-strong"
+          ? "bg-brand-soft font-semibold text-brand-ink"
           : "font-medium text-muted hover:bg-surface-2 hover:text-foreground"
       )}
     >

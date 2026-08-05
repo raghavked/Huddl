@@ -24,6 +24,24 @@ function readPref(): ThemePref {
   return stored === "light" || stored === "dark" ? stored : "system";
 }
 
+const THEME_COLORS = { light: "#f8f6f2", dark: "#121120" } as const;
+
+/* Keep the browser-chrome color in step with a pinned theme; with "system"
+   each meta's own media query takes back over. */
+function syncThemeColorMeta(pref: ThemePref) {
+  document
+    .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+    .forEach((meta) => {
+      if (pref === "system") {
+        meta.content = meta.media.includes("dark")
+          ? THEME_COLORS.dark
+          : THEME_COLORS.light;
+      } else {
+        meta.content = THEME_COLORS[pref];
+      }
+    });
+}
+
 function applyPref(pref: ThemePref) {
   if (pref === "system") {
     delete document.documentElement.dataset.theme;
@@ -32,6 +50,7 @@ function applyPref(pref: ThemePref) {
     document.documentElement.dataset.theme = pref;
     localStorage.setItem("huddl-theme", pref);
   }
+  syncThemeColorMeta(pref);
 }
 
 /** Three-way light / system / dark switch, persisted in localStorage. */
@@ -39,7 +58,9 @@ export function ThemeToggle({ className }: { className?: string }) {
   // Render the neutral "system" state on the server, then sync after mount.
   const [pref, setPref] = useState<ThemePref>("system");
   useEffect(() => {
-    setPref(readPref());
+    const stored = readPref();
+    setPref(stored);
+    syncThemeColorMeta(stored);
   }, []);
 
   return (
@@ -84,7 +105,9 @@ export function ThemeToggle({ className }: { className?: string }) {
 export function ThemeToggleCompact({ className }: { className?: string }) {
   const [pref, setPref] = useState<ThemePref>("system");
   useEffect(() => {
-    setPref(readPref());
+    const stored = readPref();
+    setPref(stored);
+    syncThemeColorMeta(stored);
   }, []);
 
   const current = OPTIONS.find((o) => o.value === pref) ?? OPTIONS[1];

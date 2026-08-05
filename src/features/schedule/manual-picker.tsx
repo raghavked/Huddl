@@ -238,7 +238,7 @@ export function ManualPicker({
               setAddError(null);
             }}
             aria-expanded={addOpen}
-            className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-sm font-semibold text-brand transition-colors hover:text-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-sm font-semibold text-brand transition-colors hover:text-brand-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             {addOpen ? (
               <X className="size-4" aria-hidden />

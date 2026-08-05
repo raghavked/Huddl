@@ -89,10 +89,10 @@ export default async function ClubsPage({
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Campus"
+        eyebrow="Clubs"
         title="Clubs"
         description={`Student orgs at ${user.university.short_name} — find your people or found them.`}
-        action={startButton}
+        action={clubs.length === 0 ? undefined : startButton}
       />
 
       <nav

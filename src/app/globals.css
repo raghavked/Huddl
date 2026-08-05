@@ -15,17 +15,22 @@
   --surface-2: #f1ede6;
   --surface-3: #e8e3d9;
   --border: #e4dfd4;
-  --muted: #6f6a7e;
+  --muted: #656070;
   --brand: #e85d3d;
   --brand-strong: #cf4526;
   --brand-soft: #fdeae3;
   --brand-2: #f0913d;
-  --brand-fg: #ffffff;
+  /* Dark brand ink: text/icons ON brand + gradient fills (AA on both stops). */
+  --brand-fg: #3a1206;
+  /* Readable brand-colored text on soft/neutral fills (AA on brand-soft). */
+  --brand-ink: #c03d1e;
+  /* White foreground for saturated status fills (accent/success/danger). */
+  --on-solid: #ffffff;
   --accent: #2a6f77;
   --accent-soft: #e0eff0;
-  --success: #2e7d4f;
-  --danger: #c73a3a;
-  --warning: #b97e12;
+  --success: #25683f;
+  --danger: #b32d2d;
+  --warning: #8a5c00;
   --shadow-tint: 23 20 40;
   color-scheme: light;
 }
@@ -44,7 +49,9 @@
     --brand-strong: #e85d3d;
     --brand-soft: #3b2721;
     --brand-2: #f0a04f;
-    --brand-fg: #ffffff;
+    --brand-fg: #3a1206;
+    --brand-ink: #f0704f;
+    --on-solid: #ffffff;
     --accent: #4fa3ac;
     --accent-soft: #1d3336;
     --success: #4caf7d;
@@ -67,7 +74,9 @@
   --brand-strong: #e85d3d;
   --brand-soft: #3b2721;
   --brand-2: #f0a04f;
-  --brand-fg: #ffffff;
+  --brand-fg: #3a1206;
+  --brand-ink: #f0704f;
+  --on-solid: #ffffff;
   --accent: #4fa3ac;
   --accent-soft: #1d3336;
   --success: #4caf7d;
@@ -90,6 +99,8 @@
   --color-brand-soft: var(--brand-soft);
   --color-brand-2: var(--brand-2);
   --color-brand-fg: var(--brand-fg);
+  --color-brand-ink: var(--brand-ink);
+  --color-on-solid: var(--on-solid);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-success: var(--success);

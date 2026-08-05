@@ -14,7 +14,7 @@ const PX = { xs: 24, sm: 32, md: 40, lg: 56, xl: 96 } as const;
 /* Fallback tones cycle deterministically per name so a roster reads as a
    crowd, not a wall of one color — token palette only. */
 const TONES = [
-  "bg-brand-soft text-brand-strong",
+  "bg-brand-soft text-brand-ink",
   "bg-accent-soft text-accent",
   "bg-surface-3 text-foreground",
 ] as const;

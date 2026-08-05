@@ -11,12 +11,12 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import {
-  Badge,
   PageHeader,
   SectionHeader,
   buttonClasses,
   cardClasses,
 } from "@/components/ui";
+import { KindBadge } from "@/features/events/event-chips";
 import { JoinButton } from "@/features/discover/join-button";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -121,7 +121,7 @@ export default async function HomePage() {
           linkLabel="All channels"
         />
         {campusChannels.length === 0 ? (
-          <div className={cardClasses({ padding: "none", className: "mt-3" })}>
+          <div className="mt-3 rounded-card border border-dashed border-border">
             <EmptyState
               icon={Megaphone}
               title="No campus channels yet"
@@ -129,7 +129,7 @@ export default async function HomePage() {
               action={
                 <Link
                   href="/channels/browse"
-                  className={buttonClasses({ size: "sm" })}
+                  className={buttonClasses({ variant: "secondary", size: "sm" })}
                 >
                   Browse channels
                 </Link>
@@ -249,15 +249,21 @@ export default async function HomePage() {
       <section className="mt-8" aria-label="Coming up">
         <SectionHeader title="Coming up" href="/events" linkLabel="All events" />
         {events.length === 0 ? (
-          <div className="mt-3 rounded-card border border-dashed border-border p-4 text-sm text-muted">
-            Nothing on the calendar yet.{" "}
-            <Link
-              href="/events"
-              className="font-semibold text-accent hover:underline"
-            >
-              Browse events
-            </Link>{" "}
-            or plan a study session of your own.
+          <div className="mt-3 rounded-card border border-dashed border-border">
+            <EmptyState
+              className="py-10"
+              icon={CalendarDays}
+              title="Nothing on the calendar yet"
+              description="Browse what's coming up, or plan a study session of your own."
+              action={
+                <Link
+                  href="/events"
+                  className={buttonClasses({ variant: "secondary", size: "sm" })}
+                >
+                  Browse events
+                </Link>
+              }
+            />
           </div>
         ) : (
           <ul className="mt-3 flex flex-col gap-2.5">
@@ -283,9 +289,7 @@ export default async function HomePage() {
                       {event.location ? ` · ${event.location}` : ""}
                     </span>
                   </span>
-                  <Badge tone="neutral">
-                    {event.kind === "study_session" ? "Study session" : "Meetup"}
-                  </Badge>
+                  <KindBadge kind={event.kind} />
                 </Link>
               </li>
             ))}
@@ -297,15 +301,13 @@ export default async function HomePage() {
       <section className="mt-8" aria-label="Discover">
         <SectionHeader title="Discover" />
         {discover.length === 0 ? (
-          <div className="mt-3 rounded-card border border-dashed border-border p-4 text-sm text-muted">
-            Nothing new to discover right now — you&apos;re in on everything.{" "}
-            <Link
-              href="/channels/new"
-              className="font-semibold text-accent hover:underline"
-            >
-              Start the next big channel
-            </Link>
-            .
+          <div className="mt-3 rounded-card border border-dashed border-border">
+            <EmptyState
+              className="py-10"
+              icon={Hash}
+              title="You're in on everything"
+              description="Nothing new to discover right now — maybe it's time to start the next big channel."
+            />
           </div>
         ) : (
           <ul className="mt-3 flex flex-col gap-2.5">

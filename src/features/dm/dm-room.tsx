@@ -388,7 +388,7 @@ export function DmRoom({
                     m.deleted_at
                       ? "border border-dashed border-border bg-surface-2/60 italic text-muted"
                       : own
-                        ? "bg-brand-soft text-foreground"
+                        ? "border border-brand/60 bg-brand-soft text-foreground"
                         : "bg-surface-2 text-foreground",
                     lastOfGroup && !m.deleted_at
                       ? own

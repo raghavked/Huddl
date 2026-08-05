@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AlertCircle, MessageCircle, UserRoundSearch } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
-import { PageHeader, buttonClasses, cardClasses } from "@/components/ui";
+import { PageHeader, buttonClasses } from "@/components/ui";
 import { ThreadListItem } from "@/features/dm/thread-list-item";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -114,13 +114,15 @@ export default async function MessagesPage({
         title="Direct messages"
         description="Trade notes, plan study sessions, or just say hi."
         action={
-          <Link
-            href="/people"
-            className={buttonClasses({ size: "sm", className: "gap-1.5" })}
-          >
-            <UserRoundSearch className="size-4" aria-hidden />
-            New message
-          </Link>
+          threads.length === 0 ? undefined : (
+            <Link
+              href="/people"
+              className={buttonClasses({ size: "sm", className: "gap-1.5" })}
+            >
+              <UserRoundSearch className="size-4" aria-hidden />
+              New message
+            </Link>
+          )
         }
       />
 
@@ -135,7 +137,7 @@ export default async function MessagesPage({
       ) : null}
 
       {threads.length === 0 ? (
-        <div className={cardClasses({ padding: "none", className: "mt-6" })}>
+        <div className="mt-6 rounded-card border border-dashed border-border">
           <EmptyState
             icon={MessageCircle}
             title="No conversations yet"

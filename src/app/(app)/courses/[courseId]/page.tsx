@@ -241,7 +241,7 @@ export default async function CoursePage({
 
       <nav
         aria-label="Course sections"
-        className="mt-6 flex gap-1 rounded-full border border-border bg-surface-2 p-1"
+        className="mt-6 inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-border bg-surface-2 p-1"
       >
         {tabs.map((item) => (
           <Link
@@ -249,7 +249,7 @@ export default async function CoursePage({
             href={item.href}
             aria-current={tab === item.key ? "page" : undefined}
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+              "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
               tab === item.key
                 ? "bg-surface text-foreground shadow-soft"
                 : "text-muted hover:text-foreground"
@@ -260,7 +260,7 @@ export default async function CoursePage({
               className={cn(
                 "rounded-full px-1.5 py-0.5 text-[11px] font-semibold",
                 tab === item.key
-                  ? "bg-brand-soft text-brand-strong"
+                  ? "bg-brand-soft text-brand-ink"
                   : "bg-surface-3 text-muted"
               )}
             >

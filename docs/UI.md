@@ -9,10 +9,17 @@ Everything below ships from `src/app/globals.css` and `src/components/ui/`.
 
 ## Tokens
 
-Color tokens are unchanged in spirit (see `BRAND.md` §4) with one addition:
+Color tokens are unchanged in spirit (see `BRAND.md` §4) with three additions:
 
 - `brand-2` — sunset amber. **Gradients only** (`.bg-gradient-brand`,
   `.text-gradient-brand`); never a flat fill or text color on its own.
+- `brand-fg` — dark brand *ink*, not white: the text/icon color on `bg-brand`
+  and `.bg-gradient-brand` fills (AA on both gradient stops, both themes).
+- `brand-ink` — readable brand-colored text on soft/neutral fills
+  (`bg-brand-soft` chips, active nav, dock labels). Use it wherever coral
+  *text* sits on a light fill; `text-brand` is for icons only there.
+- `on-solid` — white foreground for saturated status fills
+  (`bg-accent`/`bg-success`/`bg-danger` solids).
 
 New non-color tokens:
 

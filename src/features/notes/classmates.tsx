@@ -75,7 +75,7 @@ export function Classmates({
                     <span className="truncate text-sm font-semibold">
                       {entry.profile.display_name}
                     </span>
-                    {isMe ? <Badge tone="neutral">You</Badge> : null}
+                    {isMe ? <Badge tone="brand">You</Badge> : null}
                     <RoleBadge role={entry.role} />
                   </span>
                   <span className="block truncate text-xs text-muted">

@@ -7,7 +7,6 @@ import {
   Clock,
   HelpCircle,
   MapPin,
-  PartyPopper,
   Pencil,
   Users,
   UsersRound,
@@ -28,6 +27,7 @@ import {
   EventForm,
   type CourseOption,
 } from "@/features/events/event-form";
+import { DateTile, KindBadge } from "@/features/events/event-chips";
 import { RsvpBar } from "@/features/events/rsvp-bar";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -35,7 +35,6 @@ import { cn, formatEventTime } from "@/lib/utils";
 import type {
   CampusEvent,
   Course,
-  EventKind,
   EventRsvp,
   Profile,
   RsvpStatus,
@@ -64,37 +63,6 @@ export async function generateMetadata({
   return { title: event?.title ?? "Event" };
 }
 
-/** Hero date tile: weekday small caps, day number, month. */
-function HeroDateTile({ iso }: { iso: string }) {
-  const d = new Date(iso);
-  return (
-    <span
-      aria-hidden
-      className="flex size-16 shrink-0 flex-col items-center justify-center rounded-xl bg-brand-soft text-brand-strong"
-    >
-      <span className="text-[10px] font-bold uppercase leading-none tracking-wide">
-        {d.toLocaleDateString([], { weekday: "short" })}
-      </span>
-      <span className="mt-0.5 text-2xl font-bold leading-none">
-        {d.getDate()}
-      </span>
-      <span className="mt-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide">
-        {d.toLocaleDateString([], { month: "short" })}
-      </span>
-    </span>
-  );
-}
-
-function KindBadge({ kind }: { kind: EventKind }) {
-  const isStudy = kind === "study_session";
-  const Icon = isStudy ? BookOpen : PartyPopper;
-  return (
-    <Badge tone={isStudy ? "accent" : "brand"}>
-      <Icon className="size-3.5" aria-hidden />
-      {isStudy ? "Study session" : "Meetup"}
-    </Badge>
-  );
-}
 
 function AttendeeGroup({
   icon: Icon,
@@ -277,7 +245,7 @@ export default async function EventPage({
         aria-label="Event details"
       >
         <div className="flex items-start gap-4">
-          <HeroDateTile iso={event.starts_at} />
+          <DateTile iso={event.starts_at} size="lg" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <KindBadge kind={event.kind} />

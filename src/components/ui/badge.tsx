@@ -9,7 +9,7 @@ export type BadgeTone =
   | "danger";
 
 const TONES: Record<BadgeTone, string> = {
-  brand: "bg-brand-soft text-brand-strong",
+  brand: "bg-brand-soft text-brand-ink",
   accent: "bg-accent-soft text-accent",
   neutral: "bg-surface-2 text-muted",
   success: "bg-success/10 text-success",
@@ -19,11 +19,11 @@ const TONES: Record<BadgeTone, string> = {
 
 const SOLID: Record<BadgeTone, string> = {
   brand: "bg-brand text-brand-fg",
-  accent: "bg-accent text-brand-fg",
+  accent: "bg-accent text-on-solid",
   neutral: "bg-surface-3 text-foreground",
-  success: "bg-success text-brand-fg",
-  warning: "bg-warning text-brand-fg",
-  danger: "bg-danger text-brand-fg",
+  success: "bg-success text-on-solid",
+  warning: "bg-warning text-on-solid",
+  danger: "bg-danger text-on-solid",
 };
 
 export function Badge({

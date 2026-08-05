@@ -44,8 +44,8 @@ export default async function NewChannelPage() {
       >
         {PERKS.map(({ icon: Icon, text }) => (
           <li key={text} className="flex items-center gap-3 text-sm">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
-              <Icon className="size-4" aria-hidden />
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+              <Icon className="size-5" aria-hidden />
             </span>
             <span>{text}</span>
           </li>

@@ -128,7 +128,7 @@ export default function LandingPage() {
 
           <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 sm:pt-24">
             <div className="mx-auto flex max-w-2xl animate-fade-up flex-col items-center text-center">
-              <p className="inline-flex items-center gap-2 rounded-full border border-brand/20 bg-brand-soft px-3.5 py-1.5 text-xs font-semibold text-brand-strong shadow-soft">
+              <p className="inline-flex items-center gap-2 rounded-full border border-brand/20 bg-brand-soft px-3.5 py-1.5 text-xs font-semibold text-brand-ink shadow-soft">
                 <span
                   aria-hidden="true"
                   className="size-1.5 rounded-full bg-brand"
@@ -449,11 +449,11 @@ export default function LandingPage() {
           <div className="relative overflow-hidden rounded-card bg-gradient-brand px-6 py-14 text-center shadow-lift sm:px-12 sm:py-20">
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute -top-24 left-1/4 size-72 rounded-full bg-brand-fg/15 blur-3xl"
+              className="pointer-events-none absolute -top-24 left-1/4 size-72 rounded-full bg-on-solid/15 blur-3xl"
             />
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute -bottom-28 right-[-10%] size-80 rounded-full bg-brand-fg/10 blur-3xl"
+              className="pointer-events-none absolute -bottom-28 right-[-10%] size-80 rounded-full bg-on-solid/10 blur-3xl"
             />
             <div className="relative">
               <LogoMark className="mx-auto size-10 text-brand-fg" />
@@ -463,7 +463,7 @@ export default function LandingPage() {
               >
                 Your classmates are one huddle away
               </h2>
-              <p className="mx-auto mt-3 max-w-md text-sm text-brand-fg/85 sm:text-base">
+              <p className="mx-auto mt-3 max-w-md text-sm text-brand-fg sm:text-base">
                 It takes your school email and about a minute. Your course
                 channels are already waiting.
               </p>
@@ -546,7 +546,7 @@ function FeatureCard({
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
           <Icon aria-hidden className="size-5" />
         </span>
-        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-strong">
+        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-ink">
           {kicker}
         </span>
       </div>
@@ -631,7 +631,7 @@ function FakeAvatar({ label, accent }: { label: string; accent?: boolean }) {
     <span
       className={cn(
         "inline-flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
-        accent ? "bg-accent-soft text-accent" : "bg-brand-soft text-brand-strong"
+        accent ? "bg-accent-soft text-accent" : "bg-brand-soft text-brand-ink"
       )}
     >
       {label}
@@ -695,7 +695,7 @@ function DmVignette() {
         <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
           Messages
         </span>
-        <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-semibold text-brand-strong">
+        <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-semibold text-brand-ink">
           2 new
         </span>
       </div>
@@ -797,7 +797,7 @@ function SyncVignette() {
     {
       slug: "phys-9b",
       tag: "From your schedule",
-      tagClass: "bg-brand-soft text-brand-strong",
+      tagClass: "bg-brand-soft text-brand-ink",
     },
     {
       slug: "cs-61b",
@@ -843,7 +843,7 @@ function NotesVignette() {
           key={file.name}
           className="flex items-center gap-3 rounded-xl border border-border/60 bg-background px-3 py-2"
         >
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-strong">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-ink">
             <FileText className="size-4" />
           </span>
           <div className="min-w-0 flex-1">
@@ -902,7 +902,7 @@ function CampusVignette() {
             key={slug}
             className={cn(
               "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold",
-              i === 1 ? "bg-brand-soft text-brand-strong" : "bg-surface-2 text-muted"
+              i === 1 ? "bg-brand-soft text-brand-ink" : "bg-surface-2 text-muted"
             )}
           >
             <Hash className="size-3" />

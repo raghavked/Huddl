@@ -12,6 +12,7 @@ import {
   Plus,
   Search,
   SearchX,
+  Users,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -270,10 +271,11 @@ export function ChannelBrowser({ channels }: { channels: BrowseChannel[] }) {
                           </span>
                         ) : null}
                         {channel.memberCount !== null ? (
-                          <span className="block text-xs text-muted">
+                          <Badge tone="neutral" className="mt-1.5">
+                            <Users className="size-3" aria-hidden />
                             {channel.memberCount} member
                             {channel.memberCount === 1 ? "" : "s"}
-                          </span>
+                          </Badge>
                         ) : null}
                       </Link>
                       <JoinAffordance channel={channel} />

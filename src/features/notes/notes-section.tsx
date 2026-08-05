@@ -242,7 +242,7 @@ export function NotesSection({
                         disabled={downloadingId === note.id}
                         aria-label={`Download ${note.title}`}
                         title="Download"
-                        className="rounded-full p-2 text-muted transition-colors hover:bg-brand-soft hover:text-brand-strong disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                        className="rounded-full p-2 text-muted transition-colors hover:bg-brand-soft hover:text-brand-ink disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                       >
                         {downloadingId === note.id ? (
                           <Loader2 className="size-4 animate-spin" aria-hidden />

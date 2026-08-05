@@ -433,7 +433,7 @@ export function CanvasConnect({
               onClick={() => setHelpOpen((open) => !open)}
               aria-expanded={helpOpen}
               aria-controls={helpId}
-              className="inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-brand transition-colors hover:text-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className="inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-brand transition-colors hover:text-brand-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               <ChevronDown
                 className={cn(
@@ -485,7 +485,7 @@ export function CanvasConnect({
 
           {error ? <ErrorAlert message={error} /> : null}
 
-          <Button type="submit" variant="gradient" disabled={busy} className="w-full">
+          <Button type="submit" disabled={busy} className="w-full">
             {phase === "connecting" ? (
               <>
                 <Loader2 className="size-4 animate-spin" aria-hidden />

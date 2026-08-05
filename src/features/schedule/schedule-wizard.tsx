@@ -453,7 +453,7 @@ export function ScheduleWizard({
             Prefer not to use a photo?{" "}
             <Link
               href="/setup/manual"
-              className="font-medium text-brand hover:text-brand-strong"
+              className="font-medium text-brand hover:text-brand-ink"
             >
               Pick courses manually
             </Link>
@@ -670,7 +670,7 @@ export function ScheduleWizard({
                         type="button"
                         disabled={addingCode !== null}
                         onClick={() => addCourseFromCode(code)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border bg-surface-2 px-3 py-1.5 text-xs font-semibold transition-colors hover:border-brand/60 hover:text-brand-strong disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border bg-surface-2 px-3 py-1.5 text-xs font-semibold transition-colors hover:border-brand/60 hover:text-brand-ink disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                       >
                         {addingCode === code ? (
                           <Loader2 className="size-3.5 animate-spin" aria-hidden />
@@ -739,7 +739,7 @@ export function ScheduleWizard({
                   from the{" "}
                   <Link
                     href="/setup/manual"
-                    className="font-medium text-brand hover:text-brand-strong"
+                    className="font-medium text-brand hover:text-brand-ink"
                   >
                     manual picker
                   </Link>
@@ -831,7 +831,7 @@ export function ScheduleWizard({
                 <span
                   aria-hidden
                   className={cn(
-                    "absolute top-1 size-5 rounded-full bg-brand-fg shadow-soft transition-[left]",
+                    "absolute top-1 size-5 rounded-full bg-on-solid shadow-soft transition-[left]",
                     storeImage ? "left-6" : "left-1"
                   )}
                 />

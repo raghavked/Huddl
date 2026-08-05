@@ -2,14 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  BookOpen,
   CalendarDays,
   CheckCircle2,
   Clock,
   HelpCircle,
   History,
   MapPin,
-  PartyPopper,
   Plus,
   Users,
   XCircle,
@@ -22,6 +20,7 @@ import {
   buttonClasses,
   cardClasses,
 } from "@/components/ui";
+import { DateTile, KindBadge } from "@/features/events/event-chips";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { cn, formatEventTime } from "@/lib/utils";
@@ -61,35 +60,6 @@ function chipClasses(active: boolean): string {
     active
       ? "bg-brand text-brand-fg shadow-soft"
       : "bg-surface-2 text-muted hover:bg-surface-3 hover:text-foreground"
-  );
-}
-
-/** Weekday small caps over day number — the v2 event signature. */
-function DateTile({ iso }: { iso: string }) {
-  const d = new Date(iso);
-  return (
-    <span
-      aria-hidden
-      className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl bg-brand-soft text-brand-strong"
-    >
-      <span className="text-[10px] font-bold uppercase leading-none tracking-wide">
-        {d.toLocaleDateString([], { weekday: "short" })}
-      </span>
-      <span className="mt-0.5 text-lg font-bold leading-none">
-        {d.getDate()}
-      </span>
-    </span>
-  );
-}
-
-function KindBadge({ kind }: { kind: EventKind }) {
-  const isStudy = kind === "study_session";
-  const Icon = isStudy ? BookOpen : PartyPopper;
-  return (
-    <Badge tone={isStudy ? "accent" : "brand"}>
-      <Icon className="size-3.5" aria-hidden />
-      {isStudy ? "Study session" : "Meetup"}
-    </Badge>
   );
 }
 
@@ -163,7 +133,7 @@ export default async function EventsPage({
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        eyebrow="Campus"
+        eyebrow="Events"
         title={showPast ? "Past events" : "Events"}
         description={
           showPast
@@ -172,7 +142,7 @@ export default async function EventsPage({
         }
         backHref={showPast ? eventsHref(activeKind, false) : undefined}
         backLabel="Upcoming events"
-        action={planButton}
+        action={events.length === 0 && !showPast ? undefined : planButton}
       />
 
       <nav

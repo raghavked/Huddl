@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import {
   BadgeCheck,
   BookOpen,
+  ChevronLeft,
   GraduationCap,
   Hash,
   Lock,
@@ -11,6 +12,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
+import { EmptyState } from "@/components/empty-state";
 import {
   Badge,
   SectionHeader,
@@ -163,6 +165,14 @@ export default async function ProfilePage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <Link
+        href="/people"
+        className="mb-3 inline-flex items-center gap-1 rounded-full text-sm font-semibold text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+      >
+        <ChevronLeft className="size-4" aria-hidden />
+        People
+      </Link>
+
       {/* Hero */}
       <section
         className={cardClasses({ padding: "lg", className: "animate-fade-up" })}
@@ -179,7 +189,7 @@ export default async function ProfilePage({
                 {profile.display_name}
               </h1>
               {profile.phone_verified_at ? (
-                <Badge tone="accent" title="Phone number verified">
+                <Badge tone="success" title="Phone number verified">
                   <BadgeCheck className="size-3.5" aria-hidden />
                   Verified
                 </Badge>
@@ -236,22 +246,31 @@ export default async function ProfilePage({
       >
         <SectionHeader title={isMe ? "Your courses" : "Courses together"} />
         {sharedCourses.length === 0 ? (
-          <p className="mt-3 px-1 text-sm text-muted">
-            {isMe ? (
-              <>
-                You haven&apos;t added any courses yet.{" "}
-                <Link
-                  href="/setup"
-                  className="font-semibold text-accent hover:underline"
-                >
-                  Add your classes
-                </Link>{" "}
-                to unlock course chat and notes.
-              </>
-            ) : (
-              `You and ${firstName} don't share any courses this term.`
-            )}
-          </p>
+          <div className="mt-3 rounded-card border border-dashed border-border">
+            <EmptyState
+              className="py-10"
+              icon={BookOpen}
+              title={isMe ? "No courses yet" : "No courses together"}
+              description={
+                isMe
+                  ? "Add your classes to unlock course chat and notes."
+                  : `You and ${firstName} don't share any courses this term.`
+              }
+              action={
+                isMe ? (
+                  <Link
+                    href="/setup"
+                    className={buttonClasses({
+                      variant: "secondary",
+                      size: "sm",
+                    })}
+                  >
+                    Add your classes
+                  </Link>
+                ) : undefined
+              }
+            />
+          </div>
         ) : (
           <ul className="mt-3 flex flex-wrap gap-2">
             {sharedCourses.map((course) => (
@@ -259,7 +278,7 @@ export default async function ProfilePage({
                 <Link
                   href={`/courses/${course.id}`}
                   title={course.title}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1.5 text-sm font-semibold text-brand-strong transition-colors hover:bg-brand hover:text-brand-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1.5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand hover:text-brand-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 >
                   <BookOpen className="size-3.5" aria-hidden />
                   {course.code}
@@ -279,21 +298,33 @@ export default async function ProfilePage({
           title={isMe ? "Your campus channels" : "Campus channels in common"}
         />
         {sharedChannels.length === 0 ? (
-          <p className="mt-3 px-1 text-sm text-muted">
-            {isMe ? (
-              <>
-                You&apos;re not in any campus channels yet.{" "}
-                <Link
-                  href="/channels/browse"
-                  className="font-semibold text-accent hover:underline"
-                >
-                  Browse channels
-                </Link>
-              </>
-            ) : (
-              `No campus channels in common with ${firstName} yet.`
-            )}
-          </p>
+          <div className="mt-3 rounded-card border border-dashed border-border">
+            <EmptyState
+              className="py-10"
+              icon={Hash}
+              title={
+                isMe ? "No campus channels yet" : "No channels in common"
+              }
+              description={
+                isMe
+                  ? "Browse the campus channels and join the conversations you care about."
+                  : `No campus channels in common with ${firstName} yet.`
+              }
+              action={
+                isMe ? (
+                  <Link
+                    href="/channels/browse"
+                    className={buttonClasses({
+                      variant: "secondary",
+                      size: "sm",
+                    })}
+                  >
+                    Browse channels
+                  </Link>
+                ) : undefined
+              }
+            />
+          </div>
         ) : (
           <ul className="mt-3 flex flex-wrap gap-2">
             {sharedChannels.map((channel) => (

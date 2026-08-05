@@ -220,7 +220,7 @@ export function ClubCard({
           </div>
         </div>
         {myRole !== null ? (
-          <Badge tone="success" className="relative z-10">
+          <Badge tone="brand" className="relative z-10">
             <Check className="size-3" aria-hidden />
             {myRole === "member"
               ? "Joined"
@@ -230,6 +230,7 @@ export function ClubCard({
           </Badge>
         ) : (
           <Button
+            variant="soft"
             size="sm"
             className="relative z-10"
             disabled={isPending}

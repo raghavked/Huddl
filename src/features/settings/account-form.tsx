@@ -363,7 +363,7 @@ export function AccountForm({
             <span
               aria-hidden
               className={cn(
-                "absolute top-1 size-5 rounded-full bg-brand-fg shadow-soft transition-[left]",
+                "absolute top-1 size-5 rounded-full bg-on-solid shadow-soft transition-[left]",
                 isPublic ? "left-6" : "left-1"
               )}
             />

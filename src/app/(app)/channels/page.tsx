@@ -78,13 +78,15 @@ export default async function ChannelsPage() {
         title="Your channels"
         description="Campus, courses, topics, clubs — every conversation you're in."
         action={
-          <Link
-            href="/channels/new"
-            className={buttonClasses({ size: "sm", className: "gap-1.5" })}
-          >
-            <Plus className="size-4" aria-hidden />
-            New channel
-          </Link>
+          channels.length === 0 ? undefined : (
+            <Link
+              href="/channels/new"
+              className={buttonClasses({ size: "sm", className: "gap-1.5" })}
+            >
+              <Plus className="size-4" aria-hidden />
+              New channel
+            </Link>
+          )
         }
       />
 
@@ -98,7 +100,7 @@ export default async function ChannelsPage() {
       </div>
 
       {channels.length === 0 ? (
-        <div className={cardClasses({ padding: "none", className: "mt-6" })}>
+        <div className="mt-6 rounded-card border border-dashed border-border">
           <EmptyState
             icon={Hash}
             title="No channels yet"
@@ -166,15 +168,24 @@ export default async function ChannelsPage() {
           })}
 
           {!byKind.get("course")?.length ? (
-            <div className="mt-8 rounded-card border border-dashed border-border p-4 text-sm text-muted">
-              No course channels yet.{" "}
-              <Link
-                href="/setup"
-                className="font-semibold text-accent hover:underline"
-              >
-                Add your courses
-              </Link>{" "}
-              to auto-join one per class.
+            <div className="mt-8 rounded-card border border-dashed border-border">
+              <EmptyState
+                className="py-10"
+                icon={GraduationCap}
+                title="No course channels yet"
+                description="Add your courses and you'll auto-join a channel for each class."
+                action={
+                  <Link
+                    href="/setup"
+                    className={buttonClasses({
+                      variant: "secondary",
+                      size: "sm",
+                    })}
+                  >
+                    Add your courses
+                  </Link>
+                }
+              />
             </div>
           ) : null}
         </>

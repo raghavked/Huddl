@@ -42,7 +42,7 @@ export function MobileDock() {
                   className={cn(
                     "flex h-7 items-center justify-center rounded-full px-4 transition-colors",
                     active
-                      ? "bg-brand-soft text-brand-strong"
+                      ? "bg-brand-soft text-brand-ink"
                       : "text-muted"
                   )}
                 >
@@ -51,7 +51,7 @@ export function MobileDock() {
                 <span
                   className={cn(
                     "text-[10px] font-semibold",
-                    active ? "text-brand-strong" : "text-muted"
+                    active ? "text-brand-ink" : "text-muted"
                   )}
                 >
                   {label}

@@ -109,17 +109,19 @@ Dark mode flips to a cozy late-night-library scheme, not pure black.
 | `surface-2` | `#f1ede6` | Subtle fills, hovers, chat bubbles |
 | `surface-3` | `#e8e3d9` | Pressed states, deeper fills |
 | `border` | `#e4dfd4` | Hairlines |
-| `muted` | `#6f6a7e` | Secondary text |
-| `brand` | `#e85d3d` | Campus coral — primary actions, the mark |
-| `brand-strong` | `#cf4526` | Hover/pressed brand, text on `brand-soft` |
+| `muted` | `#656070` | Secondary text |
+| `brand` | `#e85d3d` | Campus coral — primary fills, active states, the mark |
+| `brand-strong` | `#cf4526` | Hover/pressed brand fills |
 | `brand-soft` | `#fdeae3` | Chips, active states, soft callouts |
 | `brand-2` | `#f0913d` | Sunset amber — gradient partner ONLY |
-| `brand-fg` | `#ffffff` | Text/icons on `brand` |
+| `brand-fg` | `#3a1206` | Dark brand ink — text/icons ON brand + gradient fills |
+| `brand-ink` | `#c03d1e` | Readable brand-colored text on soft/neutral fills |
+| `on-solid` | `#ffffff` | White text on saturated status fills (accent/success/danger) |
 | `accent` | `#2a6f77` | Teal — trust, links-adjacent, secondary identity |
 | `accent-soft` | `#e0eff0` | Soft accent fills |
-| `success` | `#2e7d4f` | Confirmations, "synced" |
-| `danger` | `#c73a3a` | Destructive, errors |
-| `warning` | `#b97e12` | Caution |
+| `success` | `#25683f` | Confirmations, "synced" |
+| `danger` | `#b32d2d` | Destructive, errors |
+| `warning` | `#8a5c00` | Caution |
 
 ### Dark theme
 
@@ -133,10 +135,12 @@ Dark mode flips to a cozy late-night-library scheme, not pure black.
 | `border` | `#343148` | Hairlines |
 | `muted` | `#9c98b0` | Secondary text |
 | `brand` | `#f0704f` | Coral, lifted for dark contrast |
-| `brand-strong` | `#e85d3d` | Hover/pressed brand |
+| `brand-strong` | `#e85d3d` | Hover/pressed brand fills |
 | `brand-soft` | `#3b2721` | Chips, active states |
 | `brand-2` | `#f0a04f` | Sunset amber — gradient partner ONLY |
-| `brand-fg` | `#ffffff` | Text/icons on `brand` |
+| `brand-fg` | `#3a1206` | Dark brand ink — text/icons ON brand + gradient fills |
+| `brand-ink` | `#f0704f` | Readable brand-colored text on soft/neutral fills |
+| `on-solid` | `#ffffff` | White text on saturated status fills |
 | `accent` | `#4fa3ac` | Teal, lifted |
 | `accent-soft` | `#1d3336` | Soft accent fills |
 | `success` | `#4caf7d` | Confirmations |

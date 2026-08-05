@@ -22,9 +22,9 @@ const VARIANTS: Record<ButtonVariant, string> = {
     "bg-gradient-brand text-brand-fg shadow-soft hover:shadow-lift hover:brightness-105",
   secondary:
     "border border-border bg-surface shadow-soft hover:bg-surface-2 hover:border-brand/30",
-  soft: "bg-brand-soft text-brand-strong hover:bg-brand hover:text-brand-fg",
+  soft: "bg-brand-soft text-brand-ink hover:bg-brand hover:text-brand-fg",
   ghost: "text-muted hover:bg-surface-2 hover:text-foreground",
-  danger: "bg-danger text-brand-fg shadow-soft hover:opacity-90",
+  danger: "bg-danger text-on-solid shadow-soft hover:opacity-90",
   "danger-ghost":
     "border border-border bg-surface text-danger hover:bg-danger/10 hover:border-danger/40 focus-visible:outline-danger",
 };

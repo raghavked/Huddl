@@ -153,7 +153,7 @@ export function NotificationList({
                     className={cn(
                       "flex size-10 shrink-0 items-center justify-center rounded-xl",
                       unread
-                        ? "bg-brand text-brand-fg"
+                        ? "bg-surface text-brand"
                         : "bg-surface-2 text-muted"
                     )}
                     title={meta.label}
@@ -202,7 +202,7 @@ export function NotificationList({
               const rowClass = cn(
                 "flex w-full items-start gap-3 rounded-card border px-4 py-3 text-left shadow-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                 unread
-                  ? "border-brand/25 bg-brand-soft/40"
+                  ? "border-brand/50 bg-brand-soft"
                   : "border-border bg-surface"
               );
               const interactiveClass =
@@ -218,7 +218,7 @@ export function NotificationList({
                         rowClass,
                         interactiveClass,
                         unread
-                          ? "hover:bg-brand-soft/60"
+                          ? "hover:border-brand/70"
                           : "hover:border-brand/25"
                       )}
                     >

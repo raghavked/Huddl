@@ -281,7 +281,7 @@ export function MessageItem({
                 className={cn(
                   "flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
                   group.mine
-                    ? "border-brand/30 bg-brand-soft text-brand-strong"
+                    ? "border-brand/30 bg-brand-soft text-brand-ink"
                     : "border-border bg-surface text-muted hover:border-brand/30 hover:text-foreground"
                 )}
               >

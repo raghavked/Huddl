@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Bell, ShieldCheck } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
-import { PageHeader, buttonClasses, cardClasses } from "@/components/ui";
+import { PageHeader, buttonClasses } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PrivacyDashboard } from "@/features/schedule/privacy-dashboard";
@@ -81,7 +81,7 @@ export default async function PrivacySettingsPage() {
 
       <div className="mt-6">
         {uploads.length === 0 ? (
-          <div className={cardClasses({ padding: "none" })}>
+          <div className="rounded-card border border-dashed border-border">
             <EmptyState
               icon={ShieldCheck}
               title="No schedule images yet"

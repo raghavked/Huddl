@@ -239,7 +239,7 @@ export function NoteUpload({
             onChange={handleFileChange}
             required
             aria-describedby={`${formId}-file-hint`}
-            className="block w-full rounded-xl text-sm text-muted file:mr-3 file:rounded-full file:border-0 file:bg-brand-soft file:px-3.5 file:py-2 file:text-sm file:font-semibold file:text-brand-strong hover:file:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="block w-full rounded-xl text-sm text-muted file:mr-3 file:rounded-full file:border-0 file:bg-brand-soft file:px-3.5 file:py-2 file:text-sm file:font-semibold file:text-brand-ink hover:file:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           />
           <Hint id={`${formId}-file-hint`}>
             {file ? (
