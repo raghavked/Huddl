@@ -12,6 +12,7 @@ import { useFormStatus } from "react-dom";
 import { AlertCircle, Hash, Loader2, SendHorizontal, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
+import { useRealtimeUpdates } from "@/lib/hooks/use-realtime-updates";
 import type {
   Channel,
   ChannelMember,
@@ -166,7 +167,9 @@ export function ChatRoom({
       const supabase = createClient();
       void supabase
         .from("messages")
-        .select("*, author:profiles(*)")
+        .select(
+          "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+        )
         .eq("id", row.id)
         .single()
         .then(({ data }) => {
@@ -177,6 +180,39 @@ export function ChatRoom({
             );
           }
         });
+    }
+  );
+
+  // Others' edits and soft-deletes: patch the matching row in place. Realtime
+  // UPDATE payloads carry only the row's own columns, so we merge just the
+  // mutable fields and keep the joined author. Temp optimistic rows use
+  // `temp-*` ids and never match a real id; idempotent replace-by-id means our
+  // own echoed edits collapse to a no-op.
+  useRealtimeUpdates<MessageRow>(
+    "messages",
+    `channel_id=eq.${channel.id}`,
+    (row) => {
+      setMessages((prev) => {
+        let changed = false;
+        const next = prev.map((m) => {
+          if (m.id !== row.id) return m;
+          if (
+            m.content === row.content &&
+            m.edited_at === row.edited_at &&
+            m.deleted_at === row.deleted_at
+          ) {
+            return m;
+          }
+          changed = true;
+          return {
+            ...m,
+            content: row.content,
+            edited_at: row.edited_at,
+            deleted_at: row.deleted_at,
+          };
+        });
+        return changed ? next : prev;
+      });
     }
   );
 
@@ -214,7 +250,9 @@ export function ChatRoom({
     const { data, error: insertError } = await supabase
       .from("messages")
       .insert({ channel_id: channel.id, author_id: userId, content })
-      .select("*, author:profiles(*)")
+      .select(
+        "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+      )
       .single();
     setSending(false);
     if (insertError || !data) {

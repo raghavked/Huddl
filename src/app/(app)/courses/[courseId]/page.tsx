@@ -112,12 +112,16 @@ export default async function CoursePage({
         .maybeSingle(),
       supabase
         .from("notes")
-        .select("*, uploader:profiles(*)")
+        .select(
+          "*, uploader:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+        )
         .eq("course_id", course.id)
         .order("created_at", { ascending: false }),
       supabase
         .from("enrollments")
-        .select("*, profile:profiles(*)")
+        .select(
+          "*, profile:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+        )
         .eq("course_id", course.id),
     ]);
 

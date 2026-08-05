@@ -22,14 +22,24 @@ describe("StubVerifier", () => {
 });
 
 describe("getVerifier", () => {
-  const original = process.env.PHONE_VERIFY_PROVIDER;
+  const originalProvider = process.env.PHONE_VERIFY_PROVIDER;
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalAllowStub = process.env.ALLOW_STUB_PHONE_VERIFY;
+
+  const restore = (key: string, value: string | undefined) => {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  };
+
   afterEach(() => {
-    if (original === undefined) delete process.env.PHONE_VERIFY_PROVIDER;
-    else process.env.PHONE_VERIFY_PROVIDER = original;
+    restore("PHONE_VERIFY_PROVIDER", originalProvider);
+    restore("NODE_ENV", originalNodeEnv);
+    restore("ALLOW_STUB_PHONE_VERIFY", originalAllowStub);
   });
 
-  it("defaults to the stub provider", () => {
+  it("defaults to the stub provider in dev/test", () => {
     delete process.env.PHONE_VERIFY_PROVIDER;
+    // NODE_ENV is 'test' under vitest — the stub must remain the default.
     expect(getVerifier()).toBeInstanceOf(StubVerifier);
   });
 
@@ -40,6 +50,27 @@ describe("getVerifier", () => {
 
   it("returns the Twilio provider when configured (no network involved)", () => {
     process.env.PHONE_VERIFY_PROVIDER = "twilio";
+    expect(getVerifier()).toBeInstanceOf(TwilioVerifier);
+  });
+
+  it("refuses the stub in production without an explicit opt-in", () => {
+    delete process.env.PHONE_VERIFY_PROVIDER;
+    process.env.NODE_ENV = "production";
+    delete process.env.ALLOW_STUB_PHONE_VERIFY;
+    expect(() => getVerifier()).toThrow();
+  });
+
+  it("allows the stub in production only when explicitly opted in", () => {
+    delete process.env.PHONE_VERIFY_PROVIDER;
+    process.env.NODE_ENV = "production";
+    process.env.ALLOW_STUB_PHONE_VERIFY = "true";
+    expect(getVerifier()).toBeInstanceOf(StubVerifier);
+  });
+
+  it("still uses Twilio in production regardless of the stub opt-in", () => {
+    process.env.PHONE_VERIFY_PROVIDER = "twilio";
+    process.env.NODE_ENV = "production";
+    delete process.env.ALLOW_STUB_PHONE_VERIFY;
     expect(getVerifier()).toBeInstanceOf(TwilioVerifier);
   });
 });

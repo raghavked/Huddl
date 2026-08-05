@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
   activeCoursesUrl,
+  assertSafeCanvasUrl,
   mapCanvasCourse,
   MAX_COURSE_PAGES,
   parseLinkHeader,
@@ -51,9 +52,21 @@ export async function POST() {
     return NextResponse.json({ error: message }, { status });
   };
 
+  // Re-validate the stored base URL on every sync (SSRF guard): a saved
+  // connection must still resolve to a safe, Canvas-looking https origin.
+  let safeBaseUrl: string;
+  try {
+    safeBaseUrl = assertSafeCanvasUrl(connection.base_url);
+  } catch {
+    return failSync(
+      "Your saved Canvas URL is no longer valid. Reconnect Canvas to continue.",
+      400
+    );
+  }
+
   // 1. Fetch every page of active courses (Link rel="next"), capped.
   const rawCourses: CanvasCourse[] = [];
-  let nextUrl: string | undefined = activeCoursesUrl(connection.base_url);
+  let nextUrl: string | undefined = activeCoursesUrl(safeBaseUrl);
   for (let page = 0; page < MAX_COURSE_PAGES && nextUrl; page++) {
     let res: Response;
     try {
@@ -63,6 +76,7 @@ export async function POST() {
           Accept: "application/json",
         },
         cache: "no-store",
+        redirect: "manual",
         signal: AbortSignal.timeout(15_000),
       });
     } catch {

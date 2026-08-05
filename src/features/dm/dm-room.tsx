@@ -13,6 +13,7 @@ import {
 import { Avatar } from "@/components/avatar";
 import { createClient } from "@/lib/supabase/client";
 import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
+import { useRealtimeUpdates } from "@/lib/hooks/use-realtime-updates";
 import type { DmMessage, Profile } from "@/lib/types";
 import { cn, formatMessageTime } from "@/lib/utils";
 
@@ -76,6 +77,14 @@ export function DmRoom({
       .eq("thread_id", threadId)
       .eq("user_id", userId)
       .then(() => undefined);
+    // Clear the bell badge: mark any unread notifications pointing at this
+    // thread as read, on mount and on each incoming message while open.
+    void supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("link", `/messages/${threadId}`)
+      .is("read_at", null)
+      .then(() => undefined);
   }, [threadId, userId]);
 
   // Mount: advance the read cursor once.
@@ -118,6 +127,37 @@ export function DmRoom({
       if (row.author_id === userId) return; // own echo — optimistic path has it
       appendMessage(row as DmMessage, nearBottomRef.current ? "smooth" : null);
       markRead(); // we're looking at the thread, so it's read on arrival
+    }
+  );
+
+  // Others' edits and soft-deletes: patch the matching bubble in place. Temp
+  // optimistic rows use `temp-*` ids and never match a real id; idempotent
+  // replace-by-id means our own echoed changes collapse to a no-op.
+  useRealtimeUpdates<DmMessageRow>(
+    "dm_messages",
+    `thread_id=eq.${threadId}`,
+    (row) => {
+      setMessages((prev) => {
+        let changed = false;
+        const next = prev.map((m) => {
+          if (m.id !== row.id) return m;
+          if (
+            m.content === row.content &&
+            m.edited_at === row.edited_at &&
+            m.deleted_at === row.deleted_at
+          ) {
+            return m;
+          }
+          changed = true;
+          return {
+            ...m,
+            content: row.content,
+            edited_at: row.edited_at,
+            deleted_at: row.deleted_at,
+          };
+        });
+        return changed ? next : prev;
+      });
     }
   );
 

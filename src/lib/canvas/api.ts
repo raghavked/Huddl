@@ -108,6 +108,75 @@ export function looksLikeCanvasHost(baseUrl: string): boolean {
   return host.includes("canvas") || host.includes("instructure");
 }
 
+/**
+ * True when `host` is an IPv4 literal inside a private, loopback, or
+ * link-local range: 127/8, 10/8, 172.16/12, 192.168/16, 169.254/16.
+ */
+function isPrivateIpv4(host: string): boolean {
+  const match = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!match) return false;
+  const octets = match.slice(1, 5).map((o) => Number(o));
+  if (octets.some((o) => o > 255)) return false;
+  const [a, b] = octets;
+  if (a === 127) return true; // 127.0.0.0/8 loopback
+  if (a === 10) return true; // 10.0.0.0/8 private
+  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12 private
+  if (a === 192 && b === 168) return true; // 192.168.0.0/16 private
+  if (a === 169 && b === 254) return true; // 169.254.0.0/16 link-local (metadata)
+  return false;
+}
+
+/**
+ * True when `host` (already stripped of any [] brackets) is an IPv6 literal in
+ * the loopback (::1) or unique-local (fc00::/7) ranges.
+ */
+function isPrivateIpv6(host: string): boolean {
+  const lower = host.toLowerCase();
+  if (lower === "::1" || lower === "0:0:0:0:0:0:0:1") return true; // loopback
+  const firstHextet = lower.split(":")[0];
+  if (!firstHextet) return false;
+  const value = parseInt(firstHextet, 16);
+  // fc00::/7 — first 7 bits are 1111110, i.e. fc00–fdff.
+  return !Number.isNaN(value) && (value & 0xfe00) === 0xfc00;
+}
+
+/**
+ * Guard against SSRF: given raw user input, return a normalized https Canvas
+ * origin only when it is safe to fetch, otherwise throw. Requires https
+ * (via normalizeCanvasBaseUrl) and a Canvas-looking host (looksLikeCanvasHost),
+ * and rejects loopback/private/link-local IP literals plus the localhost /
+ * *.local / *.internal hostname literals so a stored connection can't be used
+ * to reach internal services or the cloud metadata endpoint.
+ */
+export function assertSafeCanvasUrl(rawUrl: string): string {
+  const normalized = normalizeCanvasBaseUrl(rawUrl);
+  if (!normalized) {
+    throw new Error("Enter a valid https Canvas URL, like https://canvas.university.edu.");
+  }
+  if (!looksLikeCanvasHost(normalized)) {
+    throw new Error("That doesn't look like a Canvas address.");
+  }
+  const rawHost = new URL(normalized).hostname.toLowerCase();
+  const host =
+    rawHost.startsWith("[") && rawHost.endsWith("]")
+      ? rawHost.slice(1, -1)
+      : rawHost;
+  if (
+    host === "localhost" ||
+    host === "local" ||
+    host === "internal" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal")
+  ) {
+    throw new Error("That Canvas URL host isn't allowed.");
+  }
+  if (isPrivateIpv4(host) || isPrivateIpv6(host)) {
+    throw new Error("That Canvas URL host isn't allowed.");
+  }
+  return normalized;
+}
+
 /** First page of the active-courses listing for a normalized base URL. */
 export function activeCoursesUrl(baseUrl: string): string {
   return `${baseUrl}/api/v1/courses?enrollment_state=active&per_page=100`;

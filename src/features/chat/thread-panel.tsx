@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CornerDownRight, Loader2, SendHorizontal, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
+import { useRealtimeUpdates } from "@/lib/hooks/use-realtime-updates";
 import type { Message, MessageWithAuthor, Profile } from "@/lib/types";
 import { MessageItem, useReactions } from "@/features/chat/message-item";
 
@@ -64,7 +65,9 @@ export function ThreadPanel({
       if (!parentSeed) {
         const { data } = await supabase
           .from("messages")
-          .select("*, author:profiles(*)")
+          .select(
+            "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+          )
           .eq("id", threadId)
           .maybeSingle();
         if (!cancelled && data) {
@@ -73,7 +76,9 @@ export function ThreadPanel({
       }
       const { data: rows } = await supabase
         .from("messages")
-        .select("*, author:profiles(*)")
+        .select(
+          "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+        )
         .eq("parent_id", threadId)
         .order("created_at", { ascending: true });
       if (cancelled) return;
@@ -88,6 +93,18 @@ export function ThreadPanel({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
+
+  // Opening a thread reads it: clear any unread thread_reply notifications
+  // that point back into this thread, so the bell badge stays accurate.
+  useEffect(() => {
+    const supabase = createClient();
+    void supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .like("link", `/channels/${channelId}?thread=${threadId}%`)
+      .is("read_at", null)
+      .then(() => undefined);
+  }, [channelId, threadId]);
 
   // Keep the newest reply in view.
   useEffect(() => {
@@ -122,12 +139,47 @@ export function ThreadPanel({
       const supabase = createClient();
       void supabase
         .from("messages")
-        .select("*, author:profiles(*)")
+        .select(
+          "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+        )
         .eq("id", row.id)
         .single()
         .then(({ data }) => {
           if (data) appendReply(data as unknown as MessageWithAuthor);
         });
+    }
+  );
+
+  // Others' edits and soft-deletes on replies: patch the matching reply in
+  // place. UPDATE payloads carry only the row's own columns, so we merge just
+  // the mutable fields and keep the joined author. Temp optimistic replies use
+  // `temp-*` ids and never match a real id; idempotent replace-by-id means our
+  // own echoed edits collapse to a no-op.
+  useRealtimeUpdates<MessageRow>(
+    "messages",
+    `parent_id=eq.${threadId}`,
+    (row) => {
+      setReplies((prev) => {
+        let changed = false;
+        const next = prev.map((m) => {
+          if (m.id !== row.id) return m;
+          if (
+            m.content === row.content &&
+            m.edited_at === row.edited_at &&
+            m.deleted_at === row.deleted_at
+          ) {
+            return m;
+          }
+          changed = true;
+          return {
+            ...m,
+            content: row.content,
+            edited_at: row.edited_at,
+            deleted_at: row.deleted_at,
+          };
+        });
+        return changed ? next : prev;
+      });
     }
   );
 
@@ -167,7 +219,9 @@ export function ThreadPanel({
         content,
         parent_id: threadId,
       })
-      .select("*, author:profiles(*)")
+      .select(
+        "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+      )
       .single();
     setSending(false);
     if (insertError || !data) {

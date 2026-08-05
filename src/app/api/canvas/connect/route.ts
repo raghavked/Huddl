@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
+  assertSafeCanvasUrl,
   looksLikeCanvasHost,
   normalizeCanvasBaseUrl,
   type CanvasUser,
@@ -50,14 +51,27 @@ export async function POST(request: Request) {
     );
   }
 
+  // SSRF guard: reject loopback/private/link-local hosts before we ever fetch
+  // this URL or persist it for later syncs.
+  let safeBase: string;
+  try {
+    safeBase = assertSafeCanvasUrl(base);
+  } catch {
+    return jsonError(
+      "That Canvas URL isn't allowed. Use your school's public Canvas address, like https://canvas.university.edu.",
+      400
+    );
+  }
+
   const token = accessToken.trim();
   if (!token) return jsonError("Paste the access token Canvas generated.", 400);
 
   let res: Response;
   try {
-    res = await fetch(`${base}/api/v1/users/self`, {
+    res = await fetch(`${safeBase}/api/v1/users/self`, {
       headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
       cache: "no-store",
+      redirect: "manual",
       signal: AbortSignal.timeout(12_000),
     });
   } catch {
@@ -96,7 +110,7 @@ export async function POST(request: Request) {
   const { error } = await supabase.from("canvas_connections").upsert(
     {
       user_id: user.id,
-      base_url: base,
+      base_url: safeBase,
       access_token: token,
       last_synced_at: null,
       sync_status: "never",
@@ -111,7 +125,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     userName: canvasUser.name ?? "Canvas user",
-    baseUrl: base,
+    baseUrl: safeBase,
   });
 }
 

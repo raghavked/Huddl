@@ -29,7 +29,9 @@ export default async function DmThreadPage({
   const [{ data: otherData }, { data: messageRows }] = await Promise.all([
     supabase
       .from("dm_participants")
-      .select("user_id, profile:profiles(*)")
+      .select(
+        "user_id, profile:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+      )
       .eq("thread_id", threadId)
       .neq("user_id", user.userId)
       .maybeSingle(),

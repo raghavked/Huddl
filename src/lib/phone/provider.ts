@@ -102,9 +102,26 @@ export class TwilioVerifier implements PhoneVerifier {
   }
 }
 
-/** Pick the provider from PHONE_VERIFY_PROVIDER ('stub' by default). */
+/**
+ * Pick the provider from PHONE_VERIFY_PROVIDER ('stub' by default).
+ *
+ * The stub surfaces the verification code to the caller, so it must never run
+ * in production: outside dev/test we refuse to fall back to it unless the
+ * operator has explicitly opted in with ALLOW_STUB_PHONE_VERIFY=true. Throwing
+ * here (rather than silently stubbing) forces a misconfigured production
+ * deploy to fail loudly instead of shipping a bypassable verification flow.
+ */
 export function getVerifier(): PhoneVerifier {
-  return process.env.PHONE_VERIFY_PROVIDER === "twilio"
-    ? new TwilioVerifier()
-    : new StubVerifier();
+  if (process.env.PHONE_VERIFY_PROVIDER === "twilio") {
+    return new TwilioVerifier();
+  }
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.ALLOW_STUB_PHONE_VERIFY !== "true"
+  ) {
+    throw new Error(
+      "Phone verification is not configured for production: set PHONE_VERIFY_PROVIDER=twilio (with Twilio credentials) or, only for a non-public deploy, ALLOW_STUB_PHONE_VERIFY=true to permit the insecure stub."
+    );
+  }
+  return new StubVerifier();
 }

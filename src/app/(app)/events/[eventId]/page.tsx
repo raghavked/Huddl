@@ -144,7 +144,7 @@ export default async function EventPage({
   const { data: eventRow } = await supabase
     .from("events")
     .select(
-      "*, creator:profiles(*), course:courses(id, code, title), club:clubs(id, name)"
+      "*, creator:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id), course:courses(id, code, title), club:clubs(id, name)"
     )
     .eq("id", eventId)
     .maybeSingle();
@@ -198,7 +198,9 @@ export default async function EventPage({
   // ---- Detail view ---------------------------------------------------------
   const { data: rsvpRows } = await supabase
     .from("event_rsvps")
-    .select("*, profile:profiles(*)")
+    .select(
+      "*, profile:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+    )
     .eq("event_id", event.id)
     .order("created_at", { ascending: true });
   const rsvps = (rsvpRows ?? []) as RsvpRow[];

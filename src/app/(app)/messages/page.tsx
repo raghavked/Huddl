@@ -50,7 +50,9 @@ export default async function MessagesPage({
       ? await Promise.all([
           supabase
             .from("dm_participants")
-            .select("thread_id, profile:profiles(*)")
+            .select(
+              "thread_id, profile:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+            )
             .in("thread_id", threadIds)
             .neq("user_id", user.userId),
           Promise.all(

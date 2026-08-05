@@ -37,7 +37,21 @@ export default async function NewEventPage({
     .filter((course): course is CourseOption => Boolean(course))
     .sort((a, b) => a.code.localeCompare(b.code));
 
-  const club = (clubRow as { id: string; name: string } | null) ?? null;
+  let club = (clubRow as { id: string; name: string } | null) ?? null;
+
+  // Only club officers/owners may publish an event branded as that club.
+  if (club) {
+    const { data: membership } = await supabase
+      .from("club_members")
+      .select("role")
+      .eq("club_id", club.id)
+      .eq("user_id", user.userId)
+      .maybeSingle();
+    const role = (membership as { role: string } | null)?.role;
+    if (role !== "officer" && role !== "owner") {
+      club = null;
+    }
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">

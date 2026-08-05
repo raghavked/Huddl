@@ -55,7 +55,9 @@ export default async function ClubPage({
     await Promise.all([
       supabase
         .from("club_members")
-        .select("*, profile:profiles(*)")
+        .select(
+          "*, profile:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+        )
         .eq("club_id", club.id),
       supabase
         .from("channels")

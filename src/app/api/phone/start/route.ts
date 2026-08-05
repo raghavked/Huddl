@@ -39,7 +39,18 @@ export async function POST(request: Request) {
   }
   const normalized = normalizePhone(phone);
   const expiresAt = new Date(Date.now() + CODE_TTL_MS).toISOString();
-  const verifier = getVerifier();
+
+  let verifier;
+  try {
+    verifier = getVerifier();
+  } catch {
+    // getVerifier() throws when production is misconfigured (e.g. no Twilio and
+    // no explicit stub opt-in). Don't leak the reason; surface a 503.
+    return jsonError(
+      "Phone verification is temporarily unavailable. Please try again later.",
+      503
+    );
+  }
 
   if (verifier instanceof StubVerifier) {
     const { devCode } = await verifier.start(normalized);
@@ -55,8 +66,15 @@ export async function POST(request: Request) {
     if (error) {
       return jsonError("Couldn't start verification. Please try again.", 500);
     }
-    // Dev mode only: surface the code so the flow is testable without SMS.
-    return NextResponse.json({ ok: true, devCode });
+    // Surface the code so the flow is testable without SMS. Never in
+    // production unless the stub was explicitly opted into for a non-public
+    // deploy (ALLOW_STUB_PHONE_VERIFY=true).
+    const exposeDevCode =
+      process.env.NODE_ENV !== "production" ||
+      process.env.ALLOW_STUB_PHONE_VERIFY === "true";
+    return NextResponse.json(
+      exposeDevCode ? { ok: true, devCode } : { ok: true }
+    );
   }
 
   try {

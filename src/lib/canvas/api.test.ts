@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   activeCoursesUrl,
+  assertSafeCanvasUrl,
   looksLikeCanvasHost,
   mapCanvasCourse,
   normalizeCanvasBaseUrl,
@@ -158,5 +159,48 @@ describe("activeCoursesUrl", () => {
     expect(activeCoursesUrl("https://canvas.university.edu")).toBe(
       "https://canvas.university.edu/api/v1/courses?enrollment_state=active&per_page=100"
     );
+  });
+});
+
+describe("assertSafeCanvasUrl", () => {
+  it("returns the normalized origin for a valid public Canvas host", () => {
+    expect(assertSafeCanvasUrl("canvas.university.edu")).toBe(
+      "https://canvas.university.edu"
+    );
+    expect(assertSafeCanvasUrl("https://canvas.university.edu/courses/1")).toBe(
+      "https://canvas.university.edu"
+    );
+    expect(assertSafeCanvasUrl("https://university.instructure.com")).toBe(
+      "https://university.instructure.com"
+    );
+  });
+
+  it("blocks the cloud metadata IP (169.254.169.254)", () => {
+    expect(() => assertSafeCanvasUrl("169.254.169.254")).toThrow();
+    expect(() => assertSafeCanvasUrl("https://169.254.169.254")).toThrow();
+  });
+
+  it("blocks localhost and *.local / *.internal literals", () => {
+    expect(() => assertSafeCanvasUrl("localhost")).toThrow();
+    expect(() => assertSafeCanvasUrl("https://localhost")).toThrow();
+    expect(() => assertSafeCanvasUrl("https://canvas.local")).toThrow();
+    expect(() => assertSafeCanvasUrl("https://canvas.internal")).toThrow();
+  });
+
+  it("blocks loopback and private IP-literal hosts", () => {
+    expect(() => assertSafeCanvasUrl("http://127.0.0.1")).toThrow();
+    expect(() => assertSafeCanvasUrl("https://127.0.0.1")).toThrow();
+    expect(() => assertSafeCanvasUrl("https://10.0.0.5")).toThrow();
+    expect(() => assertSafeCanvasUrl("https://192.168.1.1")).toThrow();
+    expect(() => assertSafeCanvasUrl("https://172.16.0.1")).toThrow();
+    expect(() => assertSafeCanvasUrl("https://[::1]")).toThrow();
+    expect(() => assertSafeCanvasUrl("https://[fc00::1]")).toThrow();
+  });
+
+  it("rejects non-https and non-Canvas-looking hosts", () => {
+    expect(() => assertSafeCanvasUrl("http://canvas.university.edu")).toThrow();
+    expect(() =>
+      assertSafeCanvasUrl("https://blackboard.university.edu")
+    ).toThrow();
   });
 });
