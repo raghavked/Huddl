@@ -1,46 +1,99 @@
 @import "tailwindcss";
 
-/* Huddl design tokens — warm, collegiate, mobile-first.
-   Brand: "campus coral" primary on warm paper neutrals; deep ink for text.
-   Both themes are first-class: chat surfaces flip to a Discord-ish dark. */
+/* ============================================================= */
+/* Huddl design tokens — "Vibrant Playful"                       */
+/* Gradient-forward violet → pink → orange. Rounded, expressive, */
+/* social. BeReal × Yik Yak energy. Light and dark both first-   */
+/* class. Everything is token-driven so the palette cascades.    */
+/* ============================================================= */
 :root {
-  --background: #faf8f5;
-  --foreground: #201f33;
+  --background: #fdf7ff;
+  --foreground: #1a1330;
   --surface: #ffffff;
-  --surface-2: #f2efe9;
-  --surface-3: #e9e5dd;
-  --border: #e3dfd6;
-  --muted: #716c7f;
-  --brand: #e85d3d;
-  --brand-strong: #cf4526;
-  --brand-soft: #fdece6;
+  --surface-2: #f7eefb;
+  --surface-3: #efe2f7;
+  --border: #ece0f5;
+  --muted: #6d6382;
+
+  /* Brand = vivid violet; accent = hot pink; gradient spans to orange. */
+  --brand: #9d2ee0;
+  --brand-strong: #7d1cc4;
+  --brand-soft: #f6e7fd;
   --brand-fg: #ffffff;
-  --accent: #2a6f77;
-  --accent-soft: #e3f0f1;
-  --success: #2e7d4f;
-  --danger: #c73a3a;
-  --warning: #b97e12;
+  --accent: #ec4899;
+  --accent-soft: #fce7f3;
+
+  /* Signature gradient stops — used by .bg-brand-gradient / .text-gradient. */
+  --grad-from: #8b5cf6;
+  --grad-via: #ec4899;
+  --grad-to: #fb7a34;
+
+  --success: #16a34a;
+  --danger: #e11d48;
+  --warning: #ea9412;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #16151f;
-    --foreground: #eceaf2;
-    --surface: #1e1d2a;
-    --surface-2: #262435;
-    --surface-3: #2f2d40;
-    --border: #363348;
-    --muted: #9b97ad;
-    --brand: #f0704f;
-    --brand-strong: #e85d3d;
-    --brand-soft: #3a2620;
+    --background: #130f1f;
+    --foreground: #f3eefb;
+    --surface: #1d1630;
+    --surface-2: #271d3f;
+    --surface-3: #32264f;
+    --border: #382a55;
+    --muted: #a99cc4;
+
+    --brand: #c26cf2;
+    --brand-strong: #b04fe8;
+    --brand-soft: #2d1c44;
     --brand-fg: #ffffff;
-    --accent: #4fa3ac;
-    --accent-soft: #1e3335;
-    --success: #4caf7d;
-    --danger: #e06060;
-    --warning: #d9a13a;
+    --accent: #f472b6;
+    --accent-soft: #331a2c;
+
+    --grad-from: #a78bfa;
+    --grad-via: #f472b6;
+    --grad-to: #fb9a4c;
+
+    --success: #4ade80;
+    --danger: #fb7185;
+    --warning: #fbbf24;
   }
+}
+
+/* Explicit theme override wins over the media query when the viewer toggles. */
+:root[data-theme="light"] {
+  --background: #fdf7ff;
+  --foreground: #1a1330;
+  --surface: #ffffff;
+  --surface-2: #f7eefb;
+  --surface-3: #efe2f7;
+  --border: #ece0f5;
+  --muted: #6d6382;
+  --brand: #9d2ee0;
+  --brand-strong: #7d1cc4;
+  --brand-soft: #f6e7fd;
+  --accent: #ec4899;
+  --accent-soft: #fce7f3;
+  --grad-from: #8b5cf6;
+  --grad-via: #ec4899;
+  --grad-to: #fb7a34;
+}
+:root[data-theme="dark"] {
+  --background: #130f1f;
+  --foreground: #f3eefb;
+  --surface: #1d1630;
+  --surface-2: #271d3f;
+  --surface-3: #32264f;
+  --border: #382a55;
+  --muted: #a99cc4;
+  --brand: #c26cf2;
+  --brand-strong: #b04fe8;
+  --brand-soft: #2d1c44;
+  --accent: #f472b6;
+  --accent-soft: #331a2c;
+  --grad-from: #a78bfa;
+  --grad-via: #f472b6;
+  --grad-to: #fb9a4c;
 }
 
 @theme inline {
@@ -57,12 +110,15 @@
   --color-brand-fg: var(--brand-fg);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-grad-from: var(--grad-from);
+  --color-grad-via: var(--grad-via);
+  --color-grad-to: var(--grad-to);
   --color-success: var(--success);
   --color-danger: var(--danger);
   --color-warning: var(--warning);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --radius-card: 1rem;
+  --radius-card: 1.25rem;
 }
 
 html,
@@ -84,4 +140,57 @@ body {
 
 ::selection {
   background: var(--brand-soft);
+}
+
+/* ---- Signature gradient helpers ---------------------------------------- */
+/* The playful identity: use these for hero fills, primary CTAs, active nav,
+   avatar rings, and headline accents. */
+.bg-brand-gradient {
+  background-image: linear-gradient(
+    120deg,
+    var(--grad-from) 0%,
+    var(--grad-via) 52%,
+    var(--grad-to) 100%
+  );
+}
+.bg-brand-gradient-soft {
+  background-image: linear-gradient(
+    120deg,
+    color-mix(in oklab, var(--grad-from) 16%, transparent),
+    color-mix(in oklab, var(--grad-via) 16%, transparent),
+    color-mix(in oklab, var(--grad-to) 16%, transparent)
+  );
+}
+.text-gradient {
+  background-image: linear-gradient(
+    120deg,
+    var(--grad-from),
+    var(--grad-via),
+    var(--grad-to)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* A gradient border via padding-box/border-box masking. */
+.ring-gradient {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(120deg, var(--grad-from), var(--grad-via), var(--grad-to))
+      border-box;
+}
+.shadow-glow {
+  box-shadow: 0 10px 30px -8px color-mix(in oklab, var(--grad-via) 45%, transparent);
+}
+
+@keyframes float-blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(0, -14px) scale(1.04); }
+}
+.animate-float-blob {
+  animation: float-blob 9s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-blob { animation: none; }
 }

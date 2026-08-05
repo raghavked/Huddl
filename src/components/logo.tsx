@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 
-/** Huddl mark: four rounded "students" leaning into a huddle. */
+/** Huddl mark: four rounded "students" leaning into a huddle, on the brand
+ *  gradient. Uses a unique gradient id so multiple marks can render safely. */
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg
@@ -9,11 +10,19 @@ export function LogoMark({ className }: { className?: string }) {
       aria-label="Huddl"
       className={cn("size-8", className)}
     >
-      <g fill="currentColor">
-        <circle cx="16" cy="7.5" r="4.1" />
-        <circle cx="7" cy="14.5" r="3.4" opacity="0.75" />
-        <circle cx="25" cy="14.5" r="3.4" opacity="0.75" />
-        <path d="M16 13.5c-5.6 0-9.5 3.6-9.5 9.2 0 2.6 1.9 4.3 4.6 4.3h9.8c2.7 0 4.6-1.7 4.6-4.3 0-5.6-3.9-9.2-9.5-9.2z" />
+      <defs>
+        <linearGradient id="huddl-mark" x1="0" y1="0" x2="32" y2="32">
+          <stop offset="0%" stopColor="var(--grad-from)" />
+          <stop offset="52%" stopColor="var(--grad-via)" />
+          <stop offset="100%" stopColor="var(--grad-to)" />
+        </linearGradient>
+      </defs>
+      <rect width="32" height="32" rx="9" fill="url(#huddl-mark)" />
+      <g fill="#ffffff">
+        <circle cx="16" cy="9.5" r="3.2" />
+        <circle cx="8.5" cy="14.5" r="2.6" opacity="0.85" />
+        <circle cx="23.5" cy="14.5" r="2.6" opacity="0.85" />
+        <path d="M16 14c-4.4 0-7.4 2.8-7.4 7.1 0 1.9 1.4 3.1 3.4 3.1h8c2 0 3.4-1.2 3.4-3.1C23.4 16.8 20.4 14 16 14z" />
       </g>
     </svg>
   );
@@ -22,8 +31,10 @@ export function LogoMark({ className }: { className?: string }) {
 export function Wordmark({ className }: { className?: string }) {
   return (
     <span className={cn("flex items-center gap-2", className)}>
-      <LogoMark className="size-7 text-brand" />
-      <span className="text-xl font-bold tracking-tight">huddl</span>
+      <LogoMark className="size-8" />
+      <span className="text-xl font-extrabold tracking-tight">
+        huddl
+      </span>
     </span>
   );
 }
