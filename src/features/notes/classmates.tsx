@@ -2,7 +2,7 @@ import Link from "next/link";
 import { UsersRound } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
-import { cn } from "@/lib/utils";
+import { Badge, cardClasses } from "@/components/ui";
 import type { Enrollment, Profile } from "@/lib/types";
 
 export type ClassmateEntry = Enrollment & { profile: Profile };
@@ -16,16 +16,9 @@ const ROLE_WEIGHT: Record<Enrollment["role"], number> = {
 function RoleBadge({ role }: { role: Enrollment["role"] }) {
   if (role === "student") return null;
   return (
-    <span
-      className={cn(
-        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-        role === "instructor"
-          ? "bg-brand-soft text-brand-strong"
-          : "bg-accent-soft text-accent"
-      )}
-    >
+    <Badge tone={role === "instructor" ? "brand" : "accent"}>
       {role === "instructor" ? "Instructor" : "TA"}
-    </span>
+    </Badge>
   );
 }
 
@@ -59,14 +52,18 @@ export function Classmates({
 
   return (
     <div>
-      <ul className="grid gap-2 sm:grid-cols-2">
+      <ul className="grid gap-2.5 sm:grid-cols-2">
         {sorted.map((entry) => {
           const isMe = entry.user_id === currentUserId;
           return (
             <li key={entry.id}>
               <Link
                 href={`/u/${entry.profile.handle}`}
-                className="flex items-center gap-3 rounded-card border border-border bg-surface p-3 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                className={cardClasses({
+                  padding: "none",
+                  interactive: true,
+                  className: "flex items-center gap-3 p-3",
+                })}
               >
                 <Avatar
                   name={entry.profile.display_name}
@@ -75,14 +72,10 @@ export function Classmates({
                 />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-medium">
+                    <span className="truncate text-sm font-semibold">
                       {entry.profile.display_name}
                     </span>
-                    {isMe ? (
-                      <span className="shrink-0 rounded-full bg-surface-3 px-1.5 py-0.5 text-[10px] font-semibold text-muted">
-                        You
-                      </span>
-                    ) : null}
+                    {isMe ? <Badge tone="neutral">You</Badge> : null}
                     <RoleBadge role={entry.role} />
                   </span>
                   <span className="block truncate text-xs text-muted">
@@ -96,7 +89,7 @@ export function Classmates({
         })}
       </ul>
       {alone ? (
-        <p className="mt-3 text-center text-sm text-muted">
+        <p className="mt-4 text-center text-sm text-muted">
           It&apos;s just you so far — classmates show up here as they add the
           course.
         </p>

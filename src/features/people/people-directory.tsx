@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Lock, Search, SearchX, UsersRound } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
+import { Badge, Button, cardClasses } from "@/components/ui";
 
 /**
  * The shape the /people server page hands down. For private profiles that
@@ -44,30 +45,28 @@ function PersonCard({
   isMe: boolean;
 }) {
   const limited = person.display_name === null;
-  const detail = [
-    person.major,
-    person.grad_year ? `Class of ${person.grad_year}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
 
   return (
     <li>
       <Link
         href={`/u/${person.handle}`}
-        className="flex items-center gap-3 rounded-card border border-border bg-surface p-4 transition-colors hover:border-brand/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className={cardClasses({
+          padding: "sm",
+          interactive: true,
+          className: "flex h-full items-center gap-4",
+        })}
       >
         <Avatar
           name={person.display_name ?? person.handle}
           src={person.avatar_url}
-          size="md"
+          size="lg"
         />
         {limited ? (
           <span className="min-w-0 flex-1">
-            <span className="block truncate font-semibold">
+            <span className="block truncate text-sm font-semibold">
               @{person.handle}
             </span>
-            <span className="mt-0.5 inline-flex items-center gap-1 text-sm text-muted">
+            <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted">
               <Lock className="size-3.5" aria-hidden />
               Private profile
             </span>
@@ -75,30 +74,33 @@ function PersonCard({
         ) : (
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-2">
-              <span className="truncate font-semibold">
+              <span className="truncate text-sm font-semibold">
                 {person.display_name}
               </span>
-              {isMe ? (
-                <span className="shrink-0 rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-semibold text-brand-strong">
-                  You
-                </span>
-              ) : null}
+              {isMe ? <Badge tone="brand">You</Badge> : null}
               {isMe && !person.is_public ? (
-                <span
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-muted"
+                <Badge
+                  tone="neutral"
                   title="Only you can see your full profile"
                 >
                   <Lock className="size-3" aria-hidden />
                   Private
-                </span>
+                </Badge>
               ) : null}
             </span>
-            <span className="mt-0.5 block truncate text-sm text-muted">
+            <span className="mt-0.5 block truncate text-xs text-muted">
               @{person.handle}
             </span>
-            {detail ? (
-              <span className="mt-0.5 block truncate text-sm text-muted">
-                {detail}
+            {person.major || person.grad_year ? (
+              <span className="mt-2 flex flex-wrap items-center gap-1.5">
+                {person.major ? (
+                  <Badge tone="neutral" className="max-w-full">
+                    <span className="truncate">{person.major}</span>
+                  </Badge>
+                ) : null}
+                {person.grad_year ? (
+                  <Badge tone="accent">Class of {person.grad_year}</Badge>
+                ) : null}
               </span>
             ) : null}
           </span>
@@ -127,7 +129,7 @@ export function PeopleDirectory({
 
   return (
     <div>
-      <div className="relative mt-4">
+      <div className="relative mt-6 animate-fade-up">
         <Search
           className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted"
           aria-hidden
@@ -142,7 +144,7 @@ export function PeopleDirectory({
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search by name, handle or major"
           autoComplete="off"
-          className="w-full rounded-full border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-foreground outline-none transition-colors placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          className="w-full rounded-full border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-foreground shadow-soft transition-colors placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-[3px] focus:ring-brand/15"
         />
       </div>
 
@@ -164,13 +166,9 @@ export function PeopleDirectory({
           title="No matches"
           description={`No one matches "${query.trim()}". Try a different name, handle or major.`}
           action={
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
+            <Button size="sm" onClick={() => setQuery("")}>
               Clear search
-            </button>
+            </Button>
           }
         />
       ) : (

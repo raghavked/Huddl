@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Plus } from "lucide-react";
+import { Compass, Hash, Plus } from "lucide-react";
+import { PageHeader, Segmented, buttonClasses } from "@/components/ui";
 import {
   ChannelBrowser,
   type BrowseChannel,
@@ -67,32 +68,32 @@ export default async function BrowseChannelsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <Link
-        href="/channels"
-        className="inline-flex items-center gap-1 text-sm font-medium text-muted transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        Your channels
-      </Link>
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Channels"
+        title="Browse channels"
+        description={`Everything happening at ${user.university.short_name}.`}
+        action={
+          <Link
+            href="/channels/new"
+            className={buttonClasses({ size: "sm", className: "gap-1.5" })}
+          >
+            <Plus className="size-4" aria-hidden />
+            New channel
+          </Link>
+        }
+      />
 
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold">Browse channels</h1>
-          <p className="mt-1 text-sm text-muted">
-            Everything happening at {user.university.short_name}.
-          </p>
-        </div>
-        <Link
-          href="/channels/new"
-          className="flex shrink-0 items-center gap-1.5 rounded-full bg-brand px-3.5 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-        >
-          <Plus className="size-4" aria-hidden />
-          New
-        </Link>
+      <div className="mt-6 animate-fade-up">
+        <Segmented
+          items={[
+            { href: "/channels", label: "Yours", icon: Hash },
+            { href: "/channels/browse", label: "Browse", icon: Compass },
+          ]}
+        />
       </div>
 
-      <div className="mt-5">
+      <div className="mt-6">
         <ChannelBrowser channels={channels} />
       </div>
     </div>

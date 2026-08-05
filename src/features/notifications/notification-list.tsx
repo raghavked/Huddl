@@ -17,6 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { Button, PageHeader } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
 import type { AppNotification, NotificationKind } from "@/lib/types";
@@ -105,29 +106,32 @@ export function NotificationList({
 
   return (
     <div>
-      <header className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold">Notifications</h1>
-          <p aria-live="polite" className="text-sm text-muted">
+      <PageHeader
+        eyebrow="You"
+        title="Notifications"
+        description={
+          <span aria-live="polite">
             {unreadCount > 0
               ? `${unreadCount} unread`
               : "You're all caught up"}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={markAllRead}
-          disabled={markingAll || unreadCount === 0}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-semibold transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {markingAll ? (
-            <Loader2 className="size-4 animate-spin" aria-hidden />
-          ) : (
-            <CheckCheck className="size-4" aria-hidden />
-          )}
-          Mark all read
-        </button>
-      </header>
+          </span>
+        }
+        action={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={markAllRead}
+            disabled={markingAll || unreadCount === 0}
+          >
+            {markingAll ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <CheckCheck className="size-4" aria-hidden />
+            )}
+            Mark all read
+          </Button>
+        }
+      />
 
       {items.length === 0 ? (
         <EmptyState
@@ -137,7 +141,7 @@ export function NotificationList({
         />
       ) : (
         <>
-          <ul className="mt-4 divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
+          <ul className="mt-6 flex animate-fade-up flex-col gap-2.5">
             {items.map((notification) => {
               const meta = KIND_META[notification.kind] ?? KIND_META.system;
               const Icon = meta.icon;
@@ -147,7 +151,7 @@ export function NotificationList({
                 <>
                   <span
                     className={cn(
-                      "flex size-10 shrink-0 items-center justify-center rounded-full",
+                      "flex size-10 shrink-0 items-center justify-center rounded-xl",
                       unread
                         ? "bg-brand text-brand-fg"
                         : "bg-surface-2 text-muted"
@@ -193,10 +197,16 @@ export function NotificationList({
                 </>
               );
 
+              // Card row, tinted while unread. Hand-built (not cardClasses) so
+              // the background can swap without conflicting utility classes.
               const rowClass = cn(
-                "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
-                unread && "bg-brand-soft"
+                "flex w-full items-start gap-3 rounded-card border px-4 py-3 text-left shadow-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                unread
+                  ? "border-brand/25 bg-brand-soft/40"
+                  : "border-border bg-surface"
               );
+              const interactiveClass =
+                "transition-all hover:-translate-y-px hover:shadow-lift";
 
               return (
                 <li key={notification.id}>
@@ -206,9 +216,10 @@ export function NotificationList({
                       onClick={() => markRead(notification)}
                       className={cn(
                         rowClass,
+                        interactiveClass,
                         unread
-                          ? "hover:bg-brand-soft/70"
-                          : "hover:bg-surface-2"
+                          ? "hover:bg-brand-soft/60"
+                          : "hover:border-brand/25"
                       )}
                     >
                       {inner}
@@ -218,7 +229,11 @@ export function NotificationList({
                       type="button"
                       onClick={() => markRead(notification)}
                       aria-label={`Mark as read: ${notification.title}`}
-                      className={cn(rowClass, "hover:bg-brand-soft/70")}
+                      className={cn(
+                        rowClass,
+                        interactiveClass,
+                        "hover:bg-brand-soft/60"
+                      )}
                     >
                       {inner}
                     </button>

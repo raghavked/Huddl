@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  ArrowLeft,
   BookOpen,
   CalendarDays,
   CheckCircle2,
+  Clock,
   HelpCircle,
   History,
   MapPin,
@@ -16,6 +16,12 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
+import {
+  Badge,
+  PageHeader,
+  buttonClasses,
+  cardClasses,
+} from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { cn, formatEventTime } from "@/lib/utils";
@@ -49,44 +55,66 @@ function eventsHref(kind: EventKind | null, past: boolean): string {
   return qs ? `/events?${qs}` : "/events";
 }
 
+function chipClasses(active: boolean): string {
+  return cn(
+    "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+    active
+      ? "bg-brand text-brand-fg shadow-soft"
+      : "bg-surface-2 text-muted hover:bg-surface-3 hover:text-foreground"
+  );
+}
+
+/** Weekday small caps over day number — the v2 event signature. */
+function DateTile({ iso }: { iso: string }) {
+  const d = new Date(iso);
+  return (
+    <span
+      aria-hidden
+      className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl bg-brand-soft text-brand-strong"
+    >
+      <span className="text-[10px] font-bold uppercase leading-none tracking-wide">
+        {d.toLocaleDateString([], { weekday: "short" })}
+      </span>
+      <span className="mt-0.5 text-lg font-bold leading-none">
+        {d.getDate()}
+      </span>
+    </span>
+  );
+}
+
 function KindBadge({ kind }: { kind: EventKind }) {
   const isStudy = kind === "study_session";
   const Icon = isStudy ? BookOpen : PartyPopper;
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold",
-        isStudy ? "bg-accent-soft text-accent" : "bg-brand-soft text-brand-strong"
-      )}
-    >
+    <Badge tone={isStudy ? "accent" : "brand"}>
       <Icon className="size-3.5" aria-hidden />
       {isStudy ? "Study session" : "Meetup"}
-    </span>
+    </Badge>
   );
 }
 
 function MyStatusChip({ status }: { status: RsvpStatus }) {
   if (status === "going") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand-strong">
+      <Badge tone="brand">
         <CheckCircle2 className="size-3" aria-hidden />
         Going
-      </span>
+      </Badge>
     );
   }
   if (status === "maybe") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-muted">
+      <Badge tone="neutral">
         <HelpCircle className="size-3" aria-hidden />
         Maybe
-      </span>
+      </Badge>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-muted">
+    <Badge tone="neutral">
       <XCircle className="size-3" aria-hidden />
       Can&apos;t go
-    </span>
+    </Badge>
   );
 }
 
@@ -122,53 +150,39 @@ export default async function EventsPage({
 
   const events = (rows ?? []) as EventRow[];
 
-  const newEventButton = (
+  const planButton = (
     <Link
       href="/events/new"
-      className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-opacity hover:opacity-90"
+      className={buttonClasses({ size: "sm", className: "gap-1.5" })}
     >
       <Plus className="size-4" aria-hidden />
-      New event
+      Plan something
     </Link>
   );
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <header className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold">
-            {showPast ? "Past events" : "Events"}
-          </h1>
-          <p className="truncate text-sm text-muted">
-            {showPast
-              ? `What already happened at ${user.university.short_name}`
-              : `Study sessions & meetups at ${user.university.short_name}`}
-          </p>
-        </div>
-        {showPast ? (
-          <Link
-            href={eventsHref(activeKind, false)}
-            className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-muted transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" aria-hidden />
-            Upcoming
-          </Link>
-        ) : null}
-      </header>
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Campus"
+        title={showPast ? "Past events" : "Events"}
+        description={
+          showPast
+            ? `What already happened at ${user.university.short_name}.`
+            : `Study sessions and meetups at ${user.university.short_name}.`
+        }
+        backHref={showPast ? eventsHref(activeKind, false) : undefined}
+        backLabel="Upcoming events"
+        action={planButton}
+      />
 
       <nav
         aria-label="Filter events by type"
-        className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1"
+        className="-mx-4 mt-6 flex animate-fade-up gap-2 overflow-x-auto px-4 pb-1"
       >
         <Link
           href={eventsHref(null, showPast)}
           aria-current={activeKind === null ? "page" : undefined}
-          className={cn(
-            "shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-            activeKind === null
-              ? "bg-brand text-brand-fg"
-              : "bg-surface-2 text-muted hover:text-foreground"
-          )}
+          className={chipClasses(activeKind === null)}
         >
           All
         </Link>
@@ -177,12 +191,7 @@ export default async function EventsPage({
             key={value}
             href={eventsHref(value, showPast)}
             aria-current={activeKind === value ? "page" : undefined}
-            className={cn(
-              "shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-              activeKind === value
-                ? "bg-brand text-brand-fg"
-                : "bg-surface-2 text-muted hover:text-foreground"
-            )}
+            className={chipClasses(activeKind === value)}
           >
             {label}
           </Link>
@@ -190,26 +199,28 @@ export default async function EventsPage({
       </nav>
 
       {events.length === 0 ? (
-        <EmptyState
-          icon={showPast ? History : CalendarDays}
-          title={
-            showPast
-              ? "No past events"
-              : activeKind === "study_session"
-                ? "No study sessions coming up"
-                : activeKind === "meetup"
-                  ? "No meetups coming up"
-                  : "Nothing on the calendar yet"
-          }
-          description={
-            showPast
-              ? "Once events wrap up, they'll show here."
-              : `Get something going at ${user.university.short_name} — a library grind or a hangout, your call.`
-          }
-          action={showPast ? undefined : newEventButton}
-        />
+        <div className="mt-6 rounded-card border border-dashed border-border">
+          <EmptyState
+            icon={showPast ? History : CalendarDays}
+            title={
+              showPast
+                ? "No past events"
+                : activeKind === "study_session"
+                  ? "No study sessions coming up"
+                  : activeKind === "meetup"
+                    ? "No meetups coming up"
+                    : "Nothing on the calendar yet"
+            }
+            description={
+              showPast
+                ? "Once events wrap up, they'll show here."
+                : `Get something going at ${user.university.short_name} — a library grind or a hangout, your call.`
+            }
+            action={showPast ? undefined : planButton}
+          />
+        </div>
       ) : (
-        <ul className="mt-4 flex flex-col gap-3">
+        <ul className="mt-6 flex flex-col gap-3">
           {events.map((event) => {
             const goingCount = event.rsvps.filter(
               (r) => r.status === "going"
@@ -223,69 +234,76 @@ export default async function EventsPage({
               <li key={event.id}>
                 <Link
                   href={`/events/${event.id}`}
-                  className="block rounded-card border border-border bg-surface p-4 transition-colors hover:bg-surface-2"
+                  className={cardClasses({
+                    padding: "sm",
+                    interactive: true,
+                    className: "flex gap-3.5",
+                  })}
                 >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <KindBadge kind={event.kind} />
-                    {event.course ? (
-                      <span className="inline-flex items-center rounded-full bg-surface-2 px-2.5 py-1 font-mono text-xs font-medium text-muted">
-                        {event.course.code}
-                      </span>
-                    ) : null}
-                    {myStatus ? (
-                      <span className="ml-auto">
-                        <MyStatusChip status={myStatus} />
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <p className="mt-2.5 font-semibold leading-snug">
-                    {event.title}
-                  </p>
-
-                  <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-                    <span className="inline-flex items-center gap-1 text-accent">
-                      <CalendarDays className="size-3.5" aria-hidden />
-                      {formatEventTime(event.starts_at, event.ends_at)}
-                    </span>
-                    {event.location ? (
-                      <span className="inline-flex min-w-0 items-center gap-1">
-                        <MapPin className="size-3.5 shrink-0" aria-hidden />
-                        <span className="truncate">{event.location}</span>
-                      </span>
-                    ) : null}
-                  </p>
-
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    {event.creator ? (
-                      <span className="inline-flex min-w-0 items-center gap-1.5 text-sm text-muted">
-                        <Avatar
-                          name={event.creator.display_name}
-                          src={event.creator.avatar_url}
-                          size="xs"
-                        />
-                        <span className="truncate">
-                          {event.creator.display_name}
+                  <DateTile iso={event.starts_at} />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <KindBadge kind={event.kind} />
+                      {event.course ? (
+                        <Badge tone="neutral" className="font-mono">
+                          {event.course.code}
+                        </Badge>
+                      ) : null}
+                      {myStatus ? (
+                        <span className="ml-auto">
+                          <MyStatusChip status={myStatus} />
                         </span>
-                      </span>
-                    ) : (
-                      <span />
-                    )}
-                    <span
-                      className={cn(
-                        "inline-flex shrink-0 items-center gap-1 text-sm",
-                        isFull ? "font-medium text-danger" : "text-muted"
-                      )}
-                    >
-                      <Users className="size-4" aria-hidden />
-                      {goingCount} going
-                      {event.capacity !== null
-                        ? isFull
-                          ? " · Full"
-                          : ` of ${event.capacity}`
-                        : ""}
+                      ) : null}
                     </span>
-                  </div>
+
+                    <span className="mt-2 block font-semibold leading-snug">
+                      {event.title}
+                    </span>
+
+                    <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="size-3.5" aria-hidden />
+                        {formatEventTime(event.starts_at, event.ends_at)}
+                      </span>
+                      {event.location ? (
+                        <span className="inline-flex min-w-0 items-center gap-1">
+                          <MapPin className="size-3.5 shrink-0" aria-hidden />
+                          <span className="truncate">{event.location}</span>
+                        </span>
+                      ) : null}
+                    </span>
+
+                    <span className="mt-2.5 flex items-center justify-between gap-2">
+                      {event.creator ? (
+                        <span className="inline-flex min-w-0 items-center gap-1.5 text-sm text-muted">
+                          <Avatar
+                            name={event.creator.display_name}
+                            src={event.creator.avatar_url}
+                            size="xs"
+                          />
+                          <span className="truncate">
+                            {event.creator.display_name}
+                          </span>
+                        </span>
+                      ) : (
+                        <span />
+                      )}
+                      <span
+                        className={cn(
+                          "inline-flex shrink-0 items-center gap-1 text-sm",
+                          isFull ? "font-semibold text-danger" : "text-muted"
+                        )}
+                      >
+                        <Users className="size-4" aria-hidden />
+                        {goingCount} going
+                        {event.capacity !== null
+                          ? isFull
+                            ? " · Full"
+                            : ` of ${event.capacity}`
+                          : ""}
+                      </span>
+                    </span>
+                  </span>
                 </Link>
               </li>
             );
@@ -294,25 +312,20 @@ export default async function EventsPage({
       )}
 
       {!showPast ? (
-        <div className="mt-6 text-center">
+        <div className="mt-8 text-center">
           <Link
             href={eventsHref(activeKind, true)}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted transition-colors hover:text-foreground"
+            className={buttonClasses({
+              variant: "ghost",
+              size: "sm",
+              className: "gap-1.5",
+            })}
           >
             <History className="size-4" aria-hidden />
             Past events
           </Link>
         </div>
       ) : null}
-
-      <Link
-        href="/events/new"
-        aria-label="New event"
-        className="fixed bottom-20 right-4 z-30 inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-3 text-sm font-semibold text-brand-fg shadow-lg transition-opacity hover:opacity-90 md:bottom-8 md:right-8"
-      >
-        <Plus className="size-5" aria-hidden />
-        New event
-      </Link>
     </div>
   );
 }

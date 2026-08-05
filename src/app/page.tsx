@@ -20,10 +20,13 @@ import {
   Users,
 } from "lucide-react";
 import { LogoMark, Wordmark } from "@/components/logo";
+import { buttonClasses, cardClasses } from "@/components/ui";
+import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
-/* Marketing landing page. Server component — the only interactivity   */
-/* is the FAQ, which uses native <details> so no client JS is needed.  */
+/* Marketing landing page — the UI v2 showpiece. Server component; the */
+/* only interactivity is the FAQ, which uses native <details> so no    */
+/* client JS is needed.                                                */
 /* ------------------------------------------------------------------ */
 
 const SCHOOLS = [
@@ -76,10 +79,10 @@ export default function LandingPage() {
       </a>
 
       {/* ---------------------------------------------------------- */}
-      {/* Sticky header                                                */}
+      {/* Sticky header — frosted glass                               */}
       {/* ---------------------------------------------------------- */}
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+      <header className="glass sticky top-0 z-40 border-b border-border/60">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <Link
             href="/"
             className="rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
@@ -87,17 +90,14 @@ export default function LandingPage() {
           >
             <Wordmark />
           </Link>
-          <nav aria-label="Primary" className="flex items-center gap-1 sm:gap-2">
+          <nav aria-label="Primary" className="flex items-center gap-1.5 sm:gap-2">
             <Link
               href="/login"
-              className="rounded-full px-4 py-2 text-sm font-semibold text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className={buttonClasses({ variant: "ghost", size: "sm" })}
             >
               Log in
             </Link>
-            <Link
-              href="/signup"
-              className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
+            <Link href="/signup" className={buttonClasses({ size: "sm" })}>
               Join
             </Link>
           </nav>
@@ -119,16 +119,16 @@ export default function LandingPage() {
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -top-24 right-[-10%] size-72 rounded-full bg-accent/10 blur-3xl"
+            className="pointer-events-none absolute -top-24 right-[-10%] size-80 rounded-full bg-accent/10 blur-3xl"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -left-24 top-40 size-72 rounded-full bg-brand/10 blur-3xl"
+            className="pointer-events-none absolute -left-24 top-40 size-80 rounded-full bg-brand/10 blur-3xl"
           />
 
-          <div className="relative mx-auto max-w-5xl px-4 pb-14 pt-14 sm:px-6 sm:pt-20">
-            <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
-              <p className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-3.5 py-1.5 text-xs font-semibold text-brand-strong">
+          <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 sm:pt-24">
+            <div className="mx-auto flex max-w-2xl animate-fade-up flex-col items-center text-center">
+              <p className="inline-flex items-center gap-2 rounded-full border border-brand/20 bg-brand-soft px-3.5 py-1.5 text-xs font-semibold text-brand-strong shadow-soft">
                 <span
                   aria-hidden="true"
                   className="size-1.5 rounded-full bg-brand"
@@ -137,11 +137,12 @@ export default function LandingPage() {
               </p>
               <h1
                 id="hero-heading"
-                className="mt-5 text-4xl font-bold tracking-tight text-balance sm:text-5xl md:text-6xl"
+                className="mt-6 text-4xl font-bold tracking-tight text-balance sm:text-6xl lg:text-7xl"
               >
-                Your campus, in one huddle.
+                Your campus, in{" "}
+                <span className="text-gradient-brand">one huddle</span>.
               </h1>
-              <p className="mt-5 max-w-xl text-base text-muted text-pretty sm:text-lg">
+              <p className="mt-6 max-w-xl text-base text-muted text-pretty sm:text-lg">
                 Course chat that sets itself up from your schedule. Notes that
                 outlive the group chat. Study sessions people actually show up
                 to. All of it verified with your school email — so it&apos;s
@@ -150,14 +151,22 @@ export default function LandingPage() {
               <div className="mt-8 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
                 <Link
                   href="/signup"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand px-7 py-3.5 text-base font-semibold text-brand-fg shadow-sm transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:w-auto"
+                  className={buttonClasses({
+                    variant: "gradient",
+                    size: "lg",
+                    className: "w-full sm:w-auto",
+                  })}
                 >
                   Join with your school email
                   <ArrowRight aria-hidden="true" className="size-4" />
                 </Link>
                 <Link
                   href="/login"
-                  className="inline-flex w-full items-center justify-center rounded-full border border-border bg-surface px-7 py-3.5 text-base font-semibold transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:w-auto"
+                  className={buttonClasses({
+                    variant: "secondary",
+                    size: "lg",
+                    className: "w-full sm:w-auto",
+                  })}
                 >
                   I have an account
                 </Link>
@@ -178,8 +187,26 @@ export default function LandingPage() {
               </ul>
             </div>
 
+            {/* Hero collage: chat panel center, DM list + event card
+                floating beside it on md+. Decorative, tokens only. */}
+            <div
+              aria-hidden="true"
+              className="relative mx-auto mt-14 max-w-md select-none sm:mt-16 md:max-w-4xl"
+            >
+              <div className="pointer-events-none absolute inset-x-12 top-6 h-72 rounded-full bg-gradient-brand opacity-15 blur-3xl" />
+              <div className="relative z-10 mx-auto md:max-w-md">
+                <ChatVignette />
+              </div>
+              <div className="absolute top-8 hidden w-72 -rotate-2 md:-left-2 md:block lg:left-4">
+                <DmVignette />
+              </div>
+              <div className="absolute top-24 hidden w-72 rotate-2 md:-right-2 md:block lg:right-4">
+                <EventVignette />
+              </div>
+            </div>
+
             {/* Supported-schools strip */}
-            <div className="mt-12">
+            <div className="mt-16">
               <h2 className="text-center text-xs font-semibold uppercase tracking-widest text-muted">
                 Rolling out across the UC system
               </h2>
@@ -187,7 +214,7 @@ export default function LandingPage() {
                 {SCHOOLS.map((school) => (
                   <li
                     key={school}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted shadow-soft"
                   >
                     <GraduationCap
                       aria-hidden="true"
@@ -206,14 +233,55 @@ export default function LandingPage() {
         </section>
 
         {/* -------------------------------------------------------- */}
-        {/* Features                                                  */}
+        {/* Stats strip — honest, token-built                         */}
+        {/* -------------------------------------------------------- */}
+        <section
+          aria-label="Huddl at a glance"
+          className="mx-auto w-full max-w-5xl px-4 sm:px-6"
+        >
+          <dl
+            className={cardClasses({
+              padding: "none",
+              className:
+                "grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0",
+            })}
+          >
+            <div className="flex flex-col gap-1 px-6 py-5 text-center">
+              <dt className="order-2 text-xs text-muted">
+                so every community starts dense, not empty
+              </dt>
+              <dd className="order-1 text-lg font-bold tracking-tight sm:text-xl">
+                One campus at a time
+              </dd>
+            </div>
+            <div className="flex flex-col gap-1 px-6 py-5 text-center">
+              <dt className="order-2 text-xs text-muted">
+                the core of Huddl, staying that way
+              </dt>
+              <dd className="order-1 text-lg font-bold tracking-tight sm:text-xl">
+                Free for students
+              </dd>
+            </div>
+            <div className="flex flex-col gap-1 px-6 py-5 text-center">
+              <dt className="order-2 text-xs text-muted">
+                in course channels, ever
+              </dt>
+              <dd className="order-1 text-lg font-bold tracking-tight sm:text-xl">
+                0 ads
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        {/* -------------------------------------------------------- */}
+        {/* Features — bento grid                                     */}
         {/* -------------------------------------------------------- */}
         <section
           aria-labelledby="features-heading"
-          className="mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20"
+          className="mx-auto w-full max-w-5xl px-4 py-16 sm:px-6 sm:py-24"
         >
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-widest text-brand">
+            <p className="text-xs font-semibold uppercase tracking-widest text-brand">
               Why Huddl
             </p>
             <h2
@@ -228,9 +296,8 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="mt-14 flex flex-col gap-16 sm:gap-20">
-            {/* Feature 1 — Course channels from Canvas */}
-            <FeatureRow
+          <div className="mt-12 grid gap-4 md:grid-cols-2">
+            <FeatureCard
               icon={BookOpen}
               kicker="Course channels"
               title="Synced straight from Canvas"
@@ -240,12 +307,9 @@ export default function LandingPage() {
                 "Drop a class and the channel quietly lets you go",
                 "Manual course picking if you'd rather not connect anything",
               ]}
-              illustration={<CourseChannelIllustration />}
+              vignette={<SyncVignette />}
             />
-
-            {/* Feature 2 — Notes */}
-            <FeatureRow
-              flip
+            <FeatureCard
               icon={FileText}
               kicker="Notes"
               title="Notes that don't die in group chats"
@@ -255,11 +319,9 @@ export default function LandingPage() {
                 "Whoever shared it gets the credit, always",
                 "Still there during finals week, exactly where you left it",
               ]}
-              illustration={<NotesIllustration />}
+              vignette={<NotesVignette />}
             />
-
-            {/* Feature 3 — Study sessions & meetups */}
-            <FeatureRow
+            <FeatureCard
               icon={CalendarDays}
               kicker="Study sessions & meetups"
               title="Plans people actually show up to"
@@ -269,12 +331,9 @@ export default function LandingPage() {
                 "Cap the room when the study spot only fits six",
                 "Tied to your courses and clubs, visible to the right people",
               ]}
-              illustration={<EventIllustration />}
+              vignette={<EventMiniVignette />}
             />
-
-            {/* Feature 4 — DMs and campus channels */}
-            <FeatureRow
-              flip
+            <FeatureCard
               icon={MessagesSquare}
               kicker="DMs & campus channels"
               title="Your whole campus, on speaking terms"
@@ -284,27 +343,31 @@ export default function LandingPage() {
                 "Campus channels every student is part of from day one",
                 "Student-created channels for everything else",
               ]}
-              illustration={<DmIllustration />}
+              vignette={<CampusVignette />}
             />
           </div>
         </section>
 
         {/* -------------------------------------------------------- */}
-        {/* Trust / verification                                      */}
+        {/* Trust / verification — accent-led                         */}
         {/* -------------------------------------------------------- */}
         <section
           aria-labelledby="trust-heading"
-          className="border-y border-border bg-surface"
+          className="relative border-y border-border/60 bg-surface"
         >
-          <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-linear-to-b from-accent/5 to-transparent"
+          />
+          <div className="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="mx-auto max-w-2xl text-center">
-              <p className="inline-flex items-center gap-1.5 text-sm font-semibold uppercase tracking-widest text-accent">
+              <p className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3.5 py-1.5 text-xs font-semibold uppercase tracking-widest text-accent">
                 <ShieldCheck aria-hidden="true" className="size-4" />
                 Built on trust
               </p>
               <h2
                 id="trust-heading"
-                className="mt-2 text-3xl font-bold tracking-tight text-balance sm:text-4xl"
+                className="mt-4 text-3xl font-bold tracking-tight text-balance sm:text-4xl"
               >
                 How verification works
               </h2>
@@ -343,26 +406,30 @@ export default function LandingPage() {
         {/* -------------------------------------------------------- */}
         <section
           aria-labelledby="faq-heading"
-          className="mx-auto w-full max-w-3xl px-4 py-16 sm:px-6 sm:py-20"
+          className="mx-auto w-full max-w-3xl px-4 py-16 sm:px-6 sm:py-24"
         >
-          <h2
-            id="faq-heading"
-            className="text-center text-3xl font-bold tracking-tight sm:text-4xl"
-          >
-            Questions, answered
-          </h2>
+          <div className="text-center">
+            <p className="text-xs font-semibold uppercase tracking-widest text-brand">
+              FAQ
+            </p>
+            <h2
+              id="faq-heading"
+              className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl"
+            >
+              Questions, answered
+            </h2>
+          </div>
           <div className="mt-10 flex flex-col gap-3">
             {FAQS.map((faq) => (
               <details
                 key={faq.q}
-                className="group rounded-card border border-border bg-surface open:border-brand/40"
+                className="group rounded-card border border-border bg-surface transition-all open:border-brand/40 open:shadow-soft"
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-card px-5 py-4 text-left text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:text-base [&::-webkit-details-marker]:hidden">
                   {faq.q}
-                  <ArrowRight
-                    aria-hidden="true"
-                    className="size-4 shrink-0 text-muted transition-transform group-open:rotate-90"
-                  />
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-2 text-muted transition-all group-open:rotate-90 group-open:bg-brand-soft group-open:text-brand">
+                    <ArrowRight aria-hidden="true" className="size-4" />
+                  </span>
                 </summary>
                 <p className="px-5 pb-5 text-sm leading-relaxed text-muted">
                   {faq.a}
@@ -373,31 +440,41 @@ export default function LandingPage() {
         </section>
 
         {/* -------------------------------------------------------- */}
-        {/* Closing CTA                                               */}
+        {/* Closing CTA — brand gradient panel                        */}
         {/* -------------------------------------------------------- */}
         <section
           aria-labelledby="cta-heading"
-          className="mx-auto w-full max-w-5xl px-4 pb-20 sm:px-6"
+          className="mx-auto w-full max-w-5xl px-4 pb-24 sm:px-6"
         >
-          <div className="relative overflow-hidden rounded-card border border-border bg-linear-to-br from-brand/15 via-surface to-accent/10 px-6 py-12 text-center sm:px-12 sm:py-16">
-            <LogoMark className="mx-auto size-10 text-brand" />
-            <h2
-              id="cta-heading"
-              className="mt-4 text-2xl font-bold tracking-tight text-balance sm:text-3xl"
-            >
-              Your classmates are one huddle away
-            </h2>
-            <p className="mx-auto mt-3 max-w-md text-sm text-muted sm:text-base">
-              It takes your school email and about a minute. Your course
-              channels are already waiting.
-            </p>
-            <Link
-              href="/signup"
-              className="mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-brand px-7 py-3.5 text-base font-semibold text-brand-fg shadow-sm transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
-              Join with your school email
-              <ArrowRight aria-hidden="true" className="size-4" />
-            </Link>
+          <div className="relative overflow-hidden rounded-card bg-gradient-brand px-6 py-14 text-center shadow-lift sm:px-12 sm:py-20">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-24 left-1/4 size-72 rounded-full bg-brand-fg/15 blur-3xl"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-28 right-[-10%] size-80 rounded-full bg-brand-fg/10 blur-3xl"
+            />
+            <div className="relative">
+              <LogoMark className="mx-auto size-10 text-brand-fg" />
+              <h2
+                id="cta-heading"
+                className="mt-4 text-2xl font-bold tracking-tight text-balance text-brand-fg sm:text-4xl"
+              >
+                Your classmates are one huddle away
+              </h2>
+              <p className="mx-auto mt-3 max-w-md text-sm text-brand-fg/85 sm:text-base">
+                It takes your school email and about a minute. Your course
+                channels are already waiting.
+              </p>
+              <Link
+                href="/signup"
+                className="mt-8 inline-flex select-none items-center justify-center gap-2 rounded-full bg-surface px-7 py-3.5 text-base font-semibold text-foreground shadow-lift transition-all hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-fg active:scale-[0.98]"
+              >
+                Join with your school email
+                <ArrowRight aria-hidden="true" className="size-4" />
+              </Link>
+            </div>
           </div>
         </section>
       </main>
@@ -405,8 +482,8 @@ export default function LandingPage() {
       {/* ---------------------------------------------------------- */}
       {/* Footer                                                      */}
       {/* ---------------------------------------------------------- */}
-      <footer className="border-t border-border bg-surface">
-        <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6">
+      <footer className="border-t border-border/60 bg-surface">
+        <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-12 sm:px-6">
           <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
             <div>
               <Wordmark />
@@ -417,19 +494,19 @@ export default function LandingPage() {
             <nav aria-label="Footer" className="flex items-center gap-2">
               <Link
                 href="/login"
-                className="rounded-full px-4 py-2 text-sm font-semibold text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                className={buttonClasses({ variant: "ghost", size: "sm" })}
               >
                 Log in
               </Link>
               <Link
                 href="/signup"
-                className="rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand-strong transition-colors hover:bg-brand hover:text-brand-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                className={buttonClasses({ variant: "soft", size: "sm" })}
               >
                 Sign up
               </Link>
             </nav>
           </div>
-          <div className="flex flex-col gap-2 border-t border-border pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 border-t border-border/60 pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
             <p>
               Made for students, between classes. Never selling your data, never
               running ads in your course channels.
@@ -443,51 +520,57 @@ export default function LandingPage() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Feature row: text + illustration, alternating sides on md+.         */
+/* Feature card for the bento grid.                                    */
 /* ------------------------------------------------------------------ */
 
-function FeatureRow({
+function FeatureCard({
   icon: Icon,
   kicker,
   title,
   body,
   points,
-  illustration,
-  flip = false,
+  vignette,
 }: {
   icon: LucideIcon;
   kicker: string;
   title: string;
   body: string;
   points: string[];
-  illustration: React.ReactNode;
-  flip?: boolean;
+  vignette: React.ReactNode;
 }) {
   return (
-    <div className="grid items-center gap-8 md:grid-cols-2 md:gap-12">
-      <div className={flip ? "md:order-2" : undefined}>
-        <p className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand-strong">
-          <Icon aria-hidden className="size-3.5" />
+    <article
+      className={cardClasses({ padding: "lg", className: "flex flex-col" })}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+          <Icon aria-hidden className="size-5" />
+        </span>
+        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-strong">
           {kicker}
-        </p>
-        <h3 className="mt-4 text-2xl font-bold tracking-tight text-balance sm:text-3xl">
-          {title}
-        </h3>
-        <p className="mt-3 leading-relaxed text-muted text-pretty">{body}</p>
-        <ul className="mt-5 flex flex-col gap-2.5">
-          {points.map((point) => (
-            <li key={point} className="flex items-start gap-2.5 text-sm">
-              <Check
-                aria-hidden="true"
-                className="mt-0.5 size-4 shrink-0 text-success"
-              />
-              <span>{point}</span>
-            </li>
-          ))}
-        </ul>
+        </span>
       </div>
-      <div className={flip ? "md:order-1" : undefined}>{illustration}</div>
-    </div>
+      <h3 className="mt-4 text-xl font-bold tracking-tight text-balance">
+        {title}
+      </h3>
+      <p className="mt-2 text-sm leading-relaxed text-muted text-pretty">
+        {body}
+      </p>
+      <ul className="mt-4 flex flex-col gap-2">
+        {points.map((point) => (
+          <li key={point} className="flex items-start gap-2.5 text-sm">
+            <Check
+              aria-hidden="true"
+              className="mt-0.5 size-4 shrink-0 text-success"
+            />
+            <span>{point}</span>
+          </li>
+        ))}
+      </ul>
+      <div aria-hidden="true" className="mt-auto select-none pt-6">
+        {vignette}
+      </div>
+    </article>
   );
 }
 
@@ -503,10 +586,10 @@ function TrustStep({
   body: string;
 }) {
   return (
-    <li className="flex flex-col gap-3 rounded-card border border-border bg-background p-5">
-      <div className="flex items-center gap-3">
-        <span className="inline-flex size-9 items-center justify-center rounded-full bg-accent-soft text-accent">
-          <Icon aria-hidden className="size-4.5" />
+    <li className="flex flex-col gap-3 rounded-card border border-border bg-background p-5 shadow-soft sm:p-6">
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
+          <Icon aria-hidden className="size-5" />
         </span>
         <span className="text-xs font-semibold uppercase tracking-widest text-muted">
           Step {step}
@@ -519,15 +602,24 @@ function TrustStep({
 }
 
 /* ------------------------------------------------------------------ */
-/* Illustrations: small fake-UI vignettes built purely from tokens.    */
+/* Vignettes: fake-UI panels built purely from tokens.                 */
 /* Decorative — hidden from assistive tech.                            */
 /* ------------------------------------------------------------------ */
 
-function IllustrationFrame({ children }: { children: React.ReactNode }) {
+function VignetteFrame({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div
       aria-hidden="true"
-      className="select-none rounded-card border border-border bg-surface p-4 shadow-sm sm:p-5"
+      className={cn(
+        "select-none rounded-card border border-border/70 bg-surface p-4 shadow-lift sm:p-5",
+        className
+      )}
     >
       {children}
     </div>
@@ -537,22 +629,24 @@ function IllustrationFrame({ children }: { children: React.ReactNode }) {
 function FakeAvatar({ label, accent }: { label: string; accent?: boolean }) {
   return (
     <span
-      className={`inline-flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-        accent
-          ? "bg-accent-soft text-accent"
-          : "bg-brand-soft text-brand-strong"
-      }`}
+      className={cn(
+        "inline-flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+        accent ? "bg-accent-soft text-accent" : "bg-brand-soft text-brand-strong"
+      )}
     >
       {label}
     </span>
   );
 }
 
-function CourseChannelIllustration() {
+/** Hero center panel: a course channel with a glass composer. */
+function ChatVignette() {
   return (
-    <IllustrationFrame>
-      <div className="flex items-center gap-2 border-b border-border pb-3">
-        <Hash className="size-4 text-muted" />
+    <VignetteFrame>
+      <div className="flex items-center gap-2.5 border-b border-border/70 pb-3">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+          <Hash className="size-4" />
+        </span>
         <span className="text-sm font-bold">econ-101a</span>
         <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">
           <Check className="size-3" />
@@ -582,58 +676,75 @@ function CourseChannelIllustration() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-2">
-          <span className="flex-1 text-xs text-muted">
-            Message #econ-101a…
+        <div className="glass flex items-center gap-2 rounded-full border border-border/70 px-3.5 py-2 shadow-soft">
+          <span className="flex-1 text-xs text-muted">Message #econ-101a…</span>
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-brand text-brand-fg">
+            <Send className="size-3" />
           </span>
-          <Send className="size-3.5 text-brand" />
         </div>
       </div>
-    </IllustrationFrame>
+    </VignetteFrame>
   );
 }
 
-function NotesIllustration() {
-  const files = [
-    { name: "Week 5 lecture notes.pdf", meta: "maya · 1.2 MB" },
-    { name: "Midterm study guide.pdf", meta: "dev · 840 KB" },
-    { name: "Ch. 7 problem walkthrough.pdf", meta: "sam · 2.1 MB" },
-  ];
+/** Hero left panel: the DM inbox. */
+function DmVignette() {
   return (
-    <IllustrationFrame>
-      <div className="flex items-center gap-2 border-b border-border pb-3">
-        <FileText className="size-4 text-muted" />
-        <span className="text-sm font-bold">Notes · ECON 101A</span>
-        <span className="ml-auto rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-semibold text-brand-strong">
-          All term
+    <VignetteFrame className="p-3.5 sm:p-4">
+      <div className="flex items-center justify-between border-b border-border/70 pb-2.5">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
+          Messages
+        </span>
+        <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-semibold text-brand-strong">
+          2 new
         </span>
       </div>
-      <ul className="mt-3 flex flex-col gap-2">
-        {files.map((file) => (
-          <li
-            key={file.name}
-            className="flex items-center gap-3 rounded-xl bg-surface-2 px-3.5 py-2.5"
-          >
-            <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-strong">
-              <FileText className="size-4" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold">{file.name}</p>
-              <p className="text-[10px] text-muted">{file.meta}</p>
-            </div>
-            <ArrowRight className="size-3.5 shrink-0 -rotate-45 text-muted" />
-          </li>
-        ))}
-      </ul>
-    </IllustrationFrame>
+      <div className="mt-2 flex flex-col gap-1">
+        <div className="flex items-center gap-2.5 rounded-xl bg-surface-2 px-2.5 py-2">
+          <FakeAvatar label="SR" accent />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold">
+              sam <span className="font-normal text-muted">· now</span>
+            </p>
+            <p className="truncate text-[11px] text-muted">
+              found a study group for tuesday — you in?
+            </p>
+          </div>
+          <span className="size-2 shrink-0 rounded-full bg-brand" />
+        </div>
+        <div className="flex items-center gap-2.5 rounded-xl px-2.5 py-2">
+          <FakeAvatar label="AL" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold">
+              ada <span className="font-normal text-muted">· 1h</span>
+            </p>
+            <p className="truncate text-[11px] text-muted">
+              selling my chem textbook, half price for you
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2.5 rounded-xl px-2.5 py-2">
+          <FakeAvatar label="JT" accent />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold">
+              jordan <span className="font-normal text-muted">· 3h</span>
+            </p>
+            <p className="truncate text-[11px] text-muted">
+              thanks for the notes — total lifesaver
+            </p>
+          </div>
+        </div>
+      </div>
+    </VignetteFrame>
   );
 }
 
-function EventIllustration() {
+/** Hero right panel: an event card with RSVPs. */
+function EventVignette() {
   return (
-    <IllustrationFrame>
-      <div className="flex items-center gap-2">
-        <span className="inline-flex size-10 shrink-0 flex-col items-center justify-center rounded-xl bg-brand-soft text-brand-strong">
+    <VignetteFrame className="p-3.5 sm:p-4">
+      <div className="flex items-center gap-2.5">
+        <span className="flex size-10 shrink-0 flex-col items-center justify-center rounded-xl bg-accent-soft text-accent">
           <span className="text-[9px] font-bold uppercase leading-none">
             Thu
           </span>
@@ -664,71 +775,153 @@ function EventIllustration() {
             +9
           </span>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-1.5 text-xs font-semibold text-brand-fg">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-1.5 text-xs font-semibold text-brand-fg shadow-soft">
           <Check className="size-3.5" />
           I&apos;m in
         </span>
       </div>
-    </IllustrationFrame>
+    </VignetteFrame>
   );
 }
 
-function DmIllustration() {
+/* --- Compact vignettes for the feature bento cards. --- */
+
+/** Course list picking up channels from Canvas / a schedule photo. */
+function SyncVignette() {
+  const rows = [
+    {
+      slug: "econ-101a",
+      tag: "Synced from Canvas",
+      tagClass: "bg-success/10 text-success",
+    },
+    {
+      slug: "phys-9b",
+      tag: "From your schedule",
+      tagClass: "bg-brand-soft text-brand-strong",
+    },
+    {
+      slug: "cs-61b",
+      tag: "Added by you",
+      tagClass: "bg-surface-2 text-muted",
+    },
+  ];
   return (
-    <IllustrationFrame>
-      <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
-        {["general", "study-buddies", "campus-events", "asks-and-offers"].map(
-          (slug, i) => (
-            <span
-              key={slug}
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                i === 1
-                  ? "bg-brand-soft text-brand-strong"
-                  : "bg-surface-2 text-muted"
-              }`}
-            >
-              <Hash className="size-3" />
-              {slug}
-            </span>
-          ),
-        )}
+    <div className="flex flex-col gap-1.5">
+      {rows.map((row) => (
+        <div
+          key={row.slug}
+          className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-background px-3 py-2"
+        >
+          <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold">
+            <Hash className="size-3.5 shrink-0 text-brand" />
+            <span className="truncate">{row.slug}</span>
+          </span>
+          <span
+            className={cn(
+              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+              row.tagClass
+            )}
+          >
+            {row.tag}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** File rows that live with the course. */
+function NotesVignette() {
+  const files = [
+    { name: "Week 5 lecture notes.pdf", meta: "maya · 1.2 MB" },
+    { name: "Midterm study guide.pdf", meta: "dev · 840 KB" },
+  ];
+  return (
+    <div className="flex flex-col gap-1.5">
+      {files.map((file) => (
+        <div
+          key={file.name}
+          className="flex items-center gap-3 rounded-xl border border-border/60 bg-background px-3 py-2"
+        >
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-strong">
+            <FileText className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-semibold">{file.name}</p>
+            <p className="text-[10px] text-muted">{file.meta}</p>
+          </div>
+          <ArrowRight className="size-3.5 shrink-0 -rotate-45 text-muted" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** A compact study-session card with RSVPs. */
+function EventMiniVignette() {
+  return (
+    <div className="rounded-xl border border-border/60 bg-background p-3">
+      <div className="flex items-center gap-2.5">
+        <span className="flex size-9 shrink-0 flex-col items-center justify-center rounded-xl bg-accent-soft text-accent">
+          <span className="text-[8px] font-bold uppercase leading-none">
+            Sun
+          </span>
+          <span className="text-xs font-bold leading-tight">17</span>
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-bold">CHEM 2B study group</p>
+          <p className="text-[10px] text-muted">
+            Sun · 3:00 PM · 24-hr study room
+          </p>
+        </div>
       </div>
-      <div className="mt-3 flex flex-col gap-2">
-        <div className="flex items-center gap-3 rounded-xl bg-surface-2 px-3.5 py-2.5">
+      <div className="mt-2.5 flex items-center justify-between gap-3">
+        <div className="flex -space-x-1.5">
+          <FakeAvatar label="MJ" />
           <FakeAvatar label="SR" accent />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold">
-              sam <span className="font-normal text-muted">· now</span>
-            </p>
-            <p className="truncate text-[11px] text-muted">
-              found a study group for tuesday — you in?
-            </p>
-          </div>
-          <span className="size-2 shrink-0 rounded-full bg-brand" />
+          <span className="inline-flex size-7 items-center justify-center rounded-full bg-surface-3 text-[10px] font-bold text-muted">
+            +4
+          </span>
         </div>
-        <div className="flex items-center gap-3 rounded-xl px-3.5 py-2.5">
-          <FakeAvatar label="AL" />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold">
-              ada <span className="font-normal text-muted">· 1h</span>
-            </p>
-            <p className="truncate text-[11px] text-muted">
-              selling my chem textbook, half price for you
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-xl px-3.5 py-2.5">
-          <FakeAvatar label="JT" accent />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold">
-              jordan <span className="font-normal text-muted">· 3h</span>
-            </p>
-            <p className="truncate text-[11px] text-muted">
-              thanks for the notes — total lifesaver
-            </p>
-          </div>
-        </div>
+        <span className="inline-flex items-center gap-1 rounded-full bg-brand px-3 py-1 text-[10px] font-semibold text-brand-fg">
+          <Check className="size-3" />
+          I&apos;m in
+        </span>
       </div>
-    </IllustrationFrame>
+    </div>
+  );
+}
+
+/** Campus channel chips plus a fresh DM. */
+function CampusVignette() {
+  return (
+    <div className="rounded-xl border border-border/60 bg-background p-3">
+      <div className="flex flex-wrap gap-1.5">
+        {["general", "study-buddies", "asks-and-offers"].map((slug, i) => (
+          <span
+            key={slug}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold",
+              i === 1 ? "bg-brand-soft text-brand-strong" : "bg-surface-2 text-muted"
+            )}
+          >
+            <Hash className="size-3" />
+            {slug}
+          </span>
+        ))}
+      </div>
+      <div className="mt-2.5 flex items-center gap-2.5 rounded-xl bg-surface px-3 py-2 shadow-soft">
+        <FakeAvatar label="MJ" />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold">
+            maya <span className="font-normal text-muted">· now</span>
+          </p>
+          <p className="truncate text-[11px] text-muted">
+            quiet floor of the library, 7pm — who&apos;s in?
+          </p>
+        </div>
+        <span className="size-2 shrink-0 rounded-full bg-brand" />
+      </div>
+    </div>
   );
 }

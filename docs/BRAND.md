@@ -91,28 +91,32 @@ spell the wordmark "Huddle".
 
 All color in the product comes from CSS tokens in `src/app/globals.css` —
 components use token classes (`bg-brand`, `text-muted`, …), never raw hex.
-Both themes are first-class; check every screen in both.
+Both themes are first-class; check every screen in both. Since UI v2, students
+can also pin a theme with the in-app toggle (light / system / dark) — the
+tokens handle it, components never branch on theme.
 
-The palette idea: **campus coral** on warm paper neutrals with deep ink text.
+The palette idea: **campus coral** on warm paper neutrals with deep ink text,
+plus a **sunset amber** partner that exists only inside the brand gradient.
 Dark mode flips to a cozy late-night-library scheme, not pure black.
 
 ### Light theme
 
 | Token | Hex | Role |
 | --- | --- | --- |
-| `background` | `#faf8f5` | Page background (warm paper) |
-| `foreground` | `#201f33` | Text (deep ink) |
+| `background` | `#f8f6f2` | Page background (warm paper) |
+| `foreground` | `#1d1c30` | Text (deep ink) |
 | `surface` | `#ffffff` | Cards, sheets |
-| `surface-2` | `#f2efe9` | Subtle fills, hovers, chat bubbles |
-| `surface-3` | `#e9e5dd` | Pressed states, deeper fills |
-| `border` | `#e3dfd6` | Hairlines |
-| `muted` | `#716c7f` | Secondary text |
+| `surface-2` | `#f1ede6` | Subtle fills, hovers, chat bubbles |
+| `surface-3` | `#e8e3d9` | Pressed states, deeper fills |
+| `border` | `#e4dfd4` | Hairlines |
+| `muted` | `#6f6a7e` | Secondary text |
 | `brand` | `#e85d3d` | Campus coral — primary actions, the mark |
 | `brand-strong` | `#cf4526` | Hover/pressed brand, text on `brand-soft` |
-| `brand-soft` | `#fdece6` | Chips, active states, soft callouts |
+| `brand-soft` | `#fdeae3` | Chips, active states, soft callouts |
+| `brand-2` | `#f0913d` | Sunset amber — gradient partner ONLY |
 | `brand-fg` | `#ffffff` | Text/icons on `brand` |
 | `accent` | `#2a6f77` | Teal — trust, links-adjacent, secondary identity |
-| `accent-soft` | `#e3f0f1` | Soft accent fills |
+| `accent-soft` | `#e0eff0` | Soft accent fills |
 | `success` | `#2e7d4f` | Confirmations, "synced" |
 | `danger` | `#c73a3a` | Destructive, errors |
 | `warning` | `#b97e12` | Caution |
@@ -121,19 +125,20 @@ Dark mode flips to a cozy late-night-library scheme, not pure black.
 
 | Token | Hex | Role |
 | --- | --- | --- |
-| `background` | `#16151f` | Page background |
-| `foreground` | `#eceaf2` | Text |
-| `surface` | `#1e1d2a` | Cards |
-| `surface-2` | `#262435` | Subtle fills |
-| `surface-3` | `#2f2d40` | Deeper fills |
-| `border` | `#363348` | Hairlines |
-| `muted` | `#9b97ad` | Secondary text |
+| `background` | `#121120` | Page background |
+| `foreground` | `#edebf4` | Text |
+| `surface` | `#1a1929` | Cards |
+| `surface-2` | `#232134` | Subtle fills |
+| `surface-3` | `#2c2a40` | Deeper fills |
+| `border` | `#343148` | Hairlines |
+| `muted` | `#9c98b0` | Secondary text |
 | `brand` | `#f0704f` | Coral, lifted for dark contrast |
 | `brand-strong` | `#e85d3d` | Hover/pressed brand |
-| `brand-soft` | `#3a2620` | Chips, active states |
+| `brand-soft` | `#3b2721` | Chips, active states |
+| `brand-2` | `#f0a04f` | Sunset amber — gradient partner ONLY |
 | `brand-fg` | `#ffffff` | Text/icons on `brand` |
 | `accent` | `#4fa3ac` | Teal, lifted |
-| `accent-soft` | `#1e3335` | Soft accent fills |
+| `accent-soft` | `#1d3336` | Soft accent fills |
 | `success` | `#4caf7d` | Confirmations |
 | `danger` | `#e06060` | Destructive, errors |
 | `warning` | `#d9a13a` | Caution |
@@ -144,9 +149,17 @@ Dark mode flips to a cozy late-night-library scheme, not pure black.
   mark. If everything is coral, nothing is.
 - Teal (`accent`) carries trust and secondary identity (verification, privacy,
   info). Never use it for primary CTAs.
+- `brand-2` never appears alone — only inside `.bg-gradient-brand` /
+  `.text-gradient-brand`. The gradient is the v2 signature: hero CTAs,
+  marketing headlines, the logo tile, and at most *the* single CTA on a
+  setup or empty screen in-app.
 - Marketing surfaces may build gradients and washes **from token colors only**
-  (e.g. `from-brand/10`, `bg-accent/10`). In-app screens stay flat.
+  (e.g. `from-brand/10`, `bg-accent/10`). In-app screens stay calm: soft
+  elevation (`shadow-soft`), not gradients.
 - `danger` is reserved for destruction and errors — never for emphasis.
+
+See `docs/UI.md` for the UI v2 system itself: elevation scale, motion,
+glass surfaces, primitives (`src/components/ui/`), and layout patterns.
 
 ---
 

@@ -1,46 +1,80 @@
 @import "tailwindcss";
 
-/* Huddl design tokens — warm, collegiate, mobile-first.
-   Brand: "campus coral" primary on warm paper neutrals; deep ink for text.
-   Both themes are first-class: chat surfaces flip to a Discord-ish dark. */
+/* ------------------------------------------------------------------ */
+/* Huddl UI v2 — "golden hour on the quad".                            */
+/* Campus coral stays the anchor; v2 adds a sunset-amber gradient      */
+/* partner, a soft elevation scale, glass surfaces, and motion.        */
+/* Themes: light is default, dark applies via system preference or an  */
+/* explicit [data-theme] override set by the in-app theme toggle.      */
+/* ------------------------------------------------------------------ */
+
 :root {
-  --background: #faf8f5;
-  --foreground: #201f33;
+  --background: #f8f6f2;
+  --foreground: #1d1c30;
   --surface: #ffffff;
-  --surface-2: #f2efe9;
-  --surface-3: #e9e5dd;
-  --border: #e3dfd6;
-  --muted: #716c7f;
+  --surface-2: #f1ede6;
+  --surface-3: #e8e3d9;
+  --border: #e4dfd4;
+  --muted: #6f6a7e;
   --brand: #e85d3d;
   --brand-strong: #cf4526;
-  --brand-soft: #fdece6;
+  --brand-soft: #fdeae3;
+  --brand-2: #f0913d;
   --brand-fg: #ffffff;
   --accent: #2a6f77;
-  --accent-soft: #e3f0f1;
+  --accent-soft: #e0eff0;
   --success: #2e7d4f;
   --danger: #c73a3a;
   --warning: #b97e12;
+  --shadow-tint: 23 20 40;
+  color-scheme: light;
 }
 
+/* Dark: the late-night library — deep indigo, never pure black. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #16151f;
-    --foreground: #eceaf2;
-    --surface: #1e1d2a;
-    --surface-2: #262435;
-    --surface-3: #2f2d40;
-    --border: #363348;
-    --muted: #9b97ad;
+  :root:not([data-theme="light"]) {
+    --background: #121120;
+    --foreground: #edebf4;
+    --surface: #1a1929;
+    --surface-2: #232134;
+    --surface-3: #2c2a40;
+    --border: #343148;
+    --muted: #9c98b0;
     --brand: #f0704f;
     --brand-strong: #e85d3d;
-    --brand-soft: #3a2620;
+    --brand-soft: #3b2721;
+    --brand-2: #f0a04f;
     --brand-fg: #ffffff;
     --accent: #4fa3ac;
-    --accent-soft: #1e3335;
+    --accent-soft: #1d3336;
     --success: #4caf7d;
     --danger: #e06060;
     --warning: #d9a13a;
+    --shadow-tint: 0 0 0;
+    color-scheme: dark;
   }
+}
+
+:root[data-theme="dark"] {
+  --background: #121120;
+  --foreground: #edebf4;
+  --surface: #1a1929;
+  --surface-2: #232134;
+  --surface-3: #2c2a40;
+  --border: #343148;
+  --muted: #9c98b0;
+  --brand: #f0704f;
+  --brand-strong: #e85d3d;
+  --brand-soft: #3b2721;
+  --brand-2: #f0a04f;
+  --brand-fg: #ffffff;
+  --accent: #4fa3ac;
+  --accent-soft: #1d3336;
+  --success: #4caf7d;
+  --danger: #e06060;
+  --warning: #d9a13a;
+  --shadow-tint: 0 0 0;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -54,6 +88,7 @@
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-soft: var(--brand-soft);
+  --color-brand-2: var(--brand-2);
   --color-brand-fg: var(--brand-fg);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
@@ -62,7 +97,49 @@
   --color-warning: var(--warning);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --radius-card: 1rem;
+  --radius-card: 1.25rem;
+
+  /* Elevation scale — soft, tinted, never enterprise-hard. */
+  --shadow-soft:
+    0 1px 2px rgb(var(--shadow-tint) / 0.05),
+    0 8px 24px -12px rgb(var(--shadow-tint) / 0.12);
+  --shadow-lift:
+    0 2px 4px rgb(var(--shadow-tint) / 0.06),
+    0 16px 40px -12px rgb(var(--shadow-tint) / 0.22);
+
+  /* Motion — one spring-ish curve everywhere. */
+  --animate-fade-up: fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-in: fade-in 0.3s ease both;
+  --animate-scale-in: scale-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 }
 
 html,
@@ -82,6 +159,52 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Frosted surface for the mobile top bar and floating dock. */
+.glass {
+  background: color-mix(in oklab, var(--surface) 78%, transparent);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+}
+
+/* Coral → sunset gradient: hero CTAs, avatars of the brand itself. */
+.bg-gradient-brand {
+  background-image: linear-gradient(135deg, var(--brand), var(--brand-2));
+}
+
+.text-gradient-brand {
+  background-image: linear-gradient(120deg, var(--brand), var(--brand-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Thin, token-colored scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 ::selection {
   background: var(--brand-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

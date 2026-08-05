@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { PageHeader } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -66,14 +67,12 @@ export default async function PeoplePage() {
   const count = people.length;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <header>
-        <h1 className="text-xl font-bold">People</h1>
-        <p className="text-sm text-muted">
-          {count} {count === 1 ? "student" : "students"} at{" "}
-          {user.university.short_name}
-        </p>
-      </header>
+    <div className="mx-auto max-w-4xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Campus"
+        title="People"
+        description={`${count} ${count === 1 ? "student" : "students"} at ${user.university.short_name} — find classmates to trade notes or study with.`}
+      />
 
       <PeopleDirectory people={people} meId={user.userId} />
     </div>

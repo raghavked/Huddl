@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { AlertCircle, Loader2, MailCheck, Send } from "lucide-react";
+import { Badge, Button, Card } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 
 type ResendState = "idle" | "sending" | "sent";
@@ -41,28 +42,30 @@ function VerifyContent() {
   }
 
   return (
-    <div className="rounded-card border border-border bg-surface p-6 text-center">
-      <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-soft">
-        <MailCheck className="size-7 text-brand-strong" aria-hidden />
+    <Card padding="lg" className="animate-fade-up text-center">
+      <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-brand-soft text-brand">
+        <MailCheck className="size-6" aria-hidden />
       </span>
-      <h1 className="mt-4 text-xl font-bold tracking-tight">
+      <h1 className="mt-4 text-2xl font-bold tracking-tight">
         Check your inbox
       </h1>
-      <p className="mt-2 text-sm text-muted">
+      {email ? (
+        <p className="mt-3">
+          <Badge tone="brand" className="max-w-full">
+            <span className="truncate">{email}</span>
+          </Badge>
+        </p>
+      ) : null}
+      <p className="mt-3 text-sm text-muted text-pretty">
         We sent a confirmation link to{" "}
-        {email ? (
-          <strong className="font-semibold text-foreground">{email}</strong>
-        ) : (
-          "your university email"
-        )}
-        . Tap it to verify you&apos;re a student and finish setting up your
-        account.
+        {email ? "that address" : "your university email"}. Tap it to verify
+        you&apos;re a student and finish setting up your account.
       </p>
 
       {error ? (
         <p
           role="alert"
-          className="mt-4 flex items-start gap-2 rounded-lg bg-danger/10 px-3 py-2.5 text-left text-sm text-danger"
+          className="mt-4 flex items-start gap-2 rounded-xl bg-danger/10 px-3.5 py-2.5 text-left text-sm text-danger"
         >
           <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
           {error}
@@ -78,11 +81,11 @@ function VerifyContent() {
           Sent — check your inbox (and spam).
         </p>
       ) : (
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           onClick={handleResend}
           disabled={!email || resendState === "sending"}
-          className="mt-5 inline-flex items-center justify-center gap-2 rounded-full border border-border bg-surface-2 px-4 py-2 text-sm font-semibold transition-colors hover:bg-surface-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-5"
         >
           {resendState === "sending" ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -90,7 +93,7 @@ function VerifyContent() {
             <Send className="size-4" aria-hidden />
           )}
           {resendState === "sending" ? "Resending…" : "Resend email"}
-        </button>
+        </Button>
       )}
 
       <div className="mt-6 space-y-1.5 border-t border-border pt-4 text-sm text-muted">
@@ -113,7 +116,7 @@ function VerifyContent() {
           </Link>
         </p>
       </div>
-    </div>
+    </Card>
   );
 }
 

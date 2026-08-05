@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Hash, ShieldCheck, UsersRound } from "lucide-react";
+import { Hash, ShieldCheck, UsersRound } from "lucide-react";
+import { Card, PageHeader, cardClasses } from "@/components/ui";
 import { CreateChannelForm } from "@/features/discover/create-channel-form";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -27,33 +27,34 @@ export default async function NewChannelPage() {
   if (!user) redirect("/login");
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <Link
-        href="/channels"
-        className="inline-flex items-center gap-1 text-sm font-medium text-muted transition-colors hover:text-foreground"
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Channels"
+        title="Start a topic channel"
+        description={`Dorm gossip, intramural soccer, late-night ramen runs — if it's a thing at ${user.university.short_name}, it deserves a channel.`}
+        backHref="/channels"
+        backLabel="All channels"
+      />
+
+      <ul
+        className={cardClasses({
+          padding: "sm",
+          className: "mt-6 flex animate-fade-up flex-col gap-3",
+        })}
       >
-        <ArrowLeft className="size-4" aria-hidden />
-        All channels
-      </Link>
-
-      <h1 className="mt-4 text-xl font-bold">Start a topic channel</h1>
-      <p className="mt-1 text-sm text-muted">
-        Dorm gossip, intramural soccer, late-night ramen runs — if it&apos;s a
-        thing at {user.university.short_name}, it deserves a channel.
-      </p>
-
-      <ul className="mt-4 flex flex-col gap-2.5 rounded-card border border-border bg-surface-2 p-4">
         {PERKS.map(({ icon: Icon, text }) => (
-          <li key={text} className="flex items-start gap-2.5 text-sm">
-            <Icon className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
+          <li key={text} className="flex items-center gap-3 text-sm">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+              <Icon className="size-4" aria-hidden />
+            </span>
             <span>{text}</span>
           </li>
         ))}
       </ul>
 
-      <div className="mt-6 rounded-card border border-border bg-surface p-5">
+      <Card padding="lg" className="mt-6">
         <CreateChannelForm universityName={user.university.short_name} />
-      </div>
+      </Card>
     </div>
   );
 }

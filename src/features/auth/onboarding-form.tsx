@@ -4,11 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AlertCircle, ArrowRight, Loader2 } from "lucide-react";
+import {
+  Button,
+  buttonClasses,
+  Input,
+  Label,
+  Select,
+  Textarea,
+} from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
-
-const INPUT_CLASS =
-  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/25";
 
 const GRAD_YEARS = [2026, 2027, 2028, 2029, 2030, 2031, 2032];
 const BIO_MAX = 280;
@@ -50,22 +55,20 @@ export function OnboardingForm({ profile }: { profile: Profile }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
       {error ? (
         <p
           role="alert"
-          className="flex items-start gap-2 rounded-lg bg-danger/10 px-3 py-2.5 text-sm text-danger"
+          className="flex items-start gap-2 rounded-xl bg-danger/10 px-3.5 py-2.5 text-sm text-danger"
         >
           <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
           {error}
         </p>
       ) : null}
 
-      <div className="space-y-1.5">
-        <label htmlFor="onboarding-major" className="block text-sm font-medium">
-          Major
-        </label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="onboarding-major">Major</Label>
+        <Input
           id="onboarding-major"
           name="major"
           type="text"
@@ -73,23 +76,16 @@ export function OnboardingForm({ profile }: { profile: Profile }) {
           value={major}
           onChange={(e) => setMajor(e.target.value)}
           placeholder="e.g. Computer Science"
-          className={INPUT_CLASS}
         />
       </div>
 
-      <div className="space-y-1.5">
-        <label
-          htmlFor="onboarding-grad-year"
-          className="block text-sm font-medium"
-        >
-          Graduation year
-        </label>
-        <select
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="onboarding-grad-year">Graduation year</Label>
+        <Select
           id="onboarding-grad-year"
           name="grad_year"
           value={gradYear}
           onChange={(e) => setGradYear(e.target.value)}
-          className={INPUT_CLASS}
         >
           <option value="">Select a year</option>
           {GRAD_YEARS.map((year) => (
@@ -97,19 +93,17 @@ export function OnboardingForm({ profile }: { profile: Profile }) {
               Class of {year}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-1.5">
         <div className="flex items-baseline justify-between">
-          <label htmlFor="onboarding-bio" className="block text-sm font-medium">
-            Bio
-          </label>
+          <Label htmlFor="onboarding-bio">Bio</Label>
           <span className="text-xs text-muted" aria-hidden>
             {bio.length}/{BIO_MAX}
           </span>
         </div>
-        <textarea
+        <Textarea
           id="onboarding-bio"
           name="bio"
           rows={3}
@@ -117,25 +111,21 @@ export function OnboardingForm({ profile }: { profile: Profile }) {
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           placeholder="Clubs, hobbies, what you're studying — anything classmates should know."
-          className={`${INPUT_CLASS} resize-none`}
+          className="resize-none"
         />
       </div>
 
       <div className="flex flex-col gap-2 pt-1">
-        <button
-          type="submit"
-          disabled={pending}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <Button type="submit" size="lg" className="w-full" disabled={pending}>
           {pending ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
           ) : null}
           {pending ? "Saving…" : "Save and continue"}
           {pending ? null : <ArrowRight className="size-4" aria-hidden />}
-        </button>
+        </Button>
         <Link
           href="/setup"
-          className="rounded-full px-4 py-2 text-center text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          className={buttonClasses({ variant: "ghost", className: "w-full" })}
         >
           Skip for now
         </Link>

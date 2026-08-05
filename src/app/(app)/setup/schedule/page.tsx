@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { PageHeader } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ScheduleWizard } from "@/features/schedule/schedule-wizard";
@@ -24,18 +25,15 @@ export default async function ScheduleSetupPage() {
     .maybeSingle();
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Upload your schedule
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          We&apos;ll read it right on your device and match your{" "}
-          {user.university.short_name} courses — each one comes with its own
-          chat channel.
-        </p>
-      </header>
-      <div className="mt-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Setup"
+        backHref="/setup"
+        backLabel="Setup"
+        title="Upload your schedule"
+        description={`We'll read it right on your device and match your ${user.university.short_name} courses — each one comes with its own chat channel.`}
+      />
+      <div className="mt-8 animate-fade-up">
         <ScheduleWizard
           userId={user.userId}
           universityId={user.university.id}

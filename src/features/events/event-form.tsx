@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { BookOpen, Loader2, PartyPopper, Trash2 } from "lucide-react";
 import {
+  Button,
+  FieldError,
+  Hint,
+  Input,
+  Label,
+  Select,
+  Textarea,
+  buttonClasses,
+} from "@/components/ui";
+import {
   deleteEvent,
   updateEvent,
   type EventFields,
@@ -18,9 +28,6 @@ export interface CourseOption {
   code: string;
   title: string;
 }
-
-const FIELD =
-  "mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/30";
 
 const KIND_OPTIONS: readonly {
   value: EventKind;
@@ -203,8 +210,8 @@ export function EventForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
       <fieldset>
-        <legend className="text-sm font-medium">Event type</legend>
-        <div className="mt-1.5 grid grid-cols-2 gap-2">
+        <legend className="text-sm font-semibold">Event type</legend>
+        <div className="mt-2 grid grid-cols-2 gap-2">
           {KIND_OPTIONS.map(({ value, label, hint, icon: Icon }) => {
             const active = kind === value;
             return (
@@ -214,10 +221,10 @@ export function EventForm({
                 aria-pressed={active}
                 onClick={() => setKind(value)}
                 className={cn(
-                  "flex flex-col items-start gap-1 rounded-card border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand/50",
+                  "flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                   active
-                    ? "border-brand bg-brand-soft"
-                    : "border-border bg-background hover:bg-surface-2"
+                    ? "border-brand bg-brand-soft shadow-soft"
+                    : "border-border bg-surface hover:border-brand/25 hover:bg-surface-2"
                 )}
               >
                 <span
@@ -237,17 +244,16 @@ export function EventForm({
       </fieldset>
 
       {club ? (
-        <p className="rounded-lg bg-surface-2 px-3 py-2 text-xs text-muted">
-          Hosted by <span className="font-medium text-foreground">{club.name}</span>
+        <p className="rounded-xl bg-surface-2 px-3.5 py-2.5 text-xs text-muted">
+          Hosted by{" "}
+          <span className="font-semibold text-foreground">{club.name}</span>
           {isEdit ? null : " — it'll show on the club page too."}
         </p>
       ) : null}
 
-      <div>
-        <label htmlFor="event-title" className="block text-sm font-medium">
-          Title
-        </label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="event-title">Title</Label>
+        <Input
           id="event-title"
           type="text"
           required
@@ -259,61 +265,55 @@ export function EventForm({
               ? "Midterm review — bring your problem sets"
               : "Trivia night at the union"
           }
-          className={FIELD}
         />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <div>
-          <label htmlFor="event-starts" className="block text-sm font-medium">
-            Starts
-          </label>
-          <input
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="event-starts">Starts</Label>
+          <Input
             id="event-starts"
             type="datetime-local"
             required
             value={startsLocal}
             onChange={(e) => setStartsLocal(e.target.value)}
             suppressHydrationWarning
-            className={FIELD}
           />
         </div>
-        <div>
-          <label htmlFor="event-ends" className="block text-sm font-medium">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="event-ends">
             Ends <span className="font-normal text-muted">(optional)</span>
-          </label>
-          <input
+          </Label>
+          <Input
             id="event-ends"
             type="datetime-local"
             value={endsLocal}
             onChange={(e) => setEndsLocal(e.target.value)}
             suppressHydrationWarning
-            className={FIELD}
           />
         </div>
       </div>
 
-      <div>
-        <label htmlFor="event-location" className="block text-sm font-medium">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="event-location">
           Location <span className="font-normal text-muted">(optional)</span>
-        </label>
-        <input
+        </Label>
+        <Input
           id="event-location"
           type="text"
           maxLength={200}
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           placeholder="Library 3rd floor, room 301"
-          className={FIELD}
         />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <div>
-          <label htmlFor="event-capacity" className="block text-sm font-medium">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="event-capacity">
             Capacity <span className="font-normal text-muted">(optional)</span>
-          </label>
-          <input
+          </Label>
+          <Input
             id="event-capacity"
             type="number"
             min={1}
@@ -323,22 +323,18 @@ export function EventForm({
             value={capacity}
             onChange={(e) => setCapacity(e.target.value)}
             placeholder="No limit"
-            className={FIELD}
           />
-          <p className="mt-1.5 text-xs text-muted">
-            New &ldquo;going&rdquo; RSVPs stop once it&apos;s full.
-          </p>
+          <Hint>New &ldquo;going&rdquo; RSVPs stop once it&apos;s full.</Hint>
         </div>
         {courses.length > 0 ? (
-          <div>
-            <label htmlFor="event-course" className="block text-sm font-medium">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="event-course">
               Course <span className="font-normal text-muted">(optional)</span>
-            </label>
-            <select
+            </Label>
+            <Select
               id="event-course"
               value={courseId}
               onChange={(e) => setCourseId(e.target.value)}
-              className={FIELD}
             >
               <option value="">No course — campus-wide</option>
               {courses.map((course) => (
@@ -346,51 +342,40 @@ export function EventForm({
                   {course.code} · {course.title}
                 </option>
               ))}
-            </select>
+            </Select>
             {kind === "study_session" ? (
-              <p className="mt-1.5 text-xs text-muted">
-                Tie it to a course so classmates can spot it.
-              </p>
+              <Hint>Tie it to a course so classmates can spot it.</Hint>
             ) : null}
           </div>
         ) : null}
       </div>
 
-      <div>
-        <label htmlFor="event-description" className="block text-sm font-medium">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="event-description">
           Description <span className="font-normal text-muted">(optional)</span>
-        </label>
-        <textarea
+        </Label>
+        <Textarea
           id="event-description"
           rows={4}
           maxLength={2000}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="What should people know before showing up?"
-          className={FIELD}
         />
       </div>
 
-      {error ? (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
+      {error ? <FieldError className="text-sm">{error}</FieldError> : null}
 
       <div className="flex items-center justify-end gap-2">
         {isEdit && event ? (
           <Link
             href={`/events/${event.id}`}
-            className="rounded-full border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-surface-2"
+            className={buttonClasses({ variant: "secondary" })}
           >
             Cancel
           </Link>
         ) : null}
-        <button
-          type="submit"
-          disabled={busy}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-brand-fg transition-opacity hover:opacity-90 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={busy}>
           {busy ? (
             <>
               <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -401,7 +386,7 @@ export function EventForm({
           ) : (
             "Create event"
           )}
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -416,19 +401,19 @@ export function DeleteEventButton({ eventId }: { eventId: string }) {
   if (!confirming) {
     return (
       <div>
-        <button
-          type="button"
+        <Button
+          variant="danger-ghost"
+          size="sm"
           onClick={() => {
             setError(null);
             setConfirming(true);
           }}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium text-danger transition-colors hover:bg-surface-2"
         >
           <Trash2 className="size-4" aria-hidden />
           Delete event
-        </button>
+        </Button>
         {error ? (
-          <p role="alert" className="mt-2 text-xs text-danger">
+          <p role="alert" className="mt-2 text-xs font-medium text-danger">
             {error}
           </p>
         ) : null}
@@ -437,22 +422,23 @@ export function DeleteEventButton({ eventId }: { eventId: string }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-2 p-3">
+    <div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-2 p-3 shadow-soft">
       <p className="text-sm">
         Delete this event for everyone? RSVPs go with it — this can&apos;t be
         undone.
       </p>
       <div className="flex gap-2">
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => setConfirming(false)}
           disabled={isPending}
-          className="rounded-full border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-3 disabled:opacity-60"
         >
           Cancel
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
           onClick={() => {
             startTransition(async () => {
               const result = await deleteEvent(eventId);
@@ -464,7 +450,6 @@ export function DeleteEventButton({ eventId }: { eventId: string }) {
             });
           }}
           disabled={isPending}
-          className="inline-flex items-center gap-1.5 rounded-full bg-danger px-4 py-2 text-sm font-semibold text-brand-fg transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {isPending ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -472,7 +457,7 @@ export function DeleteEventButton({ eventId }: { eventId: string }) {
             <Trash2 className="size-4" aria-hidden />
           )}
           Delete
-        </button>
+        </Button>
       </div>
     </div>
   );

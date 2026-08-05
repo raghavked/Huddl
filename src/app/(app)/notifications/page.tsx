@@ -25,7 +25,7 @@ export default async function NotificationsPage() {
     .limit(50);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <NotificationList
         initial={(data ?? []) as AppNotification[]}
         userId={user.userId}

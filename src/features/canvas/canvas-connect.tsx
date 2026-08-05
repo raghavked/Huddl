@@ -21,6 +21,16 @@ import {
   Unplug,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import {
+  Badge,
+  Button,
+  Card,
+  Hint,
+  Input,
+  Label,
+  buttonClasses,
+  cardClasses,
+} from "@/components/ui";
 import { cn } from "@/lib/utils";
 import type { CanvasConnection } from "@/lib/types";
 
@@ -37,20 +47,11 @@ interface SyncResult {
 
 type Phase = "idle" | "connecting" | "syncing" | "disconnecting";
 
-const primaryBtn =
-  "inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
-const outlineBtn =
-  "inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-2 disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
-const dangerBtn =
-  "inline-flex items-center justify-center gap-2 rounded-lg bg-danger px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger";
-const inputCls =
-  "mt-1.5 w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted/70 focus:border-brand focus:ring-2 focus:ring-brand/25 disabled:opacity-60";
-
 function ErrorAlert({ message }: { message: string }) {
   return (
     <div
       role="alert"
-      className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger"
+      className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger"
     >
       <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
       <span>{message}</span>
@@ -61,27 +62,24 @@ function ErrorAlert({ message }: { message: string }) {
 function SyncResultPanel({ result }: { result: SyncResult }) {
   if (result.enrolled.length === 0) {
     return (
-      <section className="rounded-card border border-border bg-surface">
+      <Card padding="none">
         <EmptyState
           icon={BookOpen}
           title="No active courses found"
           description="Canvas didn't return any published courses right now. Once your instructors publish their courses, come back and re-sync."
         />
-      </section>
+      </Card>
     );
   }
   const n = result.enrolled.length;
   return (
-    <section
-      aria-label="Sync results"
-      className="rounded-card border border-border bg-surface p-5"
-    >
+    <section aria-label="Sync results" className={cardClasses()}>
       <div className="flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft">
-          <CheckCircle2 className="size-5 text-brand-strong" aria-hidden />
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+          <CheckCircle2 className="size-5" aria-hidden />
         </span>
         <div>
-          <h2 className="font-semibold">
+          <h2 className="font-bold tracking-tight">
             You&apos;ve been added to {n} course {n === 1 ? "channel" : "channels"}
           </h2>
           <p className="mt-0.5 text-sm text-muted">
@@ -89,7 +87,7 @@ function SyncResultPanel({ result }: { result: SyncResult }) {
           </p>
         </div>
       </div>
-      <ul className="mt-4 divide-y divide-border overflow-hidden rounded-lg border border-border">
+      <ul className="mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border">
         {result.enrolled.map((course) => (
           <li
             key={`${course.code}-${course.title}`}
@@ -97,13 +95,16 @@ function SyncResultPanel({ result }: { result: SyncResult }) {
           >
             <Hash className="size-4 shrink-0 text-muted" aria-hidden />
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{course.code}</p>
+              <p className="truncate text-sm font-semibold">{course.code}</p>
               <p className="truncate text-xs text-muted">{course.title}</p>
             </div>
           </li>
         ))}
       </ul>
-      <Link href="/channels" className={cn(primaryBtn, "mt-4 w-full sm:w-auto")}>
+      <Link
+        href="/channels"
+        className={buttonClasses({ className: "mt-4 w-full sm:w-auto" })}
+      >
         Go to your channels
         <ArrowRight className="size-4" aria-hidden />
       </Link>
@@ -235,15 +236,12 @@ export function CanvasConnect({
   if (connection) {
     const host = connection.base_url.replace(/^https:\/\//, "");
     return (
-      <div className="space-y-4">
-        <section
-          aria-label="Canvas connection"
-          className="rounded-card border border-border bg-surface p-5"
-        >
+      <div className="flex flex-col gap-4">
+        <section aria-label="Canvas connection" className={cardClasses()}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft">
-                <Link2 className="size-5 text-brand-strong" aria-hidden />
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                <Link2 className="size-5" aria-hidden />
               </span>
               <div className="min-w-0">
                 <p className="truncate font-semibold">{host}</p>
@@ -258,29 +256,27 @@ export function CanvasConnect({
               </div>
             </div>
             {phase === "syncing" ? (
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-muted">
+              <Badge tone="neutral">
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />
                 Syncing…
-              </span>
+              </Badge>
             ) : connection.sync_status === "ok" ? (
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-success">
+              <Badge tone="success">
                 <CheckCircle2 className="size-3.5" aria-hidden />
                 Synced
-              </span>
+              </Badge>
             ) : connection.sync_status === "error" ? (
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-danger">
+              <Badge tone="danger">
                 <AlertCircle className="size-3.5" aria-hidden />
                 Sync failed
-              </span>
+              </Badge>
             ) : (
-              <span className="inline-flex shrink-0 items-center rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-muted">
-                Connected
-              </span>
+              <Badge tone="neutral">Connected</Badge>
             )}
           </div>
 
           {connection.sync_status === "error" && connection.sync_error ? (
-            <p className="mt-3 rounded-lg bg-surface-2 px-3 py-2 text-xs text-danger">
+            <p className="mt-3 rounded-xl bg-surface-2 px-3 py-2 text-xs text-danger">
               {connection.sync_error}
             </p>
           ) : null}
@@ -292,26 +288,20 @@ export function CanvasConnect({
           ) : null}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={runSync}
-              disabled={busy}
-              className={primaryBtn}
-            >
+            <Button onClick={runSync} disabled={busy}>
               {phase === "syncing" ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden />
               ) : (
                 <RefreshCw className="size-4" aria-hidden />
               )}
               {phase === "syncing" ? "Syncing…" : "Re-sync courses"}
-            </button>
+            </Button>
             {confirmingDisconnect ? (
               <>
-                <button
-                  type="button"
+                <Button
+                  variant="danger"
                   onClick={handleDisconnect}
                   disabled={busy}
-                  className={dangerBtn}
                 >
                   {phase === "disconnecting" ? (
                     <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -319,26 +309,24 @@ export function CanvasConnect({
                     <Unplug className="size-4" aria-hidden />
                   )}
                   Yes, disconnect
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="secondary"
                   onClick={() => setConfirmingDisconnect(false)}
                   disabled={busy}
-                  className={outlineBtn}
                 >
                   Cancel
-                </button>
+                </Button>
               </>
             ) : (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
                 onClick={() => setConfirmingDisconnect(true)}
                 disabled={busy}
-                className={outlineBtn}
               >
                 <Unplug className="size-4" aria-hidden />
                 Disconnect
-              </button>
+              </Button>
             )}
           </div>
           {confirmingDisconnect ? (
@@ -358,13 +346,20 @@ export function CanvasConnect({
 
   // ---------- Not connected: explain + connect form ----------
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <section
         aria-label="What Huddl does with Canvas"
-        className="rounded-card border border-border bg-surface p-5"
+        className="rounded-card border border-accent/30 bg-accent-soft p-5 shadow-soft"
       >
-        <h2 className="font-semibold">What Huddl does with Canvas</h2>
-        <ul className="mt-3 space-y-2.5 text-sm">
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface text-accent">
+            <ShieldCheck className="size-5" aria-hidden />
+          </span>
+          <h2 className="font-bold tracking-tight">
+            What Huddl does with Canvas
+          </h2>
+        </div>
+        <ul className="mt-4 flex flex-col gap-2.5 text-sm">
           <li className="flex gap-2.5">
             <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
             <span>
@@ -393,16 +388,11 @@ export function CanvasConnect({
         </ul>
       </section>
 
-      <form
-        onSubmit={handleConnect}
-        className="rounded-card border border-border bg-surface p-5"
-      >
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="canvas-url" className="block text-sm font-medium">
-              Canvas URL
-            </label>
-            <input
+      <form onSubmit={handleConnect} className={cardClasses()}>
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="canvas-url">Canvas URL</Label>
+            <Input
               id="canvas-url"
               name="canvasUrl"
               type="text"
@@ -416,18 +406,15 @@ export function CanvasConnect({
               onChange={(e) => setBaseUrl(e.target.value)}
               placeholder="https://canvas.university.edu"
               aria-describedby="canvas-url-hint"
-              className={inputCls}
             />
-            <p id="canvas-url-hint" className="mt-1.5 text-xs text-muted">
+            <Hint id="canvas-url-hint">
               The address you use to open Canvas in your browser.
-            </p>
+            </Hint>
           </div>
 
-          <div>
-            <label htmlFor="canvas-token" className="block text-sm font-medium">
-              Access token
-            </label>
-            <input
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="canvas-token">Access token</Label>
+            <Input
               id="canvas-token"
               name="accessToken"
               type="password"
@@ -437,7 +424,6 @@ export function CanvasConnect({
               value={accessToken}
               onChange={(e) => setAccessToken(e.target.value)}
               placeholder="Paste your Canvas access token"
-              className={inputCls}
             />
           </div>
 
@@ -447,7 +433,7 @@ export function CanvasConnect({
               onClick={() => setHelpOpen((open) => !open)}
               aria-expanded={helpOpen}
               aria-controls={helpId}
-              className="inline-flex items-center gap-1.5 rounded text-sm font-medium text-brand transition-colors hover:text-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className="inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-brand transition-colors hover:text-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               <ChevronDown
                 className={cn(
@@ -461,7 +447,7 @@ export function CanvasConnect({
             {helpOpen ? (
               <ol
                 id={helpId}
-                className="mt-2 list-decimal space-y-1.5 rounded-lg bg-surface-2 py-3 pl-8 pr-4 text-sm text-muted"
+                className="mt-2 list-decimal space-y-1.5 rounded-xl bg-surface-2 py-3 pl-8 pr-4 text-sm text-muted"
               >
                 <li>Open Canvas in your browser and sign in.</li>
                 <li>
@@ -499,11 +485,7 @@ export function CanvasConnect({
 
           {error ? <ErrorAlert message={error} /> : null}
 
-          <button
-            type="submit"
-            disabled={busy}
-            className={cn(primaryBtn, "w-full")}
-          >
+          <Button type="submit" variant="gradient" disabled={busy} className="w-full">
             {phase === "connecting" ? (
               <>
                 <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -520,7 +502,7 @@ export function CanvasConnect({
                 Connect and sync
               </>
             )}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

@@ -11,6 +11,22 @@ const SIZES = {
 
 const PX = { xs: 24, sm: 32, md: 40, lg: 56, xl: 96 } as const;
 
+/* Fallback tones cycle deterministically per name so a roster reads as a
+   crowd, not a wall of one color — token palette only. */
+const TONES = [
+  "bg-brand-soft text-brand-strong",
+  "bg-accent-soft text-accent",
+  "bg-surface-3 text-foreground",
+] as const;
+
+function toneFor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) | 0;
+  }
+  return TONES[Math.abs(hash) % TONES.length];
+}
+
 export function Avatar({
   name,
   src,
@@ -42,7 +58,8 @@ export function Avatar({
     <span
       aria-hidden
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full bg-brand-soft font-semibold text-brand-strong",
+        "flex shrink-0 items-center justify-center rounded-full font-semibold",
+        toneFor(name),
         SIZES[size],
         className
       )}

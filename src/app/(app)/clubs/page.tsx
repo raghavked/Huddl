@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus, Sparkles } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { PageHeader, buttonClasses } from "@/components/ui";
 import { ClubCard } from "@/features/clubs/club-card";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -27,6 +28,15 @@ type ClubRow = Club & { club_members: { count: number }[] };
  * client module and client functions can't be called from the server. */
 function categoryLabel(category: ClubCategory): string {
   return category.charAt(0).toUpperCase() + category.slice(1);
+}
+
+function chipClasses(active: boolean): string {
+  return cn(
+    "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+    active
+      ? "bg-brand text-brand-fg shadow-soft"
+      : "bg-surface-2 text-muted hover:bg-surface-3 hover:text-foreground"
+  );
 }
 
 export default async function ClubsPage({
@@ -69,38 +79,30 @@ export default async function ClubsPage({
   const startButton = (
     <Link
       href="/clubs/new"
-      className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-opacity hover:opacity-90"
+      className={buttonClasses({ size: "sm", className: "gap-1.5" })}
     >
       <Plus className="size-4" aria-hidden />
-      Start a club
+      Found a club
     </Link>
   );
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <header className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold">Clubs</h1>
-          <p className="truncate text-sm text-muted">
-            Student orgs at {user.university.short_name}
-          </p>
-        </div>
-        {startButton}
-      </header>
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Campus"
+        title="Clubs"
+        description={`Student orgs at ${user.university.short_name} — find your people or found them.`}
+        action={startButton}
+      />
 
       <nav
         aria-label="Filter clubs by category"
-        className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1"
+        className="-mx-4 mt-6 flex animate-fade-up gap-2 overflow-x-auto px-4 pb-1"
       >
         <Link
           href="/clubs"
           aria-current={active === null ? "page" : undefined}
-          className={cn(
-            "shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-            active === null
-              ? "bg-brand text-brand-fg"
-              : "bg-surface-2 text-muted hover:text-foreground"
-          )}
+          className={chipClasses(active === null)}
         >
           All
         </Link>
@@ -109,12 +111,7 @@ export default async function ClubsPage({
             key={category}
             href={`/clubs?category=${category}`}
             aria-current={active === category ? "page" : undefined}
-            className={cn(
-              "shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-              active === category
-                ? "bg-brand text-brand-fg"
-                : "bg-surface-2 text-muted hover:text-foreground"
-            )}
+            className={chipClasses(active === category)}
           >
             {categoryLabel(category)}
           </Link>
@@ -122,18 +119,20 @@ export default async function ClubsPage({
       </nav>
 
       {clubs.length === 0 ? (
-        <EmptyState
-          icon={Sparkles}
-          title={active ? `No ${active} clubs yet` : "No clubs yet"}
-          description={
-            active
-              ? `Nobody has started a ${active} club at ${user.university.short_name} yet — be the first.`
-              : `Start the first one at ${user.university.short_name}.`
-          }
-          action={startButton}
-        />
+        <div className="mt-6 rounded-card border border-dashed border-border">
+          <EmptyState
+            icon={Sparkles}
+            title={active ? `No ${active} clubs yet` : "No clubs yet"}
+            description={
+              active
+                ? `Nobody has started a ${active} club at ${user.university.short_name} yet — be the first.`
+                : `Start the first one at ${user.university.short_name}.`
+            }
+            action={startButton}
+          />
+        </div>
       ) : (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
           {clubs.map((club) => (
             <ClubCard
               key={club.id}

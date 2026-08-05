@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/** Empty states recruit: icon tile, invitation, and ideally an action. */
 export function EmptyState({
   icon: Icon,
   title,
@@ -17,17 +18,27 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-3 px-6 py-16 text-center",
+        "flex animate-fade-up flex-col items-center justify-center gap-4 px-6 py-16 text-center",
         className
       )}
     >
-      <span className="flex size-14 items-center justify-center rounded-full bg-surface-2">
-        <Icon className="size-6 text-muted" aria-hidden />
+      <span className="relative flex size-16 items-center justify-center rounded-2xl bg-brand-soft">
+        <Icon className="size-7 text-brand" aria-hidden />
+        <span
+          aria-hidden
+          className="absolute -right-1.5 -top-1.5 size-3 rounded-full bg-brand-2/60"
+        />
+        <span
+          aria-hidden
+          className="absolute -bottom-1 -left-2 size-2 rounded-full bg-accent/40"
+        />
       </span>
       <div>
-        <p className="font-semibold">{title}</p>
+        <p className="font-bold tracking-tight">{title}</p>
         {description ? (
-          <p className="mt-1 max-w-sm text-sm text-muted">{description}</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-muted text-pretty">
+            {description}
+          </p>
         ) : null}
       </div>
       {action}

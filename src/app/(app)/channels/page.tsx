@@ -12,6 +12,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import {
+  PageHeader,
+  SectionHeader,
+  Segmented,
+  buttonClasses,
+  cardClasses,
+} from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Channel, ChannelKind, Course } from "@/lib/types";
@@ -65,69 +72,74 @@ export default async function ChannelsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">Channels</h1>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/channels/browse"
-            className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 py-2 text-sm font-semibold transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-          >
-            <Compass className="size-4" aria-hidden />
-            Browse
-          </Link>
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Channels"
+        title="Your channels"
+        description="Campus, courses, topics, clubs — every conversation you're in."
+        action={
           <Link
             href="/channels/new"
-            className="flex items-center gap-1.5 rounded-full bg-brand px-3.5 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className={buttonClasses({ size: "sm", className: "gap-1.5" })}
           >
             <Plus className="size-4" aria-hidden />
-            New
+            New channel
           </Link>
-        </div>
+        }
+      />
+
+      <div className="mt-6 animate-fade-up">
+        <Segmented
+          items={[
+            { href: "/channels", label: "Yours", icon: Hash },
+            { href: "/channels/browse", label: "Browse", icon: Compass },
+          ]}
+        />
       </div>
 
       {channels.length === 0 ? (
-        <EmptyState
-          icon={Hash}
-          title="No channels yet"
-          description="Add your courses and you'll land in a channel for each class automatically — campus channels come free with your profile."
-          action={
-            <div className="flex flex-col items-center gap-3 sm:flex-row">
-              <Link
-                href="/setup"
-                className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-              >
-                Set up your courses
-              </Link>
-              <Link
-                href="/channels/browse"
-                className="text-sm font-semibold text-accent hover:underline"
-              >
-                or browse campus channels
-              </Link>
-            </div>
-          }
-        />
+        <div className={cardClasses({ padding: "none", className: "mt-6" })}>
+          <EmptyState
+            icon={Hash}
+            title="No channels yet"
+            description="Add your courses and you'll land in a channel for each class automatically — campus channels come free with your profile."
+            action={
+              <div className="flex flex-col items-center gap-3 sm:flex-row">
+                <Link href="/setup" className={buttonClasses({ size: "sm" })}>
+                  Set up your courses
+                </Link>
+                <Link
+                  href="/channels/browse"
+                  className="text-sm font-semibold text-accent hover:underline"
+                >
+                  or browse campus channels
+                </Link>
+              </div>
+            }
+          />
+        </div>
       ) : (
         <>
           {GROUPS.map(({ kind, label, icon: Icon }) => {
             const group = byKind.get(kind);
             if (!group || group.length === 0) return null;
             return (
-              <section key={kind} className="mt-6" aria-label={label}>
-                <h2 className="px-1 text-xs font-bold uppercase tracking-wide text-muted">
-                  {label}
-                </h2>
-                <ul className="mt-2 divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
+              <section key={kind} className="mt-8" aria-label={label}>
+                <SectionHeader title={label} />
+                <ul className="mt-3 flex flex-col gap-2.5">
                   {group.map((channel) => {
                     const subtitle = channelSubtitle(channel);
                     return (
                       <li key={channel.id}>
                         <Link
                           href={`/channels/${channel.id}`}
-                          className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
+                          className={cardClasses({
+                            padding: "none",
+                            interactive: true,
+                            className: "flex items-center gap-3 px-4 py-3",
+                          })}
                         >
-                          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-strong">
+                          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
                             <Icon className="size-5" aria-hidden />
                           </span>
                           <span className="min-w-0 flex-1">
@@ -154,7 +166,7 @@ export default async function ChannelsPage() {
           })}
 
           {!byKind.get("course")?.length ? (
-            <div className="mt-6 rounded-card border border-dashed border-border p-4 text-sm text-muted">
+            <div className="mt-8 rounded-card border border-dashed border-border p-4 text-sm text-muted">
               No course channels yet.{" "}
               <Link
                 href="/setup"

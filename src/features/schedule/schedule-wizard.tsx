@@ -20,6 +20,13 @@ import {
   Search,
   ShieldCheck,
 } from "lucide-react";
+import {
+  Badge,
+  Button,
+  Input,
+  buttonClasses,
+  cardClasses,
+} from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Course } from "@/lib/types";
@@ -36,18 +43,11 @@ const STEP_ORDER: Record<Exclude<Step, "done">, number> = {
 };
 const STEP_LABELS = ["Privacy", "Your schedule", "Your courses", "Finish"];
 
-const primaryBtn =
-  "inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
-const outlineBtn =
-  "inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-2 disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
-const inputCls =
-  "w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted/70 focus:border-brand focus:ring-2 focus:ring-brand/25 disabled:opacity-60";
-
 function ErrorAlert({ message }: { message: string }) {
   return (
     <div
       role="alert"
-      className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger"
+      className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger"
     >
       <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
       <span>{message}</span>
@@ -59,7 +59,7 @@ function StepIndicator({ step }: { step: Exclude<Step, "done"> }) {
   const current = STEP_ORDER[step];
   return (
     <div className="mb-5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+      <p className="text-xs font-semibold uppercase tracking-widest text-muted">
         Step {current} of 4 · {STEP_LABELS[current - 1]}
       </p>
       <div className="mt-2 flex gap-1.5" aria-hidden>
@@ -404,17 +404,17 @@ export function ScheduleWizard({
         <StepIndicator step="privacy" />
         <section
           aria-label="How your schedule image is handled"
-          className="rounded-card border border-border bg-surface p-5"
+          className="rounded-card border border-accent/30 bg-accent-soft p-5 shadow-soft"
         >
           <div className="flex items-center gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent-soft">
-              <ShieldCheck className="size-5 text-accent" aria-hidden />
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-surface text-accent">
+              <ShieldCheck className="size-6" aria-hidden />
             </span>
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-lg font-bold tracking-tight">
               Your schedule stays on your device
             </h2>
           </div>
-          <ul className="mt-4 space-y-3 text-sm">
+          <ul className="mt-4 flex flex-col gap-3 text-sm">
             <li className="flex gap-2.5">
               <Cpu className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden />
               <span>
@@ -445,14 +445,10 @@ export function ScheduleWizard({
               </span>
             </li>
           </ul>
-          <button
-            type="button"
-            onClick={() => setStep("photo")}
-            className={cn(primaryBtn, "mt-5 w-full")}
-          >
+          <Button onClick={() => setStep("photo")} className="mt-5 w-full">
             <Check className="size-4" aria-hidden />
             I understand — continue
-          </button>
+          </Button>
           <p className="mt-3 text-center text-xs text-muted">
             Prefer not to use a photo?{" "}
             <Link
@@ -475,9 +471,11 @@ export function ScheduleWizard({
         <StepIndicator step="photo" />
         <section
           aria-label="Choose a schedule image"
-          className="rounded-card border border-border bg-surface p-5"
+          className={cardClasses()}
         >
-          <h2 className="font-semibold">Add a photo of your schedule</h2>
+          <h2 className="font-bold tracking-tight">
+            Add a photo of your schedule
+          </h2>
           <p className="mt-1 text-sm text-muted">
             A screenshot of your registration page or a photo of a printed
             schedule both work great.
@@ -509,7 +507,7 @@ export function ScheduleWizard({
               <img
                 src={previewUrl}
                 alt="Preview of your selected schedule"
-                className="max-h-80 w-full rounded-lg border border-border bg-surface-2 object-contain"
+                className="max-h-80 w-full rounded-xl border border-border bg-surface-2 object-contain"
               />
               <p className="mt-2 truncate text-xs text-muted">
                 {file?.name || "Selected image"} · stays on this device until
@@ -519,24 +517,24 @@ export function ScheduleWizard({
           ) : null}
 
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <button
-              type="button"
+            <Button
+              variant={previewUrl ? "secondary" : "primary"}
               disabled={working}
               onClick={() => fileInputRef.current?.click()}
-              className={cn(previewUrl ? outlineBtn : primaryBtn, "flex-1")}
+              className="flex-1"
             >
               <ImagePlus className="size-4" aria-hidden />
               {previewUrl ? "Choose a different image" : "Choose an image"}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="secondary"
               disabled={working}
               onClick={() => cameraInputRef.current?.click()}
-              className={cn(outlineBtn, "flex-1")}
+              className="flex-1"
             >
               <Camera className="size-4" aria-hidden />
               Take a photo
-            </button>
+            </Button>
           </div>
 
           {working ? (
@@ -571,38 +569,29 @@ export function ScheduleWizard({
           ) : null}
 
           <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               disabled={working}
               onClick={() => setStep("privacy")}
-              className={cn(outlineBtn, "sm:order-first")}
+              className="sm:order-first"
             >
               <ArrowLeft className="size-4" aria-hidden />
               Back
-            </button>
+            </Button>
             <div className="flex flex-col gap-2 sm:flex-row">
               {ocrPhase === "error" ? (
-                <button
-                  type="button"
-                  onClick={skipToReview}
-                  className={outlineBtn}
-                >
+                <Button variant="secondary" onClick={skipToReview}>
                   Continue without scanning
-                </button>
+                </Button>
               ) : null}
-              <button
-                type="button"
-                disabled={!file || working}
-                onClick={runOcr}
-                className={primaryBtn}
-              >
+              <Button disabled={!file || working} onClick={runOcr}>
                 {working ? (
                   <Loader2 className="size-4 animate-spin" aria-hidden />
                 ) : (
                   <ScanLine className="size-4" aria-hidden />
                 )}
                 {working ? "Reading…" : "Read my schedule"}
-              </button>
+              </Button>
             </div>
           </div>
         </section>
@@ -616,12 +605,12 @@ export function ScheduleWizard({
     return (
       <div>
         <StepIndicator step="review" />
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           <section
             aria-label="Suggested courses"
-            className="rounded-card border border-border bg-surface p-5"
+            className={cardClasses()}
           >
-            <h2 className="font-semibold">
+            <h2 className="font-bold tracking-tight">
               {nothingFound
                 ? "No course codes spotted"
                 : "Here's what we spotted"}
@@ -636,7 +625,7 @@ export function ScheduleWizard({
               <ul className="mt-4 space-y-2">
                 {pool.map((course) => (
                   <li key={course.id}>
-                    <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 transition-colors hover:bg-surface-2 has-[:checked]:border-brand/50 has-[:checked]:bg-brand-soft/40">
+                    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5 transition-colors hover:bg-surface-2 has-[:checked]:border-brand/50 has-[:checked]:bg-brand-soft/40">
                       <input
                         type="checkbox"
                         checked={Boolean(selectedIds[course.id])}
@@ -649,7 +638,7 @@ export function ScheduleWizard({
                         className="size-4 shrink-0 accent-brand"
                       />
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium">
+                        <span className="block truncate text-sm font-semibold">
                           {course.code}
                         </span>
                         {course.title !== course.code ? (
@@ -699,7 +688,7 @@ export function ScheduleWizard({
 
           <section
             aria-label="Search the course catalog"
-            className="rounded-card border border-border bg-surface p-5"
+            className={cardClasses()}
           >
             <label htmlFor="course-search" className="text-sm font-semibold">
               Add more courses
@@ -709,13 +698,13 @@ export function ScheduleWizard({
                 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted"
                 aria-hidden
               />
-              <input
+              <Input
                 id="course-search"
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search by code or title, e.g. CS 101"
-                className={cn(inputCls, "pl-9")}
+                className="pl-9"
               />
             </div>
             {query.trim() ? (
@@ -729,11 +718,11 @@ export function ScheduleWizard({
                           addToPool(course);
                           setQuery("");
                         }}
-                        className="flex w-full items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                        className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                       >
                         <Plus className="size-4 shrink-0 text-brand" aria-hidden />
                         <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium">
+                          <span className="block truncate text-sm font-semibold">
                             {course.code}
                           </span>
                           <span className="block truncate text-xs text-muted">
@@ -763,24 +752,18 @@ export function ScheduleWizard({
           {error ? <ErrorAlert message={error} /> : null}
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="button"
-              onClick={() => setStep("photo")}
-              className={outlineBtn}
-            >
+            <Button variant="secondary" onClick={() => setStep("photo")}>
               <ArrowLeft className="size-4" aria-hidden />
               Back
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               disabled={selectedCourses.length === 0}
               onClick={() => setStep("store")}
-              className={primaryBtn}
             >
               Continue with {selectedCourses.length}{" "}
               {selectedCourses.length === 1 ? "course" : "courses"}
               <ArrowRight className="size-4" aria-hidden />
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -792,13 +775,13 @@ export function ScheduleWizard({
     return (
       <div>
         <StepIndicator step="store" />
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           <section
             aria-label="Courses you're about to join"
-            className="rounded-card border border-border bg-surface p-5"
+            className={cardClasses()}
           >
-            <h2 className="font-semibold">You&apos;re joining</h2>
-            <ul className="mt-3 divide-y divide-border overflow-hidden rounded-lg border border-border">
+            <h2 className="font-bold tracking-tight">You&apos;re joining</h2>
+            <ul className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border">
               {selectedCourses.map((course) => (
                 <li
                   key={course.id}
@@ -806,7 +789,9 @@ export function ScheduleWizard({
                 >
                   <Hash className="size-4 shrink-0 text-muted" aria-hidden />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{course.code}</p>
+                    <p className="truncate text-sm font-semibold">
+                      {course.code}
+                    </p>
                     {course.title !== course.code ? (
                       <p className="truncate text-xs text-muted">
                         {course.title}
@@ -818,10 +803,7 @@ export function ScheduleWizard({
             </ul>
           </section>
 
-          <section
-            aria-label="Storage choice"
-            className="rounded-card border border-border bg-surface p-5"
-          >
+          <section aria-label="Storage choice" className={cardClasses()}>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p id="store-toggle-label" className="font-semibold">
@@ -849,7 +831,7 @@ export function ScheduleWizard({
                 <span
                   aria-hidden
                   className={cn(
-                    "absolute top-1 size-5 rounded-full bg-white shadow transition-[left]",
+                    "absolute top-1 size-5 rounded-full bg-brand-fg shadow-soft transition-[left]",
                     storeImage ? "left-6" : "left-1"
                   )}
                 />
@@ -860,21 +842,15 @@ export function ScheduleWizard({
           {error ? <ErrorAlert message={error} /> : null}
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               disabled={confirming}
               onClick={() => setStep("review")}
-              className={outlineBtn}
             >
               <ArrowLeft className="size-4" aria-hidden />
               Back
-            </button>
-            <button
-              type="button"
-              disabled={confirming}
-              onClick={confirm}
-              className={primaryBtn}
-            >
+            </Button>
+            <Button disabled={confirming} onClick={confirm}>
               {confirming ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden />
               ) : (
@@ -885,7 +861,7 @@ export function ScheduleWizard({
                 : `Confirm and join ${selectedCourses.length} ${
                     selectedCourses.length === 1 ? "channel" : "channels"
                   }`}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -896,12 +872,12 @@ export function ScheduleWizard({
   return (
     <section
       aria-label="Setup complete"
-      className="rounded-card border border-border bg-surface p-6 text-center"
+      className={cardClasses({ padding: "lg", className: "text-center" })}
     >
-      <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-soft">
-        <CheckCircle2 className="size-7 text-brand-strong" aria-hidden />
+      <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-brand-soft text-brand">
+        <CheckCircle2 className="size-7" aria-hidden />
       </span>
-      <h2 className="mt-4 text-xl font-bold">
+      <h2 className="mt-4 text-xl font-bold tracking-tight">
         You&apos;re in {confirmedCourses.length}{" "}
         {confirmedCourses.length === 1 ? "course channel" : "course channels"}
       </h2>
@@ -910,16 +886,15 @@ export function ScheduleWizard({
       </p>
       <ul className="mx-auto mt-4 flex max-w-md flex-wrap justify-center gap-2">
         {confirmedCourses.map((course) => (
-          <li
-            key={course.id}
-            className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-strong"
-          >
-            <Hash className="size-3" aria-hidden />
-            {course.code}
+          <li key={course.id}>
+            <Badge tone="brand">
+              <Hash className="size-3" aria-hidden />
+              {course.code}
+            </Badge>
           </li>
         ))}
       </ul>
-      <div className="mx-auto mt-5 flex max-w-md items-start gap-2.5 rounded-lg bg-accent-soft px-4 py-3 text-left text-sm">
+      <div className="mx-auto mt-5 flex max-w-md items-start gap-2.5 rounded-xl border border-accent/30 bg-accent-soft px-4 py-3 text-left text-sm">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden />
         <p>
           You&apos;ll see a privacy receipt in your notifications for everything
@@ -930,11 +905,14 @@ export function ScheduleWizard({
         </p>
       </div>
       <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
-        <Link href="/channels" className={primaryBtn}>
+        <Link href="/channels" className={buttonClasses()}>
           Go to your channels
           <ArrowRight className="size-4" aria-hidden />
         </Link>
-        <Link href="/settings/privacy" className={outlineBtn}>
+        <Link
+          href="/settings/privacy"
+          className={buttonClasses({ variant: "secondary" })}
+        >
           <ShieldCheck className="size-4" aria-hidden />
           View privacy dashboard
         </Link>
@@ -942,7 +920,7 @@ export function ScheduleWizard({
       <p className="mt-4">
         <Link
           href="/notifications"
-          className="text-sm font-medium text-muted transition-colors hover:text-foreground"
+          className="rounded-full text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
         >
           <BookOpen className="mr-1 inline size-3.5" aria-hidden />
           See your privacy receipts

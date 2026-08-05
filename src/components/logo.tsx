@@ -19,6 +19,20 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
+/** The mark on a coral→sunset gradient tile — app icon energy. */
+export function LogoTile({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "flex size-10 items-center justify-center rounded-xl bg-gradient-brand text-brand-fg shadow-soft",
+        className
+      )}
+    >
+      <LogoMark className="size-6" />
+    </span>
+  );
+}
+
 export function Wordmark({ className }: { className?: string }) {
   return (
     <span className={cn("flex items-center gap-2", className)}>

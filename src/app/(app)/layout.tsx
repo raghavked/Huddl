@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
-import { AppNav } from "@/components/app-nav";
-import { TopBar } from "@/components/top-bar";
+import { Sidebar } from "@/components/shell/sidebar";
+import { MobileTopBar } from "@/components/shell/mobile-top-bar";
+import { MobileDock } from "@/components/shell/mobile-dock";
+import { Card } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
@@ -12,14 +14,14 @@ export default async function AppLayout({
   if (!isSupabaseConfigured()) {
     return (
       <main className="flex min-h-dvh items-center justify-center p-6">
-        <div className="max-w-md rounded-card border border-border bg-surface p-6 text-center">
+        <Card padding="lg" className="max-w-md text-center">
           <h1 className="text-lg font-bold">Huddl needs a backend</h1>
           <p className="mt-2 text-sm text-muted">
             Copy <code>.env.example</code> to <code>.env.local</code> and fill
             in your Supabase project URL and publishable key, then restart the
             dev server. Migrations live in <code>supabase/migrations/</code>.
           </p>
-        </div>
+        </Card>
       </main>
     );
   }
@@ -36,10 +38,16 @@ export default async function AppLayout({
     .is("read_at", null);
 
   return (
-    <div className="min-h-dvh">
-      <TopBar user={user} unreadCount={count ?? 0} />
-      <main className="pb-20 md:pb-6 md:pl-56">{children}</main>
-      <AppNav />
+    <div className="min-h-dvh md:pl-64">
+      {/* Ambient wash behind everything — subtle, token-built. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-brand/[0.05] via-transparent to-transparent"
+      />
+      <MobileTopBar user={user} unreadCount={count ?? 0} />
+      <main className="pb-28 md:pb-10">{children}</main>
+      <MobileDock />
+      <Sidebar user={user} unreadCount={count ?? 0} />
     </div>
   );
 }

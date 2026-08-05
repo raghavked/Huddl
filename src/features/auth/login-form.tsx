@@ -10,10 +10,8 @@ import {
   MailQuestion,
   MailCheck,
 } from "lucide-react";
+import { Button, Input, Label } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
-
-const INPUT_CLASS =
-  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/25";
 
 type ResendState = "idle" | "sending" | "sent";
 
@@ -89,11 +87,11 @@ export function LoginForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-5 space-y-4" noValidate>
+    <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5" noValidate>
       {error ? (
         <p
           role="alert"
-          className="flex items-start gap-2 rounded-lg bg-danger/10 px-3 py-2.5 text-sm text-danger"
+          className="flex items-start gap-2 rounded-xl bg-danger/10 px-3.5 py-2.5 text-sm text-danger"
         >
           <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
           {error}
@@ -103,7 +101,7 @@ export function LoginForm({
       {unconfirmed ? (
         <div
           role="alert"
-          className="space-y-2 rounded-lg bg-accent-soft px-3 py-3 text-sm"
+          className="space-y-2 rounded-xl bg-accent-soft px-3.5 py-3 text-sm"
         >
           <p className="flex items-start gap-2 text-accent">
             <MailQuestion className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -122,7 +120,7 @@ export function LoginForm({
               type="button"
               onClick={handleResend}
               disabled={resendState === "sending"}
-              className="ml-6 inline-flex items-center gap-1.5 font-semibold text-accent underline-offset-2 hover:underline disabled:opacity-60"
+              className="ml-6 inline-flex items-center gap-1.5 rounded-sm font-semibold text-accent underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-60"
             >
               {resendState === "sending" ? (
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />
@@ -133,11 +131,9 @@ export function LoginForm({
         </div>
       ) : null}
 
-      <div className="space-y-1.5">
-        <label htmlFor="login-email" className="block text-sm font-medium">
-          University email
-        </label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="login-email">University email</Label>
+        <Input
           id="login-email"
           name="email"
           type="email"
@@ -146,16 +142,13 @@ export function LoginForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@school.edu"
-          className={INPUT_CLASS}
         />
       </div>
 
-      <div className="space-y-1.5">
-        <label htmlFor="login-password" className="block text-sm font-medium">
-          Password
-        </label>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="login-password">Password</Label>
         <div className="relative">
-          <input
+          <Input
             id="login-password"
             name="password"
             type={showPassword ? "text" : "password"}
@@ -164,13 +157,13 @@ export function LoginForm({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Your password"
-            className={`${INPUT_CLASS} pr-10`}
+            className="pr-11"
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? "Hide password" : "Show password"}
-            className="absolute inset-y-0 right-0 flex items-center px-3 text-muted transition-colors hover:text-foreground"
+            className="absolute inset-y-0 right-0 flex items-center rounded-r-xl px-3 text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
           >
             {showPassword ? (
               <EyeOff className="size-4" aria-hidden />
@@ -181,14 +174,15 @@ export function LoginForm({
         </div>
       </div>
 
-      <button
+      <Button
         type="submit"
+        size="lg"
+        className="w-full"
         disabled={pending || !email.trim() || !password}
-        className="flex w-full items-center justify-center gap-2 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
         {pending ? "Logging in…" : "Log in"}
-      </button>
+      </Button>
     </form>
   );
 }

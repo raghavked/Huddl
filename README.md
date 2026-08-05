@@ -69,8 +69,10 @@ supabase/seed.sql     Universities + default campus channels (no sample content)
 src/app/              App Router routes: (auth), (app) shell, marketing landing
 src/features/         Feature modules (auth, chat, dm, clubs, events, notes, ...)
 src/lib/              Shared contracts: types, supabase clients, auth, utils
-src/components/       Shared UI (avatar, empty state, logo, nav, top bar)
-docs/                 Brand guide and campus operations playbook
+src/components/ui/    UI v2 primitives (button, card, field, badge, headers)
+src/components/shell/ App shell: desktop sidebar, mobile top bar + dock
+src/components/       Shared UI (avatar, empty state, logo, theme toggle)
+docs/                 Brand guide, UI v2 design system, operations playbook
 ```
 
 ## Operating model

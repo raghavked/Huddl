@@ -10,6 +10,7 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { AlertCircle, Hash, Loader2, SendHorizontal, X } from "lucide-react";
+import { Badge, Button } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
 import { useRealtimeUpdates } from "@/lib/hooks/use-realtime-updates";
@@ -331,10 +332,12 @@ export function ChatRoom({
       >
         {messages.length < PAGE_SIZE ? (
           <div className="px-2 pb-2">
-            <span className="flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand-strong">
+            <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-brand">
               <Hash className="size-6" aria-hidden />
             </span>
-            <p className="mt-2 font-bold">Welcome to #{channel.slug}</p>
+            <p className="mt-2 font-bold tracking-tight">
+              Welcome to #{channel.slug}
+            </p>
             <p className="text-sm text-muted">
               {messages.length === 0
                 ? "Nobody's said anything yet — be the first to say hi."
@@ -363,10 +366,13 @@ export function ChatRoom({
                   aria-label="New messages"
                   className="mt-3 flex items-center gap-2 px-2"
                 >
-                  <span className="h-px flex-1 bg-danger/40" aria-hidden />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-danger">
+                  <span className="h-px flex-1 bg-brand/40" aria-hidden />
+                  <Badge
+                    tone="brand"
+                    className="px-2 py-0.5 text-[10px] uppercase tracking-widest"
+                  >
                     New
-                  </span>
+                  </Badge>
                 </div>
               ) : null}
               <MessageItem
@@ -388,7 +394,7 @@ export function ChatRoom({
       {error ? (
         <p
           role="alert"
-          className="mb-2 flex items-center gap-2 rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger"
+          className="mb-2 flex items-center gap-2 rounded-xl bg-danger/10 px-3 py-2 text-xs text-danger"
         >
           <AlertCircle className="size-4 shrink-0" aria-hidden />
           <span className="flex-1">{error}</span>
@@ -410,7 +416,7 @@ export function ChatRoom({
         }}
         className="shrink-0 pb-3 pt-1"
       >
-        <div className="flex items-end gap-2 rounded-card border border-border bg-surface px-3 py-2 transition-colors focus-within:border-brand">
+        <div className="flex items-end gap-2 rounded-2xl border border-border bg-surface px-3 py-2 shadow-soft transition-colors focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/15">
           <label htmlFor="chat-composer" className="sr-only">
             Message #{channel.slug}
           </label>
@@ -437,7 +443,7 @@ export function ChatRoom({
             type="submit"
             disabled={!draft.trim() || sending}
             aria-label="Send message"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-brand-fg shadow-soft transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
           >
             {sending ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -474,13 +480,9 @@ export function ChatRoom({
 export function JoinChannelButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="inline-flex items-center justify-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60"
-    >
+    <Button type="submit" disabled={pending}>
       {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
       {pending ? "Joining…" : "Join channel"}
-    </button>
+    </Button>
   );
 }

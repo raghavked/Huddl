@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import {
   BookOpen,
   Camera,
-  ChevronRight,
   CircleAlert,
   GraduationCap,
   ListChecks,
@@ -14,6 +13,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import {
+  Badge,
+  PageHeader,
+  buttonClasses,
+  cardClasses,
+} from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Course, Enrollment, EnrollmentSource, Term } from "@/lib/types";
@@ -89,7 +94,7 @@ export default async function CoursesPage({
   const addButton = (
     <Link
       href="/setup"
-      className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      className={buttonClasses({ size: "sm", className: "gap-1.5" })}
     >
       <Plus className="size-4" aria-hidden />
       Add courses
@@ -97,20 +102,19 @@ export default async function CoursesPage({
   );
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <header className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold">My courses</h1>
-          <p className="truncate text-sm text-muted">
-            {enrollments.length === 0
-              ? `Your classes at ${user.university.short_name}`
-              : `${enrollments.length} ${
-                  enrollments.length === 1 ? "course" : "courses"
-                } at ${user.university.short_name}`}
-          </p>
-        </div>
-        {addButton}
-      </header>
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Courses"
+        title="My courses"
+        description={
+          enrollments.length === 0
+            ? `Your classes at ${user.university.short_name}`
+            : `${enrollments.length} ${
+                enrollments.length === 1 ? "course" : "courses"
+              } at ${user.university.short_name}`
+        }
+        action={enrollments.length > 0 ? addButton : undefined}
+      />
 
       {errorParam === "drop" ? (
         <p
@@ -123,14 +127,16 @@ export default async function CoursesPage({
       ) : null}
 
       {enrollments.length === 0 ? (
-        <EmptyState
-          icon={GraduationCap}
-          title="No courses yet"
-          description="Add your classes to unlock course chat, shared notes and your classmate list — each course gets its own channel automatically."
-          action={addButton}
-        />
+        <div className="mt-6 rounded-card border border-dashed border-border">
+          <EmptyState
+            icon={GraduationCap}
+            title="No courses yet"
+            description="Add your classes to unlock course chat, shared notes and your classmate list — each course gets its own channel automatically."
+            action={addButton}
+          />
+        </div>
       ) : (
-        <ul className="mt-4 space-y-3">
+        <ul className="mt-6 grid animate-fade-up gap-3 sm:grid-cols-2">
           {enrollments.map((enrollment) => {
             const { course } = enrollment;
             const source = SOURCE_META[enrollment.source];
@@ -139,52 +145,47 @@ export default async function CoursesPage({
             return (
               <li
                 key={enrollment.id}
-                className="flex items-center gap-2 rounded-card border border-border bg-surface p-4 transition-colors hover:border-brand/40"
+                className={cardClasses({
+                  padding: "sm",
+                  className: "flex h-full flex-col",
+                })}
               >
+                <div className="flex items-start justify-between gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                    <BookOpen className="size-5" aria-hidden />
+                  </span>
+
+                  <button
+                    type="button"
+                    popoverTarget={confirmId}
+                    aria-label={`Drop ${course.code}`}
+                    title="Drop course"
+                    className="-mr-1 -mt-1 shrink-0 rounded-full p-2 text-muted transition-colors hover:bg-danger/10 hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger"
+                  >
+                    <Trash2 className="size-4" aria-hidden />
+                  </button>
+                </div>
+
                 <Link
                   href={`/courses/${course.id}`}
-                  className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  className="group mt-3 flex min-w-0 flex-1 flex-col rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 >
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft">
-                    <BookOpen
-                      className="size-5 text-brand-strong"
-                      aria-hidden
-                    />
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="text-sm font-bold transition-colors group-hover:text-brand">
+                      {course.code}
+                    </span>
+                    {course.term ? (
+                      <Badge tone="neutral">{course.term.name}</Badge>
+                    ) : null}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                      <span className="font-semibold transition-colors group-hover:text-brand">
-                        {course.code}
-                      </span>
-                      {course.term ? (
-                        <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-muted">
-                          {course.term.name}
-                        </span>
-                      ) : null}
-                    </span>
-                    <span className="mt-0.5 block truncate text-sm text-muted">
-                      {course.title}
-                    </span>
-                    <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-accent">
-                      <SourceIcon className="size-3.5" aria-hidden />
-                      {source.label}
-                    </span>
+                  <span className="mt-0.5 block truncate text-sm text-muted">
+                    {course.title}
                   </span>
-                  <ChevronRight
-                    className="size-5 shrink-0 text-muted transition-transform group-hover:translate-x-0.5"
-                    aria-hidden
-                  />
+                  <span className="mt-auto inline-flex items-center gap-1 pt-2.5 text-xs font-medium text-accent">
+                    <SourceIcon className="size-3.5" aria-hidden />
+                    {source.label}
+                  </span>
                 </Link>
-
-                <button
-                  type="button"
-                  popoverTarget={confirmId}
-                  aria-label={`Drop ${course.code}`}
-                  title="Drop course"
-                  className="shrink-0 rounded-full p-2 text-muted transition-colors hover:bg-danger/10 hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger"
-                >
-                  <Trash2 className="size-4" aria-hidden />
-                </button>
 
                 {/* Native popover confirm — top-layer modal with light dismiss,
                     no client JS needed so the page stays a server component. */}
@@ -193,9 +194,9 @@ export default async function CoursesPage({
                   popover="auto"
                   role="dialog"
                   aria-labelledby={`${confirmId}-title`}
-                  className="m-auto w-[min(92vw,22rem)] rounded-card border border-border bg-surface p-5 text-foreground shadow-xl backdrop:bg-black/50"
+                  className="m-auto w-[min(92vw,22rem)] rounded-card border border-border bg-surface p-5 text-foreground shadow-lift backdrop:bg-black/50"
                 >
-                  <h2 id={`${confirmId}-title`} className="font-bold">
+                  <h2 id={`${confirmId}-title`} className="font-bold tracking-tight">
                     Drop {course.code}?
                   </h2>
                   <p className="mt-1.5 text-sm text-muted">
@@ -213,13 +214,13 @@ export default async function CoursesPage({
                       type="button"
                       popoverTarget={confirmId}
                       popoverTargetAction="hide"
-                      className="rounded-full px-4 py-2 text-sm font-semibold text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                      className={buttonClasses({ variant: "ghost", size: "sm" })}
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="rounded-full bg-danger px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger"
+                      className={buttonClasses({ variant: "danger", size: "sm" })}
                     >
                       Drop course
                     </button>

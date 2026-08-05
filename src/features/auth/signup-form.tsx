@@ -10,11 +10,9 @@ import {
   EyeOff,
   Loader2,
 } from "lucide-react";
+import { Button, Hint, Input, Label } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import type { University } from "@/lib/types";
-
-const INPUT_CLASS =
-  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/25";
 
 export function SignupForm() {
   const router = useRouter();
@@ -120,11 +118,11 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-5 space-y-4" noValidate>
+    <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5" noValidate>
       {error ? (
         <div
           role="alert"
-          className="space-y-2 rounded-lg bg-danger/10 px-3 py-2.5 text-sm text-danger"
+          className="space-y-2 rounded-xl bg-danger/10 px-3.5 py-2.5 text-sm text-danger"
         >
           <p className="flex items-start gap-2">
             <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -149,7 +147,7 @@ export function SignupForm() {
       {accountExists ? (
         <p
           role="alert"
-          className="rounded-lg bg-accent-soft px-3 py-2.5 text-sm text-accent"
+          className="rounded-xl bg-accent-soft px-3.5 py-2.5 text-sm text-accent"
         >
           Looks like you already have an account with that email.{" "}
           <Link
@@ -162,11 +160,9 @@ export function SignupForm() {
         </p>
       ) : null}
 
-      <div className="space-y-1.5">
-        <label htmlFor="signup-name" className="block text-sm font-medium">
-          Display name
-        </label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="signup-name">Display name</Label>
+        <Input
           id="signup-name"
           name="name"
           type="text"
@@ -176,18 +172,13 @@ export function SignupForm() {
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="Ada Lovelace"
-          className={INPUT_CLASS}
         />
-        <p className="text-xs text-muted">
-          How classmates will see you around campus.
-        </p>
+        <Hint>How classmates will see you around campus.</Hint>
       </div>
 
-      <div className="space-y-1.5">
-        <label htmlFor="signup-email" className="block text-sm font-medium">
-          University email
-        </label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="signup-email">University email</Label>
+        <Input
           id="signup-email"
           name="email"
           type="email"
@@ -198,7 +189,6 @@ export function SignupForm() {
           placeholder="you@school.edu"
           aria-describedby="signup-email-hint"
           aria-invalid={unsupportedDomain || undefined}
-          className={INPUT_CLASS}
         />
         <div id="signup-email-hint" aria-live="polite" className="min-h-5">
           {matched ? (
@@ -214,19 +204,15 @@ export function SignupForm() {
               </span>
             </p>
           ) : (
-            <p className="text-xs text-muted">
-              Use your .edu address — we match it to your school.
-            </p>
+            <Hint>Use your .edu address — we match it to your school.</Hint>
           )}
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <label htmlFor="signup-password" className="block text-sm font-medium">
-          Password
-        </label>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="signup-password">Password</Label>
         <div className="relative">
-          <input
+          <Input
             id="signup-password"
             name="password"
             type={showPassword ? "text" : "password"}
@@ -237,13 +223,13 @@ export function SignupForm() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="At least 8 characters"
             aria-describedby="signup-password-hint"
-            className={`${INPUT_CLASS} pr-10`}
+            className="pr-11"
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? "Hide password" : "Show password"}
-            className="absolute inset-y-0 right-0 flex items-center px-3 text-muted transition-colors hover:text-foreground"
+            className="absolute inset-y-0 right-0 flex items-center rounded-r-xl px-3 text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
           >
             {showPassword ? (
               <EyeOff className="size-4" aria-hidden />
@@ -252,13 +238,13 @@ export function SignupForm() {
             )}
           </button>
         </div>
-        <p id="signup-password-hint" className="text-xs text-muted">
-          At least 8 characters.
-        </p>
+        <Hint id="signup-password-hint">At least 8 characters.</Hint>
       </div>
 
-      <button
+      <Button
         type="submit"
+        size="lg"
+        className="w-full"
         disabled={
           pending ||
           !displayName.trim() ||
@@ -266,11 +252,10 @@ export function SignupForm() {
           password.length < 8 ||
           unsupportedDomain
         }
-        className="flex w-full items-center justify-center gap-2 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
         {pending ? "Creating your account…" : "Create account"}
-      </button>
+      </Button>
 
       <p className="text-center text-xs text-muted">
         We&apos;ll email you a confirmation link to verify your student status.

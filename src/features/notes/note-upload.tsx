@@ -2,8 +2,15 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { CircleAlert, Loader2, Paperclip, Upload, X } from "lucide-react";
+import {
+  Button,
+  Hint,
+  Label,
+  cardClasses,
+  controlClasses,
+} from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
-import { cn, formatFileSize } from "@/lib/utils";
+import { formatFileSize } from "@/lib/utils";
 import type { Note } from "@/lib/types";
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
@@ -29,9 +36,6 @@ const ACCEPTED_EXTENSIONS: readonly string[] = [
 ];
 
 const ACCEPT_ATTR = ACCEPTED_EXTENSIONS.map((ext) => `.${ext}`).join(",");
-
-const INPUT_CLASSES =
-  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/25";
 
 /** Keep the original name readable but safe for a storage key. */
 function sanitizeFileName(name: string): string {
@@ -164,22 +168,15 @@ export function NoteUpload({
 
   if (!open) {
     return (
-      <button
-        type="button"
+      <Button
+        variant="secondary"
         onClick={() => setOpen(true)}
         aria-expanded={false}
-        className="flex w-full items-center gap-3 rounded-card border border-dashed border-border bg-surface p-4 text-left transition-colors hover:border-brand/60 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="w-full"
       >
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft">
-          <Upload className="size-5 text-brand-strong" aria-hidden />
-        </span>
-        <span className="min-w-0">
-          <span className="block text-sm font-semibold">Share your notes</span>
-          <span className="mt-0.5 block text-xs text-muted">
-            Docs, slides, spreadsheets or photos — up to 25 MB.
-          </span>
-        </span>
-      </button>
+        <Upload className="size-4 text-brand" aria-hidden />
+        Share your notes
+      </Button>
     );
   }
 
@@ -187,10 +184,10 @@ export function NoteUpload({
     <form
       onSubmit={handleSubmit}
       aria-label="Share a note"
-      className="rounded-card border border-border bg-surface p-4"
+      className={cardClasses({ padding: "sm" })}
     >
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-bold">Share a note</h2>
+        <h2 className="text-sm font-bold tracking-tight">Share a note</h2>
         <button
           type="button"
           onClick={close}
@@ -202,11 +199,9 @@ export function NoteUpload({
         </button>
       </div>
 
-      <div className="mt-3 space-y-3">
-        <div>
-          <label htmlFor={`${formId}-title`} className="block text-sm font-medium">
-            Title
-          </label>
+      <div className="mt-4 flex flex-col gap-5">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${formId}-title`}>Title</Label>
           <input
             ref={titleRef}
             id={`${formId}-title`}
@@ -216,17 +211,14 @@ export function NoteUpload({
             maxLength={120}
             required
             placeholder="Week 5 lecture notes"
-            className={cn("mt-1", INPUT_CLASSES)}
+            className={controlClasses()}
           />
         </div>
 
-        <div>
-          <label
-            htmlFor={`${formId}-description`}
-            className="block text-sm font-medium"
-          >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${formId}-description`}>
             Description <span className="font-normal text-muted">(optional)</span>
-          </label>
+          </Label>
           <textarea
             id={`${formId}-description`}
             value={description}
@@ -234,14 +226,12 @@ export function NoteUpload({
             rows={2}
             maxLength={500}
             placeholder="What's covered, which lecture, anything classmates should know…"
-            className={cn("mt-1 resize-none", INPUT_CLASSES)}
+            className={controlClasses("resize-none")}
           />
         </div>
 
-        <div>
-          <label htmlFor={`${formId}-file`} className="block text-sm font-medium">
-            File
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${formId}-file`}>File</Label>
           <input
             id={`${formId}-file`}
             type="file"
@@ -249,9 +239,9 @@ export function NoteUpload({
             onChange={handleFileChange}
             required
             aria-describedby={`${formId}-file-hint`}
-            className="mt-1 block w-full rounded-lg text-sm text-muted file:mr-3 file:rounded-full file:border-0 file:bg-brand-soft file:px-3.5 file:py-2 file:text-sm file:font-semibold file:text-brand-strong hover:file:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="block w-full rounded-xl text-sm text-muted file:mr-3 file:rounded-full file:border-0 file:bg-brand-soft file:px-3.5 file:py-2 file:text-sm file:font-semibold file:text-brand-strong hover:file:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           />
-          <p id={`${formId}-file-hint`} className="mt-1.5 text-xs text-muted">
+          <Hint id={`${formId}-file-hint`}>
             {file ? (
               <>
                 <Paperclip
@@ -263,41 +253,32 @@ export function NoteUpload({
             ) : (
               "PDF, Word, PowerPoint, Excel, text or image files up to 25 MB."
             )}
-          </p>
+          </Hint>
         </div>
       </div>
 
       {error ? (
         <p
           role="alert"
-          className="mt-3 flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger"
+          className="mt-4 flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger"
         >
           <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
           {error}
         </p>
       ) : null}
 
-      <div className="mt-4 flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={close}
-          disabled={pending}
-          className="rounded-full px-4 py-2 text-sm font-semibold text-muted transition-colors hover:bg-surface-2 hover:text-foreground disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-        >
+      <div className="mt-5 flex justify-end gap-2">
+        <Button variant="ghost" onClick={close} disabled={pending}>
           Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={pending}
-          className="inline-flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-        >
+        </Button>
+        <Button type="submit" disabled={pending}>
           {pending ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
           ) : (
             <Upload className="size-4" aria-hidden />
           )}
           {pending ? "Sharing…" : "Share note"}
-        </button>
+        </Button>
       </div>
     </form>
   );

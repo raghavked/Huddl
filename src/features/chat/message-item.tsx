@@ -11,7 +11,7 @@ import { cn, formatMessageTime } from "@/lib/utils";
 export const REACTION_EMOJI = ["👍", "❤️", "😂", "🔥", "📚", "✅"] as const;
 
 const TOOL_BUTTON =
-  "flex size-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand";
+  "flex size-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand";
 
 /**
  * Reaction state shared by the main message list and the thread panel:
@@ -168,8 +168,8 @@ export function MessageItem({
     <article
       onClick={() => setTapped((v) => !v)}
       className={cn(
-        "group relative flex gap-2.5 rounded-lg px-2 py-0.5 transition-colors hover:bg-surface-2/60",
-        grouped ? "mt-px" : "mt-3",
+        "group relative flex gap-2.5 rounded-xl px-2 py-0.5 transition-colors hover:bg-surface-2/40",
+        grouped ? "mt-0.5" : "mt-3",
         isPending && "opacity-60"
       )}
     >
@@ -225,7 +225,7 @@ export function MessageItem({
               rows={2}
               autoFocus
               aria-label="Edit message"
-              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/25"
+              className="w-full resize-none rounded-xl border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-[3px] focus:ring-brand/15"
             />
             <div className="mt-1 flex items-center gap-2">
               <button
@@ -248,7 +248,12 @@ export function MessageItem({
             </div>
           </div>
         ) : (
-          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+          <p
+            className={cn(
+              "w-fit max-w-full whitespace-pre-wrap break-words rounded-2xl bg-surface-2 px-3.5 py-2 text-sm leading-relaxed",
+              !grouped && "mt-1 rounded-tl-sm"
+            )}
+          >
             {message.content}
             {message.edited_at ? (
               <span className="ml-1.5 align-baseline text-[10px] text-muted">
@@ -276,8 +281,8 @@ export function MessageItem({
                 className={cn(
                   "flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
                   group.mine
-                    ? "border-brand/50 bg-brand-soft text-brand-strong"
-                    : "border-border bg-surface-2 text-muted hover:border-muted/50 hover:text-foreground"
+                    ? "border-brand/30 bg-brand-soft text-brand-strong"
+                    : "border-border bg-surface text-muted hover:border-brand/30 hover:text-foreground"
                 )}
               >
                 <span aria-hidden>{emoji}</span>
@@ -307,7 +312,7 @@ export function MessageItem({
         <div
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            "absolute -top-3 right-2 z-10 flex items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5 shadow-sm transition-opacity",
+            "absolute -top-3 right-2 z-10 flex items-center gap-0.5 rounded-full border border-border bg-surface p-0.5 shadow-soft transition-opacity",
             tapped || pickerOpen
               ? "pointer-events-auto opacity-100"
               : "pointer-events-none opacity-0 focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
@@ -337,7 +342,7 @@ export function MessageItem({
                   <div
                     role="menu"
                     aria-label="Pick a reaction"
-                    className="absolute bottom-full right-0 z-20 mb-1 flex gap-0.5 rounded-full border border-border bg-surface p-1 shadow-lg"
+                    className="absolute bottom-full right-0 z-20 mb-1 flex animate-scale-in gap-0.5 rounded-full border border-border bg-surface p-1 shadow-lift"
                   >
                     {REACTION_EMOJI.map((emoji) => (
                       <button

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Avatar } from "@/components/avatar";
+import { cardClasses } from "@/components/ui";
 import type { DmMessage, Profile } from "@/lib/types";
 import { cn, formatMessageTime } from "@/lib/utils";
 
@@ -32,7 +33,11 @@ export function ThreadListItem({
     <li>
       <Link
         href={`/messages/${threadId}`}
-        className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
+        className={cardClasses({
+          padding: "none",
+          interactive: true,
+          className: "flex items-center gap-3 px-4 py-3",
+        })}
       >
         <Avatar name={other.display_name} src={other.avatar_url} size="md" />
         <span className="min-w-0 flex-1">
@@ -59,7 +64,7 @@ export function ThreadListItem({
           </span>
           <span
             className={cn(
-              "mt-0.5 block truncate text-sm",
+              "mt-0.5 block truncate text-xs",
               latest?.deleted_at ? "italic" : null,
               unread ? "font-medium text-foreground" : "text-muted"
             )}

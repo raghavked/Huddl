@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { Check, Loader2, LogOut, UserPlus, Users } from "lucide-react";
+import { Check, Loader2, LogOut, UserPlus, Users, UsersRound } from "lucide-react";
+import { Badge, Button, cardClasses } from "@/components/ui";
 import { joinClub, leaveClub } from "@/features/clubs/actions";
-import { cn } from "@/lib/utils";
 import type { Club, ClubCategory, ClubMember } from "@/lib/types";
 
 /** "academic" -> "Academic" — every category is a single word. */
@@ -20,14 +20,9 @@ export function CategoryBadge({
   className?: string;
 }) {
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand-strong",
-        className
-      )}
-    >
+    <Badge tone="brand" className={className}>
       {categoryLabel(category)}
-    </span>
+    </Badge>
   );
 }
 
@@ -55,7 +50,7 @@ export function ConfirmDialog({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex animate-fade-in items-end justify-center bg-black/50 p-4 sm:items-center"
       role="presentation"
       onClick={pending ? undefined : onCancel}
     >
@@ -63,35 +58,29 @@ export function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-label={title}
-        className="w-full max-w-sm rounded-card border border-border bg-surface p-5 shadow-xl"
+        className="w-full max-w-sm animate-scale-in rounded-card border border-border bg-surface p-5 shadow-lift"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
           if (e.key === "Escape" && !pending) onCancel();
         }}
       >
-        <h2 className="font-semibold">{title}</h2>
+        <h2 className="font-bold tracking-tight">{title}</h2>
         <p className="mt-1.5 text-sm text-muted">{body}</p>
         <div className="mt-4 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={pending}
-            className="rounded-full border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2 disabled:opacity-60"
-          >
+          <Button variant="secondary" onClick={onCancel} disabled={pending}>
             Cancel
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="danger"
             autoFocus
             onClick={onConfirm}
             disabled={pending}
-            className="inline-flex items-center gap-1.5 rounded-full bg-danger px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {pending ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />
             ) : null}
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -120,8 +109,8 @@ export function MembershipActions({
   if (role === null) {
     return (
       <>
-        <button
-          type="button"
+        <Button
+          size="sm"
           disabled={isPending}
           onClick={() => {
             setError(null);
@@ -130,7 +119,6 @@ export function MembershipActions({
               if (result.error) setError(result.error);
             });
           }}
-          className="inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {isPending ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -138,9 +126,9 @@ export function MembershipActions({
             <UserPlus className="size-4" aria-hidden />
           )}
           Join club
-        </button>
+        </Button>
         {error ? (
-          <p role="alert" className="w-full text-xs text-danger">
+          <p role="alert" className="w-full text-xs font-medium text-danger">
             {error}
           </p>
         ) : null}
@@ -150,14 +138,15 @@ export function MembershipActions({
 
   return (
     <>
-      <button
-        type="button"
+      <Button
+        variant="secondary"
+        size="sm"
+        className="text-muted hover:text-danger"
         disabled={isPending}
         onClick={() => {
           setError(null);
           setConfirmingLeave(true);
         }}
-        className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-danger disabled:opacity-60"
       >
         {isPending ? (
           <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -165,7 +154,7 @@ export function MembershipActions({
           <LogOut className="size-4" aria-hidden />
         )}
         Leave
-      </button>
+      </Button>
       <ConfirmDialog
         open={confirmingLeave}
         title={`Leave ${clubName}?`}
@@ -182,7 +171,7 @@ export function MembershipActions({
         }}
       />
       {error ? (
-        <p role="alert" className="w-full text-xs text-danger">
+        <p role="alert" className="w-full text-xs font-medium text-danger">
           {error}
         </p>
       ) : null}
@@ -204,35 +193,45 @@ export function ClubCard({
   const [isPending, startTransition] = useTransition();
 
   return (
-    <article className="relative flex flex-col gap-2 rounded-card border border-border bg-surface p-4 transition-colors hover:border-brand/50">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+    <article
+      className={cardClasses({
+        padding: "sm",
+        interactive: true,
+        className: "relative flex flex-col gap-2.5",
+      })}
+    >
+      <div className="flex items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+          <UsersRound className="size-5" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
           <Link
             href={`/clubs/${club.id}`}
-            className="font-semibold leading-snug after:absolute after:inset-0 after:content-['']"
+            className="font-semibold leading-snug after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             {club.name}
           </Link>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <CategoryBadge category={club.category} />
-            <span className="inline-flex items-center gap-1 text-xs text-muted">
-              <Users className="size-3.5" aria-hidden />
+            <Badge tone="neutral">
+              <Users className="size-3" aria-hidden />
               {memberCount} {memberCount === 1 ? "member" : "members"}
-            </span>
+            </Badge>
           </div>
         </div>
         {myRole !== null ? (
-          <span className="relative z-10 inline-flex shrink-0 items-center gap-1 py-1.5 text-xs font-semibold text-success">
-            <Check className="size-3.5" aria-hidden />
+          <Badge tone="success" className="relative z-10">
+            <Check className="size-3" aria-hidden />
             {myRole === "member"
               ? "Joined"
               : myRole === "owner"
                 ? "Owner"
                 : "Officer"}
-          </span>
+          </Badge>
         ) : (
-          <button
-            type="button"
+          <Button
+            size="sm"
+            className="relative z-10"
             disabled={isPending}
             aria-label={`Join ${club.name}`}
             onClick={() => {
@@ -242,7 +241,6 @@ export function ClubCard({
                 if (result.error) setError(result.error);
               });
             }}
-            className="relative z-10 inline-flex shrink-0 items-center gap-1 rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-brand-fg transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {isPending ? (
               <Loader2 className="size-3.5 animate-spin" aria-hidden />
@@ -250,14 +248,14 @@ export function ClubCard({
               <UserPlus className="size-3.5" aria-hidden />
             )}
             Join
-          </button>
+          </Button>
         )}
       </div>
       {club.description ? (
         <p className="line-clamp-2 text-sm text-muted">{club.description}</p>
       ) : null}
       {error ? (
-        <p role="alert" className="relative z-10 text-xs text-danger">
+        <p role="alert" className="relative z-10 text-xs font-medium text-danger">
           {error}
         </p>
       ) : null}

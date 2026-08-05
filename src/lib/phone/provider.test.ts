@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getVerifier,
   sha256Hex,
@@ -32,6 +32,7 @@ describe("getVerifier", () => {
   };
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     restore("PHONE_VERIFY_PROVIDER", originalProvider);
     restore("NODE_ENV", originalNodeEnv);
     restore("ALLOW_STUB_PHONE_VERIFY", originalAllowStub);
@@ -55,21 +56,21 @@ describe("getVerifier", () => {
 
   it("refuses the stub in production without an explicit opt-in", () => {
     delete process.env.PHONE_VERIFY_PROVIDER;
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
     delete process.env.ALLOW_STUB_PHONE_VERIFY;
     expect(() => getVerifier()).toThrow();
   });
 
   it("allows the stub in production only when explicitly opted in", () => {
     delete process.env.PHONE_VERIFY_PROVIDER;
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
     process.env.ALLOW_STUB_PHONE_VERIFY = "true";
     expect(getVerifier()).toBeInstanceOf(StubVerifier);
   });
 
   it("still uses Twilio in production regardless of the stub opt-in", () => {
     process.env.PHONE_VERIFY_PROVIDER = "twilio";
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
     delete process.env.ALLOW_STUB_PHONE_VERIFY;
     expect(getVerifier()).toBeInstanceOf(TwilioVerifier);
   });

@@ -10,6 +10,13 @@ import {
   Plus,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import {
+  Badge,
+  PageHeader,
+  SectionHeader,
+  buttonClasses,
+  cardClasses,
+} from "@/components/ui";
 import { JoinButton } from "@/features/discover/join-button";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -27,32 +34,6 @@ type MessagePreview = {
   created_at: string;
   author: { display_name: string } | null;
 };
-
-function SectionHeading({
-  title,
-  href,
-  linkLabel,
-}: {
-  title: string;
-  href?: string;
-  linkLabel?: string;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <h2 className="px-1 text-xs font-bold uppercase tracking-wide text-muted">
-        {title}
-      </h2>
-      {href && linkLabel ? (
-        <Link
-          href={href}
-          className="text-xs font-semibold text-accent hover:underline"
-        >
-          {linkLabel}
-        </Link>
-      ) : null}
-    </div>
-  );
-}
 
 export default async function HomePage() {
   const user = await getCurrentUser();
@@ -125,26 +106,22 @@ export default async function HomePage() {
     user.profile.display_name.trim().split(/\s+/)[0] || user.profile.handle;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h1 className="text-2xl font-bold">Hey {firstName}</h1>
-        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-strong">
-          {user.university.short_name}
-        </span>
-      </div>
-      <p className="mt-1 text-sm text-muted">
-        Here&apos;s what&apos;s happening on campus.
-      </p>
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Home"
+        title={`Hey ${firstName}`}
+        description="Here's what's happening on campus."
+      />
 
       {/* 1 — campus channels I'm in, with latest-message previews */}
       <section className="mt-8" aria-label="Your campus">
-        <SectionHeading
+        <SectionHeader
           title="Your campus"
           href="/channels"
           linkLabel="All channels"
         />
         {campusChannels.length === 0 ? (
-          <div className="mt-3 rounded-card border border-border bg-surface">
+          <div className={cardClasses({ padding: "none", className: "mt-3" })}>
             <EmptyState
               icon={Megaphone}
               title="No campus channels yet"
@@ -152,7 +129,7 @@ export default async function HomePage() {
               action={
                 <Link
                   href="/channels/browse"
-                  className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  className={buttonClasses({ size: "sm" })}
                 >
                   Browse channels
                 </Link>
@@ -160,7 +137,7 @@ export default async function HomePage() {
             />
           </div>
         ) : (
-          <ul className="mt-3 flex flex-col gap-2">
+          <ul className="mt-3 flex flex-col gap-2.5">
             {campusChannels.map((channel) => {
               const preview = previews.get(channel.id);
               const authorFirst =
@@ -170,9 +147,13 @@ export default async function HomePage() {
                 <li key={channel.id}>
                   <Link
                     href={`/channels/${channel.id}`}
-                    className="flex items-center gap-3 rounded-card border border-border bg-surface px-4 py-3 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                    className={cardClasses({
+                      padding: "none",
+                      interactive: true,
+                      className: "flex items-center gap-3 px-4 py-3",
+                    })}
                   >
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-strong">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
                       <Megaphone className="size-5" aria-hidden />
                     </span>
                     <span className="min-w-0 flex-1">
@@ -209,7 +190,7 @@ export default async function HomePage() {
 
       {/* 2 — course channels grid */}
       <section className="mt-8" aria-label="Your courses">
-        <SectionHeading title="Your courses" />
+        <SectionHeader title="Your courses" />
         {courseChannels.length === 0 ? (
           <div className="mt-3 rounded-card border border-dashed border-border">
             <EmptyState
@@ -217,10 +198,7 @@ export default async function HomePage() {
               title="No courses yet"
               description="Connect Canvas or add your schedule and you'll get a chat channel for every class."
               action={
-                <Link
-                  href="/setup"
-                  className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-                >
+                <Link href="/setup" className={buttonClasses({ size: "sm" })}>
                   Set up your courses
                 </Link>
               }
@@ -234,7 +212,11 @@ export default async function HomePage() {
                 <li key={channel.id}>
                   <Link
                     href={`/channels/${channel.id}`}
-                    className="flex h-full flex-col gap-1 rounded-card border border-border bg-surface p-4 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                    className={cardClasses({
+                      padding: "sm",
+                      interactive: true,
+                      className: "flex h-full flex-col gap-1",
+                    })}
                   >
                     <span className="flex items-center gap-1.5 text-sm font-bold">
                       <GraduationCap
@@ -265,7 +247,7 @@ export default async function HomePage() {
 
       {/* 3 — next events at my university */}
       <section className="mt-8" aria-label="Coming up">
-        <SectionHeading title="Coming up" href="/events" linkLabel="All events" />
+        <SectionHeader title="Coming up" href="/events" linkLabel="All events" />
         {events.length === 0 ? (
           <div className="mt-3 rounded-card border border-dashed border-border p-4 text-sm text-muted">
             Nothing on the calendar yet.{" "}
@@ -278,14 +260,18 @@ export default async function HomePage() {
             or plan a study session of your own.
           </div>
         ) : (
-          <ul className="mt-3 flex flex-col gap-2">
+          <ul className="mt-3 flex flex-col gap-2.5">
             {events.map((event) => (
               <li key={event.id}>
                 <Link
-                  href="/events"
-                  className="flex items-center gap-3 rounded-card border border-border bg-surface px-4 py-3 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  href={`/events/${event.id}`}
+                  className={cardClasses({
+                    padding: "none",
+                    interactive: true,
+                    className: "flex items-center gap-3 px-4 py-3",
+                  })}
                 >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
                     <CalendarDays className="size-5" aria-hidden />
                   </span>
                   <span className="min-w-0 flex-1">
@@ -297,9 +283,9 @@ export default async function HomePage() {
                       {event.location ? ` · ${event.location}` : ""}
                     </span>
                   </span>
-                  <span className="shrink-0 rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-muted">
+                  <Badge tone="neutral">
                     {event.kind === "study_session" ? "Study session" : "Meetup"}
-                  </span>
+                  </Badge>
                 </Link>
               </li>
             ))}
@@ -309,7 +295,7 @@ export default async function HomePage() {
 
       {/* 4 — topic channels I haven't joined */}
       <section className="mt-8" aria-label="Discover">
-        <SectionHeading title="Discover" />
+        <SectionHeader title="Discover" />
         {discover.length === 0 ? (
           <div className="mt-3 rounded-card border border-dashed border-border p-4 text-sm text-muted">
             Nothing new to discover right now — you&apos;re in on everything.{" "}
@@ -322,13 +308,16 @@ export default async function HomePage() {
             .
           </div>
         ) : (
-          <ul className="mt-3 flex flex-col gap-2">
+          <ul className="mt-3 flex flex-col gap-2.5">
             {discover.map((channel) => (
               <li
                 key={channel.id}
-                className="flex items-center gap-3 rounded-card border border-border bg-surface px-4 py-3"
+                className={cardClasses({
+                  padding: "none",
+                  className: "flex items-center gap-3 px-4 py-3",
+                })}
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-strong">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
                   <Hash className="size-5" aria-hidden />
                 </span>
                 <Link
@@ -352,17 +341,25 @@ export default async function HomePage() {
             ))}
           </ul>
         )}
-        <div className="mt-3 flex items-center gap-4 px-1">
+        <div className="mt-4 flex items-center gap-3 px-1">
           <Link
             href="/channels/browse"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
+            className={buttonClasses({
+              variant: "secondary",
+              size: "sm",
+              className: "gap-1.5",
+            })}
           >
             <Compass className="size-4" aria-hidden />
             Browse all channels
           </Link>
           <Link
             href="/channels/new"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
+            className={buttonClasses({
+              variant: "ghost",
+              size: "sm",
+              className: "gap-1.5",
+            })}
           >
             <Plus className="size-4" aria-hidden />
             Start your own

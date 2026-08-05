@@ -13,24 +13,28 @@ import {
   ShieldCheck,
   Smartphone,
 } from "lucide-react";
-import { cn, isValidPhone } from "@/lib/utils";
+import {
+  Badge,
+  Button,
+  Hint,
+  Input,
+  Label,
+  buttonClasses,
+  cardClasses,
+  controlClasses,
+} from "@/components/ui";
+import { isValidPhone } from "@/lib/utils";
 
 type Step = "verified" | "enter" | "code" | "done";
 
-const inputCls =
-  "mt-1.5 w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted/70 focus:border-brand focus:ring-2 focus:ring-brand/25 disabled:opacity-60";
-const primaryBtn =
-  "inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
-const outlineBtn =
-  "inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-2 disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 const linkBtn =
-  "inline-flex items-center gap-1.5 rounded text-sm font-medium text-brand transition-colors hover:text-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:pointer-events-none disabled:opacity-60";
+  "inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-accent transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:pointer-events-none disabled:opacity-60";
 
 function ErrorAlert({ message }: { message: string }) {
   return (
     <div
       role="alert"
-      className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger"
+      className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2.5 text-sm text-danger"
     >
       <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
       <span>{message}</span>
@@ -52,12 +56,12 @@ function DevCodeCallout({ code }: { code: string }) {
   return (
     <div
       role="status"
-      className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm"
+      className="rounded-xl border border-warning/40 bg-warning/10 px-3.5 py-2.5 text-sm"
     >
       <p className="font-semibold text-warning">Dev mode — no SMS sent</p>
       <p className="mt-0.5 text-warning">
         Your verification code is{" "}
-        <span className="font-mono text-base font-bold tracking-[0.2em]">
+        <span className="font-mono text-base font-bold tracking-widest">
           {code}
         </span>
       </p>
@@ -156,14 +160,20 @@ export function PhoneVerify({
     return (
       <section
         aria-label="Phone verified"
-        className="rounded-card border border-border bg-surface p-5"
+        className={cardClasses({ className: "animate-fade-up" })}
       >
         <div className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-success/10">
-            <BadgeCheck className="size-5 text-success" aria-hidden />
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
+            <BadgeCheck className="size-5" aria-hidden />
           </span>
           <div className="min-w-0">
-            <h2 className="font-semibold">Your phone is verified</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="font-semibold">Your phone is verified</h2>
+              <Badge tone="success">
+                <BadgeCheck className="size-3.5" aria-hidden />
+                Verified
+              </Badge>
+            </div>
             <p className="mt-0.5 text-sm text-muted">
               {initialPhone ? (
                 <>
@@ -182,18 +192,18 @@ export function PhoneVerify({
         <div className="mt-4 border-t border-border pt-4">
           <PrivacyNote />
         </div>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           onClick={() => {
             setStep("enter");
             setError(null);
             setDevCode(null);
           }}
-          className={cn(outlineBtn, "mt-4")}
+          className="mt-4"
         >
           <RefreshCw className="size-4" aria-hidden />
           Change or re-verify number
-        </button>
+        </Button>
       </section>
     );
   }
@@ -202,17 +212,31 @@ export function PhoneVerify({
     return (
       <section
         aria-label="Verification complete"
-        className="rounded-card border border-border bg-surface p-6 text-center"
+        className={cardClasses({
+          padding: "lg",
+          className: "animate-fade-up text-center",
+        })}
       >
-        <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-success/10">
-          <BadgeCheck className="size-7 text-success" aria-hidden />
+        <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-success/10 text-success">
+          <BadgeCheck className="size-7" aria-hidden />
         </span>
-        <h2 className="mt-3 text-lg font-bold">You&apos;re verified</h2>
-        <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
+        <h2 className="mt-3 text-lg font-bold tracking-tight">
+          You&apos;re verified
+        </h2>
+        <div className="mt-2 flex justify-center">
+          <Badge tone="success">
+            <BadgeCheck className="size-3.5" aria-hidden />
+            Trust badge unlocked
+          </Badge>
+        </div>
+        <p className="mx-auto mt-2 max-w-sm text-sm text-muted text-pretty">
           Your profile now shows a trust badge so classmates know you&apos;re a
           real student. Your number is never shown to other students.
         </p>
-        <Link href="/settings" className={cn(primaryBtn, "mt-5")}>
+        <Link
+          href="/settings"
+          className={buttonClasses({ className: "mt-5" })}
+        >
           <ArrowLeft className="size-4" aria-hidden />
           Back to settings
         </Link>
@@ -224,11 +248,11 @@ export function PhoneVerify({
     return (
       <section
         aria-label="Enter verification code"
-        className="rounded-card border border-border bg-surface p-5"
+        className={cardClasses({ className: "animate-fade-up" })}
       >
         <div className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft">
-            <MessageSquareText className="size-5 text-brand-strong" aria-hidden />
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+            <MessageSquareText className="size-5" aria-hidden />
           </span>
           <div>
             <h2 className="font-semibold">Enter your code</h2>
@@ -252,10 +276,8 @@ export function PhoneVerify({
         ) : null}
 
         <form onSubmit={checkCode} noValidate className="mt-4 space-y-4">
-          <div>
-            <label htmlFor={`${uid}-code`} className="block text-sm font-medium">
-              6-digit code
-            </label>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${uid}-code`}>6-digit code</Label>
             <input
               ref={codeInputRef}
               id={`${uid}-code`}
@@ -271,9 +293,8 @@ export function PhoneVerify({
               placeholder="••••••"
               required
               aria-invalid={error ? true : undefined}
-              className={cn(
-                inputCls,
-                "max-w-[12rem] text-center font-mono text-xl tracking-[0.4em]"
+              className={controlClasses(
+                "max-w-48 text-center font-mono text-xl tracking-widest"
               )}
             />
           </div>
@@ -281,18 +302,14 @@ export function PhoneVerify({
           {error ? <ErrorAlert message={error} /> : null}
 
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="submit"
-              disabled={pending || code.length !== 6}
-              className={primaryBtn}
-            >
+            <Button type="submit" disabled={pending || code.length !== 6}>
               {pending ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden />
               ) : (
                 <BadgeCheck className="size-4" aria-hidden />
               )}
               {pending ? "Checking…" : "Verify"}
-            </button>
+            </Button>
             <button
               type="button"
               onClick={() => startVerification(true)}
@@ -329,11 +346,11 @@ export function PhoneVerify({
   return (
     <section
       aria-label="Add your phone number"
-      className="rounded-card border border-border bg-surface p-5"
+      className={cardClasses({ className: "animate-fade-up" })}
     >
       <div className="flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft">
-          <Smartphone className="size-5 text-brand-strong" aria-hidden />
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+          <Smartphone className="size-5" aria-hidden />
         </span>
         <div>
           <h2 className="font-semibold">Add your phone number</h2>
@@ -351,11 +368,9 @@ export function PhoneVerify({
         noValidate
         className="mt-4 space-y-4"
       >
-        <div>
-          <label htmlFor={`${uid}-phone`} className="block text-sm font-medium">
-            Phone number
-          </label>
-          <input
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${uid}-phone`}>Phone number</Label>
+          <Input
             id={`${uid}-phone`}
             type="tel"
             autoComplete="tel"
@@ -366,24 +381,24 @@ export function PhoneVerify({
             required
             aria-invalid={error ? true : undefined}
             aria-describedby={`${uid}-phone-help`}
-            className={cn(inputCls, "max-w-sm")}
+            className="max-w-sm"
           />
-          <p id={`${uid}-phone-help`} className="mt-1 text-xs text-muted">
+          <Hint id={`${uid}-phone-help`}>
             US numbers can skip the +1 — international numbers need a country
             code.
-          </p>
+          </Hint>
         </div>
 
         {error ? <ErrorAlert message={error} /> : null}
 
-        <button type="submit" disabled={pending} className={primaryBtn}>
+        <Button type="submit" disabled={pending}>
           {pending ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
           ) : (
             <MessageSquareText className="size-4" aria-hidden />
           )}
           {pending ? "Sending…" : "Text me a code"}
-        </button>
+        </Button>
       </form>
 
       <div className="mt-5 border-t border-border pt-4">

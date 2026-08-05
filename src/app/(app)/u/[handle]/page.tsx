@@ -11,6 +11,12 @@ import {
   Pencil,
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
+import {
+  Badge,
+  SectionHeader,
+  buttonClasses,
+  cardClasses,
+} from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Channel, Course, Profile, University } from "@/lib/types";
@@ -69,7 +75,7 @@ export default async function ProfilePage({
   const messageButton = (
     <Link
       href={`/messages/new?to=${profile.id}`}
-      className="inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      className={buttonClasses()}
     >
       <MessageCircle className="size-4" aria-hidden />
       Message
@@ -79,19 +85,25 @@ export default async function ProfilePage({
   // Private profile viewed by someone else: handle + avatar only.
   if (!profile.is_public && !isMe) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-6">
+      <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
         <section
           aria-label={`@${profile.handle} — private profile`}
-          className="flex flex-col items-center gap-4 rounded-card border border-border bg-surface p-8 text-center"
+          className={cardClasses({
+            padding: "lg",
+            className:
+              "flex animate-fade-up flex-col items-center gap-4 text-center",
+          })}
         >
           <Avatar name={profile.handle} src={profile.avatar_url} size="xl" />
           <div>
-            <h1 className="text-xl font-bold">@{profile.handle}</h1>
+            <h1 className="text-xl font-bold tracking-tight">
+              @{profile.handle}
+            </h1>
             <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-muted">
               <Lock className="size-4" aria-hidden />
               This profile is private
             </p>
-            <p className="mt-1 max-w-sm text-sm text-muted">
+            <p className="mt-1 max-w-sm text-sm text-muted text-pretty">
               Only their handle and avatar are visible, but you can still say
               hi.
             </p>
@@ -147,19 +159,14 @@ export default async function ProfilePage({
     )
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const detailLine = [
-    profile.major,
-    profile.grad_year ? `Class of ${profile.grad_year}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
   const firstName = profile.display_name.split(/\s+/)[0] ?? profile.handle;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       {/* Hero */}
-      <section className="rounded-card border border-border bg-surface p-6">
+      <section
+        className={cardClasses({ padding: "lg", className: "animate-fade-up" })}
+      >
         <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-start sm:text-left">
           <Avatar
             name={profile.display_name}
@@ -168,48 +175,48 @@ export default async function ProfilePage({
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-              <h1 className="text-2xl font-bold">{profile.display_name}</h1>
+              <h1 className="text-2xl font-bold tracking-tight">
+                {profile.display_name}
+              </h1>
               {profile.phone_verified_at ? (
-                <span
-                  className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent"
-                  title="Phone number verified"
-                >
+                <Badge tone="accent" title="Phone number verified">
                   <BadgeCheck className="size-3.5" aria-hidden />
                   Verified
-                </span>
+                </Badge>
               ) : null}
               {isMe && !profile.is_public ? (
-                <span
-                  className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-muted"
-                  title="Only you can see your full profile"
-                >
+                <Badge tone="neutral" title="Only you can see your full profile">
                   <Lock className="size-3" aria-hidden />
                   Private
-                </span>
+                </Badge>
               ) : null}
             </div>
             <p className="mt-1 text-sm text-muted">
               @{profile.handle} · {universityName}
             </p>
-            {detailLine ? (
-              <p className="mt-2 flex items-center justify-center gap-1.5 text-sm sm:justify-start">
-                <GraduationCap
-                  className="size-4 shrink-0 text-muted"
-                  aria-hidden
-                />
-                {detailLine}
-              </p>
+            {profile.major || profile.grad_year ? (
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
+                {profile.major ? (
+                  <Badge tone="neutral">
+                    <GraduationCap className="size-3.5" aria-hidden />
+                    {profile.major}
+                  </Badge>
+                ) : null}
+                {profile.grad_year ? (
+                  <Badge tone="neutral">Class of {profile.grad_year}</Badge>
+                ) : null}
+              </div>
             ) : null}
             {profile.bio ? (
               <p className="mt-3 whitespace-pre-line text-sm leading-relaxed">
                 {profile.bio}
               </p>
             ) : null}
-            <div className="mt-4 flex justify-center sm:justify-start">
+            <div className="mt-5 flex justify-center sm:justify-start">
               {isMe ? (
                 <Link
                   href="/settings/account"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-semibold transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  className={buttonClasses({ variant: "secondary" })}
                 >
                   <Pencil className="size-4" aria-hidden />
                   Edit profile
@@ -223,21 +230,19 @@ export default async function ProfilePage({
       </section>
 
       {/* Shared courses */}
-      <section className="mt-6" aria-labelledby="shared-courses-heading">
-        <h2
-          id="shared-courses-heading"
-          className="text-sm font-semibold uppercase tracking-wide text-muted"
-        >
-          {isMe ? "Your courses" : "Courses together"}
-        </h2>
+      <section
+        className="mt-8"
+        aria-label={isMe ? "Your courses" : "Courses together"}
+      >
+        <SectionHeader title={isMe ? "Your courses" : "Courses together"} />
         {sharedCourses.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">
+          <p className="mt-3 px-1 text-sm text-muted">
             {isMe ? (
               <>
                 You haven&apos;t added any courses yet.{" "}
                 <Link
                   href="/setup"
-                  className="font-medium text-brand hover:underline"
+                  className="font-semibold text-accent hover:underline"
                 >
                   Add your classes
                 </Link>{" "}
@@ -254,7 +259,7 @@ export default async function ProfilePage({
                 <Link
                   href={`/courses/${course.id}`}
                   title={course.title}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1.5 text-sm font-medium text-brand-strong transition-colors hover:bg-brand hover:text-brand-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1.5 text-sm font-semibold text-brand-strong transition-colors hover:bg-brand hover:text-brand-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 >
                   <BookOpen className="size-3.5" aria-hidden />
                   {course.code}
@@ -266,21 +271,21 @@ export default async function ProfilePage({
       </section>
 
       {/* Campus channels in common */}
-      <section className="mt-6" aria-labelledby="shared-channels-heading">
-        <h2
-          id="shared-channels-heading"
-          className="text-sm font-semibold uppercase tracking-wide text-muted"
-        >
-          {isMe ? "Your campus channels" : "Campus channels in common"}
-        </h2>
+      <section
+        className="mt-8"
+        aria-label={isMe ? "Your campus channels" : "Campus channels in common"}
+      >
+        <SectionHeader
+          title={isMe ? "Your campus channels" : "Campus channels in common"}
+        />
         {sharedChannels.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">
+          <p className="mt-3 px-1 text-sm text-muted">
             {isMe ? (
               <>
                 You&apos;re not in any campus channels yet.{" "}
                 <Link
                   href="/channels/browse"
-                  className="font-medium text-brand hover:underline"
+                  className="font-semibold text-accent hover:underline"
                 >
                   Browse channels
                 </Link>
@@ -295,7 +300,7 @@ export default async function ProfilePage({
               <li key={channel.id}>
                 <Link
                   href={`/channels/${channel.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent hover:text-brand-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1.5 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-brand-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   <Hash className="size-3.5" aria-hidden />
                   {channel.name}

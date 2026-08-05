@@ -16,23 +16,24 @@ import {
   X,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import {
+  Badge,
+  Button,
+  Input,
+  Label,
+  buttonClasses,
+  cardClasses,
+} from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Course } from "@/lib/types";
 import { normalizeCourseCode } from "@/features/schedule/ocr";
 
-const primaryBtn =
-  "inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
-const outlineBtn =
-  "inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-2 disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
-const inputCls =
-  "w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted/70 focus:border-brand focus:ring-2 focus:ring-brand/25 disabled:opacity-60";
-
 function ErrorAlert({ message }: { message: string }) {
   return (
     <div
       role="alert"
-      className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger"
+      className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger"
     >
       <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
       <span>{message}</span>
@@ -181,12 +182,12 @@ export function ManualPicker({
     return (
       <section
         aria-label="Courses joined"
-        className="rounded-card border border-border bg-surface p-6 text-center"
+        className={cardClasses({ padding: "lg", className: "text-center" })}
       >
-        <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-soft">
-          <CheckCircle2 className="size-7 text-brand-strong" aria-hidden />
+        <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-brand-soft text-brand">
+          <CheckCircle2 className="size-7" aria-hidden />
         </span>
-        <h2 className="mt-4 text-xl font-bold">
+        <h2 className="mt-4 text-xl font-bold tracking-tight">
           You&apos;re in {joined.length}{" "}
           {joined.length === 1 ? "course channel" : "course channels"}
         </h2>
@@ -195,30 +196,28 @@ export function ManualPicker({
         </p>
         <ul className="mx-auto mt-4 flex max-w-md flex-wrap justify-center gap-2">
           {joined.map((course) => (
-            <li
-              key={course.id}
-              className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-strong"
-            >
-              <Hash className="size-3" aria-hidden />
-              {course.code}
+            <li key={course.id}>
+              <Badge tone="brand">
+                <Hash className="size-3" aria-hidden />
+                {course.code}
+              </Badge>
             </li>
           ))}
         </ul>
         <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
-          <Link href="/channels" className={primaryBtn}>
+          <Link href="/channels" className={buttonClasses()}>
             Go to your channels
             <ArrowRight className="size-4" aria-hidden />
           </Link>
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={() => {
               setJoined(null);
               setSelectedIds({});
             }}
-            className={outlineBtn}
           >
             Add more courses
-          </button>
+          </Button>
         </div>
       </section>
     );
@@ -226,13 +225,10 @@ export function ManualPicker({
 
   // --------------------------------------------------------------- picker
   return (
-    <div className="space-y-4">
-      <section
-        aria-label="Course catalog"
-        className="rounded-card border border-border bg-surface p-5"
-      >
+    <div className="flex flex-col gap-4">
+      <section aria-label="Course catalog" className={cardClasses()}>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-semibold">
+          <h2 className="font-bold tracking-tight">
             {termName ? `Courses · ${termName}` : "Courses"}
           </h2>
           <button
@@ -242,7 +238,7 @@ export function ManualPicker({
               setAddError(null);
             }}
             aria-expanded={addOpen}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-semibold text-brand transition-colors hover:text-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-sm font-semibold text-brand transition-colors hover:text-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             {addOpen ? (
               <X className="size-4" aria-hidden />
@@ -256,7 +252,7 @@ export function ManualPicker({
         {addOpen ? (
           <form
             onSubmit={handleAddCourse}
-            className="mt-3 rounded-lg border border-border bg-surface-2 p-3"
+            className="mt-3 rounded-xl border border-border bg-surface-2 p-3"
           >
             <p className="text-xs text-muted">
               Can&apos;t find your class? Add it
@@ -265,14 +261,9 @@ export function ManualPicker({
               you.
             </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-[10rem_1fr]">
-              <div>
-                <label
-                  htmlFor="new-course-code"
-                  className="block text-sm font-medium"
-                >
-                  Code
-                </label>
-                <input
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="new-course-code">Code</Label>
+                <Input
                   id="new-course-code"
                   type="text"
                   required
@@ -283,25 +274,20 @@ export function ManualPicker({
                   autoCapitalize="characters"
                   autoCorrect="off"
                   spellCheck={false}
-                  className={cn(inputCls, "mt-1.5")}
                 />
               </div>
-              <div>
-                <label
-                  htmlFor="new-course-title"
-                  className="block text-sm font-medium"
-                >
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="new-course-title">
                   Title{" "}
                   <span className="font-normal text-muted">(optional)</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   id="new-course-title"
                   type="text"
                   disabled={addPending}
                   value={addTitle}
                   onChange={(e) => setAddTitle(e.target.value)}
                   placeholder="Intro to Computer Science"
-                  className={cn(inputCls, "mt-1.5")}
                 />
               </div>
             </div>
@@ -310,10 +296,11 @@ export function ManualPicker({
                 <ErrorAlert message={addError} />
               </div>
             ) : null}
-            <button
+            <Button
               type="submit"
+              size="sm"
               disabled={addPending || !addCode.trim()}
-              className={cn(primaryBtn, "mt-3")}
+              className="mt-3"
             >
               {addPending ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -321,7 +308,7 @@ export function ManualPicker({
                 <Plus className="size-4" aria-hidden />
               )}
               Add course
-            </button>
+            </Button>
           </form>
         ) : null}
 
@@ -333,13 +320,13 @@ export function ManualPicker({
           <label htmlFor="manual-course-search" className="sr-only">
             Search courses
           </label>
-          <input
+          <Input
             id="manual-course-search"
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by code or title"
-            className={cn(inputCls, "pl-9")}
+            className="pl-9"
           />
         </div>
 
@@ -349,14 +336,10 @@ export function ManualPicker({
             title="No courses in the catalog yet"
             description="Be the first — add a course and its chat channel opens up for everyone in it."
             action={
-              <button
-                type="button"
-                onClick={() => setAddOpen(true)}
-                className={primaryBtn}
-              >
+              <Button onClick={() => setAddOpen(true)}>
                 <Plus className="size-4" aria-hidden />
                 Add a course
-              </button>
+              </Button>
             }
           />
         ) : filtered.length === 0 ? (
@@ -375,7 +358,7 @@ export function ManualPicker({
                 <li key={course.id}>
                   <label
                     className={cn(
-                      "flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 transition-colors",
+                      "flex items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5 transition-colors",
                       isEnrolled
                         ? "opacity-70"
                         : "cursor-pointer hover:bg-surface-2 has-[:checked]:border-brand/50 has-[:checked]:bg-brand-soft/40"
@@ -394,7 +377,7 @@ export function ManualPicker({
                       className="size-4 shrink-0 accent-brand"
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">
+                      <span className="block truncate text-sm font-semibold">
                         {course.code}
                       </span>
                       {course.title !== course.code ? (
@@ -404,10 +387,10 @@ export function ManualPicker({
                       ) : null}
                     </span>
                     {isEnrolled ? (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-success">
+                      <Badge tone="success">
                         <Check className="size-3" aria-hidden />
                         Joined
-                      </span>
+                      </Badge>
                     ) : null}
                   </label>
                 </li>
@@ -420,11 +403,9 @@ export function ManualPicker({
       {error ? <ErrorAlert message={error} /> : null}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <button
-          type="button"
+        <Button
           disabled={saving || selectedCourses.length === 0}
           onClick={handleConfirm}
-          className={primaryBtn}
         >
           {saving ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -438,7 +419,7 @@ export function ManualPicker({
               : `Join ${selectedCourses.length} ${
                   selectedCourses.length === 1 ? "channel" : "channels"
                 }`}
-        </button>
+        </Button>
       </div>
     </div>
   );

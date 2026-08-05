@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, CalendarDays, Crown, MessageCircle } from "lucide-react";
+import { CalendarDays, Crown, MessageCircle } from "lucide-react";
+import { PageHeader, cardClasses } from "@/components/ui";
 import { ClubForm } from "@/features/clubs/club-form";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -27,31 +27,32 @@ export default async function NewClubPage() {
   if (!user) redirect("/login");
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <Link
-        href="/clubs"
-        className="inline-flex items-center gap-1 text-sm font-medium text-muted transition-colors hover:text-foreground"
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        backHref="/clubs"
+        backLabel="All clubs"
+        eyebrow="Clubs"
+        title="Start a club"
+        description={`Found a new student org at ${user.university.short_name}. Here's what you get:`}
+      />
+
+      <ul
+        className={cardClasses({
+          padding: "sm",
+          className: "mt-6 flex animate-fade-up flex-col gap-3",
+        })}
       >
-        <ArrowLeft className="size-4" aria-hidden />
-        All clubs
-      </Link>
-
-      <h1 className="mt-4 text-xl font-bold">Start a club</h1>
-      <p className="mt-1 text-sm text-muted">
-        Found a new student org at {user.university.short_name}. Here&apos;s
-        what you get:
-      </p>
-
-      <ul className="mt-4 flex flex-col gap-2.5 rounded-card border border-border bg-surface-2 p-4">
         {PERKS.map(({ icon: Icon, text }) => (
-          <li key={text} className="flex items-start gap-2.5 text-sm">
-            <Icon className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
-            <span>{text}</span>
+          <li key={text} className="flex items-center gap-3 text-sm">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+              <Icon className="size-5" aria-hidden />
+            </span>
+            <span className="text-pretty">{text}</span>
           </li>
         ))}
       </ul>
 
-      <div className="mt-6 rounded-card border border-border bg-surface p-5">
+      <div className={cardClasses({ padding: "lg", className: "mt-6" })}>
         <ClubForm
           universityId={user.university.id}
           universityName={user.university.short_name}

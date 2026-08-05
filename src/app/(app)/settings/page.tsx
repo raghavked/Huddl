@@ -8,9 +8,18 @@ import {
   LogOut,
   ShieldCheck,
   Smartphone,
+  SunMoon,
   UserRound,
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
+import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  Badge,
+  PageHeader,
+  SectionHeader,
+  buttonClasses,
+  cardClasses,
+} from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -37,6 +46,7 @@ export default async function SettingsPage() {
     {
       href: "/settings/account",
       icon: UserRound,
+      tile: "bg-brand-soft text-brand",
       title: "Account",
       description: "Name, handle, major, bio and photo",
       trailing: null as React.ReactNode,
@@ -44,22 +54,22 @@ export default async function SettingsPage() {
     {
       href: "/settings/phone",
       icon: Smartphone,
+      tile: "bg-accent-soft text-accent",
       title: "Phone verification",
       description: "Optional trust badge — your number stays private",
       trailing: phoneVerified ? (
-        <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
+        <Badge tone="success">
           <BadgeCheck className="size-3.5" aria-hidden />
           Verified
-        </span>
+        </Badge>
       ) : (
-        <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-semibold text-brand-strong">
-          Add
-        </span>
+        <Badge tone="brand">Add</Badge>
       ),
     },
     {
       href: "/settings/canvas",
       icon: Link2,
+      tile: "bg-brand-soft text-brand",
       title: "Canvas connection",
       description: "Sync your courses and channels from Canvas",
       trailing: null as React.ReactNode,
@@ -67,6 +77,7 @@ export default async function SettingsPage() {
     {
       href: "/settings/privacy",
       icon: ShieldCheck,
+      tile: "bg-accent-soft text-accent",
       title: "Privacy & schedule images",
       description: "Audit trail and controls for anything you've uploaded",
       trailing: null as React.ReactNode,
@@ -74,14 +85,16 @@ export default async function SettingsPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-      </header>
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="You"
+        title="Settings"
+        description="Your profile, trust badge and privacy — all in one place."
+      />
 
       <section
         aria-label="Your profile"
-        className="mt-6 rounded-card border border-border bg-surface p-5"
+        className={cardClasses({ className: "mt-8 animate-fade-up" })}
       >
         <div className="flex items-center gap-4">
           <Avatar
@@ -91,14 +104,14 @@ export default async function SettingsPage() {
           />
           <div className="min-w-0">
             <p className="flex flex-wrap items-center gap-2">
-              <span className="truncate text-lg font-bold">
+              <span className="truncate text-lg font-bold tracking-tight">
                 {profile.display_name}
               </span>
               {phoneVerified ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-semibold text-success">
+                <Badge tone="success">
                   <BadgeCheck className="size-3.5" aria-hidden />
                   Phone verified
-                </span>
+                </Badge>
               ) : null}
             </p>
             <p className="truncate text-sm text-muted">@{profile.handle}</p>
@@ -110,15 +123,25 @@ export default async function SettingsPage() {
       </section>
 
       <section aria-label="Settings sections" className="mt-4">
-        <ul className="divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
-          {rows.map(({ href, icon: Icon, title, description, trailing }) => (
+        <ul
+          className={cardClasses({
+            padding: "none",
+            className: "divide-y divide-border overflow-hidden",
+          })}
+        >
+          {rows.map(({ href, icon: Icon, tile, title, description, trailing }) => (
             <li key={href}>
               <Link
                 href={href}
                 className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-2">
-                  <Icon className="size-5 text-muted" aria-hidden />
+                <span
+                  className={cn(
+                    "flex size-10 shrink-0 items-center justify-center rounded-xl",
+                    tile
+                  )}
+                >
+                  <Icon className="size-5" aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">{title}</span>
@@ -137,13 +160,34 @@ export default async function SettingsPage() {
         </ul>
       </section>
 
-      <form action={signOut} className="mt-6">
+      <section aria-label="Appearance" className="mt-8">
+        <SectionHeader title="Appearance" />
+        <div
+          className={cardClasses({
+            padding: "none",
+            className: "mt-3 flex items-center gap-3 px-4 py-3.5",
+          })}
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+            <SunMoon className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Theme</p>
+            <p className="mt-0.5 truncate text-xs text-muted">
+              Light, dark, or match your system
+            </p>
+          </div>
+          <ThemeToggle />
+        </div>
+      </section>
+
+      <form action={signOut} className="mt-8">
         <button
           type="submit"
-          className={cn(
-            "inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-danger transition-colors hover:bg-surface-2",
-            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger sm:w-auto"
-          )}
+          className={buttonClasses({
+            variant: "danger-ghost",
+            className: "w-full sm:w-auto",
+          })}
         >
           <LogOut className="size-4" aria-hidden />
           Sign out

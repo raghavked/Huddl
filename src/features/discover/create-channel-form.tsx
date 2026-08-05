@@ -3,6 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
+import {
+  Button,
+  FieldError,
+  Hint,
+  Input,
+  Label,
+  Textarea,
+} from "@/components/ui";
 import { createTopicChannel } from "@/features/discover/actions";
 
 /**
@@ -18,9 +26,6 @@ function slugify(name: string): string {
     .slice(0, 60)
     .replace(/-+$/g, "");
 }
-
-const FIELD =
-  "mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/30";
 
 /**
  * Topic-channel creation form. The createTopicChannel server action inserts
@@ -70,11 +75,9 @@ export function CreateChannelForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-      <div>
-        <label htmlFor="channel-name" className="block text-sm font-medium">
-          Channel name
-        </label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="channel-name">Channel name</Label>
+        <Input
           id="channel-name"
           type="text"
           required
@@ -83,46 +86,33 @@ export function CreateChannelForm({
           onChange={(e) => setName(e.target.value)}
           placeholder="AI Study Buddies"
           aria-describedby="channel-slug-preview"
-          className={FIELD}
         />
-        <p id="channel-slug-preview" className="mt-1.5 text-xs text-muted">
+        <Hint id="channel-slug-preview">
           Appears as{" "}
           <span className="font-mono text-foreground">
             #{slug || "your-channel"}
           </span>{" "}
           to everyone at {universityName}.
-        </p>
+        </Hint>
       </div>
 
-      <div>
-        <label
-          htmlFor="channel-description"
-          className="block text-sm font-medium"
-        >
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="channel-description">
           Description <span className="font-normal text-muted">(optional)</span>
-        </label>
-        <textarea
+        </Label>
+        <Textarea
           id="channel-description"
           rows={4}
           maxLength={500}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="What's this channel for? Who should join the conversation?"
-          className={FIELD}
         />
       </div>
 
-      {error ? (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
+      {error ? <FieldError>{error}</FieldError> : null}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="inline-flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-60"
-      >
+      <Button type="submit" disabled={isPending}>
         {isPending ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -131,7 +121,7 @@ export function CreateChannelForm({
         ) : (
           "Create channel"
         )}
-      </button>
+      </Button>
     </form>
   );
 }

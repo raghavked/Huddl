@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Avatar } from "@/components/avatar";
-import { cn } from "@/lib/utils";
+import { Badge, cardClasses } from "@/components/ui";
 import type { ClubMember, Profile } from "@/lib/types";
 
 export type RosterEntry = ClubMember & { profile: Profile };
@@ -23,28 +23,28 @@ export function sortRoster(entries: RosterEntry[]): RosterEntry[] {
 function RoleBadge({ role }: { role: ClubMember["role"] }) {
   if (role === "member") return null;
   return (
-    <span
-      className={cn(
-        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-        role === "owner"
-          ? "bg-brand-soft text-brand-strong"
-          : "bg-accent-soft text-accent"
-      )}
+    <Badge
+      tone={role === "owner" ? "brand" : "accent"}
+      className="uppercase tracking-wide"
     >
       {role}
-    </span>
+    </Badge>
   );
 }
 
 /** Roster grid: avatar, name, handle, role badge; each tile links to /u/<handle>. */
 export function Roster({ members }: { members: RosterEntry[] }) {
   return (
-    <ul className="grid gap-2 sm:grid-cols-2">
+    <ul className="grid gap-2.5 sm:grid-cols-2">
       {members.map((member) => (
         <li key={member.user_id}>
           <Link
             href={`/u/${member.profile.handle}`}
-            className="flex items-center gap-3 rounded-card border border-border bg-surface p-3 transition-colors hover:bg-surface-2"
+            className={cardClasses({
+              padding: "none",
+              interactive: true,
+              className: "flex items-center gap-3 p-3",
+            })}
           >
             <Avatar
               name={member.profile.display_name}
@@ -53,7 +53,7 @@ export function Roster({ members }: { members: RosterEntry[] }) {
             />
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5">
-                <span className="truncate text-sm font-medium">
+                <span className="truncate text-sm font-semibold">
                   {member.profile.display_name}
                 </span>
                 <RoleBadge role={member.role} />

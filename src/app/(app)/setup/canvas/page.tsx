@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { PageHeader } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -25,15 +26,15 @@ export default async function CanvasSetupPage() {
     .maybeSingle();
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">Connect Canvas</h1>
-        <p className="mt-1 text-sm text-muted">
-          Pull in your {user.university.short_name} courses and land straight in
-          a chat channel for each one.
-        </p>
-      </header>
-      <div className="mt-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Setup"
+        backHref="/setup"
+        backLabel="Setup"
+        title="Connect Canvas"
+        description={`Pull in your ${user.university.short_name} courses and land straight in a chat channel for each one.`}
+      />
+      <div className="mt-8 animate-fade-up">
         <CanvasConnect
           connection={(data as CanvasConnectionSummary | null) ?? null}
         />

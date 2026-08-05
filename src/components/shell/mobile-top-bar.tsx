@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Bell, Settings, Users } from "lucide-react";
+import { Bell, Settings } from "lucide-react";
 import { Wordmark } from "@/components/logo";
 import { Avatar } from "@/components/avatar";
 import type { CurrentUser } from "@/lib/auth";
 
-export function TopBar({
+/** Frosted mobile header — the desktop shell lives in the sidebar. */
+export function MobileTopBar({
   user,
   unreadCount = 0,
 }: {
@@ -12,24 +13,21 @@ export function TopBar({
   unreadCount?: number;
 }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-surface/90 backdrop-blur md:pl-56">
+    <header className="glass sticky top-0 z-40 border-b border-border/60 md:hidden">
       <div className="flex h-14 items-center justify-between gap-3 px-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <Link href="/home" aria-label="Huddl home">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Link
+            href="/home"
+            aria-label="Huddl home"
+            className="rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+          >
             <Wordmark />
           </Link>
-          <span className="hidden truncate rounded-full bg-surface-2 px-3 py-1 text-xs font-medium text-muted sm:block">
+          <span className="truncate rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-muted">
             {user.university.short_name}
           </span>
         </div>
-        <div className="flex items-center gap-1">
-          <Link
-            href="/people"
-            aria-label="People directory"
-            className="rounded-full p-2 text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
-          >
-            <Users className="size-5" aria-hidden />
-          </Link>
+        <div className="flex items-center gap-0.5">
           <Link
             href="/notifications"
             aria-label={
@@ -37,7 +35,7 @@ export function TopBar({
                 ? `Notifications, ${unreadCount} unread`
                 : "Notifications"
             }
-            className="relative rounded-full p-2 text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+            className="relative flex size-10 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <Bell className="size-5" aria-hidden />
             {unreadCount > 0 ? (
@@ -49,14 +47,14 @@ export function TopBar({
           <Link
             href="/settings"
             aria-label="Settings"
-            className="rounded-full p-2 text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+            className="flex size-10 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <Settings className="size-5" aria-hidden />
           </Link>
           <Link
             href={`/u/${user.profile.handle}`}
             aria-label="Your profile"
-            className="ml-1"
+            className="ml-1 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <Avatar
               name={user.profile.display_name}

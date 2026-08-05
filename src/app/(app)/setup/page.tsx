@@ -8,6 +8,12 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
+import {
+  Badge,
+  PageHeader,
+  buttonClasses,
+  cardClasses,
+} from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Add your courses",
@@ -49,32 +55,31 @@ const OPTIONS: SetupOption[] = [
 
 export default function SetupPage() {
   return (
-    <div className="mx-auto max-w-xl px-4 py-6">
-      <h1 className="text-2xl font-bold tracking-tight">Add your courses</h1>
-      <p className="mt-1 text-sm text-muted">
-        Every course gets its own chat — add yours and you&apos;re
-        automatically in with your classmates.
-      </p>
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Setup"
+        title="Add your courses"
+        description="Every course gets its own chat — add yours and you're automatically in with your classmates."
+      />
 
-      <ul className="mt-6 space-y-3">
+      <ul className="mt-8 flex animate-fade-up flex-col gap-3">
         {OPTIONS.map(
           ({ href, icon: Icon, title, description, recommended, privacyNote }) => (
             <li key={href}>
               <Link
                 href={href}
-                className="group flex items-center gap-4 rounded-card border border-border bg-surface p-4 transition-colors hover:border-brand/60 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                className={cardClasses({
+                  interactive: true,
+                  className: "group flex items-center gap-4",
+                })}
               >
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft">
-                  <Icon className="size-5 text-brand-strong" aria-hidden />
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                  <Icon className="size-6" aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold">{title}</span>
-                    {recommended ? (
-                      <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-semibold text-brand-strong">
-                        Recommended
-                      </span>
-                    ) : null}
+                    <span className="font-bold tracking-tight">{title}</span>
+                    {recommended ? <Badge tone="brand">Fastest</Badge> : null}
                   </span>
                   <span className="mt-0.5 block text-sm text-muted">
                     {description}
@@ -96,10 +101,10 @@ export default function SetupPage() {
         )}
       </ul>
 
-      <p className="mt-6 text-center">
+      <p className="mt-8 text-center">
         <Link
           href="/home"
-          className="text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          className={buttonClasses({ variant: "ghost", size: "sm" })}
         >
           Skip for now — you can add courses anytime
         </Link>

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import {
-  ArrowLeft,
   BookOpen,
   Camera,
   CircleAlert,
@@ -19,6 +18,12 @@ import {
   NotesSection,
   type NoteWithUploader,
 } from "@/features/notes/notes-section";
+import {
+  Badge,
+  Card,
+  PageHeader,
+  buttonClasses,
+} from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -131,20 +136,16 @@ export default async function CoursePage({
   const myEnrollment =
     classmates.find((row) => row.user_id === user.userId) ?? null;
 
-  const backLink = (
-    <Link
-      href="/courses"
-      className="inline-flex items-center gap-1.5 text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-    >
-      <ArrowLeft className="size-4" aria-hidden />
-      My courses
-    </Link>
-  );
-
   if (!myEnrollment) {
     return (
-      <div className="mx-auto max-w-xl px-4 py-6">
-        {backLink}
+      <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+        <PageHeader
+          eyebrow="Courses"
+          backHref="/courses"
+          backLabel="My courses"
+          title={course.code}
+          description={course.title}
+        />
 
         {errorParam === "join" ? (
           <p
@@ -156,23 +157,15 @@ export default async function CoursePage({
           </p>
         ) : null}
 
-        <div className="mt-4 rounded-card border border-border bg-surface p-6">
-          <span className="flex size-12 items-center justify-center rounded-full bg-brand-soft">
-            <BookOpen className="size-6 text-brand-strong" aria-hidden />
+        <Card padding="lg" className="mt-6 max-w-xl animate-fade-up">
+          <span className="flex size-12 items-center justify-center rounded-xl bg-brand-soft text-brand">
+            <BookOpen className="size-6" aria-hidden />
           </span>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight">
-            {course.code}
-          </h1>
-          <p className="mt-0.5 text-muted">{course.title}</p>
-          <div className="mt-2.5 flex flex-wrap gap-1.5 text-xs">
+          <div className="mt-4 flex flex-wrap gap-1.5">
             {course.term ? (
-              <span className="rounded-full bg-surface-2 px-2.5 py-1 font-medium text-muted">
-                {course.term.name}
-              </span>
+              <Badge tone="neutral">{course.term.name}</Badge>
             ) : null}
-            <span className="rounded-full bg-surface-2 px-2.5 py-1 font-medium text-muted">
-              {user.university.short_name}
-            </span>
+            <Badge tone="neutral">{user.university.short_name}</Badge>
           </div>
           <p className="mt-4 text-sm text-muted">
             You&apos;re not in this course yet. Join to unlock the course chat,
@@ -182,7 +175,7 @@ export default async function CoursePage({
             <input type="hidden" name="courseId" value={course.id} />
             <button
               type="submit"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className={buttonClasses({ className: "w-full" })}
             >
               <UserPlus className="size-4" aria-hidden />
               Join this course
@@ -192,7 +185,7 @@ export default async function CoursePage({
             Joining adds you to the {course.code} channel automatically — you
             can drop the course anytime.
           </p>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -218,39 +211,37 @@ export default async function CoursePage({
   ] as const;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      {backLink}
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Courses"
+        backHref="/courses"
+        backLabel="My courses"
+        title={course.code}
+        description={course.title}
+        action={
+          channel ? (
+            <Link
+              href={`/channels/${channel.id}`}
+              className={buttonClasses({ size: "sm", className: "gap-1.5" })}
+            >
+              <Hash className="size-4" aria-hidden />
+              Course chat
+            </Link>
+          ) : undefined
+        }
+      />
 
-      <header className="mt-4 flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">{course.code}</h1>
-          <p className="mt-0.5 text-muted">{course.title}</p>
-          <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs">
-            {course.term ? (
-              <span className="rounded-full bg-surface-2 px-2.5 py-1 font-medium text-muted">
-                {course.term.name}
-              </span>
-            ) : null}
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2.5 py-1 font-medium text-accent">
-              <SourceIcon className="size-3.5" aria-hidden />
-              {source.label}
-            </span>
-          </div>
-        </div>
-        {channel ? (
-          <Link
-            href={`/channels/${channel.id}`}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-          >
-            <Hash className="size-4" aria-hidden />
-            Course chat
-          </Link>
-        ) : null}
-      </header>
+      <div className="mt-4 flex flex-wrap items-center gap-1.5">
+        {course.term ? <Badge tone="neutral">{course.term.name}</Badge> : null}
+        <Badge tone="accent">
+          <SourceIcon className="size-3.5" aria-hidden />
+          {source.label}
+        </Badge>
+      </div>
 
       <nav
         aria-label="Course sections"
-        className="mt-6 flex gap-1 rounded-full bg-surface-2 p-1"
+        className="mt-6 flex gap-1 rounded-full border border-border bg-surface-2 p-1"
       >
         {tabs.map((item) => (
           <Link
@@ -260,7 +251,7 @@ export default async function CoursePage({
             className={cn(
               "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
               tab === item.key
-                ? "bg-surface text-foreground shadow-sm"
+                ? "bg-surface text-foreground shadow-soft"
                 : "text-muted hover:text-foreground"
             )}
           >
@@ -280,7 +271,7 @@ export default async function CoursePage({
       </nav>
 
       <section
-        className="mt-4"
+        className="mt-6"
         aria-label={tab === "notes" ? "Shared notes" : "Classmates"}
       >
         {tab === "notes" ? (

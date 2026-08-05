@@ -3,6 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Loader2, Pencil, Trash2 } from "lucide-react";
+import {
+  Button,
+  FieldError,
+  Hint,
+  Input,
+  Label,
+  Select,
+  Textarea,
+  cardClasses,
+} from "@/components/ui";
 import { disbandClub, updateClub } from "@/features/clubs/actions";
 import { categoryLabel, ConfirmDialog } from "@/features/clubs/club-card";
 import { createClient } from "@/lib/supabase/client";
@@ -28,9 +38,6 @@ function slugify(name: string): string {
     .replace(/-+$/g, "");
 }
 
-const FIELD =
-  "mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/30";
-
 function CategorySelect({
   id,
   value,
@@ -41,18 +48,17 @@ function CategorySelect({
   onChange: (value: ClubCategory) => void;
 }) {
   return (
-    <select
+    <Select
       id={id}
       value={value}
       onChange={(e) => onChange(e.target.value as ClubCategory)}
-      className={FIELD}
     >
       {CLUB_CATEGORIES.map((category) => (
         <option key={category} value={category}>
           {categoryLabel(category)}
         </option>
       ))}
-    </select>
+    </Select>
   );
 }
 
@@ -122,11 +128,9 @@ export function ClubForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-      <div>
-        <label htmlFor="club-name" className="block text-sm font-medium">
-          Club name
-        </label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="club-name">Club name</Label>
+        <Input
           id="club-name"
           type="text"
           required
@@ -134,20 +138,17 @@ export function ClubForm({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Astronomy Society"
-          className={FIELD}
         />
-        <p className="mt-1.5 text-xs text-muted">
+        <Hint>
           Chat channel:{" "}
           <span className="font-mono text-foreground">
             #club-{slug || "your-club"}
           </span>
-        </p>
+        </Hint>
       </div>
 
-      <div>
-        <label htmlFor="club-category" className="block text-sm font-medium">
-          Category
-        </label>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="club-category">Category</Label>
         <CategorySelect
           id="club-category"
           value={category}
@@ -155,33 +156,23 @@ export function ClubForm({
         />
       </div>
 
-      <div>
-        <label htmlFor="club-description" className="block text-sm font-medium">
-          Description{" "}
-          <span className="font-normal text-muted">(optional)</span>
-        </label>
-        <textarea
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="club-description">
+          Description <span className="font-normal text-muted">(optional)</span>
+        </Label>
+        <Textarea
           id="club-description"
           rows={4}
           maxLength={500}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="What's your club about? Who should join?"
-          className={FIELD}
         />
       </div>
 
-      {error ? (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
+      {error ? <FieldError className="text-sm">{error}</FieldError> : null}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="inline-flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-fg transition-opacity hover:opacity-90 disabled:opacity-60"
-      >
+      <Button type="submit" disabled={submitting}>
         {submitting ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -190,7 +181,7 @@ export function ClubForm({
         ) : (
           "Found this club"
         )}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -209,8 +200,9 @@ export function ClubEditor({ club }: { club: Club }) {
 
   if (!open) {
     return (
-      <button
-        type="button"
+      <Button
+        variant="secondary"
+        size="sm"
         onClick={() => {
           setName(club.name);
           setCategory(club.category);
@@ -218,11 +210,10 @@ export function ClubEditor({ club }: { club: Club }) {
           setError(null);
           setOpen(true);
         }}
-        className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2"
       >
         <Pencil className="size-4" aria-hidden />
         Edit
-      </button>
+      </Button>
     );
   }
 
@@ -244,77 +235,54 @@ export function ClubEditor({ club }: { club: Club }) {
           }
         });
       }}
-      className="w-full rounded-card border border-border bg-surface p-4"
+      className={cardClasses({ padding: "sm", className: "w-full" })}
       aria-label="Edit club details"
     >
       <div className="flex flex-col gap-4">
-        <div>
-          <label htmlFor="edit-club-name" className="block text-sm font-medium">
-            Club name
-          </label>
-          <input
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="edit-club-name">Club name</Label>
+          <Input
             id="edit-club-name"
             type="text"
             required
             maxLength={80}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className={FIELD}
           />
         </div>
-        <div>
-          <label
-            htmlFor="edit-club-category"
-            className="block text-sm font-medium"
-          >
-            Category
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="edit-club-category">Category</Label>
           <CategorySelect
             id="edit-club-category"
             value={category}
             onChange={setCategory}
           />
         </div>
-        <div>
-          <label
-            htmlFor="edit-club-description"
-            className="block text-sm font-medium"
-          >
-            Description
-          </label>
-          <textarea
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="edit-club-description">Description</Label>
+          <Textarea
             id="edit-club-description"
             rows={3}
             maxLength={500}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className={FIELD}
           />
         </div>
-        {error ? (
-          <p role="alert" className="text-sm text-danger">
-            {error}
-          </p>
-        ) : null}
+        {error ? <FieldError className="text-sm">{error}</FieldError> : null}
         <div className="flex justify-end gap-2">
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={() => setOpen(false)}
             disabled={isPending}
-            className="rounded-full border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2 disabled:opacity-60"
           >
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-opacity hover:opacity-90 disabled:opacity-60"
-          >
+          </Button>
+          <Button type="submit" disabled={isPending}>
             {isPending ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />
             ) : null}
             Save changes
-          </button>
+          </Button>
         </div>
       </div>
     </form>
@@ -335,17 +303,17 @@ export function DisbandClubButton({
 
   return (
     <>
-      <button
-        type="button"
+      <Button
+        variant="danger-ghost"
+        size="sm"
         onClick={() => {
           setError(null);
           setConfirming(true);
         }}
-        className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium text-danger transition-colors hover:bg-surface-2"
       >
         <Trash2 className="size-4" aria-hidden />
         Disband club
-      </button>
+      </Button>
       <ConfirmDialog
         open={confirming}
         title={`Disband ${clubName}?`}
@@ -365,7 +333,7 @@ export function DisbandClubButton({
         }}
       />
       {error ? (
-        <p role="alert" className="mt-2 text-xs text-danger">
+        <p role="alert" className="mt-2 text-xs font-medium text-danger">
           {error}
         </p>
       ) : null}

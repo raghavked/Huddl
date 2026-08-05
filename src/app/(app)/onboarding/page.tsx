@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { GraduationCap } from "lucide-react";
+import { Badge, Card, PageHeader } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { OnboardingForm } from "@/features/auth/onboarding-form";
 
@@ -17,27 +18,22 @@ export default async function OnboardingPage() {
     user.profile.display_name;
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-6">
-      <div className="flex flex-col items-start gap-3">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-strong">
-          <GraduationCap className="size-3.5" aria-hidden />
-          {user.university.name}
-        </span>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Welcome to Huddl, {firstName}!
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            You&apos;re verified as a {user.university.short_name} student
-            (@{user.profile.handle}). Tell your classmates a little about
-            yourself — you can change any of this later.
-          </p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Getting started"
+        title={`Welcome to Huddl, ${firstName}!`}
+        description={`You're verified as a ${user.university.short_name} student (@${user.profile.handle}). Tell your classmates a little about yourself — you can change any of this later.`}
+        action={
+          <Badge tone="accent">
+            <GraduationCap className="size-3.5" aria-hidden />
+            {user.university.name}
+          </Badge>
+        }
+      />
 
-      <div className="mt-6 rounded-card border border-border bg-surface p-5">
+      <Card padding="lg" className="mt-6 animate-fade-up">
         <OnboardingForm profile={user.profile} />
-      </div>
+      </Card>
     </div>
   );
 }

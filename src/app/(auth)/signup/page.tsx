@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Card } from "@/components/ui";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { SignupForm } from "@/features/auth/signup-form";
 
@@ -18,13 +19,15 @@ export default async function SignupPage() {
   }
 
   return (
-    <div className="rounded-card border border-border bg-surface p-6">
-      <h1 className="text-xl font-bold tracking-tight">Join your campus</h1>
-      <p className="mt-1 text-sm text-muted">
-        Sign up with your university email — that&apos;s how we know
-        you&apos;re a student.
-      </p>
-      <SignupForm />
+    <div className="animate-fade-up">
+      <Card padding="lg">
+        <h1 className="text-2xl font-bold tracking-tight">Join your campus</h1>
+        <p className="mt-1.5 text-sm text-muted">
+          Sign up with your university email — that&apos;s how we know
+          you&apos;re a student.
+        </p>
+        <SignupForm />
+      </Card>
       <p className="mt-6 text-center text-sm text-muted">
         Already on Huddl?{" "}
         <Link href="/login" className="font-semibold text-brand hover:underline">

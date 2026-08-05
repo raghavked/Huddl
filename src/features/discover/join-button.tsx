@@ -16,6 +16,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import {
+  Badge,
+  Button,
+  SectionHeader,
+  buttonClasses,
+  cardClasses,
+} from "@/components/ui";
 import { joinChannel } from "@/features/discover/actions";
 import { cn } from "@/lib/utils";
 import type { ChannelKind } from "@/lib/types";
@@ -45,8 +52,9 @@ export function JoinButton({
 
   return (
     <div className={cn("flex flex-col items-end gap-1", className)}>
-      <button
-        type="button"
+      <Button
+        size="sm"
+        variant="soft"
         disabled={isPending}
         aria-label={`Join ${channelName}`}
         onClick={() => {
@@ -61,7 +69,6 @@ export function JoinButton({
             }
           });
         }}
-        className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand px-3.5 py-1.5 text-xs font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-60"
       >
         {isPending ? (
           <Loader2 className="size-3.5 animate-spin" aria-hidden />
@@ -69,7 +76,7 @@ export function JoinButton({
           <Plus className="size-3.5" aria-hidden />
         )}
         Join
-      </button>
+      </Button>
       {error ? (
         <p role="alert" className="max-w-40 text-right text-[11px] text-danger">
           {error}
@@ -81,15 +88,10 @@ export function JoinButton({
 
 export function JoinedChip({ className }: { className?: string }) {
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand-strong",
-        className
-      )}
-    >
+    <Badge tone="brand" className={className}>
       <Check className="size-3.5" aria-hidden />
       Joined
-    </span>
+    </Badge>
   );
 }
 
@@ -212,7 +214,7 @@ export function ChannelBrowser({ channels }: { channels: BrowseChannel[] }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name, course code or topic…"
-          className="w-full rounded-full border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-foreground outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/30"
+          className="w-full rounded-full border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-foreground shadow-soft transition-colors placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-[3px] focus:ring-brand/15"
         />
       </div>
       <p aria-live="polite" className="sr-only">
@@ -229,10 +231,7 @@ export function ChannelBrowser({ channels }: { channels: BrowseChannel[] }) {
               : "There are no channels here yet."
           }
           action={
-            <Link
-              href="/channels/new"
-              className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
+            <Link href="/channels/new" className={buttonClasses({ size: "sm" })}>
               Start a channel
             </Link>
           }
@@ -242,22 +241,20 @@ export function ChannelBrowser({ channels }: { channels: BrowseChannel[] }) {
           const group = byKind.get(kind);
           if (!group || group.length === 0) return null;
           return (
-            <section key={kind} className="mt-6" aria-label={label}>
-              <h2 className="px-1 text-xs font-bold uppercase tracking-wide text-muted">
-                {label}
-                <span className="ml-1.5 font-medium normal-case tracking-normal">
-                  · {group.length}
-                </span>
-              </h2>
-              <ul className="mt-2 divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
+            <section key={kind} className="mt-8" aria-label={label}>
+              <SectionHeader title={`${label} · ${group.length}`} />
+              <ul className="mt-3 flex flex-col gap-2.5">
                 {group.map((channel) => {
                   const subtitle = channelSubtitle(channel);
                   return (
                     <li
                       key={channel.id}
-                      className="flex items-center gap-3 px-4 py-3"
+                      className={cardClasses({
+                        padding: "none",
+                        className: "flex items-center gap-3 px-4 py-3",
+                      })}
                     >
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-strong">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
                         <Icon className="size-5" aria-hidden />
                       </span>
                       <Link

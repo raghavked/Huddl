@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { PageHeader } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -26,23 +25,15 @@ export default async function CanvasSettingsPage() {
     .maybeSingle();
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <Link
-        href="/settings"
-        className="inline-flex items-center gap-1.5 rounded text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        Settings
-      </Link>
-      <header className="mt-3">
-        <h1 className="text-2xl font-bold tracking-tight">Canvas connection</h1>
-        <p className="mt-1 text-sm text-muted">
-          Re-sync to pull in newly added Canvas courses, or disconnect to
-          delete your stored token. To leave a class you dropped, use the drop
-          button on that course in your Courses list.
-        </p>
-      </header>
-      <div className="mt-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Settings"
+        title="Canvas connection"
+        description="Re-sync to pull in newly added Canvas courses, or disconnect to delete your stored token. To leave a class you dropped, use the drop button on that course in your Courses list."
+        backHref="/settings"
+        backLabel="Settings"
+      />
+      <div className="mt-8">
         <CanvasConnect
           connection={(data as CanvasConnectionSummary | null) ?? null}
         />

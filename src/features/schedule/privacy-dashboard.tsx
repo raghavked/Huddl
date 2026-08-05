@@ -16,8 +16,8 @@ import {
   Upload,
   type LucideIcon,
 } from "lucide-react";
+import { Badge, Button, cardClasses, type BadgeTone } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
 import type {
   ScheduleUpload,
   ScheduleUploadEvent,
@@ -36,21 +36,16 @@ const EVENT_META: Record<
   deleted: { label: "Deleted", icon: Trash2 },
 };
 
-const outlineBtn =
-  "inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-2 disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
-const dangerBtn =
-  "inline-flex items-center justify-center gap-2 rounded-lg bg-danger px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger";
-
 function ts(iso: string): string {
   return format(new Date(iso), "MMM d, yyyy · h:mm a");
 }
 
 function StatusBadge({ status }: { status: ScheduleUpload["status"] }) {
-  const styles: Record<ScheduleUpload["status"], string> = {
-    pending: "text-muted",
-    processed: "text-accent",
-    confirmed: "text-success",
-    deleted: "text-muted",
+  const tones: Record<ScheduleUpload["status"], BadgeTone> = {
+    pending: "neutral",
+    processed: "accent",
+    confirmed: "success",
+    deleted: "neutral",
   };
   const labels: Record<ScheduleUpload["status"], string> = {
     pending: "Pending",
@@ -59,19 +54,14 @@ function StatusBadge({ status }: { status: ScheduleUpload["status"] }) {
     deleted: "Deleted",
   };
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-semibold",
-        styles[status]
-      )}
-    >
+    <Badge tone={tones[status]}>
       {status === "confirmed" ? (
         <CheckCircle2 className="size-3.5" aria-hidden />
       ) : status === "deleted" ? (
         <Trash2 className="size-3.5" aria-hidden />
       ) : null}
       {labels[status]}
-    </span>
+    </Badge>
   );
 }
 
@@ -204,10 +194,7 @@ export function PrivacyDashboard({
         const uploadError = errors[upload.id] ?? null;
 
         return (
-          <li
-            key={upload.id}
-            className="rounded-card border border-border bg-surface p-5"
-          >
+          <li key={upload.id} className={cardClasses()}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h3 className="font-semibold">
@@ -230,12 +217,11 @@ export function PrivacyDashboard({
                 className="mt-3 flex flex-wrap gap-1.5"
               >
                 {summaryCourses.map((course) => (
-                  <li
-                    key={course.code}
-                    className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-0.5 text-[11px] font-semibold text-brand-strong"
-                  >
-                    <Hash className="size-3" aria-hidden />
-                    {course.code}
+                  <li key={course.code}>
+                    <Badge tone="brand">
+                      <Hash className="size-3" aria-hidden />
+                      {course.code}
+                    </Badge>
                   </li>
                 ))}
               </ul>
@@ -244,11 +230,11 @@ export function PrivacyDashboard({
             {!isDeleted ? (
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 {hasImage ? (
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     disabled={uploadBusy !== null}
                     onClick={() => handleView(upload)}
-                    className={outlineBtn}
                   >
                     {uploadBusy === "view" ? (
                       <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -258,15 +244,15 @@ export function PrivacyDashboard({
                       <Eye className="size-4" aria-hidden />
                     )}
                     {viewUrl ? "Hide image" : "View image"}
-                  </button>
+                  </Button>
                 ) : null}
                 {confirmingDelete === upload.id ? (
                   <>
-                    <button
-                      type="button"
+                    <Button
+                      variant="danger"
+                      size="sm"
                       disabled={uploadBusy !== null}
                       onClick={() => handleDelete(upload)}
-                      className={dangerBtn}
                     >
                       {uploadBusy === "delete" ? (
                         <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -274,26 +260,26 @@ export function PrivacyDashboard({
                         <Trash2 className="size-4" aria-hidden />
                       )}
                       Yes, delete
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       disabled={uploadBusy !== null}
                       onClick={() => setConfirmingDelete(null)}
-                      className={outlineBtn}
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </>
                 ) : (
-                  <button
-                    type="button"
+                  <Button
+                    variant="danger-ghost"
+                    size="sm"
                     disabled={uploadBusy !== null}
                     onClick={() => setConfirmingDelete(upload.id)}
-                    className={cn(outlineBtn, "text-danger")}
                   >
                     <Trash2 className="size-4" aria-hidden />
                     {hasImage ? "Delete image" : "Delete record"}
-                  </button>
+                  </Button>
                 )}
               </div>
             ) : null}
@@ -312,7 +298,7 @@ export function PrivacyDashboard({
                 <img
                   src={viewUrl}
                   alt="Your stored schedule image"
-                  className="max-h-96 w-full rounded-lg border border-border bg-surface-2 object-contain"
+                  className="max-h-96 w-full rounded-xl border border-border bg-surface-2 object-contain"
                 />
                 <figcaption className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
                   <Eye className="size-3.5" aria-hidden />
@@ -325,7 +311,7 @@ export function PrivacyDashboard({
             {uploadError ? (
               <div
                 role="alert"
-                className="mt-3 flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger"
+                className="mt-3 flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2.5 text-sm text-danger"
               >
                 <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
                 <span>{uploadError}</span>
@@ -333,32 +319,37 @@ export function PrivacyDashboard({
             ) : null}
 
             <div className="mt-4 border-t border-border pt-4">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted">
+              <h4 className="px-1 text-xs font-bold uppercase tracking-widest text-muted">
                 Audit timeline
               </h4>
-              <ol aria-live="polite" className="mt-3 space-y-3">
+              <ol aria-live="polite" className="mt-1 divide-y divide-border">
                 {uploadEvents.length === 0 ? (
-                  <li className="text-sm text-muted">No events recorded.</li>
+                  <li className="py-2.5 text-sm text-muted">
+                    No events recorded.
+                  </li>
                 ) : (
                   uploadEvents.map((event) => {
                     const meta = EVENT_META[event.event_type];
                     const Icon = meta.icon;
                     return (
-                      <li key={event.id} className="flex gap-3">
-                        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-2">
-                          <Icon className="size-3.5 text-muted" aria-hidden />
+                      <li
+                        key={event.id}
+                        className="flex items-start gap-3 py-2.5"
+                      >
+                        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
+                          <Icon className="size-3.5" aria-hidden />
                         </span>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium">{meta.label}</p>
                           {event.detail ? (
                             <p className="text-xs text-muted">{event.detail}</p>
                           ) : null}
-                          <p className="mt-0.5 text-xs text-muted/80">
-                            <time dateTime={event.created_at}>
-                              {ts(event.created_at)}
-                            </time>
-                          </p>
                         </div>
+                        <p className="mt-0.5 shrink-0 whitespace-nowrap font-mono text-xs text-muted">
+                          <time dateTime={event.created_at}>
+                            {ts(event.created_at)}
+                          </time>
+                        </p>
                       </li>
                     );
                   })

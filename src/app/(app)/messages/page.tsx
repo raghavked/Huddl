@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AlertCircle, MessageCircle, UserRoundSearch } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { PageHeader, buttonClasses, cardClasses } from "@/components/ui";
 import { ThreadListItem } from "@/features/dm/thread-list-item";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -107,27 +108,26 @@ export default async function MessagesPage({
     );
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold">Messages</h1>
-          <p className="text-sm text-muted">
-            Direct messages with your classmates
-          </p>
-        </div>
-        <Link
-          href="/people"
-          className="inline-flex shrink-0 items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-        >
-          <UserRoundSearch className="size-4" aria-hidden />
-          New message
-        </Link>
-      </div>
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        eyebrow="Messages"
+        title="Direct messages"
+        description="Trade notes, plan study sessions, or just say hi."
+        action={
+          <Link
+            href="/people"
+            className={buttonClasses({ size: "sm", className: "gap-1.5" })}
+          >
+            <UserRoundSearch className="size-4" aria-hidden />
+            New message
+          </Link>
+        }
+      />
 
       {errorCopy ? (
         <p
           role="alert"
-          className="mb-4 flex items-center gap-2 rounded-card border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
+          className="mt-6 flex items-center gap-2 rounded-card border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
         >
           <AlertCircle className="size-4 shrink-0" aria-hidden />
           {errorCopy}
@@ -135,23 +135,22 @@ export default async function MessagesPage({
       ) : null}
 
       {threads.length === 0 ? (
-        <EmptyState
-          icon={MessageCircle}
-          title="No conversations yet"
-          description="DM classmates to trade notes, plan study sessions, or just say hi. Find people from your courses to get started."
-          action={
-            <Link
-              href="/people"
-              className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
-              Find classmates
-            </Link>
-          }
-        />
+        <div className={cardClasses({ padding: "none", className: "mt-6" })}>
+          <EmptyState
+            icon={MessageCircle}
+            title="No conversations yet"
+            description="DM classmates to trade notes, plan study sessions, or just say hi. Find people from your courses to get started."
+            action={
+              <Link href="/people" className={buttonClasses({ size: "sm" })}>
+                Find classmates
+              </Link>
+            }
+          />
+        </div>
       ) : (
         <ul
           aria-label="Conversations"
-          className="divide-y divide-border overflow-hidden rounded-card border border-border bg-surface"
+          className="mt-6 flex animate-fade-up flex-col gap-2.5"
         >
           {threads.map((t) => (
             <ThreadListItem

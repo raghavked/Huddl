@@ -2,14 +2,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
-  ArrowLeft,
   CalendarDays,
   CalendarPlus,
+  Check,
+  Clock,
   MapPin,
   MessageCircle,
   Users,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import {
+  Badge,
+  PageHeader,
+  SectionHeader,
+  buttonClasses,
+  cardClasses,
+} from "@/components/ui";
 import { CategoryBadge, MembershipActions } from "@/features/clubs/club-card";
 import { ClubEditor, DisbandClubButton } from "@/features/clubs/club-form";
 import { Roster, sortRoster, type RosterEntry } from "@/features/clubs/roster";
@@ -31,6 +39,24 @@ export async function generateMetadata({
     .eq("id", clubId)
     .maybeSingle();
   return { title: club?.name ?? "Club" };
+}
+
+/** Weekday-over-day date tile — accent for calendar-ish rows. */
+function DateTile({ iso }: { iso: string }) {
+  const d = new Date(iso);
+  return (
+    <span
+      aria-hidden
+      className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl bg-accent-soft text-accent"
+    >
+      <span className="text-[10px] font-bold uppercase leading-none tracking-wide">
+        {d.toLocaleDateString([], { weekday: "short" })}
+      </span>
+      <span className="mt-0.5 text-lg font-bold leading-none">
+        {d.getDate()}
+      </span>
+    </span>
+  );
 }
 
 export default async function ClubPage({
@@ -86,102 +112,128 @@ export default async function ClubPage({
   const isOwner = myRole === "owner";
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <Link
-        href="/clubs"
-        className="inline-flex items-center gap-1 text-sm font-medium text-muted transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        All clubs
-      </Link>
+    <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+      <PageHeader
+        backHref="/clubs"
+        backLabel="All clubs"
+        eyebrow="Clubs"
+        title={club.name}
+      />
 
-      <header className="mt-4">
-        <h1 className="text-2xl font-bold leading-tight">{club.name}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+      {/* Identity card: category, size, description, join / joined state. */}
+      <section
+        className={cardClasses({ className: "mt-6 animate-fade-up" })}
+        aria-label="About this club"
+      >
+        <div className="flex flex-wrap items-center gap-2">
           <CategoryBadge category={club.category} />
-          <span className="inline-flex items-center gap-1 text-sm text-muted">
-            <Users className="size-4" aria-hidden />
+          <Badge tone="neutral">
+            <Users className="size-3" aria-hidden />
             {roster.length} {roster.length === 1 ? "member" : "members"}
-          </span>
+          </Badge>
+          {myRole ? (
+            <Badge tone="success">
+              <Check className="size-3" aria-hidden />
+              {myRole === "member"
+                ? "Joined"
+                : myRole === "owner"
+                  ? "Owner"
+                  : "Officer"}
+            </Badge>
+          ) : null}
         </div>
+
         {club.description ? (
           <p className="mt-3 whitespace-pre-line text-sm text-muted">
             {club.description}
           </p>
         ) : null}
-      </header>
 
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        {isMember && channel ? (
-          <Link
-            href={`/channels/${channel.id}`}
-            className="inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-opacity hover:opacity-90"
-          >
-            <MessageCircle className="size-4" aria-hidden />
-            Open chat
-          </Link>
-        ) : null}
-        {isOfficer ? (
-          <Link
-            href={`/events/new?club=${club.id}`}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2"
-          >
-            <CalendarPlus className="size-4" aria-hidden />
-            Plan an event
-          </Link>
-        ) : null}
-        <MembershipActions clubId={club.id} clubName={club.name} role={myRole} />
-        {isOfficer ? <ClubEditor club={club} /> : null}
-      </div>
-
-      {!isMember && channel ? (
-        <p className="mt-2 text-xs text-muted">
-          Join to get into{" "}
-          <span className="font-mono text-foreground">#{channel.slug}</span> and
-          meet the members.
-        </p>
-      ) : null}
-
-      <section className="mt-8" aria-labelledby="club-events-heading">
-        <h2
-          id="club-events-heading"
-          className="flex items-center gap-2 text-base font-semibold"
-        >
-          <CalendarDays className="size-4 text-muted" aria-hidden />
-          Upcoming events
-        </h2>
-        {events.length === 0 ? (
-          <EmptyState
-            icon={CalendarDays}
-            title="No upcoming events"
-            description={
-              isOfficer
-                ? "Plan the first one — members will see it here and on the events board."
-                : "Nothing on the calendar yet. Check back soon."
-            }
-            className="py-10"
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {isMember && channel ? (
+            <Link
+              href={`/channels/${channel.id}`}
+              className={buttonClasses({ size: "sm", className: "gap-1.5" })}
+            >
+              <MessageCircle className="size-4" aria-hidden />
+              Open chat
+            </Link>
+          ) : null}
+          {isOfficer ? (
+            <Link
+              href={`/events/new?club=${club.id}`}
+              className={buttonClasses({
+                variant: "secondary",
+                size: "sm",
+                className: "gap-1.5",
+              })}
+            >
+              <CalendarPlus className="size-4" aria-hidden />
+              Plan an event
+            </Link>
+          ) : null}
+          <MembershipActions
+            clubId={club.id}
+            clubName={club.name}
+            role={myRole}
           />
+          {isOfficer ? <ClubEditor club={club} /> : null}
+        </div>
+
+        {!isMember && channel ? (
+          <p className="mt-3 text-xs text-muted">
+            Join to get into{" "}
+            <span className="font-mono text-foreground">#{channel.slug}</span>{" "}
+            and meet the members.
+          </p>
+        ) : null}
+      </section>
+
+      <section className="mt-8" aria-label="Upcoming events">
+        <SectionHeader title="Upcoming events" />
+        {events.length === 0 ? (
+          <div className="mt-3 rounded-card border border-dashed border-border">
+            <EmptyState
+              icon={CalendarDays}
+              title="No upcoming events"
+              description={
+                isOfficer
+                  ? "Plan the first one — members will see it here and on the events board."
+                  : "Nothing on the calendar yet. Check back soon."
+              }
+              className="py-10"
+            />
+          </div>
         ) : (
-          <ul className="mt-3 flex flex-col gap-2">
+          <ul className="mt-3 flex flex-col gap-2.5">
             {events.map((event) => (
               <li key={event.id}>
                 <Link
                   href={`/events/${event.id}`}
-                  className="block rounded-card border border-border bg-surface p-4 transition-colors hover:bg-surface-2"
+                  className={cardClasses({
+                    padding: "none",
+                    interactive: true,
+                    className: "flex items-center gap-3 px-4 py-3",
+                  })}
                 >
-                  <p className="font-medium leading-snug">{event.title}</p>
-                  <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-                    <span className="inline-flex items-center gap-1 text-accent">
-                      <CalendarDays className="size-3.5" aria-hidden />
-                      {formatEventTime(event.starts_at, event.ends_at)}
+                  <DateTile iso={event.starts_at} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold">
+                      {event.title}
                     </span>
-                    {event.location ? (
+                    <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted">
                       <span className="inline-flex items-center gap-1">
-                        <MapPin className="size-3.5" aria-hidden />
-                        {event.location}
+                        <Clock className="size-3.5" aria-hidden />
+                        {formatEventTime(event.starts_at, event.ends_at)}
                       </span>
-                    ) : null}
-                  </p>
+                      {event.location ? (
+                        <span className="inline-flex min-w-0 items-center gap-1">
+                          <MapPin className="size-3.5 shrink-0" aria-hidden />
+                          <span className="truncate">{event.location}</span>
+                        </span>
+                      ) : null}
+                    </span>
+                  </span>
                 </Link>
               </li>
             ))}
@@ -189,22 +241,17 @@ export default async function ClubPage({
         )}
       </section>
 
-      <section className="mt-8" aria-labelledby="club-members-heading">
-        <h2
-          id="club-members-heading"
-          className="flex items-center gap-2 text-base font-semibold"
-        >
-          <Users className="size-4 text-muted" aria-hidden />
-          Members
-          <span className="font-normal text-muted">({roster.length})</span>
-        </h2>
+      <section className="mt-8" aria-label="Members">
+        <SectionHeader title={`Members · ${roster.length}`} />
         {roster.length === 0 ? (
-          <EmptyState
-            icon={Users}
-            title="No members yet"
-            description="Join to get this club going."
-            className="py-10"
-          />
+          <div className="mt-3 rounded-card border border-dashed border-border">
+            <EmptyState
+              icon={Users}
+              title="No members yet"
+              description="Join to get this club going."
+              className="py-10"
+            />
+          </div>
         ) : (
           <div className="mt-3">
             <Roster members={roster} />
@@ -214,7 +261,7 @@ export default async function ClubPage({
 
       {isOwner ? (
         <section
-          className="mt-10 rounded-card border border-border bg-surface p-4"
+          className={cardClasses({ padding: "sm", className: "mt-10" })}
           aria-labelledby="club-danger-heading"
         >
           <h2 id="club-danger-heading" className="text-sm font-semibold">

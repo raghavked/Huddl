@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
+import { buttonClasses, cardClasses } from "@/components/ui";
 import { NoteUpload } from "@/features/notes/note-upload";
 import { createClient } from "@/lib/supabase/client";
 import { formatFileSize, formatMessageTime } from "@/lib/utils";
@@ -145,7 +146,7 @@ export function NotesSection({
       {error ? (
         <p
           role="alert"
-          className="mt-4 flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger"
+          className="mt-4 flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger"
         >
           <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
           {error}
@@ -159,7 +160,7 @@ export function NotesSection({
           description="Be the first to share lecture notes, study guides or slides with your classmates."
         />
       ) : (
-        <ul className="mt-4 space-y-2">
+        <ul className="mt-4 flex flex-col gap-2.5">
           {visible.map((note) => {
             const TypeIcon = fileTypeIcon(note.mime_type, note.file_name);
             const mine = note.uploader_id === currentUser.id;
@@ -167,13 +168,16 @@ export function NotesSection({
             return (
               <li
                 key={note.id}
-                className="flex items-start gap-3 rounded-card border border-border bg-surface p-4"
+                className={cardClasses({
+                  padding: "sm",
+                  className: "flex items-start gap-3",
+                })}
               >
                 <span
-                  className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand"
                   title={note.file_name}
                 >
-                  <TypeIcon className="size-5 text-accent" aria-hidden />
+                  <TypeIcon className="size-5" aria-hidden />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{note.title}</p>
@@ -207,7 +211,10 @@ export function NotesSection({
                         type="button"
                         onClick={() => handleDelete(note)}
                         disabled={deletingId === note.id}
-                        className="inline-flex items-center gap-1 rounded-full bg-danger px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger"
+                        className={buttonClasses({
+                          variant: "danger",
+                          size: "sm",
+                        })}
                       >
                         {deletingId === note.id ? (
                           <Loader2

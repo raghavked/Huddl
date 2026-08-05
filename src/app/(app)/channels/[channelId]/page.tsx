@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { Badge, Card, buttonClasses } from "@/components/ui";
 import { ChatRoom, JoinChannelButton } from "@/features/chat/chat-room";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -54,16 +55,13 @@ export default async function ChannelPage({
   // bad ids and other campuses.
   if (!channel) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-6">
+      <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
         <EmptyState
           icon={Lock}
           title="Channel not available"
           description="This channel doesn't exist, or it belongs to another campus."
           action={
-            <Link
-              href="/channels"
-              className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
+            <Link href="/channels" className={buttonClasses({ size: "sm" })}>
               Back to your channels
             </Link>
           }
@@ -101,18 +99,20 @@ export default async function ChannelPage({
 
       const KindIcon = KIND_ICONS[channel.kind];
       return (
-        <div className="mx-auto max-w-3xl px-4 py-6">
-          <div className="rounded-card border border-border bg-surface p-6 text-center sm:p-8">
-            <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-soft text-brand-strong">
+        <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+          <Card padding="lg" className="animate-fade-up text-center">
+            <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-brand-soft text-brand">
               <KindIcon className="size-6" aria-hidden />
             </span>
-            <h1 className="mt-3 text-lg font-bold">#{channel.slug}</h1>
+            <h1 className="mt-3 text-lg font-bold tracking-tight">
+              #{channel.slug}
+            </h1>
             {channel.description ? (
-              <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
+              <p className="mx-auto mt-1 max-w-sm text-sm text-muted text-pretty">
                 {channel.description}
               </p>
             ) : null}
-            <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted">
+            <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-muted">
               {channel.kind === "campus" ? "Campus channel" : "Topic channel"} ·
               open to everyone at your school
             </p>
@@ -125,14 +125,14 @@ export default async function ChannelPage({
             >
               Back to your channels
             </Link>
-          </div>
+          </Card>
         </div>
       );
     }
 
     const isCourse = channel.kind === "course";
     return (
-      <div className="mx-auto max-w-3xl px-4 py-6">
+      <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
         <EmptyState
           icon={isCourse ? GraduationCap : UsersRound}
           title={isCourse ? "This is a course channel" : "This is a club channel"}
@@ -144,7 +144,7 @@ export default async function ChannelPage({
           action={
             <Link
               href={isCourse ? "/setup" : "/clubs"}
-              className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className={buttonClasses({ size: "sm" })}
             >
               {isCourse ? "Add your courses" : "Explore clubs"}
             </Link>
@@ -178,11 +178,11 @@ export default async function ChannelPage({
   return (
     <div className="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-3xl flex-col px-4 md:h-[calc(100dvh-5rem)]">
       <header className="flex shrink-0 items-center gap-3 border-b border-border py-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-strong">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
           <KindIcon className="size-5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-bold">
+          <h1 className="truncate text-base font-bold tracking-tight">
             {channel.kind === "course" ? channel.name : `#${channel.slug}`}
           </h1>
           {channel.course_id ? (
@@ -197,14 +197,11 @@ export default async function ChannelPage({
             <p className="truncate text-xs text-muted">{channel.description}</p>
           ) : null}
         </div>
-        <span
-          className="flex shrink-0 items-center gap-1 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-muted"
-          title={`${memberCount ?? 0} members`}
-        >
+        <Badge tone="neutral" title={`${memberCount ?? 0} members`}>
           <Users className="size-3.5" aria-hidden />
           {memberCount ?? 0}
           <span className="sr-only">members</span>
-        </span>
+        </Badge>
       </header>
       <Suspense fallback={null}>
         <ChatRoom

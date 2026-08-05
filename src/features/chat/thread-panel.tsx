@@ -279,7 +279,12 @@ export function ThreadPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Thread">
+    <div
+      className="fixed inset-0 z-50 animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Thread"
+    >
       <button
         type="button"
         aria-label="Close thread"
@@ -287,12 +292,16 @@ export function ThreadPanel({
         tabIndex={-1}
         className="absolute inset-0 hidden cursor-default bg-black/40 sm:block"
       />
-      <div className="absolute inset-y-0 right-0 flex w-full flex-col border-l border-border bg-background shadow-2xl sm:max-w-md">
-        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-4">
-          <div className="flex min-w-0 items-center gap-2">
-            <CornerDownRight className="size-4 shrink-0 text-brand" aria-hidden />
+      <div className="absolute inset-y-0 right-0 flex w-full flex-col border-l border-border bg-surface shadow-lift sm:max-w-md">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+              <CornerDownRight className="size-4" aria-hidden />
+            </span>
             <div className="min-w-0">
-              <h2 className="truncate text-sm font-bold">Thread</h2>
+              <h2 className="truncate text-sm font-bold tracking-tight">
+                Thread
+              </h2>
               <p className="truncate text-[11px] text-muted">
                 {loading
                   ? "Loading…"
@@ -306,7 +315,7 @@ export function ThreadPanel({
             type="button"
             onClick={onClose}
             aria-label="Close thread"
-            className="rounded-full p-2 text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-brand"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <X className="size-5" aria-hidden />
           </button>
@@ -375,7 +384,7 @@ export function ThreadPanel({
         {error ? (
           <p
             role="alert"
-            className="mx-3 mb-2 rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger"
+            className="mx-3 mb-2 rounded-xl bg-danger/10 px-3 py-2 text-xs text-danger"
           >
             {error}
           </p>
@@ -386,9 +395,9 @@ export function ThreadPanel({
             e.preventDefault();
             void handleSend();
           }}
-          className="shrink-0 border-t border-border bg-surface px-3 pb-3 pt-2"
+          className="shrink-0 border-t border-border px-3 pb-3 pt-2"
         >
-          <div className="flex items-end gap-2 rounded-card border border-border bg-background px-3 py-2 transition-colors focus-within:border-brand">
+          <div className="flex items-end gap-2 rounded-2xl border border-border bg-background px-3 py-2 transition-colors focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/15">
             <label htmlFor="thread-composer" className="sr-only">
               Reply in thread
             </label>
@@ -416,7 +425,7 @@ export function ThreadPanel({
               type="submit"
               disabled={!draft.trim() || sending}
               aria-label="Send reply"
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-fg shadow-soft transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
             >
               {sending ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden />

@@ -2,13 +2,17 @@
 
 import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  AlertCircle,
-  Camera,
-  Check,
-  Loader2,
-} from "lucide-react";
+import { AlertCircle, Camera, Check, Loader2 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
+import {
+  Button,
+  Card,
+  FieldError,
+  Hint,
+  Input,
+  Label,
+  Textarea,
+} from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
@@ -17,20 +21,12 @@ const HANDLE_RE = /^[a-z0-9_]{3,24}$/;
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const MAX_BIO_LENGTH = 280;
 
-const inputBase =
-  "w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted/70 focus:border-brand focus:ring-2 focus:ring-brand/25 disabled:opacity-60";
-const inputCls = cn("mt-1.5", inputBase);
-const labelCls = "block text-sm font-medium";
-const helpCls = "mt-1 text-xs text-muted";
-const primaryBtn =
-  "inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-brand-fg transition-colors hover:bg-brand-strong disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
-
-function FieldError({ id, message }: { id: string; message: string }) {
+function ErrorLine({ id, message }: { id: string; message: string }) {
   return (
-    <p id={id} role="alert" className="mt-1 flex items-center gap-1 text-xs text-danger">
+    <FieldError id={id} className="flex items-center gap-1">
       <AlertCircle className="size-3.5 shrink-0" aria-hidden />
       {message}
-    </p>
+    </FieldError>
   );
 }
 
@@ -183,11 +179,15 @@ export function AccountForm({
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-6">
       {/* Photo */}
-      <section className="rounded-card border border-border bg-surface p-5">
+      <Card className="animate-fade-up">
         <h2 className="text-sm font-semibold">Profile photo</h2>
-        <div className="mt-3 flex items-center gap-4">
-          <Avatar name={displayName || profile.display_name} src={avatarUrl} size="xl" />
-          <div>
+        <div className="mt-4 flex items-center gap-4">
+          <Avatar
+            name={displayName || profile.display_name}
+            src={avatarUrl}
+            size="xl"
+          />
+          <div className="flex flex-col items-start gap-1.5">
             <input
               ref={fileInputRef}
               id={`${uid}-avatar`}
@@ -197,11 +197,10 @@ export function AccountForm({
               onChange={handleAvatarChange}
               disabled={uploading}
             />
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-2 disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               {uploading ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -209,24 +208,22 @@ export function AccountForm({
                 <Camera className="size-4" aria-hidden />
               )}
               {uploading ? "Uploading…" : "Change photo"}
-            </button>
-            <p className={helpCls}>JPG or PNG, up to 5 MB.</p>
+            </Button>
+            <Hint>JPG or PNG, up to 5 MB.</Hint>
             {errors.avatar ? (
-              <FieldError id={`${uid}-avatar-error`} message={errors.avatar} />
+              <ErrorLine id={`${uid}-avatar-error`} message={errors.avatar} />
             ) : null}
           </div>
         </div>
-      </section>
+      </Card>
 
       {/* Identity */}
-      <section className="rounded-card border border-border bg-surface p-5">
+      <Card>
         <h2 className="text-sm font-semibold">About you</h2>
-        <div className="mt-3 grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor={`${uid}-name`} className={labelCls}>
-              Display name
-            </label>
-            <input
+        <div className="mt-4 grid gap-5 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${uid}-name`}>Display name</Label>
+            <Input
               id={`${uid}-name`}
               type="text"
               value={displayName}
@@ -238,24 +235,21 @@ export function AccountForm({
               aria-describedby={
                 errors.displayName ? `${uid}-name-error` : undefined
               }
-              className={inputCls}
             />
             {errors.displayName ? (
-              <FieldError id={`${uid}-name-error`} message={errors.displayName} />
+              <ErrorLine id={`${uid}-name-error`} message={errors.displayName} />
             ) : null}
           </div>
-          <div>
-            <label htmlFor={`${uid}-handle`} className={labelCls}>
-              Handle
-            </label>
-            <div className="relative mt-1.5">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${uid}-handle`}>Handle</Label>
+            <div className="relative">
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted"
+                className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm text-muted"
               >
                 @
               </span>
-              <input
+              <Input
                 id={`${uid}-handle`}
                 type="text"
                 value={handle}
@@ -271,37 +265,36 @@ export function AccountForm({
                 aria-describedby={
                   errors.handle ? `${uid}-handle-error` : `${uid}-handle-help`
                 }
-                className={cn(inputBase, "pl-8")}
+                className="pl-8"
               />
             </div>
             {errors.handle ? (
-              <FieldError id={`${uid}-handle-error`} message={errors.handle} />
+              <ErrorLine id={`${uid}-handle-error`} message={errors.handle} />
             ) : (
-              <p id={`${uid}-handle-help`} className={helpCls}>
+              <Hint id={`${uid}-handle-help`}>
                 3–24 characters: lowercase letters, numbers, underscores.
-              </p>
+              </Hint>
             )}
           </div>
-          <div>
-            <label htmlFor={`${uid}-major`} className={labelCls}>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${uid}-major`}>
               Major <span className="font-normal text-muted">(optional)</span>
-            </label>
-            <input
+            </Label>
+            <Input
               id={`${uid}-major`}
               type="text"
               value={major}
               onChange={(e) => setMajor(e.target.value)}
               maxLength={80}
               placeholder="e.g. Computer Science"
-              className={inputCls}
             />
           </div>
-          <div>
-            <label htmlFor={`${uid}-year`} className={labelCls}>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${uid}-year`}>
               Graduation year{" "}
               <span className="font-normal text-muted">(optional)</span>
-            </label>
-            <input
+            </Label>
+            <Input
               id={`${uid}-year`}
               type="number"
               inputMode="numeric"
@@ -314,17 +307,16 @@ export function AccountForm({
               aria-describedby={
                 errors.gradYear ? `${uid}-year-error` : undefined
               }
-              className={inputCls}
             />
             {errors.gradYear ? (
-              <FieldError id={`${uid}-year-error`} message={errors.gradYear} />
+              <ErrorLine id={`${uid}-year-error`} message={errors.gradYear} />
             ) : null}
           </div>
-          <div className="sm:col-span-2">
-            <label htmlFor={`${uid}-bio`} className={labelCls}>
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <Label htmlFor={`${uid}-bio`}>
               Bio <span className="font-normal text-muted">(optional)</span>
-            </label>
-            <textarea
+            </Label>
+            <Textarea
               id={`${uid}-bio`}
               value={bio}
               onChange={(e) => setBio(e.target.value.slice(0, MAX_BIO_LENGTH))}
@@ -332,21 +324,20 @@ export function AccountForm({
               maxLength={MAX_BIO_LENGTH}
               placeholder="A line or two about you — clubs, interests, what you're studying."
               aria-describedby={`${uid}-bio-count`}
-              className={cn(inputCls, "resize-y")}
             />
-            <p id={`${uid}-bio-count`} className={helpCls} aria-live="polite">
+            <Hint id={`${uid}-bio-count`} aria-live="polite">
               {bio.length}/{MAX_BIO_LENGTH}
-            </p>
+            </Hint>
           </div>
         </div>
-        <p className="mt-4 border-t border-border pt-3 text-xs text-muted">
+        <p className="mt-5 border-t border-border pt-4 text-xs text-muted">
           Signed in as {email} · {universityName}. Your school email can&apos;t
           be changed.
         </p>
-      </section>
+      </Card>
 
       {/* Visibility */}
-      <section className="rounded-card border border-border bg-surface p-5">
+      <Card>
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 id={`${uid}-public-label`} className="text-sm font-semibold">
@@ -372,18 +363,18 @@ export function AccountForm({
             <span
               aria-hidden
               className={cn(
-                "absolute top-1 size-5 rounded-full bg-white shadow transition-[left]",
+                "absolute top-1 size-5 rounded-full bg-brand-fg shadow-soft transition-[left]",
                 isPublic ? "left-6" : "left-1"
               )}
             />
           </button>
         </div>
-      </section>
+      </Card>
 
       {errors.form ? (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2.5 text-sm text-danger"
+          className="flex items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2.5 text-sm text-danger"
         >
           <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
           {errors.form}
@@ -391,15 +382,15 @@ export function AccountForm({
       ) : null}
 
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={saving} className={primaryBtn}>
+        <Button type="submit" disabled={saving}>
           {saving ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
           ) : null}
           {saving ? "Saving…" : "Save changes"}
-        </button>
+        </Button>
         <span aria-live="polite">
           {saved ? (
-            <span className="inline-flex items-center gap-1 text-sm font-medium text-success">
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-success">
               <Check className="size-4" aria-hidden />
               Saved
             </span>

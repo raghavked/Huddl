@@ -29,9 +29,9 @@ function dayKey(iso: string): string {
 
 /**
  * The 1:1 conversation surface: header linking to the other student's
- * profile, day-separated bubbles (own right/brand, theirs left/surface),
- * realtime inserts, optimistic sends, soft-delete of own messages, and
- * read-cursor upkeep on mount + on incoming messages.
+ * profile, day-separated bubbles (own right/brand-soft, theirs
+ * left/surface), realtime inserts, optimistic sends, soft-delete of own
+ * messages, and read-cursor upkeep on mount + on incoming messages.
  */
 export function DmRoom({
   threadId,
@@ -344,8 +344,8 @@ export function DmRoom({
                   aria-label="New messages"
                   className="mt-3 flex items-center gap-2 px-1"
                 >
-                  <span className="h-px flex-1 bg-danger/40" aria-hidden />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-danger">
+                  <span className="h-px flex-1 bg-brand/40" aria-hidden />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-brand">
                     New
                   </span>
                 </div>
@@ -388,7 +388,7 @@ export function DmRoom({
                     m.deleted_at
                       ? "border border-dashed border-border bg-surface-2/60 italic text-muted"
                       : own
-                        ? "bg-brand text-brand-fg"
+                        ? "bg-brand-soft text-foreground"
                         : "bg-surface-2 text-foreground",
                     lastOfGroup && !m.deleted_at
                       ? own
@@ -423,7 +423,7 @@ export function DmRoom({
       {error ? (
         <p
           role="alert"
-          className="mb-2 flex items-center gap-2 rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger"
+          className="mb-2 flex items-center gap-2 rounded-xl bg-danger/10 px-3 py-2 text-xs text-danger"
         >
           <AlertCircle className="size-4 shrink-0" aria-hidden />
           <span className="flex-1">{error}</span>
@@ -445,7 +445,7 @@ export function DmRoom({
         }}
         className="shrink-0 pb-3 pt-1"
       >
-        <div className="flex items-end gap-2 rounded-card border border-border bg-surface px-3 py-2 transition-colors focus-within:border-brand">
+        <div className="flex items-end gap-2 rounded-2xl border border-border bg-surface px-3 py-2 shadow-soft transition-colors focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/15">
           <label htmlFor="dm-composer" className="sr-only">
             Message {other.display_name}
           </label>
@@ -466,13 +466,13 @@ export function DmRoom({
             }}
             rows={1}
             placeholder={`Message ${other.display_name}`}
-            className="max-h-40 flex-1 resize-none bg-transparent py-1 text-sm outline-none placeholder:text-muted"
+            className="max-h-40 flex-1 resize-none bg-transparent py-1 text-sm outline-none placeholder:text-muted/70"
           />
           <button
             type="submit"
             disabled={!draft.trim() || sending}
             aria-label="Send message"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-brand-fg shadow-soft transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
           >
             {sending ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />

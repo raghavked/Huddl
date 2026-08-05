@@ -71,10 +71,12 @@ export function RsvpBar({
               title={blocked ? "This event is full" : undefined}
               onClick={() => choose(value)}
               className={cn(
-                "inline-flex items-center justify-center gap-1.5 rounded-full border px-3 py-2.5 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand/50 disabled:cursor-not-allowed disabled:opacity-60",
+                "inline-flex h-11 select-none items-center justify-center gap-1.5 rounded-full border px-2 text-sm font-semibold transition-all active:scale-[0.98]",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                "disabled:cursor-not-allowed disabled:opacity-60",
                 active
-                  ? "border-transparent bg-brand text-brand-fg"
-                  : "border-border bg-surface text-foreground hover:bg-surface-2"
+                  ? "border-transparent bg-brand text-brand-fg shadow-soft"
+                  : "border-border bg-surface shadow-soft hover:border-brand/30 hover:bg-surface-2"
               )}
             >
               {pendingStatus === value ? (
@@ -94,7 +96,7 @@ export function RsvpBar({
         </p>
       ) : null}
       {error ? (
-        <p role="alert" className="mt-2 text-sm text-danger">
+        <p role="alert" className="mt-2 text-sm font-medium text-danger">
           {error}
         </p>
       ) : null}
