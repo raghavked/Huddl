@@ -1,14 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import {
+  Bricolage_Grotesque,
+  JetBrains_Mono,
+  Plus_Jakarta_Sans,
+} from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+/* Type system — open-source (OFL) humanist pairing:
+   Bricolage Grotesque for display (vibrant, characterful headings),
+   Plus Jakarta Sans for body/UI (warm, highly readable),
+   JetBrains Mono for codes and technical identifiers. */
+const displayFont = Bricolage_Grotesque({
+  variable: "--font-display-var",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const bodyFont = Plus_Jakarta_Sans({
+  variable: "--font-body-var",
+  subsets: ["latin"],
+});
+
+const monoFont = JetBrains_Mono({
+  variable: "--font-mono-var",
   subsets: ["latin"],
 });
 
@@ -32,8 +45,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f8f6f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#121120" },
+    { media: "(prefers-color-scheme: light)", color: "#f8f7fc" },
+    { media: "(prefers-color-scheme: dark)", color: "#131020" },
   ],
 };
 
@@ -52,7 +65,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable} antialiased`}
       >
         {children}
       </body>

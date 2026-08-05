@@ -1,23 +1,31 @@
 # Huddl UI v2 — design system reference
 
-v2 keeps the huddl brand (campus coral, warm neutrals, sentence case, empty
+v2.1 keeps the huddl brand (campus violet, cool paper neutrals, sentence case, empty
 states that recruit — see `BRAND.md`) and rebuilds the visual layer on top of
-it: soft elevation instead of flat hairline boxes, a coral→sunset gradient
+it: soft elevation instead of flat hairline boxes, a violet→raspberry gradient
 signature, frosted glass in the shell, and one motion curve everywhere.
 
 Everything below ships from `src/app/globals.css` and `src/components/ui/`.
+
+Type: `h1`–`h3` render in **Bricolage Grotesque** automatically (see
+`globals.css`); the `font-display` utility applies it to non-heading display
+text. Body/UI is **Plus Jakarta Sans**; `font-mono` is JetBrains Mono.
+Illustrations: `@/components/illustrations` exports token-driven SVG scenes
+(Chat, Calendar, Notes, Huddle, Shield, Discover) — pass one to
+`<EmptyState illustration={…}>` on marquee empty states; route-level loading
+states use `Skeleton` / `SkeletonRow` / `SkeletonPage` from `@/components/ui`.
 
 ## Tokens
 
 Color tokens are unchanged in spirit (see `BRAND.md` §4) with three additions:
 
-- `brand-2` — sunset amber. **Gradients only** (`.bg-gradient-brand`,
+- `brand-2` — raspberry. **Gradients only** (`.bg-gradient-brand`,
   `.text-gradient-brand`); never a flat fill or text color on its own.
-- `brand-fg` — dark brand *ink*, not white: the text/icon color on `bg-brand`
-  and `.bg-gradient-brand` fills (AA on both gradient stops, both themes).
+- `brand-fg` — the text/icon color on `bg-brand` and `.bg-gradient-brand`
+  fills (white — AA on both gradient stops, both themes).
 - `brand-ink` — readable brand-colored text on soft/neutral fills
-  (`bg-brand-soft` chips, active nav, dock labels). Use it wherever coral
-  *text* sits on a light fill; `text-brand` is for icons only there.
+  (`bg-brand-soft` chips, active nav, dock labels). Use it wherever brand
+  *text* sits on a soft fill; `text-brand` is for icons only there.
 - `on-solid` — white foreground for saturated status fills
   (`bg-accent`/`bg-success`/`bg-danger` solids).
 
@@ -32,7 +40,7 @@ New non-color tokens:
 | `animate-fade-in` | Entrance for overlays/panels |
 | `animate-scale-in` | Entrance for small popping elements |
 | `.glass` | Frosted translucent surface (shell chrome only) |
-| `.bg-gradient-brand` | Coral→amber 135° gradient fill |
+| `.bg-gradient-brand` | Violet→raspberry 135° gradient fill |
 | `.text-gradient-brand` | Gradient-clipped text (marketing headlines only) |
 
 Theme: light is default; dark applies via system preference or the
@@ -69,7 +77,7 @@ import {
   browse pages may use `max-w-4xl`). Chat/DM rooms keep their own full-height
   scroll layout.
 - **Every page starts with `<PageHeader />`** — title (sentence case),
-  optional coral eyebrow naming the area ("Channels", "Settings"), optional
+  optional brand-colored eyebrow naming the area ("Channels", "Settings"), optional
   description, the page's single primary action on the right, `backHref` on
   detail/sub pages.
 - **Sections** inside a page use `<SectionHeader />` + `mt-8` rhythm.
@@ -99,7 +107,7 @@ import {
 ## Rules (unchanged from BRAND.md, restated)
 
 - Tokens only — no raw hex, no grays outside the set. Check both themes.
-- One coral primary action per view; `gradient` variant is for hero/marketing
+- One violet primary action per view; `gradient` variant is for hero/marketing
   CTAs and may appear in-app only as *the* single page CTA on setup/empty
   screens.
 - `lucide-react` only, `size-4`/`size-5`, `text-muted` unless meaningful.

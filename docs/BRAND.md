@@ -95,30 +95,31 @@ Both themes are first-class; check every screen in both. Since UI v2, students
 can also pin a theme with the in-app toggle (light / system / dark) — the
 tokens handle it, components never branch on theme.
 
-The palette idea: **campus coral** on warm paper neutrals with deep ink text,
-plus a **sunset amber** partner that exists only inside the brand gradient.
-Dark mode flips to a cozy late-night-library scheme, not pure black.
+The palette idea: **campus violet** on cool paper neutrals with deep
+violet-ink text, a **raspberry** partner that exists only inside the brand
+gradient, and **jade** for trust. Dark mode flips to a midnight-quad scheme,
+not pure black.
 
 ### Light theme
 
 | Token | Hex | Role |
 | --- | --- | --- |
-| `background` | `#f8f6f2` | Page background (warm paper) |
-| `foreground` | `#1d1c30` | Text (deep ink) |
+| `background` | `#f8f7fc` | Page background (cool paper) |
+| `foreground` | `#17142b` | Text (violet ink) |
 | `surface` | `#ffffff` | Cards, sheets |
-| `surface-2` | `#f1ede6` | Subtle fills, hovers, chat bubbles |
-| `surface-3` | `#e8e3d9` | Pressed states, deeper fills |
-| `border` | `#e4dfd4` | Hairlines |
-| `muted` | `#656070` | Secondary text |
-| `brand` | `#e85d3d` | Campus coral — primary fills, active states, the mark |
-| `brand-strong` | `#cf4526` | Hover/pressed brand fills |
-| `brand-soft` | `#fdeae3` | Chips, active states, soft callouts |
-| `brand-2` | `#f0913d` | Sunset amber — gradient partner ONLY |
-| `brand-fg` | `#3a1206` | Dark brand ink — text/icons ON brand + gradient fills |
-| `brand-ink` | `#c03d1e` | Readable brand-colored text on soft/neutral fills |
+| `surface-2` | `#f0edf8` | Subtle fills, hovers, chat bubbles |
+| `surface-3` | `#e7e3f4` | Pressed states, deeper fills |
+| `border` | `#e4e0f0` | Hairlines |
+| `muted` | `#5f5b73` | Secondary text |
+| `brand` | `#6c3df4` | Campus violet — primary fills, active states, the mark |
+| `brand-strong` | `#5527d9` | Hover/pressed brand fills |
+| `brand-soft` | `#ece6fe` | Chips, active states, soft callouts |
+| `brand-2` | `#d6336c` | Raspberry — gradient partner ONLY |
+| `brand-fg` | `#ffffff` | Text/icons ON brand + gradient fills (AA at every stop) |
+| `brand-ink` | `#5527d9` | Readable brand-colored text on soft/neutral fills |
 | `on-solid` | `#ffffff` | White text on saturated status fills (accent/success/danger) |
-| `accent` | `#2a6f77` | Teal — trust, links-adjacent, secondary identity |
-| `accent-soft` | `#e0eff0` | Soft accent fills |
+| `accent` | `#0b6e69` | Jade — trust, links-adjacent, secondary identity |
+| `accent-soft` | `#d9f2ee` | Soft accent fills |
 | `success` | `#25683f` | Confirmations, "synced" |
 | `danger` | `#b32d2d` | Destructive, errors |
 | `warning` | `#8a5c00` | Caution |
@@ -127,31 +128,32 @@ Dark mode flips to a cozy late-night-library scheme, not pure black.
 
 | Token | Hex | Role |
 | --- | --- | --- |
-| `background` | `#121120` | Page background |
-| `foreground` | `#edebf4` | Text |
-| `surface` | `#1a1929` | Cards |
-| `surface-2` | `#232134` | Subtle fills |
-| `surface-3` | `#2c2a40` | Deeper fills |
-| `border` | `#343148` | Hairlines |
-| `muted` | `#9c98b0` | Secondary text |
-| `brand` | `#f0704f` | Coral, lifted for dark contrast |
-| `brand-strong` | `#e85d3d` | Hover/pressed brand fills |
-| `brand-soft` | `#3b2721` | Chips, active states |
-| `brand-2` | `#f0a04f` | Sunset amber — gradient partner ONLY |
-| `brand-fg` | `#3a1206` | Dark brand ink — text/icons ON brand + gradient fills |
-| `brand-ink` | `#f0704f` | Readable brand-colored text on soft/neutral fills |
+| `background` | `#131020` | Page background |
+| `foreground` | `#eeecf6` | Text |
+| `surface` | `#1b1730` | Cards |
+| `surface-2` | `#241f3d` | Subtle fills |
+| `surface-3` | `#2e2849` | Deeper fills |
+| `border` | `#363052` | Hairlines |
+| `muted` | `#a09cb8` | Secondary text |
+| `brand` | `#7a52f5` | Violet, lifted for dark contrast |
+| `brand-strong` | `#6c3df4` | Hover/pressed brand fills |
+| `brand-soft` | `#2c2151` | Chips, active states |
+| `brand-2` | `#d6336c` | Raspberry — gradient partner ONLY |
+| `brand-fg` | `#ffffff` | Text/icons ON brand + gradient fills |
+| `brand-ink` | `#b39dff` | Readable brand-colored text on soft/neutral fills |
 | `on-solid` | `#ffffff` | White text on saturated status fills |
-| `accent` | `#4fa3ac` | Teal, lifted |
-| `accent-soft` | `#1d3336` | Soft accent fills |
+| `accent` | `#3ec9b8` | Jade, lifted |
+| `accent-soft` | `#123230` | Soft accent fills |
 | `success` | `#4caf7d` | Confirmations |
 | `danger` | `#e06060` | Destructive, errors |
 | `warning` | `#d9a13a` | Caution |
 
+
 ### Color rules
 
-- Coral (`brand`) is for **the** action on a screen, active states, and the
-  mark. If everything is coral, nothing is.
-- Teal (`accent`) carries trust and secondary identity (verification, privacy,
+- Violet (`brand`) is for **the** action on a screen, active states, and the
+  mark. If everything is violet, nothing is.
+- Jade (`accent`) carries trust and secondary identity (verification, privacy,
   info). Never use it for primary CTAs.
 - `brand-2` never appears alone — only inside `.bg-gradient-brand` /
   `.text-gradient-brand`. The gradient is the v2 signature: hero CTAs,
@@ -169,10 +171,17 @@ glass surfaces, primitives (`src/components/ui/`), and layout patterns.
 
 ## 5. Typography
 
-- **Geist** (`--font-geist-sans`) for everything. It's warm-neutral, reads well
-  at small chat sizes, and never looks like a bank.
-- **Geist Mono** (`--font-geist-mono`) only for genuinely monospaced content:
-  codes, tokens, technical identifiers.
+An open-source (OFL) humanist pairing, loaded via `next/font` in
+`src/app/layout.tsx`:
+
+- **Bricolage Grotesque** (`--font-display-var`) for display: `h1`–`h3` get it
+  automatically via `globals.css`; use the `font-display` utility for
+  non-heading display text (the wordmark, hero numerals). It's vibrant and
+  characterful — let it carry the personality.
+- **Plus Jakarta Sans** (`--font-body-var`) for body and UI. Warm, humanist,
+  reads well at small chat sizes, never looks like a bank.
+- **JetBrains Mono** (`--font-mono-var`) only for genuinely monospaced
+  content: codes, tokens, technical identifiers.
 - Hierarchy comes from **weight and spacing, not many sizes**: bold + tight
   tracking (`font-bold tracking-tight`) for headings, regular for body,
   `text-sm`/`text-xs` + `text-muted` for metadata.
@@ -204,7 +213,7 @@ glass surfaces, primitives (`src/components/ui/`), and layout patterns.
 - Don't use raw hex, arbitrary colors, or grays outside the token set.
 - Don't use sharp corners, heavy shadows, or 1-px-border-everything enterprise
   chrome. One hairline (`border-border`) and soft elevation is plenty.
-- Don't stack more than one coral CTA per view.
+- Don't stack more than one violet CTA per view.
 - Don't write "No data" / "Nothing here" — empty states recruit (see voice).
 - Don't introduce new icon sets; it's `lucide-react` only, generally at
   `size-4`/`size-5`, `text-muted` unless meaningful.

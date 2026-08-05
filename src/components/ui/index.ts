@@ -15,3 +15,4 @@ export type { BadgeTone } from "./badge";
 export { PageHeader } from "./page-header";
 export { SectionHeader } from "./section-header";
 export { Segmented } from "./segmented";
+export { Skeleton, SkeletonRow, SkeletonPage } from "./skeleton";
