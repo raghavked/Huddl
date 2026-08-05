@@ -74,7 +74,12 @@ export function CreateChannelForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+    <form
+      onSubmit={handleSubmit}
+      aria-label="Start a topic channel"
+      className="flex flex-col gap-5"
+      noValidate
+    >
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="channel-name">Channel name</Label>
         <Input

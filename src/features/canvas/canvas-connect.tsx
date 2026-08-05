@@ -276,7 +276,10 @@ export function CanvasConnect({
           </div>
 
           {connection.sync_status === "error" && connection.sync_error ? (
-            <p className="mt-3 rounded-xl bg-surface-2 px-3 py-2 text-xs text-danger">
+            <p
+              role="alert"
+              className="mt-3 rounded-xl bg-surface-2 px-3 py-2 text-xs text-danger"
+            >
               {connection.sync_error}
             </p>
           ) : null}
@@ -388,7 +391,11 @@ export function CanvasConnect({
         </ul>
       </section>
 
-      <form onSubmit={handleConnect} className={cardClasses()}>
+      <form
+        onSubmit={handleConnect}
+        aria-label="Connect Canvas"
+        className={cardClasses()}
+      >
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="canvas-url">Canvas URL</Label>

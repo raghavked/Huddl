@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { cn, initials } from "@/lib/utils";
+import { toneFor } from "@/components/avatar-tone";
 
 const SIZES = {
   xs: "size-6 text-[10px]",
@@ -10,22 +11,6 @@ const SIZES = {
 } as const;
 
 const PX = { xs: 24, sm: 32, md: 40, lg: 56, xl: 96 } as const;
-
-/* Fallback tones cycle deterministically per name so a roster reads as a
-   crowd, not a wall of one color — token palette only. */
-const TONES = [
-  "bg-brand-soft text-brand-ink",
-  "bg-accent-soft text-accent",
-  "bg-surface-3 text-foreground",
-] as const;
-
-function toneFor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) | 0;
-  }
-  return TONES[Math.abs(hash) % TONES.length];
-}
 
 export function Avatar({
   name,

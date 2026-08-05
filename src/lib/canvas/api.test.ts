@@ -140,6 +140,21 @@ describe("normalizeCanvasBaseUrl", () => {
     expect(normalizeCanvasBaseUrl("not a url")).toBeNull();
     expect(normalizeCanvasBaseUrl("https://canvas")).toBeNull();
   });
+
+  it("keeps explicit ports and drops embedded credentials", () => {
+    expect(
+      normalizeCanvasBaseUrl("https://canvas.university.edu:8443/login")
+    ).toBe("https://canvas.university.edu:8443");
+    expect(
+      normalizeCanvasBaseUrl("https://alice:secret@canvas.university.edu")
+    ).toBe("https://canvas.university.edu");
+  });
+
+  it("lowercases scheme and host", () => {
+    expect(normalizeCanvasBaseUrl("HTTPS://CANVAS.University.EDU")).toBe(
+      "https://canvas.university.edu"
+    );
+  });
 });
 
 describe("looksLikeCanvasHost", () => {
@@ -185,6 +200,13 @@ describe("assertSafeCanvasUrl", () => {
     expect(() => assertSafeCanvasUrl("https://localhost")).toThrow();
     expect(() => assertSafeCanvasUrl("https://canvas.local")).toThrow();
     expect(() => assertSafeCanvasUrl("https://canvas.internal")).toThrow();
+  });
+
+  it("blocks Canvas-looking hosts under *.localhost and nested internal zones", () => {
+    // "canvas.localhost" passes the dotted-hostname and looks-like-Canvas
+    // checks, so this exercises the .localhost suffix guard specifically.
+    expect(() => assertSafeCanvasUrl("https://canvas.localhost")).toThrow();
+    expect(() => assertSafeCanvasUrl("https://canvas.dev.internal")).toThrow();
   });
 
   it("blocks loopback and private IP-literal hosts", () => {

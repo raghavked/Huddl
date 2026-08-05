@@ -55,7 +55,12 @@ export function OnboardingForm({ profile }: { profile: Profile }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+    <form
+      onSubmit={handleSubmit}
+      aria-label="About you"
+      className="flex flex-col gap-5"
+      noValidate
+    >
       {error ? (
         <p
           role="alert"
@@ -99,7 +104,11 @@ export function OnboardingForm({ profile }: { profile: Profile }) {
       <div className="flex flex-col gap-1.5">
         <div className="flex items-baseline justify-between">
           <Label htmlFor="onboarding-bio">Bio</Label>
-          <span className="text-xs text-muted" aria-hidden>
+          <span
+            id="onboarding-bio-count"
+            aria-live="polite"
+            className="text-xs text-muted"
+          >
             {bio.length}/{BIO_MAX}
           </span>
         </div>
@@ -109,6 +118,7 @@ export function OnboardingForm({ profile }: { profile: Profile }) {
           rows={3}
           maxLength={BIO_MAX}
           value={bio}
+          aria-describedby="onboarding-bio-count"
           onChange={(e) => setBio(e.target.value)}
           placeholder="Clubs, hobbies, what you're studying — anything classmates should know."
           className="resize-none"

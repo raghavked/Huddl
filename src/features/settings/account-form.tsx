@@ -177,7 +177,12 @@ export function AccountForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      aria-label="Account settings"
+      noValidate
+      className="space-y-6"
+    >
       {/* Photo */}
       <Card className="animate-fade-up">
         <h2 className="text-sm font-semibold">Profile photo</h2>
@@ -193,6 +198,7 @@ export function AccountForm({
               id={`${uid}-avatar`}
               type="file"
               accept="image/*"
+              aria-label="Choose a profile photo"
               className="sr-only"
               onChange={handleAvatarChange}
               disabled={uploading}

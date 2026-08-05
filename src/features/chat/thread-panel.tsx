@@ -302,7 +302,7 @@ export function ThreadPanel({
               <h2 className="truncate text-sm font-bold tracking-tight">
                 Thread
               </h2>
-              <p className="truncate text-[11px] text-muted">
+              <p aria-live="polite" className="truncate text-[11px] text-muted">
                 {loading
                   ? "Loading…"
                   : `${replies.length} ${
@@ -395,6 +395,7 @@ export function ThreadPanel({
             e.preventDefault();
             void handleSend();
           }}
+          aria-label="Send a reply"
           className="shrink-0 border-t border-border px-3 pb-3 pt-2"
         >
           <div className="flex items-end gap-2 rounded-2xl border border-border bg-background px-3 py-2 transition-colors focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/15">

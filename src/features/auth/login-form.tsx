@@ -87,7 +87,12 @@ export function LoginForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5" noValidate>
+    <form
+      onSubmit={handleSubmit}
+      aria-label="Log in"
+      className="mt-6 flex flex-col gap-5"
+      noValidate
+    >
       {error ? (
         <p
           role="alert"

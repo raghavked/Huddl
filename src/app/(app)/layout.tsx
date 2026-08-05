@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/shell/sidebar";
 import { MobileTopBar } from "@/components/shell/mobile-top-bar";
 import { MobileDock } from "@/components/shell/mobile-dock";
+import { CommandPalette } from "@/features/search/command-palette";
 import { Card } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
@@ -32,10 +33,17 @@ export default async function AppLayout({
   }
 
   const supabase = await createClient();
-  const { count } = await supabase
-    .from("notifications")
-    .select("id", { count: "exact", head: true })
-    .is("read_at", null);
+  const [notificationsRes, unreadDmsRes] = await Promise.all([
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .is("read_at", null),
+    supabase.rpc("unread_dm_thread_count"),
+  ]);
+  const unreadCount = notificationsRes.count ?? 0;
+  // Failure-tolerant: a missing migration or RPC error just means no badge.
+  const unreadDms =
+    typeof unreadDmsRes.data === "number" ? unreadDmsRes.data : 0;
 
   return (
     <div className="min-h-dvh md:pl-64">
@@ -44,10 +52,11 @@ export default async function AppLayout({
         aria-hidden
         className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-brand/[0.05] via-transparent to-transparent"
       />
-      <MobileTopBar user={user} unreadCount={count ?? 0} />
+      <MobileTopBar user={user} unreadCount={unreadCount} />
       <main className="pb-28 md:pb-10">{children}</main>
-      <MobileDock />
-      <Sidebar user={user} unreadCount={count ?? 0} />
+      <MobileDock unreadDms={unreadDms} />
+      <Sidebar user={user} unreadCount={unreadCount} unreadDms={unreadDms} />
+      <CommandPalette />
     </div>
   );
 }

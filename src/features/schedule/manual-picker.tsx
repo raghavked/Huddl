@@ -252,6 +252,7 @@ export function ManualPicker({
         {addOpen ? (
           <form
             onSubmit={handleAddCourse}
+            aria-label="Add a course"
             className="mt-3 rounded-xl border border-border bg-surface-2 p-3"
           >
             <p className="text-xs text-muted">

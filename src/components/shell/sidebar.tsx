@@ -17,6 +17,7 @@ import {
 import { Wordmark } from "@/components/logo";
 import { Avatar } from "@/components/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SearchTrigger } from "@/features/search/command-palette";
 import { cn } from "@/lib/utils";
 import type { CurrentUser } from "@/lib/auth";
 
@@ -67,9 +68,11 @@ function NavLink({
 export function Sidebar({
   user,
   unreadCount = 0,
+  unreadDms = 0,
 }: {
   user: CurrentUser;
   unreadCount?: number;
+  unreadDms?: number;
 }) {
   const pathname = usePathname();
 
@@ -78,7 +81,12 @@ export function Sidebar({
       label: "You",
       items: [
         { href: "/home", label: "Home", icon: Home },
-        { href: "/messages", label: "Messages", icon: MessageCircle },
+        {
+          href: "/messages",
+          label: "Messages",
+          icon: MessageCircle,
+          badge: unreadDms,
+        },
         {
           href: "/notifications",
           label: "Notifications",
@@ -113,6 +121,7 @@ export function Sidebar({
           <span aria-hidden className="size-1.5 rounded-full bg-success" />
           {user.university.short_name}
         </p>
+        <SearchTrigger className="mt-4" />
       </div>
 
       <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-3">

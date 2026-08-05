@@ -325,7 +325,6 @@ export function MessageItem({
                 onClick={() => setPickerOpen((v) => !v)}
                 aria-label="Add reaction"
                 aria-expanded={pickerOpen}
-                aria-haspopup="menu"
                 className={TOOL_BUTTON}
               >
                 <SmilePlus className="size-4" aria-hidden />
@@ -340,7 +339,7 @@ export function MessageItem({
                     tabIndex={-1}
                   />
                   <div
-                    role="menu"
+                    role="group"
                     aria-label="Pick a reaction"
                     className="absolute bottom-full right-0 z-20 mb-1 flex animate-scale-in gap-0.5 rounded-full border border-border bg-surface p-1 shadow-lift"
                   >
@@ -348,7 +347,6 @@ export function MessageItem({
                       <button
                         key={emoji}
                         type="button"
-                        role="menuitem"
                         onClick={() => {
                           setPickerOpen(false);
                           setTapped(false);

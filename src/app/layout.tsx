@@ -25,13 +25,27 @@ const monoFont = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.SITE_URL ?? "https://huddl.app";
+const description =
+  "Huddl is the all-in-one platform for college students: course chat synced from Canvas, study sessions, note sharing, meetups, voice rooms and DMs — verified with your university email.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "Huddl — Your campus, in one huddle",
     template: "%s · Huddl",
   },
-  description:
-    "Huddl is the all-in-one platform for college students: course chat synced from Canvas, study sessions, note sharing, meetups, voice rooms and DMs — verified with your university email.",
+  description,
+  openGraph: {
+    type: "website",
+    siteName: "Huddl",
+    title: "Huddl — Your campus, in one huddle",
+    description,
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,

@@ -208,7 +208,12 @@ export function EventForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+    <form
+      onSubmit={handleSubmit}
+      aria-label={isEdit ? "Edit event" : "Plan an event"}
+      className="flex flex-col gap-5"
+      noValidate
+    >
       <fieldset>
         <legend className="text-sm font-semibold">Event type</legend>
         <div className="mt-2 grid grid-cols-2 gap-2">

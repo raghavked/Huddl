@@ -327,6 +327,7 @@ export function ChatRoom({
       <div
         ref={listRef}
         onScroll={handleScroll}
+        role="log"
         aria-label={`Messages in ${channel.name}`}
         className="flex-1 overflow-y-auto pb-2 pt-4"
       >
@@ -414,6 +415,7 @@ export function ChatRoom({
           e.preventDefault();
           void handleSend();
         }}
+        aria-label="Send a message"
         className="shrink-0 pb-3 pt-1"
       >
         <div className="flex items-end gap-2 rounded-2xl border border-border bg-surface px-3 py-2 shadow-soft transition-colors focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/15">

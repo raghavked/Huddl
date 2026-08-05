@@ -118,7 +118,12 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5" noValidate>
+    <form
+      onSubmit={handleSubmit}
+      aria-label="Create your account"
+      className="mt-6 flex flex-col gap-5"
+      noValidate
+    >
       {error ? (
         <div
           role="alert"

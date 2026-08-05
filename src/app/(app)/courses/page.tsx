@@ -194,12 +194,13 @@ export default async function CoursesPage({
                   popover="auto"
                   role="dialog"
                   aria-labelledby={`${confirmId}-title`}
+                  aria-describedby={`${confirmId}-body`}
                   className="m-auto w-[min(92vw,22rem)] rounded-card border border-border bg-surface p-5 text-foreground shadow-lift backdrop:bg-black/50"
                 >
                   <h2 id={`${confirmId}-title`} className="font-bold tracking-tight">
                     Drop {course.code}?
                   </h2>
-                  <p className="mt-1.5 text-sm text-muted">
+                  <p id={`${confirmId}-body`} className="mt-1.5 text-sm text-muted">
                     You&apos;ll leave the {course.code} channel too. Notes you
                     shared stay available to classmates, and you can re-join
                     anytime.

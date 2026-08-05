@@ -443,6 +443,7 @@ export function DmRoom({
           e.preventDefault();
           void handleSend();
         }}
+        aria-label="Send a message"
         className="shrink-0 pb-3 pt-1"
       >
         <div className="flex items-end gap-2 rounded-2xl border border-border bg-surface px-3 py-2 shadow-soft transition-colors focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/15">

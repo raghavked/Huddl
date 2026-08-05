@@ -127,7 +127,12 @@ export function ClubForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+    <form
+      onSubmit={handleSubmit}
+      aria-label="Found a club"
+      className="flex flex-col gap-5"
+      noValidate
+    >
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="club-name">Club name</Label>
         <Input

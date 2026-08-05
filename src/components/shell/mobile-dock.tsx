@@ -20,7 +20,7 @@ const TABS = [
 ] as const;
 
 /** Floating frosted tab dock — mobile only. */
-export function MobileDock() {
+export function MobileDock({ unreadDms = 0 }: { unreadDms?: number }) {
   const pathname = usePathname();
 
   return (
@@ -31,6 +31,7 @@ export function MobileDock() {
       <ul className="glass pointer-events-auto mx-auto mb-3 flex max-w-sm items-center justify-around rounded-3xl border border-border/70 px-1.5 py-1.5 shadow-lift">
         {TABS.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
+          const showUnreadDot = href === "/messages" && unreadDms > 0;
           return (
             <li key={href}>
               <Link
@@ -40,13 +41,22 @@ export function MobileDock() {
               >
                 <span
                   className={cn(
-                    "flex h-7 items-center justify-center rounded-full px-4 transition-colors",
+                    "relative flex h-7 items-center justify-center rounded-full px-4 transition-colors",
                     active
                       ? "bg-brand-soft text-brand-ink"
                       : "text-muted"
                   )}
                 >
                   <Icon className="size-5" aria-hidden />
+                  {showUnreadDot ? (
+                    <>
+                      <span
+                        aria-hidden
+                        className="absolute right-2 top-0 size-2 rounded-full bg-brand"
+                      />
+                      <span className="sr-only">unread messages</span>
+                    </>
+                  ) : null}
                 </span>
                 <span
                   className={cn(

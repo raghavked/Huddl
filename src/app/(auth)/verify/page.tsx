@@ -124,8 +124,8 @@ export default function VerifyPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex justify-center py-16" aria-hidden>
-          <Loader2 className="size-6 animate-spin text-muted" />
+        <div className="flex justify-center py-16" role="status" aria-label="Loading">
+          <Loader2 className="size-6 animate-spin text-muted" aria-hidden />
         </div>
       }
     >

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { Check, Loader2, LogOut, UserPlus, Users, UsersRound } from "lucide-react";
 import { Badge, Button, cardClasses } from "@/components/ui";
 import { joinClub, leaveClub } from "@/features/clubs/actions";
@@ -47,6 +47,7 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const bodyId = useId();
   if (!open) return null;
   return (
     <div
@@ -58,6 +59,7 @@ export function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-label={title}
+        aria-describedby={bodyId}
         className="w-full max-w-sm animate-scale-in rounded-card border border-border bg-surface p-5 shadow-lift"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
@@ -65,7 +67,9 @@ export function ConfirmDialog({
         }}
       >
         <h2 className="font-bold tracking-tight">{title}</h2>
-        <p className="mt-1.5 text-sm text-muted">{body}</p>
+        <p id={bodyId} className="mt-1.5 text-sm text-muted">
+          {body}
+        </p>
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="secondary" onClick={onCancel} disabled={pending}>
             Cancel

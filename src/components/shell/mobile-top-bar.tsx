@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Bell, Settings } from "lucide-react";
 import { Wordmark } from "@/components/logo";
 import { Avatar } from "@/components/avatar";
+import { MobileSearchButton } from "@/components/shell/mobile-search-button";
 import type { CurrentUser } from "@/lib/auth";
 
 /** Frosted mobile header — the desktop shell lives in the sidebar. */
@@ -28,6 +29,7 @@ export function MobileTopBar({
           </span>
         </div>
         <div className="flex items-center gap-0.5">
+          <MobileSearchButton />
           <Link
             href="/notifications"
             aria-label={
