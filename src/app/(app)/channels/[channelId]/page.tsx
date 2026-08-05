@@ -14,6 +14,7 @@ import {
 import { EmptyState } from "@/components/empty-state";
 import { Badge, Card, buttonClasses } from "@/components/ui";
 import { ChatRoom, JoinChannelButton } from "@/features/chat/chat-room";
+import { MessageSearch } from "@/features/chat/message-search";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -177,7 +178,7 @@ export default async function ChannelPage({
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-3xl flex-col px-4 md:h-[calc(100dvh-5rem)]">
-      <header className="flex shrink-0 items-center gap-3 border-b border-border py-3">
+      <header className="relative flex shrink-0 items-center gap-3 border-b border-border py-3">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
           <KindIcon className="size-5" aria-hidden />
         </span>
@@ -197,6 +198,7 @@ export default async function ChannelPage({
             <p className="truncate text-xs text-muted">{channel.description}</p>
           ) : null}
         </div>
+        <MessageSearch channelId={channel.id} />
         <Badge tone="neutral" title={`${memberCount ?? 0} members`}>
           <Users className="size-3.5" aria-hidden />
           {memberCount ?? 0}

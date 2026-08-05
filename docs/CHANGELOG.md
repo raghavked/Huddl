@@ -1,5 +1,17 @@
 # Huddl development log
 
+## Round 4 fleet — live-feeling features
+
+- **Typing indicators** in channels and DMs (Realtime broadcast, throttled,
+  TTL-pruned, layout-stable) and **presence** (online dot on the DM header).
+- **In-channel message search**: header trigger + inline panel, debounced
+  ilike query scoped by RLS, escaped metacharacters.
+- **Content reporting**: `reports` table (migration 0015, reporter-scoped
+  RLS, service-role triage), server action, and a Report action with a
+  two-tap reason picker on others' messages.
+- **Add to calendar**: RFC 5545 `.ics` route (escaping, UTC, line folding)
+  plus a quiet secondary button on the event page.
+
 A running record of the major development rounds on the
 `claude/huddl-ui-development` line. Verification for every round: TypeScript
 strict, ESLint, the Vitest suite, and a production build; visual rounds also

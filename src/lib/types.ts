@@ -248,6 +248,20 @@ export interface AppNotification {
   created_at: string;
 }
 
+export type ReportStatus = "open" | "reviewed" | "dismissed";
+
+export interface Report {
+  id: string;
+  reporter_id: string;
+  // At least one of message_id / reported_user_id is always set (DB check);
+  // message_id nulls out if the message row is hard-deleted.
+  message_id: string | null;
+  reported_user_id: string | null;
+  reason: string;
+  status: ReportStatus;
+  created_at: string;
+}
+
 // Common joined shapes used across features.
 export type MessageWithAuthor = Message & { author: Profile };
 export type DmMessageWithAuthor = DmMessage & { author: Profile };

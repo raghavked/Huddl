@@ -14,6 +14,8 @@ import { Avatar } from "@/components/avatar";
 import { createClient } from "@/lib/supabase/client";
 import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
 import { useRealtimeUpdates } from "@/lib/hooks/use-realtime-updates";
+import { usePresence } from "@/lib/hooks/use-presence";
+import { typingLabel, useTyping } from "@/lib/hooks/use-typing";
 import type { DmMessage, Profile } from "@/lib/types";
 import { cn, formatMessageTime } from "@/lib/utils";
 
@@ -169,6 +171,29 @@ export function DmRoom({
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [draft]);
 
+  // Live layer — all new hooks sit after the existing ones so hook order is
+  // stable. DmRoom isn't handed the viewer's profile, so fetch our display
+  // name once for the typing broadcast ("Someone" until it lands).
+  const [selfName, setSelfName] = useState<string | null>(null);
+  useEffect(() => {
+    const supabase = createClient();
+    void supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", userId)
+      .single()
+      .then(({ data }) => {
+        const name = (data as { display_name: string } | null)?.display_name;
+        if (name) setSelfName(name);
+      });
+  }, [userId]);
+  const { typers, noteTyping } = useTyping(threadId, {
+    id: userId,
+    name: selfName ?? "Someone",
+  });
+  const online = usePresence(`dm:${threadId}`, userId);
+  const otherOnline = online.has(other.id);
+
   async function handleSend() {
     const content = draft.trim();
     if (!content) return;
@@ -256,9 +281,18 @@ export function DmRoom({
             <span
               role="heading"
               aria-level={1}
-              className="block truncate text-base font-bold"
+              className="flex items-center gap-1.5 text-base font-bold"
             >
-              {other.display_name}
+              <span className="truncate">{other.display_name}</span>
+              {otherOnline ? (
+                <>
+                  <span
+                    className="size-2 shrink-0 rounded-full bg-success"
+                    aria-hidden
+                  />
+                  <span className="sr-only">online</span>
+                </>
+              ) : null}
             </span>
             <span className="block truncate text-xs text-muted">
               @{other.handle}
@@ -420,6 +454,10 @@ export function DmRoom({
         })}
       </div>
 
+      <p aria-live="polite" className="min-h-4 shrink-0 px-1 text-xs text-muted">
+        {typingLabel(typers)}
+      </p>
+
       {error ? (
         <p
           role="alert"
@@ -454,7 +492,10 @@ export function DmRoom({
             id="dm-composer"
             ref={textareaRef}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              noteTyping();
+            }}
             onKeyDown={(e) => {
               if (
                 e.key === "Enter" &&

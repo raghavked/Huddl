@@ -14,6 +14,7 @@ import { Badge, Button } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
 import { useRealtimeUpdates } from "@/lib/hooks/use-realtime-updates";
+import { typingLabel, useTyping } from "@/lib/hooks/use-typing";
 import type {
   Channel,
   ChannelMember,
@@ -322,6 +323,12 @@ export function ChatRoom({
     router.replace(pathname, { scroll: false });
   }, [router, pathname]);
 
+  // Live typing layer — kept after all existing hooks so hook order is stable.
+  const { typers, noteTyping } = useTyping(channel.id, {
+    id: userId,
+    name: profile.display_name,
+  });
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div
@@ -392,6 +399,10 @@ export function ChatRoom({
         })}
       </div>
 
+      <p aria-live="polite" className="min-h-4 shrink-0 px-2 text-xs text-muted">
+        {typingLabel(typers)}
+      </p>
+
       {error ? (
         <p
           role="alert"
@@ -426,7 +437,10 @@ export function ChatRoom({
             id="chat-composer"
             ref={textareaRef}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              noteTyping();
+            }}
             onKeyDown={(e) => {
               if (
                 e.key === "Enter" &&

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
   BookOpen,
+  CalendarPlus,
   CheckCircle2,
   Clock,
   HelpCircle,
@@ -378,22 +379,35 @@ export default async function EventPage({
         )}
       </section>
 
-      {isCreator ? (
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          <Link
-            href={`/events/${event.id}?edit=1`}
-            className={buttonClasses({
-              variant: "secondary",
-              size: "sm",
-              className: "gap-1.5",
-            })}
-          >
-            <Pencil className="size-4" aria-hidden />
-            Edit
-          </Link>
-          <DeleteEventButton eventId={event.id} />
-        </div>
-      ) : null}
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <a
+          href={`/api/events/${event.id}/ics`}
+          className={buttonClasses({
+            variant: "secondary",
+            size: "sm",
+            className: "gap-1.5",
+          })}
+        >
+          <CalendarPlus className="size-4" aria-hidden />
+          Add to calendar
+        </a>
+        {isCreator ? (
+          <>
+            <Link
+              href={`/events/${event.id}?edit=1`}
+              className={buttonClasses({
+                variant: "secondary",
+                size: "sm",
+                className: "gap-1.5",
+              })}
+            >
+              <Pencil className="size-4" aria-hidden />
+              Edit
+            </Link>
+            <DeleteEventButton eventId={event.id} />
+          </>
+        ) : null}
+      </div>
 
       <section className="mt-8" aria-label="Who's in">
         <SectionHeader title={`Who's in · ${rsvps.length}`} />

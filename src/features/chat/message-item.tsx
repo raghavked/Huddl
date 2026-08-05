@@ -1,14 +1,25 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { MessageSquareText, Pencil, SmilePlus, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Flag,
+  Loader2,
+  MessageSquareText,
+  Pencil,
+  SmilePlus,
+  Trash2,
+} from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { createClient } from "@/lib/supabase/client";
+import { reportMessage } from "@/features/moderation/actions";
 import type { MessageReaction, MessageWithAuthor } from "@/lib/types";
 import { cn, formatMessageTime } from "@/lib/utils";
 
 /** The reaction set Huddl supports — kept tiny and student-flavored. */
 export const REACTION_EMOJI = ["👍", "❤️", "😂", "🔥", "📚", "✅"] as const;
+
+/** The two-tap report reasons — concrete, no free-text friction. */
+const REPORT_REASONS = ["Doesn't belong here", "Harassment or harm"] as const;
 
 const TOOL_BUTTON =
   "flex size-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand";
@@ -125,6 +136,19 @@ export function MessageItem({
   const [editText, setEditText] = useState("");
   // Tap-to-reveal for touch screens, where :hover never fires.
   const [tapped, setTapped] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportPending, setReportPending] = useState(false);
+  const [reportNotice, setReportNotice] = useState<{
+    tone: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  // Report feedback fades on its own; a fresh submit restarts the timer.
+  useEffect(() => {
+    if (!reportNotice) return;
+    const timer = setTimeout(() => setReportNotice(null), 5000);
+    return () => clearTimeout(timer);
+  }, [reportNotice]);
 
   const reactionGroups = useMemo(() => {
     const map = new Map<string, { count: number; mine: boolean }>();
@@ -143,18 +167,38 @@ export function MessageItem({
     return [...map.entries()];
   }, [reactions, userId]);
 
+  // Others' messages are always reportable; own messages never are.
+  const canReport = !isOwn;
+
   const hasToolbar =
     !isDeleted &&
     !isPending &&
     !editing &&
     Boolean(
-      onToggleReaction || onOpenThread || (isOwn && (onEdit || onDelete))
+      onToggleReaction ||
+        onOpenThread ||
+        (isOwn && (onEdit || onDelete)) ||
+        canReport
     );
 
   function startEdit() {
     setEditText(message.content);
     setEditing(true);
     setTapped(false);
+  }
+
+  async function submitReport(reason: string) {
+    if (reportPending) return;
+    setReportPending(true);
+    const { error } = await reportMessage(message.id, reason);
+    setReportPending(false);
+    setReportOpen(false);
+    setTapped(false);
+    setReportNotice(
+      error
+        ? { tone: "error", text: error }
+        : { tone: "success", text: "Reported — thanks for looking out" }
+    );
   }
 
   function saveEdit() {
@@ -306,6 +350,21 @@ export function MessageItem({
             <span aria-hidden>→</span>
           </button>
         ) : null}
+
+        {reportNotice ? (
+          <p
+            role={reportNotice.tone === "error" ? "alert" : "status"}
+            className={cn(
+              "mt-1 flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+              reportNotice.tone === "success"
+                ? "bg-success/10 text-success"
+                : "bg-danger/10 text-danger"
+            )}
+          >
+            <Flag className="size-3" aria-hidden />
+            {reportNotice.text}
+          </p>
+        ) : null}
       </div>
 
       {hasToolbar ? (
@@ -313,7 +372,7 @@ export function MessageItem({
           onClick={(e) => e.stopPropagation()}
           className={cn(
             "absolute -top-3 right-2 z-10 flex items-center gap-0.5 rounded-full border border-border bg-surface p-0.5 shadow-soft transition-opacity",
-            tapped || pickerOpen
+            tapped || pickerOpen || reportOpen
               ? "pointer-events-auto opacity-100"
               : "pointer-events-none opacity-0 focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
           )}
@@ -395,6 +454,59 @@ export function MessageItem({
             >
               <Trash2 className="size-4" aria-hidden />
             </button>
+          ) : null}
+          {canReport ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setReportOpen((v) => !v)}
+                aria-label="Report message"
+                aria-expanded={reportOpen}
+                className={cn(TOOL_BUTTON, "hover:text-danger")}
+              >
+                <Flag className="size-4" aria-hidden />
+              </button>
+              {reportOpen ? (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Close report options"
+                    onClick={() => setReportOpen(false)}
+                    className="fixed inset-0 z-10 cursor-default"
+                    tabIndex={-1}
+                  />
+                  <div
+                    role="group"
+                    aria-label="Report this message"
+                    className="absolute bottom-full right-0 z-20 mb-1 w-56 animate-scale-in rounded-xl border border-border bg-surface p-1.5 shadow-lift"
+                  >
+                    <p className="px-2 pb-1 pt-0.5 text-xs font-semibold">
+                      Report this message?
+                    </p>
+                    {reportPending ? (
+                      <p className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted">
+                        <Loader2
+                          className="size-3.5 animate-spin"
+                          aria-hidden
+                        />
+                        Sending report…
+                      </p>
+                    ) : (
+                      REPORT_REASONS.map((reason) => (
+                        <button
+                          key={reason}
+                          type="button"
+                          onClick={() => submitReport(reason)}
+                          className="w-full rounded-lg px-2 py-1.5 text-left text-xs font-medium transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
+                        >
+                          {reason}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </>
+              ) : null}
+            </div>
           ) : null}
         </div>
       ) : null}
