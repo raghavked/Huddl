@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "The all-in-one platform for college students: course chat, study sessions, notes, meetups, voice rooms and DMs.",
     start_url: "/home",
     display: "standalone",
-    background_color: "#fdf7ff",
-    theme_color: "#9d2ee0",
+    background_color: "#f3ede3",
+    theme_color: "#bf6a4a",
     icons: [
       { src: "/icons/icon-192.svg", sizes: "192x192", type: "image/svg+xml" },
       {

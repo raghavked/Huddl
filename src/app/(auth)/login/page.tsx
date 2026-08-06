@@ -31,8 +31,8 @@ export default async function LoginPage({
   }
 
   return (
-    <div className="rounded-card border border-border bg-surface p-6">
-      <h1 className="text-xl font-bold tracking-tight">Welcome back</h1>
+    <>
+      <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
       <p className="mt-1 text-sm text-muted">
         Log in with your university email.
       </p>
@@ -46,6 +46,6 @@ export default async function LoginPage({
           Create an account
         </Link>
       </p>
-    </div>
+    </>
   );
 }

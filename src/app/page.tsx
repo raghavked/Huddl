@@ -96,7 +96,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/signup"
-              className="rounded-full bg-brand-gradient px-5 py-2 text-sm font-bold text-white shadow-glow transition-transform hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className="rounded-xl bg-brand-gradient px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               Join
             </Link>
@@ -152,14 +152,14 @@ export default function LandingPage() {
               <div className="mt-8 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
                 <Link
                   href="/signup"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-gradient px-7 py-3.5 text-base font-bold text-white shadow-glow transition-transform hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:w-auto"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-gradient px-7 py-3.5 text-base font-semibold text-white shadow-sm transition hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:w-auto"
                 >
                   Join with your school email
                   <ArrowRight aria-hidden="true" className="size-4" />
                 </Link>
                 <Link
                   href="/login"
-                  className="inline-flex w-full items-center justify-center rounded-full border border-border bg-surface px-7 py-3.5 text-base font-semibold transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:w-auto"
+                  className="inline-flex w-full items-center justify-center rounded-2xl border border-border bg-surface px-7 py-3.5 text-base font-semibold transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:w-auto"
                 >
                   I have an account
                 </Link>
@@ -403,7 +403,7 @@ export default function LandingPage() {
             </p>
             <Link
               href="/signup"
-              className="relative mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-bold text-brand-strong shadow-sm transition-transform hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              className="relative mt-7 inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-7 py-3.5 text-base font-semibold text-brand-strong shadow-sm transition hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               Join with your school email
               <ArrowRight aria-hidden="true" className="size-4" />

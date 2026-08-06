@@ -1,99 +1,99 @@
 @import "tailwindcss";
 
 /* ============================================================= */
-/* Huddl design tokens — "Vibrant Playful"                       */
-/* Gradient-forward violet → pink → orange. Rounded, expressive, */
-/* social. BeReal × Yik Yak energy. Light and dark both first-   */
-/* class. Everything is token-driven so the palette cascades.    */
+/* Huddl design tokens — "Hearth" v3                             */
+/* Warm, earthy, calm. Terracotta on cream (light) / espresso    */
+/* (dark). Flat and premium — no loud gradients. Light and dark  */
+/* both first-class; everything token-driven so it cascades.     */
 /* ============================================================= */
 :root {
-  --background: #fdf7ff;
-  --foreground: #1a1330;
-  --surface: #ffffff;
-  --surface-2: #f7eefb;
-  --surface-3: #efe2f7;
-  --border: #ece0f5;
-  --muted: #6d6382;
+  --background: #f3ede3;
+  --foreground: #2c2620;
+  --surface: #fbf8f2;
+  --surface-2: #f0e8dc;
+  --surface-3: #e8dfd0;
+  --border: #e6dccd;
+  --muted: #7a6f61;
 
-  /* Brand = vivid violet; accent = hot pink; gradient spans to orange. */
-  --brand: #9d2ee0;
-  --brand-strong: #7d1cc4;
-  --brand-soft: #f6e7fd;
+  /* Brand = terracotta / clay. */
+  --brand: #bf6a4a;
+  --brand-strong: #a5573a;
+  --brand-soft: #f4e3d8;
   --brand-fg: #ffffff;
-  --accent: #ec4899;
-  --accent-soft: #fce7f3;
+  --accent: #b0704f;
+  --accent-soft: #f0e6dd;
 
-  /* Signature gradient stops — used by .bg-brand-gradient / .text-gradient. */
-  --grad-from: #8b5cf6;
-  --grad-via: #ec4899;
-  --grad-to: #fb7a34;
+  /* Warm terracotta "gradient" stops — kept subtle/flat by the helpers below. */
+  --grad-from: #cf8a5e;
+  --grad-via: #bf6a4a;
+  --grad-to: #a5573a;
 
-  --success: #16a34a;
-  --danger: #e11d48;
-  --warning: #ea9412;
+  --success: #5c8a52;
+  --danger: #c2453a;
+  --warning: #c2863c;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #130f1f;
-    --foreground: #f3eefb;
-    --surface: #1d1630;
-    --surface-2: #271d3f;
-    --surface-3: #32264f;
-    --border: #382a55;
-    --muted: #a99cc4;
+    --background: #1c1714;
+    --foreground: #f0e8dd;
+    --surface: #282019;
+    --surface-2: #322820;
+    --surface-3: #3d3125;
+    --border: #3a2f25;
+    --muted: #a89a8a;
 
-    --brand: #c26cf2;
-    --brand-strong: #b04fe8;
-    --brand-soft: #2d1c44;
+    --brand: #cd7c55;
+    --brand-strong: #b5623a;
+    --brand-soft: #35271e;
     --brand-fg: #ffffff;
-    --accent: #f472b6;
-    --accent-soft: #331a2c;
+    --accent: #cd8a63;
+    --accent-soft: #33251c;
 
-    --grad-from: #a78bfa;
-    --grad-via: #f472b6;
-    --grad-to: #fb9a4c;
+    --grad-from: #d8895c;
+    --grad-via: #c77a53;
+    --grad-to: #b5623a;
 
-    --success: #4ade80;
-    --danger: #fb7185;
-    --warning: #fbbf24;
+    --success: #6fae63;
+    --danger: #e06b5f;
+    --warning: #d6a45a;
   }
 }
 
 /* Explicit theme override wins over the media query when the viewer toggles. */
 :root[data-theme="light"] {
-  --background: #fdf7ff;
-  --foreground: #1a1330;
-  --surface: #ffffff;
-  --surface-2: #f7eefb;
-  --surface-3: #efe2f7;
-  --border: #ece0f5;
-  --muted: #6d6382;
-  --brand: #9d2ee0;
-  --brand-strong: #7d1cc4;
-  --brand-soft: #f6e7fd;
-  --accent: #ec4899;
-  --accent-soft: #fce7f3;
-  --grad-from: #8b5cf6;
-  --grad-via: #ec4899;
-  --grad-to: #fb7a34;
+  --background: #f3ede3;
+  --foreground: #2c2620;
+  --surface: #fbf8f2;
+  --surface-2: #f0e8dc;
+  --surface-3: #e8dfd0;
+  --border: #e6dccd;
+  --muted: #7a6f61;
+  --brand: #bf6a4a;
+  --brand-strong: #a5573a;
+  --brand-soft: #f4e3d8;
+  --accent: #b0704f;
+  --accent-soft: #f0e6dd;
+  --grad-from: #cf8a5e;
+  --grad-via: #bf6a4a;
+  --grad-to: #a5573a;
 }
 :root[data-theme="dark"] {
-  --background: #130f1f;
-  --foreground: #f3eefb;
-  --surface: #1d1630;
-  --surface-2: #271d3f;
-  --surface-3: #32264f;
-  --border: #382a55;
-  --muted: #a99cc4;
-  --brand: #c26cf2;
-  --brand-strong: #b04fe8;
-  --brand-soft: #2d1c44;
-  --accent: #f472b6;
-  --accent-soft: #331a2c;
-  --grad-from: #a78bfa;
-  --grad-via: #f472b6;
-  --grad-to: #fb9a4c;
+  --background: #1c1714;
+  --foreground: #f0e8dd;
+  --surface: #282019;
+  --surface-2: #322820;
+  --surface-3: #3d3125;
+  --border: #3a2f25;
+  --muted: #a89a8a;
+  --brand: #cd7c55;
+  --brand-strong: #b5623a;
+  --brand-soft: #35271e;
+  --accent: #cd8a63;
+  --accent-soft: #33251c;
+  --grad-from: #d8895c;
+  --grad-via: #c77a53;
+  --grad-to: #b5623a;
 }
 
 @theme inline {
@@ -142,46 +142,30 @@ body {
   background: var(--brand-soft);
 }
 
-/* ---- Signature gradient helpers ---------------------------------------- */
-/* The playful identity: use these for hero fills, primary CTAs, active nav,
-   avatar rings, and headline accents. */
+/* ---- Brand fill helpers (flat, warm — Hearth stays calm) ---------------- */
+/* Names kept stable so components don't churn; these render FLAT terracotta
+   with only the faintest vertical depth, never a loud multi-hue sweep. */
 .bg-brand-gradient {
+  background-color: var(--brand);
   background-image: linear-gradient(
-    120deg,
-    var(--grad-from) 0%,
-    var(--grad-via) 52%,
-    var(--grad-to) 100%
+    180deg,
+    color-mix(in oklab, var(--brand) 92%, white),
+    var(--brand-strong)
   );
 }
 .bg-brand-gradient-soft {
-  background-image: linear-gradient(
-    120deg,
-    color-mix(in oklab, var(--grad-from) 16%, transparent),
-    color-mix(in oklab, var(--grad-via) 16%, transparent),
-    color-mix(in oklab, var(--grad-to) 16%, transparent)
-  );
+  background-color: var(--brand-soft);
 }
 .text-gradient {
-  background-image: linear-gradient(
-    120deg,
-    var(--grad-from),
-    var(--grad-via),
-    var(--grad-to)
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--brand);
 }
-/* A gradient border via padding-box/border-box masking. */
+/* Subtle warm border on a surface fill. */
 .ring-gradient {
-  border: 2px solid transparent;
-  background:
-    linear-gradient(var(--surface), var(--surface)) padding-box,
-    linear-gradient(120deg, var(--grad-from), var(--grad-via), var(--grad-to))
-      border-box;
+  border: 1.5px solid color-mix(in oklab, var(--brand) 24%, var(--border));
+  background-color: var(--surface);
 }
 .shadow-glow {
-  box-shadow: 0 10px 30px -8px color-mix(in oklab, var(--grad-via) 45%, transparent);
+  box-shadow: 0 10px 26px -12px color-mix(in oklab, var(--brand) 40%, transparent);
 }
 
 @keyframes float-blob {

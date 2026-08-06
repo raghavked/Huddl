@@ -10,14 +10,7 @@ export function LogoMark({ className }: { className?: string }) {
       aria-label="Huddl"
       className={cn("size-8", className)}
     >
-      <defs>
-        <linearGradient id="huddl-mark" x1="0" y1="0" x2="32" y2="32">
-          <stop offset="0%" stopColor="var(--grad-from)" />
-          <stop offset="52%" stopColor="var(--grad-via)" />
-          <stop offset="100%" stopColor="var(--grad-to)" />
-        </linearGradient>
-      </defs>
-      <rect width="32" height="32" rx="9" fill="url(#huddl-mark)" />
+      <rect width="32" height="32" rx="9" fill="var(--brand)" />
       <g fill="#ffffff">
         <circle cx="16" cy="9.5" r="3.2" />
         <circle cx="8.5" cy="14.5" r="2.6" opacity="0.85" />

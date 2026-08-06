@@ -18,8 +18,8 @@ export default async function SignupPage() {
   }
 
   return (
-    <div className="rounded-card border border-border bg-surface p-6">
-      <h1 className="text-xl font-bold tracking-tight">Join your campus</h1>
+    <>
+      <h1 className="text-2xl font-bold tracking-tight">Join your campus</h1>
       <p className="mt-1 text-sm text-muted">
         Sign up with your university email — that&apos;s how we know
         you&apos;re a student.
@@ -31,6 +31,6 @@ export default async function SignupPage() {
           Log in
         </Link>
       </p>
-    </div>
+    </>
   );
 }
