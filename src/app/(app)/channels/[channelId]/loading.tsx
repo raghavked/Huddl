@@ -11,7 +11,7 @@ const BUBBLE_WIDTHS = ["w-3/5", "w-2/5", "w-3/4", "w-1/2", "w-2/3", "w-1/3"];
 export default function ChannelLoading() {
   return (
     <div
-      className="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-3xl flex-col px-4 md:h-[calc(100dvh-5rem)]"
+      className="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-3xl flex-col px-4"
       role="status"
       aria-label="Loading"
     >

@@ -19,7 +19,7 @@ const BUBBLES = [
 export default function DmThreadLoading() {
   return (
     <div
-      className="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-3xl flex-col px-4 md:h-[calc(100dvh-5rem)]"
+      className="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-3xl flex-col px-4"
       role="status"
       aria-label="Loading"
     >

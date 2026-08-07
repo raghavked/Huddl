@@ -36,8 +36,9 @@ events.
 ## Stack
 
 - [Next.js 15](https://nextjs.org) (App Router) + TypeScript + Tailwind CSS 4,
-  mobile-first PWA; type is Bricolage Grotesque (display) + Plus Jakarta Sans
-  (body) via `next/font`
+  shipped as a **mobile-exclusive PWA** — one phone-width experience at every
+  viewport, installable from the home screen; type is Bricolage Grotesque
+  (display) + Plus Jakarta Sans (body) via `next/font`
 - [Supabase](https://supabase.com): Auth (email verification), Postgres with
   row-level security on every table, Realtime, Storage
 - Vitest for unit tests

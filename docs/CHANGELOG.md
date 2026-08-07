@@ -1,5 +1,12 @@
 # Huddl development log
 
+## Round 5 — mobile-exclusive
+
+Huddl is a mobile app, full stop: the desktop sidebar is gone, every
+viewport gets the phone shell, and on larger screens the app renders as a
+centered phone-width column with soft edges. Chat/DM room heights and
+loading ghosts follow the single-shell math.
+
 ## Round 4 fleet — live-feeling features
 
 - **Typing indicators** in channels and DMs (Realtime broadcast, throttled,

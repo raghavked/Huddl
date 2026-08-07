@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { Sidebar } from "@/components/shell/sidebar";
 import { MobileTopBar } from "@/components/shell/mobile-top-bar";
 import { MobileDock } from "@/components/shell/mobile-dock";
 import { CommandPalette } from "@/features/search/command-palette";
@@ -46,17 +45,21 @@ export default async function AppLayout({
     typeof unreadDmsRes.data === "number" ? unreadDmsRes.data : 0;
 
   return (
-    <div className="min-h-dvh md:pl-64">
+    /* Huddl is mobile-exclusive: one phone-width column at every viewport.
+       On larger screens the app centers itself with soft edges — there is
+       no desktop layout, only the mobile app, comfortably framed. */
+    <div className="min-h-dvh">
       {/* Ambient wash behind everything — subtle, token-built. */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-brand/[0.05] via-transparent to-transparent"
       />
-      <MobileTopBar user={user} unreadCount={unreadCount} />
-      <main className="pb-28 md:pb-10">{children}</main>
-      <MobileDock unreadDms={unreadDms} />
-      <Sidebar user={user} unreadCount={unreadCount} unreadDms={unreadDms} />
-      <CommandPalette />
+      <div className="mx-auto min-h-dvh w-full max-w-md border-border md:border-x">
+        <MobileTopBar user={user} unreadCount={unreadCount} />
+        <main className="pb-28">{children}</main>
+        <MobileDock unreadDms={unreadDms} />
+        <CommandPalette />
+      </div>
     </div>
   );
 }

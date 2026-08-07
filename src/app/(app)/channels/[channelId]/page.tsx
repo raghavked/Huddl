@@ -177,7 +177,7 @@ export default async function ChannelPage({
   const KindIcon = KIND_ICONS[channel.kind];
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-3xl flex-col px-4 md:h-[calc(100dvh-5rem)]">
+    <div className="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-3xl flex-col px-4">
       <header className="relative flex shrink-0 items-center gap-3 border-b border-border py-3">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
           <KindIcon className="size-5" aria-hidden />

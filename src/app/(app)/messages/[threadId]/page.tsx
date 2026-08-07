@@ -54,7 +54,7 @@ export default async function DmThreadPage({
   const initialMessages = ((messageRows ?? []) as DmMessage[]).reverse();
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-3xl flex-col px-4 md:h-[calc(100dvh-5rem)]">
+    <div className="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-3xl flex-col px-4">
       <DmRoom
         threadId={threadId}
         userId={user.userId}

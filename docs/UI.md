@@ -110,13 +110,15 @@ import {
 
 ## Shell
 
-- Desktop (`md+`): fixed 16rem sidebar (`src/components/shell/sidebar.tsx`) —
-  nav groups "You" / "Campus", unread badge on Notifications, user card +
-  `<ThemeToggle />` in the footer. Content area is `md:pl-64`; there is **no
-  desktop top bar** — pages own their headers.
-- Mobile: frosted `MobileTopBar` (wordmark, campus chip, bell, settings,
-  avatar) + floating `MobileDock` pill tabs. Content bottom padding `pb-28`
-  clears the dock.
+Huddl is **mobile-exclusive**: there is exactly one shell — the phone one —
+at every viewport. The app renders in a centered `max-w-md` column
+(soft `md:border-x` edges on larger screens); there is no desktop layout.
+
+- Frosted `MobileTopBar` (wordmark, campus chip, quick search, bell,
+  settings, avatar) + floating `MobileDock` pill tabs with the unread-DM
+  dot. Content bottom padding `pb-28` clears the dock.
+- The Cmd+K `CommandPalette` stays mounted for hardware-keyboard users;
+  `<ThemeToggle />` lives on the Settings page.
 
 ## Rules (unchanged from BRAND.md, restated)
 

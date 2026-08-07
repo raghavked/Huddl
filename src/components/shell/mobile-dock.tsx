@@ -26,7 +26,7 @@ export function MobileDock({ unreadDms = 0 }: { unreadDms?: number }) {
   return (
     <nav
       aria-label="Main"
-      className="pb-safe pointer-events-none fixed inset-x-0 bottom-0 z-40 md:hidden"
+      className="pb-safe pointer-events-none fixed inset-x-0 bottom-0 z-40"
     >
       <ul className="glass pointer-events-auto mx-auto mb-3 flex max-w-sm items-center justify-around rounded-3xl border border-border/70 px-1.5 py-1.5 shadow-lift">
         {TABS.map(({ href, label, icon: Icon }) => {

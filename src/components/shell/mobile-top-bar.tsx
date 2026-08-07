@@ -14,7 +14,7 @@ export function MobileTopBar({
   unreadCount?: number;
 }) {
   return (
-    <header className="glass sticky top-0 z-40 border-b border-border/60 md:hidden">
+    <header className="glass sticky top-0 z-40 border-b border-border/60">
       <div className="flex h-14 items-center justify-between gap-3 px-4">
         <div className="flex min-w-0 items-center gap-2.5">
           <Link
