@@ -1,7 +1,13 @@
 import Feather from "@expo/vector-icons/Feather";
 import type { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState, type ComponentProps } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+} from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -14,8 +20,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
-import { fonts, radius } from "@/constants/theme";
+import { fonts, palettes, radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { typingLabel, useTyping } from "@/hooks/use-typing";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -61,12 +68,46 @@ type RawMessageRow = {
   deleted_at: string | null;
 };
 
+/** One row of message_reactions — same shape the web app reads. */
+type ReactionRow = {
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+};
+
 type Status = "loading" | "error" | "notFound" | "notMember" | "ready";
 
 const PAGE_SIZE = 50;
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 const MESSAGE_SELECT =
   "id, channel_id, author_id, parent_id, content, created_at, author:profiles(id, handle, display_name, avatar_url)";
+
+/** The quick-react set for the long-press sheet. Pills still render any emoji
+    web users send (their picker is wider), so nothing gets lost cross-client. */
+const REACTION_EMOJI = ["👍", "❤️", "😂", "🎉"] as const;
+
+/** Group raw reaction rows into ordered pills — quick-react emoji first (in
+    canonical order), anything else after, mirroring the web's grouping. */
+function groupReactions(
+  rows: ReactionRow[] | undefined,
+  userId: string | undefined
+): [string, { count: number; mine: boolean }][] {
+  if (!rows || rows.length === 0) return [];
+  const map = new Map<string, { count: number; mine: boolean }>();
+  for (const emoji of REACTION_EMOJI) {
+    if (rows.some((r) => r.emoji === emoji)) {
+      map.set(emoji, { count: 0, mine: false });
+    }
+  }
+  for (const r of rows) {
+    const group = map.get(r.emoji) ?? { count: 0, mine: false };
+    group.count += 1;
+    if (userId && r.user_id === userId) group.mine = true;
+    map.set(r.emoji, group);
+  }
+  return [...map.entries()];
+}
 
 const KIND_ICONS: Record<ChannelKind, FeatherName> = {
   campus: "volume-2",
@@ -213,6 +254,17 @@ export default function ChannelRoomScreen() {
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
+  // Chat depth: reactions, reply counts, the long-press action sheet, typing.
+  const [reactionsByMessage, setReactionsByMessage] = useState<
+    Record<string, ReactionRow[]>
+  >({});
+  const reactionsRef = useRef(reactionsByMessage);
+  reactionsRef.current = reactionsByMessage;
+  const [replyCounts, setReplyCounts] = useState<Record<string, number>>({});
+  const countedRepliesRef = useRef(new Set<string>());
+  const [actionsFor, setActionsFor] = useState<MessageRow | null>(null);
+  const [selfName, setSelfName] = useState<string | null>(null);
+
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace("/(tabs)/channels");
@@ -228,6 +280,106 @@ export default function ChannelRoomScreen() {
       .eq("user_id", userId)
       .then(() => undefined);
   }, [channelId, userId]);
+
+  /** One batched fetch of reactions for a page of messages — web's pattern. */
+  const loadReactions = useCallback(async (messageIds: string[]) => {
+    if (messageIds.length === 0) return;
+    const { data } = await supabase
+      .from("message_reactions")
+      .select("*")
+      .in("message_id", messageIds);
+    if (!data) return;
+    setReactionsByMessage((prev) => {
+      const next = { ...prev };
+      for (const id of messageIds) next[id] = [];
+      for (const row of data as ReactionRow[]) {
+        (next[row.message_id] ??= []).push(row);
+      }
+      return next;
+    });
+  }, []);
+
+  /** One batched reply-count fetch, remembering each counted reply id so the
+      realtime bump below never double-counts an already-seen reply. */
+  const loadReplyCounts = useCallback(async (messageIds: string[]) => {
+    if (messageIds.length === 0) return;
+    const { data } = await supabase
+      .from("messages")
+      .select("id, parent_id")
+      .in("parent_id", messageIds)
+      .is("deleted_at", null);
+    if (!data) return;
+    const counts: Record<string, number> = {};
+    for (const row of data as { id: string; parent_id: string }[]) {
+      countedRepliesRef.current.add(row.id);
+      counts[row.parent_id] = (counts[row.parent_id] ?? 0) + 1;
+    }
+    setReplyCounts(counts);
+  }, []);
+
+  /** Count each reply exactly once, whether it arrives via the initial batch
+      load or a realtime echo (including our own sends from the thread screen). */
+  const bumpReplyCount = useCallback((parentId: string, replyId: string) => {
+    if (countedRepliesRef.current.has(replyId)) return;
+    countedRepliesRef.current.add(replyId);
+    setReplyCounts((prev) => ({
+      ...prev,
+      [parentId]: (prev[parentId] ?? 0) + 1,
+    }));
+  }, []);
+
+  /** Optimistic toggle in message_reactions — the pill flips instantly, and
+      anything but a double-tap race (23505) reverts to server truth. */
+  const toggleReaction = useCallback(
+    async (messageId: string, emoji: string) => {
+      if (!userId || messageId.startsWith("temp-")) return;
+      const mine = (reactionsRef.current[messageId] ?? []).some(
+        (r) => r.user_id === userId && r.emoji === emoji
+      );
+      setReactionsByMessage((prev) => {
+        const rows = prev[messageId] ?? [];
+        return {
+          ...prev,
+          [messageId]: mine
+            ? rows.filter((r) => !(r.user_id === userId && r.emoji === emoji))
+            : [
+                ...rows,
+                {
+                  message_id: messageId,
+                  user_id: userId,
+                  emoji,
+                  created_at: new Date().toISOString(),
+                },
+              ],
+        };
+      });
+      const { error: reactError } = mine
+        ? await supabase
+            .from("message_reactions")
+            .delete()
+            .eq("message_id", messageId)
+            .eq("user_id", userId)
+            .eq("emoji", emoji)
+        : await supabase
+            .from("message_reactions")
+            .insert({ message_id: messageId, user_id: userId, emoji });
+      if (reactError && reactError.code !== "23505") {
+        await loadReactions([messageId]);
+      }
+    },
+    [userId, loadReactions]
+  );
+
+  const openThread = useCallback(
+    (messageId: string) => {
+      if (messageId.startsWith("temp-")) return;
+      router.push({
+        pathname: "/channel/thread",
+        params: { channelId, messageId },
+      });
+    },
+    [router, channelId]
+  );
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -276,17 +428,23 @@ export default function ChannelRoomScreen() {
       return;
     }
     // Newest first — exactly what an inverted FlatList wants.
-    setMessages((messagesRes.data ?? []) as unknown as MessageRow[]);
+    const rows = (messagesRes.data ?? []) as unknown as MessageRow[];
+    setMessages(rows);
     setStatus("ready");
     markRead();
-  }, [channelId, userId, markRead]);
+    // Batch the chat-depth metadata after the page lands (web's pattern).
+    const ids = rows.map((m) => m.id);
+    void loadReactions(ids);
+    void loadReplyCounts(ids);
+  }, [channelId, userId, markRead, loadReactions, loadReplyCounts]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  // Live inserts: skip own echoes (the optimistic path already has them) and
-  // thread replies (threads aren't in mobile v1), hydrate the author, prepend.
+  // Live inserts: thread replies just bump their parent's badge; own echoes
+  // are skipped (the optimistic path already has them); everything else gets
+  // its author hydrated and is prepended.
   const isReady = status === "ready";
   useEffect(() => {
     if (!isReady || !channelId || !userId) return;
@@ -302,9 +460,13 @@ export default function ChannelRoomScreen() {
         },
         (payload: RealtimePostgresInsertPayload<RawMessageRow>) => {
           const row = payload.new;
-          if (row.author_id === userId) return;
-          if (row.parent_id) return;
           markRead();
+          if (row.parent_id) {
+            // Replies never join the main list — just bump the badge.
+            bumpReplyCount(row.parent_id, row.id);
+            return;
+          }
+          if (row.author_id === userId) return;
           void supabase
             .from("profiles")
             .select("id, handle, display_name, avatar_url")
@@ -332,7 +494,33 @@ export default function ChannelRoomScreen() {
     return () => {
       void supabase.removeChannel(room);
     };
-  }, [isReady, channelId, userId, markRead]);
+  }, [isReady, channelId, userId, markRead, bumpReplyCount]);
+
+  // Own display name — broadcast alongside typing events so other clients
+  // (web included) can show "Ada is typing…".
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    void supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        const name = (data as { display_name: string } | null)?.display_name;
+        if (!cancelled && name) setSelfName(name);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  // Live typing layer — same broadcast protocol as the web room, keyed by
+  // channel id, so typers show across runtimes. Idle until the room is ready.
+  const { typers, noteTyping } = useTyping(isReady ? channelId : "", {
+    id: userId ?? "",
+    name: selfName ?? "Someone",
+  });
 
   const handleJoin = useCallback(async () => {
     if (!channelId || !userId) return;
@@ -406,6 +594,8 @@ export default function ChannelRoomScreen() {
           new Date(older.created_at).getTime() <
           GROUP_WINDOW_MS;
       const authorName = item.author?.display_name ?? "A classmate";
+      const pills = groupReactions(reactionsByMessage[item.id], userId);
+      const replyCount = replyCounts[item.id] ?? 0;
       return (
         <View>
           {newDay ? <DaySeparator label={dayLabel(item.created_at)} /> : null}
@@ -449,17 +639,26 @@ export default function ChannelRoomScreen() {
                   </AppText>
                 </View>
               ) : null}
-              <Card
-                padded={false}
-                style={{
-                  backgroundColor: isOwn ? theme.brandSoft : theme.surface2,
-                  borderRadius: 16,
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
+              <Pressable
+                accessibilityHint="Long press for reactions and thread replies"
+                onLongPress={() => {
+                  if (!item.id.startsWith("temp-")) setActionsFor(item);
                 }}
+                delayLongPress={300}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
-                <AppText>{item.content}</AppText>
-              </Card>
+                <Card
+                  padded={false}
+                  style={{
+                    backgroundColor: isOwn ? theme.brandSoft : theme.surface2,
+                    borderRadius: 16,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                  }}
+                >
+                  <AppText>{item.content}</AppText>
+                </Card>
+              </Pressable>
               {isOwn && !grouped ? (
                 <AppText
                   variant="caption"
@@ -469,12 +668,88 @@ export default function ChannelRoomScreen() {
                   {timeLabel(item.created_at)}
                 </AppText>
               ) : null}
+              {pills.length > 0 ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: 4,
+                    marginTop: 4,
+                    justifyContent: isOwn ? "flex-end" : "flex-start",
+                  }}
+                >
+                  {pills.map(([emoji, group]) => (
+                    <Pressable
+                      key={emoji}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${emoji} — ${group.count} ${
+                        group.count === 1 ? "reaction" : "reactions"
+                      }${group.mine ? ", including yours" : ""}`}
+                      onPress={() => void toggleReaction(item.id, emoji)}
+                      hitSlop={8}
+                      style={({ pressed }) => ({
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 4,
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: radius.full,
+                        borderWidth: 1,
+                        borderColor: group.mine ? theme.brand : theme.border,
+                        backgroundColor: group.mine
+                          ? theme.brandSoft
+                          : theme.surface,
+                        opacity: pressed ? 0.7 : 1,
+                      })}
+                    >
+                      <AppText style={{ fontSize: 12, lineHeight: 16 }}>
+                        {emoji}
+                      </AppText>
+                      <AppText
+                        variant="label"
+                        style={{
+                          color: group.mine ? theme.brandInk : theme.muted,
+                        }}
+                      >
+                        {group.count}
+                      </AppText>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+              {replyCount > 0 ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open thread — ${
+                    replyCount === 1 ? "1 reply" : `${replyCount} replies`
+                  }`}
+                  onPress={() => openThread(item.id)}
+                  hitSlop={10}
+                  style={({ pressed }) => ({
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 4,
+                    marginTop: 4,
+                    paddingHorizontal: 4,
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <Feather
+                    name="message-circle"
+                    size={12}
+                    color={theme.accent}
+                  />
+                  <AppText variant="label" style={{ color: theme.accent }}>
+                    {replyCount === 1 ? "1 reply" : `${replyCount} replies`}
+                  </AppText>
+                </Pressable>
+              ) : null}
             </View>
           </View>
         </View>
       );
     },
-    [messages, userId, theme]
+    [messages, userId, theme, reactionsByMessage, replyCounts, toggleReaction, openThread]
   );
 
   const title = channel ? channelTitle(channel) : "";
@@ -746,6 +1021,24 @@ export default function ChannelRoomScreen() {
           />
         )}
 
+        <View
+          style={{
+            minHeight: 18,
+            justifyContent: "flex-end",
+            paddingHorizontal: 16,
+            paddingBottom: 2,
+          }}
+        >
+          <AppText
+            variant="caption"
+            muted
+            numberOfLines={1}
+            accessibilityLiveRegion="polite"
+          >
+            {typingLabel(typers)}
+          </AppText>
+        </View>
+
         {sendError ? (
           <View
             style={{
@@ -799,7 +1092,10 @@ export default function ChannelRoomScreen() {
         >
           <TextInput
             value={draft}
-            onChangeText={setDraft}
+            onChangeText={(text) => {
+              setDraft(text);
+              noteTyping();
+            }}
             placeholder={`Message ${title}`}
             placeholderTextColor={theme.muted}
             accessibilityLabel={`Message ${title}`}
@@ -846,6 +1142,120 @@ export default function ChannelRoomScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      {actionsFor ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            justifyContent: "flex-end",
+          }}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close message actions"
+            onPress={() => setActionsFor(null)}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              // The scrim stays candle-dark in both appearances.
+              backgroundColor: palettes.dark.background,
+              opacity: 0.55,
+            }}
+          />
+          <Card
+            style={{
+              marginHorizontal: 12,
+              marginBottom: Math.max(insets.bottom, 12),
+              padding: 14,
+              gap: 12,
+            }}
+          >
+            <AppText variant="caption" muted numberOfLines={2}>
+              {actionsFor.content}
+            </AppText>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              {REACTION_EMOJI.map((emoji) => {
+                const mine = (reactionsByMessage[actionsFor.id] ?? []).some(
+                  (r) => r.user_id === userId && r.emoji === emoji
+                );
+                return (
+                  <Pressable
+                    key={emoji}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      mine
+                        ? `Remove your ${emoji} reaction`
+                        : `React with ${emoji}`
+                    }
+                    onPress={() => {
+                      const id = actionsFor.id;
+                      setActionsFor(null);
+                      void toggleReaction(id, emoji);
+                    }}
+                    style={({ pressed }) => ({
+                      width: 48,
+                      height: 48,
+                      borderRadius: radius.control,
+                      borderWidth: 1,
+                      borderColor: mine ? theme.brand : theme.border,
+                      backgroundColor: mine ? theme.brandSoft : theme.surface2,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: pressed ? 0.7 : 1,
+                    })}
+                  >
+                    <AppText style={{ fontSize: 22, lineHeight: 28 }}>
+                      {emoji}
+                    </AppText>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <View style={{ height: 1, backgroundColor: theme.border }} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Reply in thread"
+              onPress={() => {
+                const id = actionsFor.id;
+                setActionsFor(null);
+                openThread(id);
+              }}
+              style={({ pressed }) => ({
+                minHeight: 44,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: radius.control,
+                  backgroundColor: theme.brandSoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Feather
+                  name="corner-down-right"
+                  size={16}
+                  color={theme.brand}
+                />
+              </View>
+              <AppText variant="bodyMedium">Reply in thread</AppText>
+            </Pressable>
+          </Card>
+        </View>
+      ) : null}
     </View>
   );
 }

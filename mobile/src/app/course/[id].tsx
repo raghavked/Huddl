@@ -1,0 +1,925 @@
+import Feather from "@expo/vector-icons/Feather";
+import * as DocumentPicker from "expo-document-picker";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useState, type ComponentProps } from "react";
+import {
+  ActivityIndicator,
+  Linking,
+  Pressable,
+  RefreshControl,
+  SectionList,
+  View,
+  type SectionListData,
+  type SectionListRenderItemInfo,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AppText, Button, Card, Field } from "@/components/ui";
+import { radius } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
+import {
+  formatFileSize,
+  getSignedUrl,
+  listNotes,
+  uploadNote,
+  MAX_NOTE_BYTES,
+  NotesError,
+  type NoteRow,
+} from "@/lib/notes";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/providers/auth-provider";
+
+type FeatherName = ComponentProps<typeof Feather>["name"];
+
+/* Minimal local row shapes — the web app's types live outside this tsconfig. */
+
+type CourseRow = {
+  id: string;
+  code: string;
+  title: string;
+  term: { name: string } | null;
+};
+
+type ClassmateRole = "student" | "ta" | "instructor";
+
+type ClassmateRow = {
+  id: string;
+  user_id: string;
+  role: ClassmateRole;
+  catalog_course_id: string | null;
+  profile: {
+    id: string;
+    handle: string;
+    display_name: string;
+    avatar_url: string | null;
+    major: string | null;
+  } | null;
+};
+
+type Status = "loading" | "error" | "notFound" | "ready";
+
+type NoteItem = { key: string; type: "note"; note: NoteRow };
+type MateItem = { key: string; type: "mate"; mate: ClassmateRow };
+type EmptyItem = {
+  key: string;
+  type: "empty";
+  icon: FeatherName;
+  title: string;
+  message: string;
+};
+type Item = NoteItem | MateItem | EmptyItem;
+type Section = { key: "notes" | "mates"; title: string; data: Item[] };
+
+const ROLE_WEIGHT: Record<ClassmateRole, number> = {
+  instructor: 0,
+  ta: 1,
+  student: 2,
+};
+
+/* ----------------------------- helpers ----------------------------- */
+
+const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "heic"]);
+const SHEET_EXT = new Set(["xls", "xlsx", "csv"]);
+const SLIDE_EXT = new Set(["ppt", "pptx", "key"]);
+const DOC_EXT = new Set(["pdf", "doc", "docx", "txt", "md", "rtf"]);
+
+/** Feather stand-ins for the web's lucide file-type icons. */
+function noteIcon(mime: string | null, fileName: string): FeatherName {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+  if (mime?.startsWith("image/") || IMAGE_EXT.has(ext)) return "image";
+  if (mime?.includes("spreadsheet") || mime === "text/csv" || SHEET_EXT.has(ext)) {
+    return "grid";
+  }
+  if (mime?.includes("presentation") || SLIDE_EXT.has(ext)) return "monitor";
+  if (mime === "application/pdf" || mime?.startsWith("text/") || DOC_EXT.has(ext)) {
+    return "file-text";
+  }
+  return "file";
+}
+
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/** "week-5-notes.pdf" -> "week 5 notes" — a friendly default title. */
+function titleFromFileName(name: string): string {
+  return name
+    .replace(/\.[^.]+$/, "")
+    .replace(/[-_]+/g, " ")
+    .trim()
+    .slice(0, 120);
+}
+
+/* --------------------------- tiny pieces ---------------------------- */
+
+/** Tiny avatar stand-in: two initials on a warm circle, tinted by name hash. */
+function Initials({ name, size = 40 }: { name: string; size?: number }) {
+  const theme = useTheme();
+  let hash = 0;
+  for (let i = 0; i < name.length; i += 1) {
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  const pair =
+    hash % 2 === 0
+      ? { bg: theme.brandSoft, fg: theme.brandInk }
+      : { bg: theme.accentSoft, fg: theme.accent };
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const first = parts[0] ?? "";
+  const last = parts.length > 1 ? parts[parts.length - 1] ?? "" : "";
+  const initials =
+    `${first.charAt(0)}${last ? last.charAt(0) : first.charAt(1)}`.toUpperCase() ||
+    "?";
+  return (
+    <View
+      accessibilityElementsHidden
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius.full,
+        backgroundColor: pair.bg,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <AppText
+        variant="label"
+        style={{ color: pair.fg, fontSize: size * 0.36, lineHeight: size * 0.5 }}
+      >
+        {initials}
+      </AppText>
+    </View>
+  );
+}
+
+function Pill({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "brand" | "accent";
+}) {
+  const theme = useTheme();
+  const colors =
+    tone === "brand"
+      ? { bg: theme.brandSoft, fg: theme.brandInk }
+      : { bg: theme.accentSoft, fg: theme.accent };
+  return (
+    <View
+      style={{
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: radius.full,
+        backgroundColor: colors.bg,
+      }}
+    >
+      <AppText variant="label" style={{ color: colors.fg, fontSize: 11 }}>
+        {label}
+      </AppText>
+    </View>
+  );
+}
+
+function BackChevron({ onPress }: { onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Back"
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => ({
+        width: 44,
+        height: 44,
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Feather name="chevron-left" size={26} color={theme.foreground} />
+    </Pressable>
+  );
+}
+
+function CenteredState({
+  icon,
+  title,
+  message,
+  children,
+}: {
+  icon: FeatherName;
+  title: string;
+  message: string;
+  children?: React.ReactNode;
+}) {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+        padding: 28,
+      }}
+    >
+      <View
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: 16,
+          backgroundColor: theme.brandSoft,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Feather name={icon} size={22} color={theme.brand} />
+      </View>
+      <AppText variant="title">{title}</AppText>
+      <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
+        {message}
+      </AppText>
+      {children}
+    </View>
+  );
+}
+
+/* ------------------------------ screen ------------------------------ */
+
+export default function CourseHubScreen() {
+  const theme = useTheme();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { session, ready } = useAuth();
+  const userId = session?.user.id ?? null;
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const courseId = id ?? "";
+
+  const [status, setStatus] = useState<Status>("loading");
+  const [course, setCourse] = useState<CourseRow | null>(null);
+  const [channelId, setChannelId] = useState<string | null>(null);
+  const [notes, setNotes] = useState<NoteRow[]>([]);
+  const [mates, setMates] = useState<ClassmateRow[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Opening a note (signed URL -> browser/viewer).
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  const [openError, setOpenError] = useState<string | null>(null);
+
+  // The share-notes flow: pick a file, then a small inline title form.
+  const [picking, setPicking] = useState(false);
+  const [pickedFile, setPickedFile] =
+    useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteDescription, setNoteDescription] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/home");
+  }, [router]);
+
+  const load = useCallback(async () => {
+    if (!userId) return;
+    if (!courseId) {
+      setStatus("notFound");
+      return;
+    }
+    try {
+      const [courseRes, channelRes, notesList, matesRes] = await Promise.all([
+        supabase
+          .from("courses")
+          .select("id, code, title, term:terms(name)")
+          .eq("id", courseId)
+          .maybeSingle(),
+        supabase
+          .from("channels")
+          .select("id")
+          .eq("course_id", courseId)
+          .maybeSingle(),
+        listNotes(courseId),
+        supabase
+          .from("enrollments")
+          .select(
+            "id, user_id, role, catalog_course_id, profile:profiles(id, handle, display_name, avatar_url, major)"
+          )
+          .eq("course_id", courseId),
+      ]);
+      if (courseRes.error) {
+        setStatus("error");
+        return;
+      }
+      const courseRow = courseRes.data as unknown as CourseRow | null;
+      // RLS hides other campuses' courses, so "not found" covers both cases.
+      if (!courseRow) {
+        setStatus("notFound");
+        return;
+      }
+      if (matesRes.error) {
+        setStatus("error");
+        return;
+      }
+      setCourse(courseRow);
+      setChannelId(
+        (channelRes.data as unknown as { id: string } | null)?.id ?? null
+      );
+      setNotes(notesList);
+      const sortedMates = (
+        (matesRes.data ?? []) as unknown as ClassmateRow[]
+      ).sort(
+        (a, b) =>
+          ROLE_WEIGHT[a.role] - ROLE_WEIGHT[b.role] ||
+          (a.profile?.display_name ?? "").localeCompare(
+            b.profile?.display_name ?? ""
+          )
+      );
+      setMates(sortedMates);
+      setStatus("ready");
+    } catch {
+      setStatus("error");
+    }
+  }, [courseId, userId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setOpenError(null);
+    void load().finally(() => setRefreshing(false));
+  }, [load]);
+
+  const handleOpenNote = useCallback(async (note: NoteRow) => {
+    setOpenError(null);
+    setOpeningId(note.id);
+    try {
+      const url = await getSignedUrl(note.storage_path);
+      await Linking.openURL(url);
+    } catch (err) {
+      setOpenError(
+        err instanceof NotesError
+          ? err.message
+          : "Couldn't open that file. Give it another try."
+      );
+    } finally {
+      setOpeningId(null);
+    }
+  }, []);
+
+  const handlePickFile = useCallback(async () => {
+    setUploadError(null);
+    setPicking(true);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      if (!asset) return;
+      if (typeof asset.size === "number" && asset.size > MAX_NOTE_BYTES) {
+        setUploadError(
+          `That file is ${formatFileSize(asset.size)} — the limit is 25 MB.`
+        );
+        return;
+      }
+      setPickedFile(asset);
+      setNoteTitle(titleFromFileName(asset.name));
+      setNoteDescription("");
+    } catch {
+      setUploadError("Couldn't open the file picker. Give it another try.");
+    } finally {
+      setPicking(false);
+    }
+  }, []);
+
+  const closeUploadForm = useCallback(() => {
+    setPickedFile(null);
+    setNoteTitle("");
+    setNoteDescription("");
+    setUploadError(null);
+  }, []);
+
+  const handleUpload = useCallback(async () => {
+    if (!pickedFile || !userId || uploading) return;
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const note = await uploadNote({
+        courseId,
+        userId,
+        file: pickedFile,
+        title: noteTitle,
+        description: noteDescription,
+      });
+      setNotes((prev) => [note, ...prev.filter((n) => n.id !== note.id)]);
+      closeUploadForm();
+    } catch (err) {
+      setUploadError(
+        err instanceof NotesError
+          ? err.message
+          : "Couldn't share that note. Please try again."
+      );
+    } finally {
+      setUploading(false);
+    }
+  }, [
+    pickedFile,
+    userId,
+    uploading,
+    courseId,
+    noteTitle,
+    noteDescription,
+    closeUploadForm,
+  ]);
+
+  // Deep links land here directly — make sure a signed-out visitor gets a
+  // proper door, not a broken screen.
+  if (ready && !session) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  const isEnrolled = mates.some((m) => m.user_id === userId);
+
+  /* ------------------------- sections + rows ------------------------- */
+
+  const noteItems: Item[] =
+    notes.length > 0
+      ? notes.map((note) => ({ key: `note-${note.id}`, type: "note", note }))
+      : [
+          {
+            key: "notes-empty",
+            type: "empty",
+            icon: "file-text",
+            title: "No notes yet",
+            message: isEnrolled
+              ? "Be the first to share lecture notes, a study guide or slides with your class."
+              : "Notes are shared between classmates — add this course to see them.",
+          },
+        ];
+
+  const mateItems: Item[] =
+    mates.length > 0
+      ? mates.map((mate) => ({ key: `mate-${mate.id}`, type: "mate", mate }))
+      : [
+          {
+            key: "mates-empty",
+            type: "empty",
+            icon: "users",
+            title: "No classmates yet",
+            message: "People show up here as they add this course.",
+          },
+        ];
+
+  const sections: Section[] = [
+    { key: "notes", title: "Notes", data: noteItems },
+    { key: "mates", title: "Classmates", data: mateItems },
+  ];
+
+  const renderNoteRow = (note: NoteRow) => {
+    const mine = note.uploader_id === userId;
+    const uploaderName = mine
+      ? "You"
+      : note.uploader?.display_name ?? "A classmate";
+    const opening = openingId === note.id;
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${note.title}, shared by ${uploaderName}`}
+        onPress={() => void handleOpenNote(note)}
+        disabled={opening}
+        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+      >
+        <Card
+          padded={false}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            padding: 12,
+            minHeight: 64,
+            marginBottom: 10,
+          }}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: radius.control,
+              backgroundColor: theme.brandSoft,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Feather
+              name={noteIcon(note.mime_type, note.file_name)}
+              size={18}
+              color={theme.brand}
+            />
+          </View>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <AppText variant="bodySemi" numberOfLines={1}>
+              {note.title}
+            </AppText>
+            {note.description ? (
+              <AppText variant="caption" muted numberOfLines={2}>
+                {note.description}
+              </AppText>
+            ) : null}
+            <AppText variant="caption" muted numberOfLines={1}>
+              {uploaderName} · {formatFileSize(note.file_size)} ·{" "}
+              {shortDate(note.created_at)}
+            </AppText>
+          </View>
+          {opening ? (
+            <ActivityIndicator size="small" color={theme.brand} />
+          ) : (
+            <Feather name="download" size={18} color={theme.muted} />
+          )}
+        </Card>
+      </Pressable>
+    );
+  };
+
+  const renderMateRow = (mate: ClassmateRow) => {
+    const name = mate.profile?.display_name ?? "A classmate";
+    const isMe = mate.user_id === userId;
+    const verified = mate.catalog_course_id !== null;
+    const caption = mate.profile
+      ? `@${mate.profile.handle}${mate.profile.major ? ` · ${mate.profile.major}` : ""}`
+      : null;
+    return (
+      <Card
+        padded={false}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          padding: 12,
+          minHeight: 64,
+          marginBottom: 10,
+        }}
+      >
+        <Initials name={name} size={40} />
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              flexWrap: "wrap",
+            }}
+          >
+            <AppText variant="bodySemi" style={{ flexShrink: 1 }} numberOfLines={1}>
+              {name}
+            </AppText>
+            {verified ? (
+              <Feather
+                name="check-circle"
+                size={13}
+                color={theme.accent}
+                accessibilityLabel="Verified enrollment"
+              />
+            ) : null}
+            {isMe ? <Pill label="You" tone="brand" /> : null}
+            {mate.role === "instructor" ? (
+              <Pill label="Instructor" tone="brand" />
+            ) : mate.role === "ta" ? (
+              <Pill label="TA" tone="accent" />
+            ) : null}
+          </View>
+          {caption ? (
+            <AppText variant="caption" muted numberOfLines={1}>
+              {caption}
+            </AppText>
+          ) : null}
+        </View>
+      </Card>
+    );
+  };
+
+  const renderEmptyRow = (item: EmptyItem) => (
+    <Card
+      style={{
+        alignItems: "center",
+        gap: 6,
+        paddingVertical: 24,
+        borderStyle: "dashed",
+        marginBottom: 10,
+      }}
+    >
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: radius.full,
+          backgroundColor: theme.brandSoft,
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 2,
+        }}
+      >
+        <Feather name={item.icon} size={18} color={theme.brand} />
+      </View>
+      <AppText variant="bodySemi">{item.title}</AppText>
+      <AppText
+        variant="caption"
+        muted
+        style={{ textAlign: "center", maxWidth: 260 }}
+      >
+        {item.message}
+      </AppText>
+    </Card>
+  );
+
+  const renderItem = ({ item }: SectionListRenderItemInfo<Item, Section>) => {
+    if (item.type === "note") return renderNoteRow(item.note);
+    if (item.type === "mate") return renderMateRow(item.mate);
+    return renderEmptyRow(item);
+  };
+
+  const renderSectionHeader = ({
+    section,
+  }: {
+    section: SectionListData<Item, Section>;
+  }) => (
+    <View style={{ gap: 10, marginTop: section.key === "notes" ? 4 : 10 }}>
+      <AppText variant="title" style={{ marginBottom: 2 }}>
+        {section.title}
+      </AppText>
+
+      {section.key === "notes" ? (
+        <View style={{ gap: 10, marginBottom: 10 }}>
+          {isEnrolled ? (
+            pickedFile ? (
+              <Card style={{ gap: 12 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                  }}
+                >
+                  <AppText variant="title">Share a note</AppText>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Close the note form"
+                    onPress={closeUploadForm}
+                    disabled={uploading}
+                    hitSlop={8}
+                    style={({ pressed }) => ({
+                      width: 44,
+                      height: 44,
+                      marginRight: -12,
+                      marginVertical: -12,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: pressed ? 0.6 : 1,
+                    })}
+                  >
+                    <Feather name="x" size={18} color={theme.muted} />
+                  </Pressable>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Feather name="paperclip" size={13} color={theme.muted} />
+                  <AppText variant="caption" muted numberOfLines={1} style={{ flex: 1 }}>
+                    {pickedFile.name}
+                    {typeof pickedFile.size === "number"
+                      ? ` · ${formatFileSize(pickedFile.size)}`
+                      : ""}
+                  </AppText>
+                </View>
+                <Field
+                  label="Title"
+                  value={noteTitle}
+                  onChangeText={setNoteTitle}
+                  placeholder="Week 5 lecture notes"
+                  maxLength={120}
+                  editable={!uploading}
+                />
+                <Field
+                  label="Description (optional)"
+                  value={noteDescription}
+                  onChangeText={setNoteDescription}
+                  placeholder="What's covered, which lecture…"
+                  maxLength={500}
+                  editable={!uploading}
+                />
+                {uploadError ? (
+                  <AppText variant="caption" style={{ color: theme.danger }}>
+                    {uploadError}
+                  </AppText>
+                ) : null}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "flex-end",
+                    gap: 8,
+                  }}
+                >
+                  <Button
+                    label="Cancel"
+                    variant="ghost"
+                    size="sm"
+                    disabled={uploading}
+                    onPress={closeUploadForm}
+                  />
+                  <Button
+                    label={uploading ? "Sharing…" : "Share note"}
+                    size="sm"
+                    pending={uploading}
+                    icon={
+                      <Feather name="upload" size={14} color={theme.brandFg} />
+                    }
+                    onPress={() => void handleUpload()}
+                  />
+                </View>
+              </Card>
+            ) : (
+              <View style={{ gap: 8 }}>
+                <Button
+                  label="Share notes"
+                  variant="secondary"
+                  pending={picking}
+                  icon={<Feather name="upload" size={16} color={theme.brand} />}
+                  onPress={() => void handlePickFile()}
+                />
+                {uploadError ? (
+                  <AppText variant="caption" style={{ color: theme.danger }}>
+                    {uploadError}
+                  </AppText>
+                ) : null}
+              </View>
+            )
+          ) : null}
+          {openError ? (
+            <AppText variant="caption" style={{ color: theme.danger }}>
+              {openError}
+            </AppText>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
+
+  /* --------------------------- pre-hub states ------------------------ */
+
+  if (status !== "ready" || !course) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: theme.background,
+          paddingTop: insets.top + 8,
+        }}
+      >
+        <View style={{ paddingHorizontal: 12 }}>
+          <BackChevron onPress={goBack} />
+        </View>
+        {status === "loading" ? (
+          <View
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+            }}
+          >
+            <ActivityIndicator size="large" color={theme.brand} />
+            <AppText variant="caption" muted>
+              Opening your course…
+            </AppText>
+          </View>
+        ) : status === "notFound" ? (
+          <CenteredState
+            icon="book-open"
+            title="Course not available"
+            message="This course doesn't exist, or it belongs to another campus."
+          >
+            <Button
+              label="Back to home"
+              variant="soft"
+              size="sm"
+              onPress={goBack}
+            />
+          </CenteredState>
+        ) : (
+          <CenteredState
+            icon="wifi-off"
+            title="Something hiccuped"
+            message="We couldn't load this course. Check your connection and give it another go."
+          >
+            <Button
+              label="Try again"
+              variant="soft"
+              size="sm"
+              onPress={() => {
+                setStatus("loading");
+                void load();
+              }}
+            />
+          </CenteredState>
+        )}
+      </View>
+    );
+  }
+
+  /* ------------------------------ the hub ---------------------------- */
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: theme.background,
+        paddingTop: insets.top + 8,
+      }}
+    >
+      <View style={{ paddingHorizontal: 12 }}>
+        <BackChevron onPress={goBack} />
+      </View>
+
+      <SectionList<Item, Section>
+        sections={sections}
+        keyExtractor={(item) => item.key}
+        renderItem={renderItem}
+        renderSectionHeader={renderSectionHeader}
+        stickySectionHeadersEnabled={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingBottom: insets.bottom + 32,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.brand}
+            colors={[theme.brand]}
+          />
+        }
+        ListHeaderComponent={
+          <View style={{ gap: 12, marginBottom: 14 }}>
+            <View style={{ gap: 4 }}>
+              <AppText variant="display">{course.code}</AppText>
+              <AppText variant="bodyMedium">{course.title}</AppText>
+              {course.term ? (
+                <AppText variant="caption" muted>
+                  {course.term.name}
+                </AppText>
+              ) : null}
+            </View>
+            {channelId ? (
+              <Button
+                label="Open class chat"
+                icon={
+                  <Feather
+                    name="message-circle"
+                    size={16}
+                    color={theme.brandFg}
+                  />
+                }
+                onPress={() => router.push(`/channel/${channelId}`)}
+              />
+            ) : null}
+            {!isEnrolled ? (
+              <Card
+                padded={false}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: 12,
+                  backgroundColor: theme.surface2,
+                }}
+              >
+                <Feather name="info" size={16} color={theme.muted} />
+                <AppText variant="caption" muted style={{ flex: 1 }}>
+                  You're not in this course yet — add it to share notes and
+                  meet your classmates.
+                </AppText>
+                <Button
+                  label="Add"
+                  variant="soft"
+                  size="sm"
+                  onPress={() => router.push("/courses/add")}
+                />
+              </Card>
+            ) : null}
+          </View>
+        }
+      />
+    </View>
+  );
+}

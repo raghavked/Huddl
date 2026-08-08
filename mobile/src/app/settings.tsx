@@ -28,6 +28,56 @@ function initialsOf(name: string): string {
     .toUpperCase();
 }
 
+/** Icon + label + chevron navigation row, sized for a comfortable thumb. */
+function SettingsLink({
+  icon,
+  label,
+  first = false,
+  onPress,
+}: {
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+  first?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: 52,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderTopWidth: first ? 0 : 1,
+        borderTopColor: theme.border,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: radius.control,
+          backgroundColor: theme.brandSoft,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Feather name={icon} size={16} color={theme.brand} />
+      </View>
+      <AppText variant="bodySemi" style={{ flex: 1 }}>
+        {label}
+      </AppText>
+      <Feather name="chevron-right" size={18} color={theme.muted} />
+    </Pressable>
+  );
+}
+
 export default function SettingsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -176,6 +226,20 @@ export default function SettingsScreen() {
           </View>
         </Card>
       )}
+
+      <Card padded={false} style={{ marginTop: 20 }}>
+        <SettingsLink
+          icon="user"
+          label="Account"
+          first
+          onPress={() => router.push("/account")}
+        />
+        <SettingsLink
+          icon="users"
+          label="People directory"
+          onPress={() => router.push("/people")}
+        />
+      </Card>
 
       <View style={{ marginTop: 20, gap: 8 }}>
         {/* The shared Button pins its label color per variant, so this is the

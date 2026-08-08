@@ -61,8 +61,10 @@ type FeatherName = ComponentProps<typeof Feather>["name"];
 
 type CourseCell = { channel: ChannelRow; preview: MessagePreview | null };
 
+type RowAction = { label: string; onPress: () => void };
+
 type ListRow =
-  | { type: "label"; key: string; text: string }
+  | { type: "label"; key: string; text: string; action?: RowAction }
   | {
       type: "campus";
       key: string;
@@ -71,7 +73,14 @@ type ListRow =
     }
   | { type: "courses"; key: string; left: CourseCell; right: CourseCell | null }
   | { type: "event"; key: string; event: EventRow }
-  | { type: "empty"; key: string; icon: FeatherName; title: string; body: string };
+  | {
+      type: "empty";
+      key: string;
+      icon: FeatherName;
+      title: string;
+      body: string;
+      action?: RowAction;
+    };
 
 /* ---- time formatting, ported from the web's utils ---- */
 
@@ -113,20 +122,54 @@ function formatEventTime(startIso: string, endIso: string | null): string {
 
 /* ---- section pieces ---- */
 
-function SectionLabel({ text, first }: { text: string; first: boolean }) {
+function SectionLabel({
+  text,
+  first,
+  action,
+}: {
+  text: string;
+  first: boolean;
+  action?: RowAction;
+}) {
+  const theme = useTheme();
   return (
-    <AppText
-      variant="label"
-      muted
+    <View
       style={{
-        textTransform: "uppercase",
-        letterSpacing: 1.2,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
         marginTop: first ? 6 : 24,
         marginBottom: 10,
       }}
     >
-      {text}
-    </AppText>
+      <AppText
+        variant="label"
+        muted
+        style={{ textTransform: "uppercase", letterSpacing: 1.2 }}
+      >
+        {text}
+      </AppText>
+      {action ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={action.label}
+          onPress={action.onPress}
+          hitSlop={{ top: 14, bottom: 14, left: 12, right: 12 }}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 2,
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <AppText variant="label" style={{ color: theme.brand }}>
+            {action.label}
+          </AppText>
+          <Feather name="chevron-right" size={14} color={theme.brand} />
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
@@ -134,10 +177,12 @@ function EmptySection({
   icon,
   title,
   body,
+  action,
 }: {
   icon: FeatherName;
   title: string;
   body: string;
+  action?: RowAction;
 }) {
   const theme = useTheme();
   return (
@@ -170,6 +215,15 @@ function EmptySection({
       >
         {body}
       </AppText>
+      {action ? (
+        <Button
+          label={action.label}
+          variant="soft"
+          size="sm"
+          style={{ marginTop: 6 }}
+          onPress={action.onPress}
+        />
+      ) : null}
     </Card>
   );
 }
@@ -481,14 +535,23 @@ export default function HomeScreen() {
       }
     }
 
-    out.push({ type: "label", key: "label-courses", text: "Your courses" });
+    out.push({
+      type: "label",
+      key: "label-courses",
+      text: "Your courses",
+      action: { label: "Manage", onPress: () => router.push("/courses") },
+    });
     if (data.courseChannels.length === 0) {
       out.push({
         type: "empty",
         key: "empty-courses",
         icon: "book-open",
         title: "No courses yet",
-        body: "Add your classes on the web and you'll get a chat channel for every one.",
+        body: "Add your classes and you'll get a chat channel for every one.",
+        action: {
+          label: "Add your courses",
+          onPress: () => router.push("/courses/add"),
+        },
       });
     } else {
       for (let i = 0; i < data.courseChannels.length; i += 2) {
@@ -527,7 +590,13 @@ export default function HomeScreen() {
     ({ item, index }: ListRenderItemInfo<ListRow>) => {
       switch (item.type) {
         case "label":
-          return <SectionLabel text={item.text} first={index === 0} />;
+          return (
+            <SectionLabel
+              text={item.text}
+              first={index === 0}
+              action={item.action}
+            />
+          );
         case "campus":
           return (
             <View style={{ marginBottom: 10 }}>
@@ -559,7 +628,12 @@ export default function HomeScreen() {
           );
         case "empty":
           return (
-            <EmptySection icon={item.icon} title={item.title} body={item.body} />
+            <EmptySection
+              icon={item.icon}
+              title={item.title}
+              body={item.body}
+              action={item.action}
+            />
           );
       }
     },

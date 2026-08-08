@@ -1,35 +1,61 @@
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Field } from "@/components/ui";
+import { fonts } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/hooks/use-theme";
 
 export default function LoginScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const [email, setEmail] = useState("");
+  const params = useLocalSearchParams<{ email?: string }>();
+  const [email, setEmail] = useState(params.email?.trim() ?? "");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Signup/verify hand the email over so it's ready to go.
+  useEffect(() => {
+    const prefill = params.email?.trim();
+    if (prefill) setEmail(prefill);
+  }, [params.email]);
+
   async function handleLogin() {
     setError(null);
     setPending(true);
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    setPending(false);
+    const { data, error: signInError } =
+      await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
     if (signInError) {
+      setPending(false);
       setError("That email and password don't match. Give it another try.");
       return;
+    }
+
+    // First login? Send new students through onboarding when their profile
+    // is missing or has no display name yet.
+    const userId = data.user?.id;
+    if (userId) {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", userId)
+        .maybeSingle();
+      const row = (profile as { display_name: string | null } | null) ?? null;
+      if (!profileError && (!row || !row.display_name?.trim())) {
+        router.replace("/onboarding");
+        return;
+      }
     }
     router.replace("/(tabs)/home");
   }
@@ -96,14 +122,27 @@ export default function LoginScreen() {
           />
         </Card>
 
-        <AppText
-          variant="caption"
-          muted
-          style={{ textAlign: "center", marginTop: 20 }}
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/(auth)/signup")}
+          style={({ pressed }) => ({
+            minHeight: 44,
+            alignItems: "center",
+            justifyContent: "center",
+            marginTop: 12,
+            opacity: pressed ? 0.6 : 1,
+          })}
         >
-          New here? Sign up on the web first — accounts are verified with your
-          school email.
-        </AppText>
+          <AppText variant="caption" muted style={{ textAlign: "center" }}>
+            New here?{" "}
+            <AppText
+              variant="caption"
+              style={{ color: theme.brand, fontFamily: fonts.bodySemi }}
+            >
+              Create your account
+            </AppText>
+          </AppText>
+        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
