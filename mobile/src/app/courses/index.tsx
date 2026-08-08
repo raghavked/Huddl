@@ -18,6 +18,8 @@ import { useAuth } from "@/providers/auth-provider";
 
 /* Minimal local row shapes — the web app's types live outside this tsconfig. */
 
+/* DB column values, kept for legacy rows — courses are user-managed now, so
+   new enrollments are catalog picks or "manual" hand-adds. */
 type EnrollmentSource = "canvas" | "schedule_image" | "manual";
 
 type CourseJoin = {
@@ -36,21 +38,9 @@ type RawEnrollment = {
 
 type EnrollmentRow = RawEnrollment & { course: CourseJoin };
 
-/** Catalog-matched and Canvas-synced enrollments earn the verified check. */
-function pillFor(enrollment: EnrollmentRow): {
-  verified: boolean;
-  label: string;
-} {
-  if (enrollment.catalog_course_id !== null) {
-    return { verified: true, label: "Catalog verified" };
-  }
-  if (enrollment.source === "canvas") {
-    return { verified: true, label: "Canvas synced" };
-  }
-  return { verified: false, label: "Unverified" };
-}
-
-function SourcePill({ verified, label }: { verified: boolean; label: string }) {
+/** Catalog-matched classes get a quiet "From catalog" note; hand-added ones
+    stand on their own, no badge — every class here counts the same. */
+function CatalogPill() {
   const theme = useTheme();
   return (
     <View
@@ -61,22 +51,20 @@ function SourcePill({ verified, label }: { verified: boolean; label: string }) {
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: radius.full,
-        backgroundColor: verified ? theme.accentSoft : theme.surface2,
+        backgroundColor: theme.surface2,
         alignSelf: "flex-start",
       }}
     >
-      {verified ? (
-        <Feather name="check-circle" size={11} color={theme.accent} />
-      ) : null}
+      <Feather name="book" size={11} color={theme.muted} />
       <AppText
         variant="label"
         style={{
-          color: verified ? theme.accent : theme.muted,
+          color: theme.muted,
           fontSize: 11,
           lineHeight: 14,
         }}
       >
-        {label}
+        From catalog
       </AppText>
     </View>
   );
@@ -92,7 +80,6 @@ function CourseRow({
   onOverflow: () => void;
 }) {
   const theme = useTheme();
-  const pill = pillFor(enrollment);
   const { course } = enrollment;
   return (
     <Card
@@ -119,7 +106,7 @@ function CourseRow({
           <AppText variant="bodySemi" style={{ flexShrink: 1 }}>
             {course.code}
           </AppText>
-          <SourcePill verified={pill.verified} label={pill.label} />
+          {enrollment.catalog_course_id !== null ? <CatalogPill /> : null}
         </View>
         <AppText variant="caption" muted numberOfLines={1}>
           {course.title}
@@ -373,8 +360,8 @@ export default function MyCoursesScreen() {
             ListHeaderComponent={
               <View style={{ gap: 6, marginBottom: 12 }}>
                 <AppText variant="caption" muted>
-                  Courses with the check were matched to your campus catalog or
-                  synced from Canvas.
+                  All yours to manage — the catalog note just means the
+                  details filled themselves in.
                 </AppText>
                 {error ? (
                   <AppText variant="caption" style={{ color: theme.danger }}>

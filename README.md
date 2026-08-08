@@ -7,19 +7,19 @@ standalone platform: every room, thread, and notification is built in-house
 on our own backend.
 
 Every account is verified with a university email, so each campus is a real,
-closed community. Course enrollment drives channel membership automatically:
-connect **Canvas by Instructure** and your course channels appear, or upload a
-picture of your schedule (processed **on your device**, with a notification
-audit trail if you choose to store it), or pick courses manually. Student
-organizations and clubs get dedicated spaces with their own chat, roster and
-events.
+closed community. Courses are **fully user-managed**: students add their own
+classes, and the campus course catalog autocompletes codes and titles as they
+type. Adding a class opens its chat channel automatically — the first student
+in creates it for everyone who follows, and dropping a class quietly removes
+you. Student organizations and clubs get dedicated spaces with their own chat,
+roster and events.
 
 ## Features
 
 - **University-verified communities** — sign up with your school email
   (launching at UC Davis, then the UC system, then CSUs)
-- **Course channels** — auto-created and auto-joined from Canvas sync,
-  schedule-image confirm, or manual picking
+- **Course channels** — user-managed course lists with catalog autocomplete;
+  adding a class creates and joins its channel automatically
 - **Campus channels** — general, study-buddies, campus-events, asks-and-offers
   on every campus, plus student-created topic channels
 - **Clubs & organizations** — found a club, get a chat channel + roster +
@@ -31,9 +31,9 @@ events.
 - **Study sessions & meetups** — events with RSVPs, capacity, course/club links
 - **Public profiles & people directory** — majors, grad years, shared courses,
   optional phone-verification trust badge
-- **Privacy by design** — schedule images OCR'd in-browser; every storage or
-  access event generates a user-facing notification, enforced by database
-  triggers
+- **Privacy by design** — campus-scoped visibility with RLS on every table;
+  audited storage events generate user-facing notifications, enforced by
+  database triggers
 
 ## Stack
 

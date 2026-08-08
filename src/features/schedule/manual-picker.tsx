@@ -27,7 +27,11 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Course } from "@/lib/types";
-import { normalizeCourseCode } from "@/features/schedule/ocr";
+
+/** "cs-101" / "CS 101" / "CS101" all collapse to the same comparison key. */
+function normalizeCourseCode(code: string): string {
+  return code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
 
 function ErrorAlert({ message }: { message: string }) {
   return (

@@ -43,10 +43,13 @@ export interface Course {
   term_id: string | null;
   code: string;
   title: string;
+  // Legacy column from a retired import flow — still on the row, never written.
   canvas_course_id: number | null;
   created_at: string;
 }
 
+// 'canvas' and 'schedule_image' are historical values from retired import
+// flows. Old enrollment rows keep them; every new enrollment is 'manual'.
 export type EnrollmentSource = "canvas" | "schedule_image" | "manual";
 
 export interface Enrollment {
@@ -55,17 +58,6 @@ export interface Enrollment {
   course_id: string;
   role: "student" | "ta" | "instructor";
   source: EnrollmentSource;
-  created_at: string;
-}
-
-export interface CanvasConnection {
-  id: string;
-  user_id: string;
-  base_url: string;
-  access_token: string;
-  last_synced_at: string | null;
-  sync_status: "never" | "ok" | "error";
-  sync_error: string | null;
   created_at: string;
 }
 
@@ -135,6 +127,9 @@ export interface Channel {
   slug: string;
   description: string | null;
   is_default: boolean;
+  // A course's front room. Extra rooms (lectures, study groups, …) are
+  // course channels with is_main = false (migration 0018).
+  is_main: boolean;
   created_by: string | null;
   created_at: string;
 }

@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Field } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, type Palette } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   formatFileSize,
@@ -26,6 +26,7 @@ import {
   type NoteRow,
 } from "@/lib/notes";
 import { supabase } from "@/lib/supabase";
+import { kindLabel, type CalendarKind } from "@/lib/syllabus";
 import { useAuth } from "@/providers/auth-provider";
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
@@ -53,6 +54,14 @@ type ClassmateRow = {
     avatar_url: string | null;
     major: string | null;
   } | null;
+};
+
+/* The next few shared calendar dates, previewed on the hub. */
+type UpcomingItem = {
+  id: string;
+  kind: CalendarKind;
+  title: string;
+  due_at: string;
 };
 
 type Status = "loading" | "error" | "notFound" | "ready";
@@ -101,6 +110,47 @@ function shortDate(iso: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+/** "Fri, Oct 14" — how calendar dates read on the hub preview. */
+function dueDay(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/** Quiet chip palette for calendar kinds — mirrored in course/calendar.tsx. */
+function kindColors(kind: CalendarKind, theme: Palette): { bg: string; fg: string } {
+  switch (kind) {
+    case "exam":
+      return { bg: theme.brandSoft, fg: theme.brandInk };
+    case "quiz":
+    case "project":
+      return { bg: theme.accentSoft, fg: theme.accent };
+    default:
+      return { bg: theme.surface2, fg: theme.muted };
+  }
+}
+
+function KindChip({ kind }: { kind: CalendarKind }) {
+  const theme = useTheme();
+  const colors = kindColors(kind, theme);
+  return (
+    <View
+      style={{
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: radius.full,
+        backgroundColor: colors.bg,
+      }}
+    >
+      <AppText variant="label" style={{ color: colors.fg, fontSize: 11, lineHeight: 14 }}>
+        {kindLabel(kind)}
+      </AppText>
+    </View>
+  );
 }
 
 /** "week-5-notes.pdf" -> "week 5 notes" — a friendly default title. */
@@ -261,6 +311,7 @@ export default function CourseHubScreen() {
   const [channelId, setChannelId] = useState<string | null>(null);
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [mates, setMates] = useState<ClassmateRow[]>([]);
+  const [upcoming, setUpcoming] = useState<UpcomingItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   // Opening a note (signed URL -> browser/viewer).
@@ -288,25 +339,35 @@ export default function CourseHubScreen() {
       return;
     }
     try {
-      const [courseRes, channelRes, notesList, matesRes] = await Promise.all([
-        supabase
-          .from("courses")
-          .select("id, code, title, term:terms(name)")
-          .eq("id", courseId)
-          .maybeSingle(),
-        supabase
-          .from("channels")
-          .select("id")
-          .eq("course_id", courseId)
-          .maybeSingle(),
-        listNotes(courseId),
-        supabase
-          .from("enrollments")
-          .select(
-            "id, user_id, role, catalog_course_id, profile:profiles(id, handle, display_name, avatar_url, major)"
-          )
-          .eq("course_id", courseId),
-      ]);
+      const [courseRes, channelRes, notesList, matesRes, upcomingRes] =
+        await Promise.all([
+          supabase
+            .from("courses")
+            .select("id, code, title, term:terms(name)")
+            .eq("id", courseId)
+            .maybeSingle(),
+          // Courses grew rooms (extra channels) — the front room is is_main.
+          supabase
+            .from("channels")
+            .select("id")
+            .eq("course_id", courseId)
+            .eq("is_main", true)
+            .maybeSingle(),
+          listNotes(courseId),
+          supabase
+            .from("enrollments")
+            .select(
+              "id, user_id, role, catalog_course_id, profile:profiles(id, handle, display_name, avatar_url, major)"
+            )
+            .eq("course_id", courseId),
+          supabase
+            .from("course_calendar_items")
+            .select("id, kind, title, due_at")
+            .eq("course_id", courseId)
+            .gte("due_at", new Date().toISOString())
+            .order("due_at", { ascending: true })
+            .limit(3),
+        ]);
       if (courseRes.error) {
         setStatus("error");
         return;
@@ -326,6 +387,10 @@ export default function CourseHubScreen() {
         (channelRes.data as unknown as { id: string } | null)?.id ?? null
       );
       setNotes(notesList);
+      // The calendar preview is a bonus — a hiccup here shouldn't block the hub.
+      setUpcoming(
+        (upcomingRes.data ?? []) as unknown as UpcomingItem[]
+      );
       const sortedMates = (
         (matesRes.data ?? []) as unknown as ClassmateRow[]
       ).sort(
@@ -547,7 +612,7 @@ export default function CourseHubScreen() {
   const renderMateRow = (mate: ClassmateRow) => {
     const name = mate.profile?.display_name ?? "A classmate";
     const isMe = mate.user_id === userId;
-    const verified = mate.catalog_course_id !== null;
+    const fromCatalog = mate.catalog_course_id !== null;
     const caption = mate.profile
       ? `@${mate.profile.handle}${mate.profile.major ? ` · ${mate.profile.major}` : ""}`
       : null;
@@ -576,12 +641,12 @@ export default function CourseHubScreen() {
             <AppText variant="bodySemi" style={{ flexShrink: 1 }} numberOfLines={1}>
               {name}
             </AppText>
-            {verified ? (
+            {fromCatalog ? (
               <Feather
                 name="check-circle"
                 size={13}
                 color={theme.accent}
-                accessibilityLabel="Verified enrollment"
+                accessibilityLabel="Added from the catalog"
               />
             ) : null}
             {isMe ? <Pill label="You" tone="brand" /> : null}
@@ -917,6 +982,140 @@ export default function CourseHubScreen() {
                 />
               </Card>
             ) : null}
+
+            {/* Class calendar — the shared schedule, right between the
+                header and Notes. */}
+            <View style={{ gap: 10, marginTop: 2 }}>
+              <AppText variant="title">Class calendar</AppText>
+              {upcoming.length > 0 ? (
+                <Card padded={false}>
+                  {upcoming.map((item, index) => (
+                    <View
+                      key={item.id}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                        paddingHorizontal: 14,
+                        paddingVertical: 10,
+                        minHeight: 48,
+                        borderTopWidth: index === 0 ? 0 : 1,
+                        borderTopColor: theme.border,
+                      }}
+                    >
+                      <KindChip kind={item.kind} />
+                      <AppText
+                        variant="bodyMedium"
+                        numberOfLines={1}
+                        style={{ flex: 1 }}
+                      >
+                        {item.title}
+                      </AppText>
+                      <AppText variant="caption" muted>
+                        {dueDay(item.due_at)}
+                      </AppText>
+                    </View>
+                  ))}
+                </Card>
+              ) : (
+                <Card
+                  style={{
+                    alignItems: "center",
+                    gap: 6,
+                    paddingVertical: 20,
+                    borderStyle: "dashed",
+                  }}
+                >
+                  <AppText variant="bodySemi">No dates yet</AppText>
+                  <AppText
+                    variant="caption"
+                    muted
+                    style={{ textAlign: "center", maxWidth: 260 }}
+                  >
+                    Paste the syllabus once and the whole class gets the
+                    schedule.
+                  </AppText>
+                </Card>
+              )}
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <Button
+                  label="Open calendar"
+                  variant="soft"
+                  size="sm"
+                  icon={
+                    <Feather name="calendar" size={14} color={theme.brandInk} />
+                  }
+                  onPress={() =>
+                    router.push({
+                      pathname: "/course/calendar",
+                      params: { courseId, courseCode: course.code },
+                    })
+                  }
+                />
+                <Button
+                  label="Import syllabus"
+                  variant="secondary"
+                  size="sm"
+                  icon={
+                    <Feather
+                      name="file-plus"
+                      size={14}
+                      color={theme.foreground}
+                    />
+                  }
+                  onPress={() =>
+                    router.push({
+                      pathname: "/course/syllabus",
+                      params: { courseId, courseCode: course.code },
+                    })
+                  }
+                />
+              </View>
+            </View>
+
+            {/* Rooms — built as its own screen; this is the doorway. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Rooms — lectures, study groups, and side conversations"
+              onPress={() =>
+                router.push({
+                  pathname: "/course/rooms",
+                  params: { courseId, courseCode: course.code },
+                })
+              }
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+            >
+              <Card
+                padded={false}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: 14,
+                  minHeight: 64,
+                }}
+              >
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: radius.control,
+                    backgroundColor: theme.brandSoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Feather name="grid" size={18} color={theme.brand} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                  <AppText variant="bodySemi">Rooms</AppText>
+                  <AppText variant="caption" muted>
+                    Lectures, study groups, and side conversations
+                  </AppText>
+                </View>
+                <Feather name="chevron-right" size={18} color={theme.muted} />
+              </Card>
+            </Pressable>
           </View>
         }
       />

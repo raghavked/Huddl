@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import {
   BadgeCheck,
   ChevronRight,
-  Link2,
   LogOut,
   ShieldCheck,
   Smartphone,
@@ -67,19 +66,11 @@ export default async function SettingsPage() {
       ),
     },
     {
-      href: "/settings/canvas",
-      icon: Link2,
-      tile: "bg-brand-soft text-brand",
-      title: "Canvas connection",
-      description: "Sync your courses and channels from Canvas",
-      trailing: null as React.ReactNode,
-    },
-    {
       href: "/settings/privacy",
       icon: ShieldCheck,
       tile: "bg-accent-soft text-accent",
-      title: "Privacy & schedule images",
-      description: "Audit trail and controls for anything you've uploaded",
+      title: "Privacy & stored images",
+      description: "The audit trail for anything you stored in the past",
       trailing: null as React.ReactNode,
     },
   ];

@@ -268,7 +268,7 @@ export default function AddCoursesScreen() {
         profileRes.data as { university_id: string } | null
       )?.university_id;
       if (!universityId) return;
-      // Courses you've already verified show up checked in the results.
+      // Courses you've already added show up checked in the results.
       const already = (
         (enrolledRes.data ?? []) as { catalog_course_id: string | null }[]
       )
@@ -307,7 +307,7 @@ export default function AddCoursesScreen() {
   const [fbError, setFbError] = useState<string | null>(null);
   const [fbDone, setFbDone] = useState<string | null>(null);
 
-  const addUnverified = useCallback(async () => {
+  const addByHand = useCallback(async () => {
     if (!userId || !ctx) return;
     const code = fbCode.trim();
     if (!code) return;
@@ -346,14 +346,14 @@ export default function AddCoursesScreen() {
         setFbError("We couldn't add that course. Give it another try.");
         return;
       }
-      // Unverified enrollment: source 'manual', no catalog_course_id. The
+      // Hand-added enrollment: source 'manual', no catalog_course_id. The
       // enrollment trigger opens the course chat and joins you to it.
       const { error: enrollError } = await supabase.from("enrollments").upsert(
         { user_id: userId, course_id: courseId, source: "manual" },
         { onConflict: "user_id,course_id", ignoreDuplicates: true }
       );
       if (enrollError) throw enrollError;
-      setFbDone(`${code} added — you're in its chat, marked unverified.`);
+      setFbDone(`${code} added — you're in its chat.`);
       setFbCode("");
       setFbTitle("");
     } catch {
@@ -384,7 +384,7 @@ export default function AddCoursesScreen() {
       : results === null
         ? "Search by code or title — try “MAT 21A” or “calculus”."
         : results.length === 0
-          ? `Nothing in the catalog matching “${q}” — add it below and we'll mark it unverified.`
+          ? `Nothing in the catalog matching “${q}” — add it by hand below.`
           : null;
 
   return (
@@ -419,8 +419,8 @@ export default function AddCoursesScreen() {
             Add courses
           </AppText>
           <AppText variant="caption" muted style={{ marginTop: 6 }}>
-            Pulled from your campus catalog, so classmates see a verified
-            check next to the real thing.
+            Your classes, your call — search the catalog to save some typing,
+            or add any class by hand.
           </AppText>
 
           <View style={{ marginTop: 14, marginBottom: 12 }}>
@@ -508,10 +508,9 @@ export default function AddCoursesScreen() {
                   <AppText variant="title">Can't find your class?</AppText>
                 </View>
                 <AppText variant="caption" muted>
-                  The catalog covers this session's offerings — structured
-                  after UC Davis's public course data, the way community
-                  catalogs like Cattlelog present it. Canvas sync and the
-                  schedule-photo upload on the web can add your classes too.
+                  The catalog covers common classes and just saves you the
+                  typing. Anything it's missing you can add by hand right
+                  here — it counts exactly the same.
                 </AppText>
                 <View
                   style={{
@@ -539,8 +538,7 @@ export default function AddCoursesScreen() {
                     editable={!fbPending}
                   />
                   <AppText variant="caption" muted>
-                    Unverified — shows to classmates without the verified
-                    check.
+                    We'll open the class chat the moment it's added.
                   </AppText>
                   {fbError ? (
                     <AppText variant="caption" style={{ color: theme.danger }}>
@@ -565,12 +563,12 @@ export default function AddCoursesScreen() {
                     </View>
                   ) : null}
                   <Button
-                    label="Add unverified"
+                    label="Add class"
                     variant="secondary"
                     size="sm"
                     pending={fbPending}
                     disabled={fbPending || !fbCode.trim() || !ctx}
-                    onPress={() => void addUnverified()}
+                    onPress={() => void addByHand()}
                     style={{ alignSelf: "flex-start" }}
                   />
                 </View>

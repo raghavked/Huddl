@@ -10,11 +10,11 @@ import {
   FileText,
   GraduationCap,
   Hash,
+  ListChecks,
   MailCheck,
   MapPin,
   MessagesSquare,
   Plus,
-  ScanLine,
   Send,
   Users,
 } from "lucide-react";
@@ -50,12 +50,12 @@ const FAQS: { q: string; a: string }[] = [
     a: "We open one campus at a time so every community starts dense, not empty. UC Davis is first, followed by the rest of the UC system, then the CSUs. If your school isn't live yet, signing up with your school email is the best way to move it up the list — a campus opens once enough students are waiting.",
   },
   {
-    q: "What does Huddl read from Canvas?",
-    a: "Only your course list — course codes, titles, and the current term — so we can drop you into the right channels. We never touch grades, submissions, or assignments, and you can disconnect Canvas at any time without losing your channels.",
+    q: "How do my course channels get set up?",
+    a: "You add your classes yourself — type a course code and its chat opens, with the campus catalog autocompleting codes and titles as you go. If a class isn't in the catalog yet, adding it makes you its first member, and classmates who add the same class land right beside you.",
   },
   {
-    q: "What happens to the photo of my schedule?",
-    a: "It's read in your browser, on your device, to suggest your courses — nothing is uploaded during that step. You confirm the courses before anything is saved. If you choose to store the image for your records, each time the app accesses it that access is logged — and a database trigger turns every logged event into a notification you'll see, so those receipts can't be quietly dropped.",
+    q: "Does Huddl connect to my school's systems?",
+    a: "No. Your course list on Huddl is yours alone — you add classes, rename nothing behind your back, and drop them whenever you like. Nothing links to your school accounts, and we never see your grades, submissions, or official enrollment.",
   },
   {
     q: "Can professors or administrators see my messages?",
@@ -156,7 +156,7 @@ export default function LandingPage() {
                 .
               </h1>
               <p className="mt-6 max-w-xl text-base text-muted text-pretty sm:text-lg">
-                Course chat that sets itself up from your schedule. Notes that
+                Course chat that opens the moment you add a class. Notes that
                 outlive the group chat. Study sessions people actually show up
                 to. All of it verified with your school email — so it&apos;s
                 your campus, and only your campus.
@@ -308,12 +308,12 @@ export default function LandingPage() {
           <div className="mt-12 grid gap-4 md:grid-cols-2">
             <FeatureCard
               icon={BookOpen}
-              title="Synced straight from Canvas"
-              body="Connect Canvas — or snap a photo of your schedule — and a channel for every one of your classes is waiting for you. Your classmates are already in it, because their schedules put them there too."
+              title="Your classes, added in seconds"
+              body="Type a course and its chat opens; the campus catalog autocompletes the details. Your classmates are already in it, because they added the same classes — and if you're first, the room is ready for whoever's next."
               points={[
-                "One channel per course, created automatically",
+                "One chat per course, open the moment you add it",
+                "The campus catalog fills in codes and titles as you type",
                 "Drop a class and the channel quietly lets you go",
-                "Manual course picking if you'd rather not connect anything",
               ]}
               vignette={<SyncVignette />}
             />
@@ -388,15 +388,15 @@ export default function LandingPage() {
               />
               <TrustStep
                 step={2}
-                icon={ScanLine}
-                title="Your schedule stays on your device"
-                body="A photo of your schedule is read in your browser to suggest courses. You confirm them before anything is saved — the reading itself never leaves your device."
+                icon={ListChecks}
+                title="Your courses, run by you"
+                body="You add your own classes — nothing connects to your school's systems, and nothing about your schedule is collected behind your back. Course chats are visible only to classmates who added the same class."
               />
               <TrustStep
                 step={3}
                 icon={BellRing}
-                title="Notified access, always"
-                body="Choose to store the image, and each access is logged — and a database trigger turns every logged event into a notification, so the receipt can't be silently skipped."
+                title="Campus-only, receipts included"
+                body="Everything you post stays inside your verified campus. And where privacy matters most, we show you the log — audited events become notifications by database trigger, so nothing happens silently."
               />
             </ol>
           </div>
@@ -453,8 +453,8 @@ export default function LandingPage() {
               Your classmates are one huddle away
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm text-brand-fg sm:text-base">
-              It takes your school email and about a minute. Your course
-              channels are already waiting.
+              It takes your school email and about a minute. Add your classes
+              and each one&apos;s chat opens right up.
             </p>
             <Link
               href="/signup"
@@ -628,8 +628,8 @@ function ChatVignette() {
         </span>
         <span className="text-sm font-bold">econ-101a</span>
         <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">
-          <Check className="size-3" />
-          Synced from Canvas
+          <Users className="size-3" />
+          18 classmates in
         </span>
       </div>
       <div className="mt-4 flex flex-col gap-3.5">
@@ -763,22 +763,22 @@ function EventVignette() {
 
 /* --- Compact vignettes for the feature bento cards. --- */
 
-/** Course list picking up channels from Canvas / a schedule photo. */
+/** Course list growing as you add classes — catalog fills in the details. */
 function SyncVignette() {
   const rows = [
     {
       slug: "econ-101a",
-      tag: "Synced from Canvas",
-      tagClass: "bg-success/10 text-success",
-    },
-    {
-      slug: "phys-9b",
-      tag: "From your schedule",
+      tag: "Added by you",
       tagClass: "bg-brand-soft text-brand-ink",
     },
     {
+      slug: "phys-9b",
+      tag: "From the catalog",
+      tagClass: "bg-success/10 text-success",
+    },
+    {
       slug: "cs-61b",
-      tag: "Added by you",
+      tag: "You're the first",
       tagClass: "bg-surface-2 text-muted",
     },
   ];

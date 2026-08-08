@@ -18,6 +18,9 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // The Expo app lints with its own toolchain (see mobile/), same as the
+      // root tsconfig exclude — Next.js rules don't apply to React Native.
+      "mobile/**",
     ],
   },
 ];

@@ -2,7 +2,8 @@
 
 Huddl is what happens when your best group chat meets your favorite study spot.
 Everything in this guide exists to protect that feeling: warm, collegiate,
-energetic — and trustworthy enough that students hand us their course schedule.
+energetic — and trustworthy enough that students run their whole semester
+through it.
 
 We are **not** corporate SaaS. If a screen, a sentence, or a color would look at
 home in an enterprise dashboard, redo it.
@@ -52,9 +53,10 @@ notes anyway. Specifically:
    *empty DM inbox.* Three concrete, low-stakes reasons to send a first message.
 4. **"Textbooks, rides, sublets, help"** — *#asks-and-offers description.* Four
    nouns, zero fluff. This is "concrete over clever" in its purest form.
-5. **"If you set up courses from a photo of your schedule, its full audit trail
-   will show up here."** — *privacy notifications.* The privacy voice: calm,
-   specific, mechanical. No "we take your privacy seriously" — we show the log.
+5. **"You've never stored an image with Huddl. If you had, its full audit trail
+   would live here — every access logged, every log a notification."** —
+   *privacy dashboard, empty.* The privacy voice: calm, specific, mechanical.
+   No "we take your privacy seriously" — we show the log.
 
 ### Writing mechanics
 

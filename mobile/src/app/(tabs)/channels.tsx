@@ -26,14 +26,22 @@ type ChannelRow = {
   name: string;
   slug: string;
   description: string | null;
+  is_main: boolean;
   course: { id: string; code: string; title: string } | null;
 };
+
+/** A course is a home now: its main chat row, indented side rooms under it,
+    and a small "+ room" door per course. Other kinds stay one row each. */
+type Row =
+  | { key: string; type: "channel"; channel: ChannelRow }
+  | { key: string; type: "room"; channel: ChannelRow }
+  | { key: string; type: "addRoom"; courseId: string; courseCode: string };
 
 type Section = {
   kind: ChannelKind;
   title: string;
   icon: FeatherName;
-  data: ChannelRow[];
+  data: Row[];
 };
 
 const GROUPS: { kind: ChannelKind; title: string; icon: FeatherName }[] = [
@@ -51,6 +59,8 @@ function channelTitle(channel: ChannelRow): string {
 
 function channelSubtitle(channel: ChannelRow): string | null {
   if (channel.kind === "course") {
+    // A side room surfaced without its main row keeps its own name visible.
+    if (!channel.is_main) return channel.name;
     return channel.course?.title ?? channel.description;
   }
   return channel.description;
@@ -72,7 +82,7 @@ export default function ChannelsScreen() {
     const { data, error: queryError } = await supabase
       .from("channel_members")
       .select(
-        "channel:channels(id, kind, name, slug, description, course:courses(id, code, title))"
+        "channel:channels(id, kind, name, slug, description, is_main, course:courses(id, code, title))"
       )
       .eq("user_id", userId);
     if (queryError) {
@@ -100,14 +110,51 @@ export default function ChannelsScreen() {
     void load().finally(() => setRefreshing(false));
   }, [load]);
 
-  const sections = useMemo<Section[]>(
-    () =>
-      GROUPS.map((group) => ({
-        ...group,
-        data: channels.filter((c) => c.kind === group.kind),
-      })).filter((section) => section.data.length > 0),
-    [channels]
-  );
+  const sections = useMemo<Section[]>(() => {
+    // Courses group by course: the main room leads, side rooms indent under
+    // it. `channels` is already sorted by title, so groups land in code order.
+    const courseRows: Row[] = [];
+    const grouped = new Map<string, ChannelRow[]>();
+    for (const channel of channels) {
+      if (channel.kind !== "course") continue;
+      const key = channel.course?.id ?? `solo-${channel.id}`;
+      const list = grouped.get(key);
+      if (list) list.push(channel);
+      else grouped.set(key, [channel]);
+    }
+    for (const group of grouped.values()) {
+      const sorted = [...group].sort((a, b) =>
+        a.is_main === b.is_main
+          ? a.name.localeCompare(b.name)
+          : a.is_main
+            ? -1
+            : 1
+      );
+      const [head, ...rest] = sorted;
+      if (!head) continue;
+      courseRows.push({ key: head.id, type: "channel", channel: head });
+      for (const room of rest) {
+        courseRows.push({ key: room.id, type: "room", channel: room });
+      }
+      if (head.course) {
+        courseRows.push({
+          key: `add-room-${head.course.id}`,
+          type: "addRoom",
+          courseId: head.course.id,
+          courseCode: head.course.code,
+        });
+      }
+    }
+    return GROUPS.map((group) => ({
+      ...group,
+      data:
+        group.kind === "course"
+          ? courseRows
+          : channels
+              .filter((c) => c.kind === group.kind)
+              .map<Row>((c) => ({ key: c.id, type: "channel", channel: c })),
+    })).filter((section) => section.data.length > 0);
+  }, [channels]);
 
   return (
     <Screen title="Channels" scroll={false}>
@@ -154,7 +201,7 @@ export default function ChannelsScreen() {
       ) : (
         <SectionList
           sections={sections}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.key}
           stickySectionHeadersEnabled={false}
           contentContainerStyle={{ paddingBottom: 32, flexGrow: 1 }}
           refreshControl={
@@ -221,12 +268,94 @@ export default function ChannelsScreen() {
             </View>
           )}
           renderItem={({ item }) => {
-            const subtitle = channelSubtitle(item);
+            if (item.type === "room") {
+              // An indented side room under its course's main row.
+              const room = item.channel;
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${room.name}`}
+                  onPress={() => router.push(`/channel/${room.id}`)}
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.85 : 1,
+                    marginLeft: 24,
+                    marginBottom: 8,
+                  })}
+                >
+                  <Card
+                    padded={false}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 10,
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      minHeight: 48,
+                    }}
+                  >
+                    <Feather
+                      name="corner-down-right"
+                      size={15}
+                      color={theme.muted}
+                    />
+                    <AppText
+                      variant="bodyMedium"
+                      numberOfLines={1}
+                      style={{ flex: 1, minWidth: 0 }}
+                    >
+                      {room.name}
+                    </AppText>
+                    <Feather
+                      name="chevron-right"
+                      size={14}
+                      color={theme.muted}
+                    />
+                  </Card>
+                </Pressable>
+              );
+            }
+            if (item.type === "addRoom") {
+              // A small door into the course's rooms screen.
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Add a room to ${item.courseCode}`}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/course/rooms",
+                      params: {
+                        courseId: item.courseId,
+                        courseCode: item.courseCode,
+                      },
+                    })
+                  }
+                  hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+                  style={({ pressed }) => ({
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    alignSelf: "flex-start",
+                    marginLeft: 24,
+                    marginBottom: 12,
+                    paddingHorizontal: 6,
+                    paddingVertical: 4,
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <Feather name="plus" size={14} color={theme.brand} />
+                  <AppText variant="label" style={{ color: theme.brand }}>
+                    room
+                  </AppText>
+                </Pressable>
+              );
+            }
+            const channel = item.channel;
+            const subtitle = channelSubtitle(channel);
             return (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Open ${channelTitle(item)}`}
-                onPress={() => router.push(`/channel/${item.id}`)}
+                accessibilityLabel={`Open ${channelTitle(channel)}`}
+                onPress={() => router.push(`/channel/${channel.id}`)}
                 style={({ pressed }) => ({
                   opacity: pressed ? 0.85 : 1,
                   marginBottom: 10,
@@ -255,7 +384,8 @@ export default function ChannelsScreen() {
                   >
                     <Feather
                       name={
-                        GROUPS.find((g) => g.kind === item.kind)?.icon ?? "hash"
+                        GROUPS.find((g) => g.kind === channel.kind)?.icon ??
+                        "hash"
                       }
                       size={18}
                       color={theme.brand}
@@ -263,7 +393,7 @@ export default function ChannelsScreen() {
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <AppText variant="bodySemi" numberOfLines={1}>
-                      {channelTitle(item)}
+                      {channelTitle(channel)}
                     </AppText>
                     {subtitle ? (
                       <AppText variant="caption" muted numberOfLines={1}>

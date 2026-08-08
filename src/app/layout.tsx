@@ -27,7 +27,7 @@ const monoFont = JetBrains_Mono({
 
 const siteUrl = process.env.SITE_URL ?? "https://huddl.app";
 const description =
-  "Huddl is the all-in-one platform for college students: course chat synced from Canvas, study sessions, note sharing, meetups, voice rooms and DMs — verified with your university email.";
+  "Huddl is the all-in-one platform for college students: a chat for every class you add, study sessions, note sharing, meetups, voice rooms and DMs — verified with your university email.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

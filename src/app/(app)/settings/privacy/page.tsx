@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, Bell, ShieldCheck } from "lucide-react";
+import { Bell, ShieldCheck } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ShieldScene } from "@/components/illustrations";
-import { PageHeader, buttonClasses } from "@/components/ui";
+import { PageHeader } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PrivacyDashboard } from "@/features/schedule/privacy-dashboard";
 import type { ScheduleUpload, ScheduleUploadEvent } from "@/lib/types";
 
 export const metadata: Metadata = {
-  title: "Privacy · Schedule images",
+  title: "Privacy · Stored images",
   description:
-    "See every schedule image you've uploaded, its full audit trail, and delete anything you've stored.",
+    "The audit trail for any image you stored in the past — see every recorded event, and delete anything still on file.",
 };
 
 export default async function PrivacySettingsPage() {
@@ -44,8 +44,8 @@ export default async function PrivacySettingsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        title="Privacy & schedule images"
-        description="Everything Huddl has ever done with your schedule images, in one place — with a receipt for each step."
+        title="Privacy & stored images"
+        description="Everything Huddl has ever done with an image you stored, in one place — with a receipt for each step."
         backHref="/settings"
         backLabel="Settings"
       />
@@ -61,12 +61,12 @@ export default async function PrivacySettingsPage() {
           <div>
             <h2 className="font-semibold">The receipt guarantee</h2>
             <p className="mt-1 text-sm text-muted">
-              Your schedule photos are read on your device, and nothing is
-              stored unless you switch it on. Every event below — processing,
-              storing, accessing, deleting — is written to an audit log, and a
-              database trigger turns each logged event into a notification to
-              you. That last step can&apos;t be silently skipped, so when the
-              app touches your image, you hear about it.
+              If you stored an image here in the past, this is its full
+              record. Every event below — processing, storing, accessing,
+              deleting — was written to an audit log, and a database trigger
+              turns each logged event into a notification to you. That last
+              step can&apos;t be silently skipped, so if anything touches a
+              stored image, you hear about it.
             </p>
             <Link
               href="/notifications"
@@ -85,17 +85,8 @@ export default async function PrivacySettingsPage() {
             <EmptyState
               illustration={<ShieldScene />}
               icon={ShieldCheck}
-              title="No schedule images yet"
-              description="If you set up courses from a photo of your schedule, its full audit trail will show up here."
-              action={
-                <Link
-                  href="/setup/schedule"
-                  className={buttonClasses({ size: "sm" })}
-                >
-                  Upload a schedule
-                  <ArrowRight className="size-4" aria-hidden />
-                </Link>
-              }
+              title="Nothing stored, nothing to audit"
+              description="You've never stored an image with Huddl. If you had, its full audit trail would live here — every access logged, every log a notification."
             />
           </div>
         ) : (

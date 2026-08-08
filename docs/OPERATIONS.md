@@ -71,9 +71,10 @@ campuses in the same week — launch weeks are hands-on.
 - Default channels exist from day zero (seeded, auto-joined at signup) — the
   job is making them *look inhabited*. Every ambassador posts a real message in
   #general and a real ask in #asks-and-offers within the first hour.
-- Ambassadors add their full course schedules (Canvas sync or schedule photo),
-  which auto-creates the first wave of course channels. Target: **30+ course
-  channels live on day one**, so early signups land somewhere warm.
+- Ambassadors add their full course lists by hand (the catalog autocompletes
+  as they type), which creates the first wave of course channels. Target:
+  **30+ course channels live on day one**, so early signups land somewhere
+  warm.
 - Ambassadors upload one genuinely useful note each to their biggest course.
 
 ### Days 2–4 — first events
@@ -140,13 +141,13 @@ The product grows itself when the loops are healthy; ops exists to keep them
 spinning.
 
 **Loop 1 — the course-channel pull (acquisition).**
-A student adds their schedule → channels for *their exact classes* exist and
+A student adds their classes → channels for *their exact classes* exist and
 have classmates in them → the channel is useful within minutes (a due-date
 question gets answered) → they tell the classmate sitting next to them, whose
 channels are *also* already waiting. Every enrollment makes the next signup's
 first five minutes better. Ops job: keep day-one course-channel coverage high
-at every campus (ambassador schedules, enrollment-shock pushes at the start of
-each term).
+at every campus (ambassador course lists, enrollment-shock pushes at the start
+of each term).
 
 **Loop 2 — notes and events (retention).**
 Chat brings you in; notes and events bring you *back*. A note uploaded in week
@@ -156,10 +157,11 @@ every campus has events on the board every week. These are the two levers we
 pull when a campus's return rate dips.
 
 **Loop 3 — the term reset (re-acquisition).**
-Every new term, schedules change and the course-channel pull fires again for
+Every new term, class lists change and the course-channel pull fires again for
 *everyone*, including lapsed users. The first two weeks of each term are a
-launch-week-lite at every Active campus: ambassadors re-seed schedules, the
-team promotes re-sync, midterm-season events follow.
+launch-week-lite at every Active campus: ambassadors re-seed their course
+lists, the team prompts everyone to add the new term's classes, and
+midterm-season events follow.
 
 ---
 

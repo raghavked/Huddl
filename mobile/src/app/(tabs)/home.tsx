@@ -1,5 +1,5 @@
 import Feather from "@expo/vector-icons/Feather";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import {
   useCallback,
   useEffect,
@@ -19,8 +19,12 @@ import { Screen } from "@/components/screen";
 import { AppText, Button, Card } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { useUnreadNotifications } from "@/hooks/use-unread";
+import { buildPlan, toPlanKind, type PlanItem } from "@/lib/study-plan";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /* ---- local row types (mirror the web home's query shapes) ---- */
 
@@ -49,12 +53,31 @@ type MessagePreview = {
   author: { display_name: string } | null;
 };
 
+/* Rows feeding the "Your plan" card, built via buildPlan over the week
+   around now (7 days back for missed deadlines, 7 days ahead). */
+type EnrollmentJoin = { course: { id: string; code: string } | null };
+
+type CalendarItemRow = {
+  id: string;
+  course_id: string;
+  kind: string;
+  title: string;
+  due_at: string;
+};
+
+type PlanSummary = {
+  total: number;
+  handled: number;
+  nextUp: { courseCode: string; title: string; dueAt: Date } | null;
+};
+
 type HomeData = {
   firstName: string;
   campusChannels: ChannelRow[];
   courseChannels: ChannelRow[];
   events: EventRow[];
   previews: Record<string, MessagePreview>;
+  plan: PlanSummary;
 };
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
@@ -120,7 +143,77 @@ function formatEventTime(startIso: string, endIso: string | null): string {
   return `${datePart} · ${startTime}–${endTime}`;
 }
 
+function formatDueTime(d: Date): string {
+  const day = d.toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return `${day} · ${time}`;
+}
+
 /* ---- section pieces ---- */
+
+/** The study-plan doorway: next thing due, this week's score, one tap in. */
+function PlanCard({ plan }: { plan: PlanSummary }) {
+  const theme = useTheme();
+  const hasItems = plan.total > 0;
+  const line = !hasItems
+    ? "Plan your week"
+    : plan.nextUp
+      ? `Next up: ${plan.nextUp.courseCode} ${plan.nextUp.title}`
+      : "All handled — nothing hanging over you";
+  const caption = !hasItems
+    ? "Import a syllabus and every due date lands here."
+    : plan.nextUp
+      ? `${plan.nextUp.dueAt.getTime() < Date.now() ? "Was due" : "Due"} ${formatDueTime(
+          plan.nextUp.dueAt
+        )} · ${plan.handled} of ${plan.total} handled this week`
+      : `${plan.handled} of ${plan.total} handled this week`;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Your plan"
+      onPress={() => router.push("/plan")}
+      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, marginTop: 4 })}
+    >
+      <Card
+        padded={false}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+          minHeight: 64,
+        }}
+      >
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: radius.control,
+            backgroundColor: theme.brandSoft,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Feather name="check-circle" size={18} color={theme.brand} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <AppText variant="bodySemi" numberOfLines={1}>
+            {line}
+          </AppText>
+          <AppText variant="caption" muted numberOfLines={1}>
+            {caption}
+          </AppText>
+        </View>
+        <Feather name="chevron-right" size={18} color={theme.muted} />
+      </Card>
+    </Pressable>
+  );
+}
 
 function SectionLabel({
   text,
@@ -410,6 +503,8 @@ export default function HomeScreen() {
   const theme = useTheme();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
+  const { count: unreadCount, refresh: refreshUnread } =
+    useUnreadNotifications();
 
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -419,7 +514,7 @@ export default function HomeScreen() {
   const fetchHome = useCallback(async (): Promise<HomeData> => {
     if (!userId) throw new Error("Not signed in");
 
-    const [profileRes, membershipRes] = await Promise.all([
+    const [profileRes, membershipRes, enrollmentRes] = await Promise.all([
       supabase
         .from("profiles")
         .select("display_name, handle, university_id")
@@ -429,9 +524,14 @@ export default function HomeScreen() {
         .from("channel_members")
         .select("channel:channels(id, kind, name, slug, course:courses(id, code, title))")
         .eq("user_id", userId),
+      supabase
+        .from("enrollments")
+        .select("course:courses(id, code)")
+        .eq("user_id", userId),
     ]);
     if (profileRes.error) throw profileRes.error;
     if (membershipRes.error) throw membershipRes.error;
+    if (enrollmentRes.error) throw enrollmentRes.error;
 
     const profile = profileRes.data as unknown as {
       display_name: string;
@@ -464,6 +564,60 @@ export default function HomeScreen() {
     if (eventsRes.error) throw eventsRes.error;
     const events = (eventsRes.data ?? []) as unknown as EventRow[];
 
+    // The plan card's week: class-calendar items from 7 days back (missed
+    // deadlines still count) through 7 days ahead, scored against my
+    // check-offs by the same pure buildPlan the full screen uses.
+    const enrolledCourses = (
+      (enrollmentRes.data ?? []) as unknown as EnrollmentJoin[]
+    )
+      .map((row) => row.course)
+      .filter((c): c is { id: string; code: string } => c !== null);
+    let plan: PlanSummary = { total: 0, handled: 0, nextUp: null };
+    if (enrolledCourses.length > 0) {
+      const now = new Date();
+      const codeById = new Map(enrolledCourses.map((c) => [c.id, c.code]));
+      const [calendarRes, checkoffsRes] = await Promise.all([
+        supabase
+          .from("course_calendar_items")
+          .select("id, course_id, kind, title, due_at")
+          .in("course_id", [...codeById.keys()])
+          .gte("due_at", new Date(now.getTime() - 7 * DAY_MS).toISOString())
+          .lte("due_at", new Date(now.getTime() + 7 * DAY_MS).toISOString())
+          .order("due_at", { ascending: true }),
+        supabase.from("study_checkoffs").select("item_id").eq("user_id", userId),
+      ]);
+      if (calendarRes.error) throw calendarRes.error;
+      if (checkoffsRes.error) throw checkoffsRes.error;
+      const planItems = (
+        (calendarRes.data ?? []) as unknown as CalendarItemRow[]
+      ).map(
+        (row): PlanItem => ({
+          id: row.id,
+          courseCode: codeById.get(row.course_id) ?? "Course",
+          kind: toPlanKind(row.kind),
+          title: row.title,
+          dueAt: new Date(row.due_at),
+        })
+      );
+      const checkoffs = new Set(
+        ((checkoffsRes.data ?? []) as unknown as { item_id: string }[]).map(
+          (row) => row.item_id
+        )
+      );
+      const { stats } = buildPlan(planItems, checkoffs, now);
+      plan = {
+        total: stats.total,
+        handled: stats.handled,
+        nextUp: stats.nextUp
+          ? {
+              courseCode: stats.nextUp.courseCode,
+              title: stats.nextUp.title,
+              dueAt: stats.nextUp.dueAt,
+            }
+          : null,
+      };
+    }
+
     // Latest message per joined channel: one tiny indexed lookup each,
     // batched in parallel — same shape as the web home.
     const previews: Record<string, MessagePreview> = {};
@@ -486,7 +640,7 @@ export default function HomeScreen() {
     const firstName =
       profile.display_name.trim().split(/\s+/)[0] || profile.handle;
 
-    return { firstName, campusChannels, courseChannels, events, previews };
+    return { firstName, campusChannels, courseChannels, events, previews, plan };
   }, [userId]);
 
   const run = useCallback(
@@ -510,6 +664,14 @@ export default function HomeScreen() {
     if (!userId) return;
     void run("initial");
   }, [userId, run]);
+
+  // Coming back from the inbox: rows marked read arrive as UPDATEs, which the
+  // count subscription ignores, so re-count whenever the tab regains focus.
+  useFocusEffect(
+    useCallback(() => {
+      refreshUnread();
+    }, [refreshUnread])
+  );
 
   const rows = useMemo<ListRow[]>(() => {
     if (!data) return [];
@@ -645,20 +807,55 @@ export default function HomeScreen() {
       title={data ? `Hey ${data.firstName}` : "Home"}
       scroll={false}
       action={
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Settings"
-          onPress={() => router.push("/settings")}
-          style={({ pressed }) => ({
-            width: 44,
-            height: 44,
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Feather name="settings" size={22} color={theme.muted} />
-        </Pressable>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              unreadCount > 0 ? "Notifications, unread" : "Notifications"
+            }
+            onPress={() => router.push("/notifications")}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <View>
+              <Feather name="bell" size={22} color={theme.muted} />
+              {unreadCount > 0 ? (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -2,
+                    right: -2,
+                    width: 10,
+                    height: 10,
+                    borderRadius: radius.full,
+                    backgroundColor: theme.brand,
+                    borderWidth: 2,
+                    borderColor: theme.background,
+                  }}
+                />
+              ) : null}
+            </View>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            onPress={() => router.push("/settings")}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Feather name="settings" size={22} color={theme.muted} />
+          </Pressable>
+        </View>
       }
     >
       {loading ? (
@@ -718,12 +915,16 @@ export default function HomeScreen() {
                   We couldn't refresh just now — pull down to try again.
                 </AppText>
               ) : null}
+              {data ? <PlanCard plan={data.plan} /> : null}
             </View>
           }
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => void run("refresh")}
+              onRefresh={() => {
+                refreshUnread();
+                void run("refresh");
+              }}
               tintColor={theme.brand}
               colors={[theme.brand]}
             />

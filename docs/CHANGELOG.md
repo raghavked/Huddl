@@ -1,5 +1,41 @@
 # Huddl development log
 
+## Round 7 — the study layer, and courses become homes
+
+Two fleets on top of a live-backend round (migrations 0016–0018 applied
+to production Supabase):
+
+- **User-managed courses with catalog autocomplete**: `catalog_courses` /
+  `catalog_offerings` seeded with 95 real UC Davis courses (142 term
+  rows) from the registrar/catalog sources; `search_catalog` typeahead
+  and a relaxed `enroll_from_catalog` — the catalog suggests, it never
+  gates. Students add, edit, and drop courses entirely themselves; the
+  Canvas connector and schedule-photo OCR are deleted from the web app
+  (routes, features, API, tesseract.js dependency), and all product copy
+  is rewritten for the user-owned model.
+- **Course rooms**: many channels per course via `channels.is_main` and
+  the `create_course_room` RPC — Lectures, Discussion, Study group,
+  Notes, or custom rooms; the native Channels tab groups rooms under
+  their course, and every course home has a Rooms doorway.
+- **Class calendar + syllabus import**: shared `course_calendar_items`
+  (RLS-scoped to classmates) with an on-device syllabus parser
+  (`mobile/src/lib/syllabus.ts`) — paste text, preview and edit the
+  found dates, land them in one batch; only an item-count audit row is
+  stored. Hand-added exams/due dates notify every classmate via a
+  database trigger.
+- **Study plan**: private `study_checkoffs` over the shared calendars;
+  `/plan` groups Overdue / Today / Tomorrow / This week / Later, adds
+  recommended study blocks 7/3/1 days before exams, and a plan card on
+  Home always knows what's next.
+- **Notifications center**: `/notifications` with realtime inserts,
+  mark-read + deep links, unread bell badge on Home backed by a
+  head-only count hook.
+
+Verification: mobile strict tsc clean, iOS Hermes export (3.5 MB); web
+tsc/ESLint clean, 39 Vitest tests, production build (Canvas/schedule
+routes gone). Root ESLint now ignores `mobile/` (own toolchain), matching
+the root tsconfig exclude.
+
 ## Round 6 — native app (App Store track)
 
 New `mobile/` Expo app (SDK 57, expo-router, TypeScript strict) sharing

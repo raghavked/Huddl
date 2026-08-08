@@ -195,7 +195,7 @@ export default async function HomePage() {
             <EmptyState
               icon={GraduationCap}
               title="No courses yet"
-              description="Connect Canvas or add your schedule and you'll get a chat channel for every class."
+              description="Add your classes and each one opens its own chat — the campus catalog fills in the details as you type."
               action={
                 <Link href="/setup" className={buttonClasses({ size: "sm" })}>
                   Set up your courses

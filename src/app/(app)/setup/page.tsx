@@ -1,55 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  Camera,
-  ChevronRight,
-  GraduationCap,
-  ListChecks,
-  ShieldCheck,
-  type LucideIcon,
-} from "lucide-react";
-import {
-  Badge,
-  PageHeader,
-  buttonClasses,
-  cardClasses,
-} from "@/components/ui";
+import { ArrowRight, Hash, ListChecks, Sparkles, Users } from "lucide-react";
+import { PageHeader, buttonClasses, cardClasses } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Add your courses",
 };
 
-interface SetupOption {
-  href: string;
-  icon: LucideIcon;
-  title: string;
-  description: string;
-  recommended?: boolean;
-  privacyNote?: string;
-}
-
-const OPTIONS: SetupOption[] = [
+const POINTS = [
   {
-    href: "/setup/canvas",
-    icon: GraduationCap,
-    title: "Connect Canvas",
-    description:
-      "Sync your courses automatically and keep them up to date every term.",
-    recommended: true,
+    icon: Hash,
+    text: "Every course gets its own chat — add a class and you're in it with your classmates.",
   },
   {
-    href: "/setup/schedule",
-    icon: Camera,
-    title: "Upload your schedule",
-    description:
-      "Snap a photo or screenshot of your schedule and we'll pick out your courses.",
-    privacyNote: "Processed on your device",
+    icon: Sparkles,
+    text: "Start typing a code and the campus catalog fills in the rest.",
   },
   {
-    href: "/setup/manual",
-    icon: ListChecks,
-    title: "Pick courses manually",
-    description: "Browse your school's course list and choose your classes.",
+    icon: Users,
+    text: "Class not listed yet? Add it — you'll be its first member and classmates join after you.",
   },
 ];
 
@@ -58,47 +27,44 @@ export default function SetupPage() {
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
         title="Add your courses"
-        description="Every course gets its own chat — add yours and you're automatically in with your classmates."
+        description="You're in charge of your course list — add your classes and each one opens its chat for you."
       />
 
-      <ul className="mt-8 flex animate-fade-up flex-col gap-3">
-        {OPTIONS.map(
-          ({ href, icon: Icon, title, description, recommended, privacyNote }) => (
-            <li key={href}>
-              <Link
-                href={href}
-                className={cardClasses({
-                  interactive: true,
-                  className: "group flex items-center gap-4",
-                })}
-              >
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
-                  <Icon className="size-6" aria-hidden />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold tracking-tight">{title}</span>
-                    {recommended ? <Badge tone="brand">Fastest</Badge> : null}
-                  </span>
-                  <span className="mt-0.5 block text-sm text-muted">
-                    {description}
-                  </span>
-                  {privacyNote ? (
-                    <span className="mt-1.5 flex items-center gap-1 text-xs font-medium text-accent">
-                      <ShieldCheck className="size-3.5" aria-hidden />
-                      {privacyNote}
-                    </span>
-                  ) : null}
-                </span>
-                <ChevronRight
-                  className="size-5 shrink-0 text-muted transition-transform group-hover:translate-x-0.5"
-                  aria-hidden
-                />
-              </Link>
+      <section
+        aria-label="How adding courses works"
+        className={cardClasses({
+          padding: "lg",
+          className: "mt-8 animate-fade-up",
+        })}
+      >
+        <span className="flex size-12 items-center justify-center rounded-xl bg-brand-soft text-brand">
+          <ListChecks className="size-6" aria-hidden />
+        </span>
+        <h2 className="mt-4 text-xl font-bold tracking-tight">
+          Your classes, added in seconds
+        </h2>
+        <ul className="mt-4 flex flex-col gap-3">
+          {POINTS.map(({ icon: Icon, text }) => (
+            <li key={text} className="flex items-start gap-2.5 text-sm">
+              <Icon
+                className="mt-0.5 size-4 shrink-0 text-brand"
+                aria-hidden
+              />
+              <span className="text-muted">{text}</span>
             </li>
-          )
-        )}
-      </ul>
+          ))}
+        </ul>
+        <Link
+          href="/setup/manual"
+          className={buttonClasses({
+            size: "lg",
+            className: "mt-6 w-full sm:w-auto",
+          })}
+        >
+          Pick your courses
+          <ArrowRight className="size-4" aria-hidden />
+        </Link>
+      </section>
 
       <p className="mt-8 text-center">
         <Link

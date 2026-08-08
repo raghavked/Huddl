@@ -229,9 +229,14 @@ export default function SettingsScreen() {
 
       <Card padded={false} style={{ marginTop: 20 }}>
         <SettingsLink
+          icon="bell"
+          label="Notifications"
+          first
+          onPress={() => router.push("/notifications")}
+        />
+        <SettingsLink
           icon="user"
           label="Account"
-          first
           onPress={() => router.push("/account")}
         />
         <SettingsLink

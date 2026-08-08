@@ -39,8 +39,8 @@ export async function createClient() {
 }
 
 /**
- * Service-role client for trusted server-side work (Canvas sync writes,
- * schedule-image audit logging). Bypasses RLS — never import from client code.
+ * Service-role client for trusted server-side work (e.g. campus-wide channel
+ * listings in browse). Bypasses RLS — never import from client code.
  */
 export function createServiceClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;

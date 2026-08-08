@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   BookOpen,
-  Camera,
   CircleAlert,
   GraduationCap,
+  History,
   ListChecks,
   Plus,
   Trash2,
@@ -33,13 +33,15 @@ type CourseEnrollment = Enrollment & {
   course: Course & { term: Pick<Term, "name"> | null };
 };
 
+// 'canvas' / 'schedule_image' are historical sources from retired import
+// flows — old rows keep them, so they render as a plain history label.
 const SOURCE_META: Record<
   EnrollmentSource,
   { label: string; icon: LucideIcon }
 > = {
-  canvas: { label: "Synced from Canvas", icon: GraduationCap },
-  schedule_image: { label: "From your schedule", icon: Camera },
-  manual: { label: "Added manually", icon: ListChecks },
+  canvas: { label: "Added a while back", icon: History },
+  schedule_image: { label: "Added a while back", icon: History },
+  manual: { label: "Added by you", icon: ListChecks },
 };
 
 /**

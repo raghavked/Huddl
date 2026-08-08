@@ -5,10 +5,9 @@ import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import {
   BookOpen,
-  Camera,
   CircleAlert,
-  GraduationCap,
   Hash,
+  History,
   ListChecks,
   UserPlus,
   type LucideIcon,
@@ -31,13 +30,15 @@ import type { Course, EnrollmentSource, Term } from "@/lib/types";
 
 type CourseRow = Course & { term: Pick<Term, "name"> | null };
 
+// 'canvas' / 'schedule_image' are historical sources from retired import
+// flows — old rows keep them, so they render as a plain history label.
 const SOURCE_META: Record<
   EnrollmentSource,
   { label: string; icon: LucideIcon }
 > = {
-  canvas: { label: "Synced from Canvas", icon: GraduationCap },
-  schedule_image: { label: "From your schedule", icon: Camera },
-  manual: { label: "Added manually", icon: ListChecks },
+  canvas: { label: "Added a while back", icon: History },
+  schedule_image: { label: "Added a while back", icon: History },
+  manual: { label: "Added by you", icon: ListChecks },
 };
 
 /** RLS scopes courses to the viewer's university — outside it this is null. */
@@ -110,10 +111,12 @@ export default async function CoursePage({
   const supabase = await createClient();
   const [{ data: channel }, { data: noteRows }, { data: enrollmentRows }] =
     await Promise.all([
+      // A course can have many rooms (0018) — link to the main one.
       supabase
         .from("channels")
         .select("id")
         .eq("course_id", course.id)
+        .eq("is_main", true)
         .maybeSingle(),
       supabase
         .from("notes")
