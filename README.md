@@ -1,15 +1,17 @@
 # Huddl
 
 **Your campus, in one huddle.** Huddl is an all-in-one communication platform for
-college students — Discord-style course and campus channels with a
-community-first, campus-by-campus operating model.
+college students — realtime course and campus channels with a
+community-first, campus-by-campus operating model. Huddl is its own
+standalone platform: every room, thread, and notification is built in-house
+on our own backend.
 
 Every account is verified with a university email, so each campus is a real,
 closed community. Course enrollment drives channel membership automatically:
 connect **Canvas by Instructure** and your course channels appear, or upload a
 picture of your schedule (processed **on your device**, with a notification
 audit trail if you choose to store it), or pick courses manually. Student
-organizations and clubs get Band-style spaces with their own chat, roster and
+organizations and clubs get dedicated spaces with their own chat, roster and
 events.
 
 ## Features
