@@ -1,0 +1,711 @@
+import Feather from "@expo/vector-icons/Feather";
+import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  RefreshControl,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AppText, Button, Card, Field } from "@/components/ui";
+import { radius } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
+import { buildQueue } from "@/lib/srs";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/providers/auth-provider";
+
+/* Deck home: the shared card list, a big Study door, and an add-card form.
+   Any classmate adds cards; authors long-press their own to edit or remove.
+   Due counts are yours alone — nobody else sees how you're doing. */
+
+/* Minimal local row shapes — the web app's types live outside this tsconfig. */
+type DeckRow = {
+  id: string;
+  course_id: string;
+  created_by: string | null;
+  title: string;
+  creator: { display_name: string } | null;
+  course: { code: string } | null;
+};
+
+type CardRow = {
+  id: string;
+  deck_id: string;
+  created_by: string | null;
+  front: string;
+  back: string;
+  position: number;
+  created_at: string;
+};
+
+type Status = "loading" | "error" | "notFound" | "ready";
+
+const CARD_SELECT = "id, deck_id, created_by, front, back, position, created_at";
+
+function BackChevron({ onPress }: { onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Back"
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => ({
+        width: 44,
+        height: 44,
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Feather name="chevron-left" size={26} color={theme.foreground} />
+    </Pressable>
+  );
+}
+
+export default function DeckHomeScreen() {
+  const theme = useTheme();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { session, ready } = useAuth();
+  const userId = session?.user.id ?? null;
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const deckId = id ?? "";
+
+  const [status, setStatus] = useState<Status>("loading");
+  const [deck, setDeck] = useState<DeckRow | null>(null);
+  const [cards, setCards] = useState<CardRow[]>([]);
+  const [reviews, setReviews] = useState<Map<string, { dueAt: Date }>>(new Map());
+  const [refreshing, setRefreshing] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // The add-card form (front/back), tucked behind a button until needed.
+  const [formOpen, setFormOpen] = useState(false);
+  const [front, setFront] = useState("");
+  const [back, setBack] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  // Editing one of your own cards, inline where the row was.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editFront, setEditFront] = useState("");
+  const [editBack, setEditBack] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else if (deck) {
+      router.replace({
+        pathname: "/course/decks",
+        params: deck.course
+          ? { courseId: deck.course_id, courseCode: deck.course.code }
+          : { courseId: deck.course_id },
+      });
+    } else router.replace("/(tabs)/home");
+  }, [router, deck]);
+
+  const load = useCallback(async () => {
+    if (!userId || !deckId) {
+      setStatus(deckId ? "error" : "notFound");
+      return;
+    }
+    const [deckRes, cardsRes] = await Promise.all([
+      supabase
+        .from("decks")
+        .select(
+          "id, course_id, created_by, title, creator:profiles(display_name), course:courses(code)"
+        )
+        .eq("id", deckId)
+        .maybeSingle(),
+      supabase
+        .from("cards")
+        .select(CARD_SELECT)
+        .eq("deck_id", deckId)
+        .order("position", { ascending: true })
+        .order("created_at", { ascending: true }),
+    ]);
+    if (deckRes.error || cardsRes.error) {
+      setStatus("error");
+      return;
+    }
+    const deckRow = deckRes.data as unknown as DeckRow | null;
+    // RLS hides other classes' decks, so "not found" covers both cases.
+    if (!deckRow) {
+      setStatus("notFound");
+      return;
+    }
+    const cardRows = (cardsRes.data ?? []) as unknown as CardRow[];
+    const reviewMap = new Map<string, { dueAt: Date }>();
+    if (cardRows.length > 0) {
+      const reviewsRes = await supabase
+        .from("card_reviews")
+        .select("card_id, due_at")
+        .eq("user_id", userId)
+        .in(
+          "card_id",
+          cardRows.map((card) => card.id)
+        );
+      if (reviewsRes.error) {
+        setStatus("error");
+        return;
+      }
+      for (const row of (reviewsRes.data ?? []) as {
+        card_id: string;
+        due_at: string;
+      }[]) {
+        reviewMap.set(row.card_id, { dueAt: new Date(row.due_at) });
+      }
+    }
+    setDeck(deckRow);
+    setCards(cardRows);
+    setReviews(reviewMap);
+    setStatus("ready");
+  }, [userId, deckId]);
+
+  // Reload on every focus, so due counts settle after a study session.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load])
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setActionError(null);
+    void load().finally(() => setRefreshing(false));
+  }, [load]);
+
+  /* ------------------------------ add a card ----------------------------- */
+
+  const resetForm = useCallback(() => {
+    setFormOpen(false);
+    setFront("");
+    setBack("");
+    setAddError(null);
+  }, []);
+
+  const handleAdd = useCallback(async () => {
+    if (!userId || !deckId || adding) return;
+    const frontText = front.trim();
+    const backText = back.trim();
+    if (frontText.length === 0 || backText.length === 0) {
+      setAddError("A card needs both sides — a prompt up front, the answer behind.");
+      return;
+    }
+    if (frontText.length > 1000 || backText.length > 2000) {
+      setAddError("That's a lot of card — trim it down a little.");
+      return;
+    }
+    setAddError(null);
+    setAdding(true);
+    const position =
+      cards.length > 0 ? Math.max(...cards.map((card) => card.position)) + 1 : 0;
+    const { data, error } = await supabase
+      .from("cards")
+      .insert({
+        deck_id: deckId,
+        created_by: userId,
+        front: frontText,
+        back: backText,
+        position,
+      })
+      .select(CARD_SELECT)
+      .single();
+    setAdding(false);
+    if (error || !data) {
+      setAddError(
+        error?.message.includes("row-level security")
+          ? "Cards are for classmates — add this course to your classes first."
+          : "We couldn't add that card just now. Give it another try."
+      );
+      return;
+    }
+    setCards((prev) => [...prev, data as unknown as CardRow]);
+    // Keep the form open and clear — card entry comes in bursts.
+    setFront("");
+    setBack("");
+  }, [userId, deckId, adding, front, back, cards]);
+
+  /* ---------------------- edit / delete (yours only) ---------------------- */
+
+  const startEdit = useCallback((card: CardRow) => {
+    setEditingId(card.id);
+    setEditFront(card.front);
+    setEditBack(card.back);
+    setEditError(null);
+  }, []);
+
+  const closeEdit = useCallback(() => {
+    setEditingId(null);
+    setEditFront("");
+    setEditBack("");
+    setEditError(null);
+  }, []);
+
+  const saveEdit = useCallback(
+    async (card: CardRow) => {
+      const frontText = editFront.trim();
+      const backText = editBack.trim();
+      if (frontText.length === 0 || backText.length === 0) {
+        setEditError("A card needs both sides — keep a prompt and an answer.");
+        return;
+      }
+      if (frontText.length > 1000 || backText.length > 2000) {
+        setEditError("That's a lot of card — trim it down a little.");
+        return;
+      }
+      // Optimistic: the row updates now, and reverts if the server minds.
+      const before = cards;
+      setCards((prev) =>
+        prev.map((row) =>
+          row.id === card.id ? { ...row, front: frontText, back: backText } : row
+        )
+      );
+      closeEdit();
+      const { error } = await supabase
+        .from("cards")
+        .update({ front: frontText, back: backText })
+        .eq("id", card.id);
+      if (error) {
+        setCards(before);
+        setActionError("That edit didn't stick — give it another try.");
+      }
+    },
+    [editFront, editBack, cards, closeEdit]
+  );
+
+  const deleteCard = useCallback(
+    async (card: CardRow) => {
+      setActionError(null);
+      const before = cards;
+      setCards((prev) => prev.filter((row) => row.id !== card.id));
+      const { error } = await supabase.from("cards").delete().eq("id", card.id);
+      if (error) {
+        setCards(before);
+        setActionError("We couldn't remove that card. Give it another try.");
+      }
+    },
+    [cards]
+  );
+
+  const handleLongPress = useCallback(
+    (card: CardRow) => {
+      if (card.created_by !== userId) return; // only your own cards
+      Alert.alert(
+        "Your card",
+        card.front.length > 80 ? `${card.front.slice(0, 80)}…` : card.front,
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Edit", onPress: () => startEdit(card) },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: () => void deleteCard(card),
+          },
+        ]
+      );
+    },
+    [userId, startEdit, deleteCard]
+  );
+
+  // Deep links land here directly — a signed-out visitor gets a proper door.
+  if (ready && !session) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  /* --------------------------- scaffold states --------------------------- */
+
+  const scaffold = (children: React.ReactNode) => (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: theme.background,
+        paddingTop: insets.top + 8,
+      }}
+    >
+      <View style={{ paddingHorizontal: 12 }}>
+        <BackChevron onPress={goBack} />
+      </View>
+      {children}
+    </View>
+  );
+
+  const centered = (children: React.ReactNode) => (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+        padding: 28,
+      }}
+    >
+      {children}
+    </View>
+  );
+
+  if (status !== "ready" || !deck) {
+    return scaffold(
+      status === "loading" ? (
+        centered(
+          <>
+            <ActivityIndicator size="large" color={theme.brand} />
+            <AppText variant="caption" muted>
+              Opening the deck…
+            </AppText>
+          </>
+        )
+      ) : status === "notFound" ? (
+        centered(
+          <>
+            <Feather name="layers" size={28} color={theme.muted} />
+            <AppText variant="bodySemi">Deck not available</AppText>
+            <AppText
+              variant="caption"
+              muted
+              style={{ textAlign: "center", maxWidth: 260 }}
+            >
+              It may have been taken down, or it belongs to a class you're not
+              in yet.
+            </AppText>
+            <Button label="Back" variant="soft" size="sm" onPress={goBack} />
+          </>
+        )
+      ) : (
+        centered(
+          <>
+            <Feather name="wifi-off" size={28} color={theme.muted} />
+            <AppText variant="bodySemi">Something hiccuped</AppText>
+            <AppText
+              variant="caption"
+              muted
+              style={{ textAlign: "center", maxWidth: 260 }}
+            >
+              We couldn't load this deck. Check your connection and give it
+              another go.
+            </AppText>
+            <Button
+              label="Try again"
+              variant="soft"
+              size="sm"
+              onPress={() => {
+                setStatus("loading");
+                void load();
+              }}
+            />
+          </>
+        )
+      )
+    );
+  }
+
+  /* ------------------------------ deck home ------------------------------ */
+
+  // New cards count as due, so the queue length IS the honest due count.
+  const due = buildQueue(cards, reviews, new Date(), cards.length).length;
+  const cardsLabel = cards.length === 1 ? "1 card" : `${cards.length} cards`;
+  const creatorName =
+    deck.created_by === userId
+      ? "you"
+      : deck.creator?.display_name ?? "a classmate";
+
+  const addForm = formOpen ? (
+    <Card style={{ gap: 12 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <AppText variant="title">Add a card</AppText>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close the card form"
+          onPress={resetForm}
+          disabled={adding}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            marginRight: -12,
+            marginVertical: -12,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Feather name="x" size={18} color={theme.muted} />
+        </Pressable>
+      </View>
+      <Field
+        label="Front"
+        value={front}
+        onChangeText={(text) => {
+          setFront(text);
+          if (addError) setAddError(null);
+        }}
+        placeholder="What does RLS stand for?"
+        maxLength={1000}
+        editable={!adding}
+        multiline
+      />
+      <Field
+        label="Back"
+        value={back}
+        onChangeText={(text) => {
+          setBack(text);
+          if (addError) setAddError(null);
+        }}
+        placeholder="Row-level security"
+        maxLength={2000}
+        editable={!adding}
+        multiline
+        error={addError}
+      />
+      <Button
+        label="Add card"
+        size="sm"
+        pending={adding}
+        disabled={adding || front.trim().length === 0 || back.trim().length === 0}
+        icon={<Feather name="plus" size={14} color={theme.brandFg} />}
+        onPress={() => void handleAdd()}
+        style={{ alignSelf: "flex-start" }}
+      />
+    </Card>
+  ) : (
+    <Button
+      label="Add a card"
+      variant="secondary"
+      icon={<Feather name="plus" size={16} color={theme.foreground} />}
+      onPress={() => setFormOpen(true)}
+    />
+  );
+
+  return scaffold(
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <FlatList
+        data={cards}
+        keyExtractor={(card) => card.id}
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingBottom: insets.bottom + 32,
+        }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.brand}
+            colors={[theme.brand]}
+          />
+        }
+        ListHeaderComponent={
+          <View style={{ gap: 12, marginBottom: 14 }}>
+            <View style={{ gap: 4 }}>
+              <AppText variant="display">{deck.title}</AppText>
+              <AppText variant="caption" muted>
+                {deck.course ? `${deck.course.code} · ` : ""}
+                {cardsLabel} ·{" "}
+                {due > 0 ? `${due} due for you` : "nothing due for you"}
+              </AppText>
+              <View style={{ flexDirection: "row", marginTop: 2 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 5,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: radius.full,
+                    backgroundColor: theme.surface2,
+                  }}
+                >
+                  <Feather name="user" size={11} color={theme.muted} />
+                  <AppText
+                    variant="label"
+                    muted
+                    style={{ fontSize: 11, lineHeight: 14 }}
+                  >
+                    Started by {creatorName}
+                  </AppText>
+                </View>
+              </View>
+            </View>
+
+            <View style={{ gap: 6 }}>
+              <Button
+                label="Study"
+                size="lg"
+                disabled={due === 0}
+                icon={<Feather name="play" size={18} color={theme.brandFg} />}
+                onPress={() =>
+                  router.push({
+                    pathname: "/deck/study",
+                    params: { deckId: deck.id },
+                  })
+                }
+              />
+              {due === 0 ? (
+                <AppText
+                  variant="caption"
+                  muted
+                  style={{ textAlign: "center" }}
+                >
+                  {cards.length === 0
+                    ? "Add the first card and the studying can start."
+                    : "Nothing due — check back tomorrow."}
+                </AppText>
+              ) : null}
+            </View>
+
+            <AppText variant="title" style={{ marginTop: 2 }}>
+              Cards
+            </AppText>
+            {addForm}
+            {actionError ? (
+              <AppText variant="caption" style={{ color: theme.danger }}>
+                {actionError}
+              </AppText>
+            ) : null}
+          </View>
+        }
+        ListEmptyComponent={
+          <Card
+            style={{
+              alignItems: "center",
+              gap: 6,
+              paddingVertical: 24,
+              borderStyle: "dashed",
+            }}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: radius.full,
+                backgroundColor: theme.brandSoft,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 2,
+              }}
+            >
+              <Feather name="file-text" size={18} color={theme.brand} />
+            </View>
+            <AppText variant="bodySemi">An empty deck, for now</AppText>
+            <AppText
+              variant="caption"
+              muted
+              style={{ textAlign: "center", maxWidth: 260 }}
+            >
+              Every card you add shows up for the whole class.
+            </AppText>
+          </Card>
+        }
+        renderItem={({ item }) => {
+          if (editingId === item.id) {
+            return (
+              <Card style={{ gap: 12, marginBottom: 10 }}>
+                <AppText variant="title">Edit card</AppText>
+                <Field
+                  label="Front"
+                  value={editFront}
+                  onChangeText={(text) => {
+                    setEditFront(text);
+                    if (editError) setEditError(null);
+                  }}
+                  maxLength={1000}
+                  multiline
+                  autoFocus
+                />
+                <Field
+                  label="Back"
+                  value={editBack}
+                  onChangeText={(text) => {
+                    setEditBack(text);
+                    if (editError) setEditError(null);
+                  }}
+                  maxLength={2000}
+                  multiline
+                  error={editError}
+                />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "flex-end",
+                    gap: 8,
+                  }}
+                >
+                  <Button
+                    label="Cancel"
+                    variant="ghost"
+                    size="sm"
+                    onPress={closeEdit}
+                  />
+                  <Button
+                    label="Save"
+                    size="sm"
+                    disabled={
+                      editFront.trim().length === 0 ||
+                      editBack.trim().length === 0
+                    }
+                    onPress={() => void saveEdit(item)}
+                  />
+                </View>
+              </Card>
+            );
+          }
+          const mine = item.created_by === userId;
+          return (
+            <Pressable
+              accessibilityRole={mine ? "button" : "none"}
+              accessibilityLabel={`${item.front}${
+                mine ? ". Long press to edit or delete" : ""
+              }`}
+              onLongPress={mine ? () => handleLongPress(item) : undefined}
+              style={({ pressed }) => ({
+                opacity: mine && pressed ? 0.85 : 1,
+                marginBottom: 10,
+              })}
+            >
+              <Card
+                padded={false}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 12,
+                  minHeight: 52,
+                }}
+              >
+                <AppText
+                  variant="bodyMedium"
+                  numberOfLines={1}
+                  style={{ flex: 1, minWidth: 0 }}
+                >
+                  {item.front}
+                </AppText>
+                {mine ? (
+                  <Feather name="edit-2" size={13} color={theme.muted} />
+                ) : null}
+              </Card>
+            </Pressable>
+          );
+        }}
+      />
+    </KeyboardAvoidingView>
+  );
+}

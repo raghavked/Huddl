@@ -34,6 +34,7 @@ import { PollBubble, PollComposer } from "@/features/polls";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { typingLabel, useTyping } from "@/hooks/use-typing";
+import { tapLight, tapSuccess } from "@/lib/haptics";
 import { setMessagePinned } from "@/lib/pins";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -544,6 +545,7 @@ export default function ChannelRoomScreen() {
       const mine = (reactionsRef.current[messageId] ?? []).some(
         (r) => r.user_id === userId && r.emoji === emoji
       );
+      if (!mine) tapLight(); // adding a reaction gets a tick; removing stays silent
       setReactionsByMessage((prev) => {
         const rows = prev[messageId] ?? [];
         return {
@@ -874,6 +876,7 @@ export default function ChannelRoomScreen() {
       author: null,
     };
     setMessages((prev) => [optimistic, ...prev]);
+    tapLight(); // the send lands with the optimistic bubble, not the round-trip
     setSending(true);
     const { data, error: insertError } = await supabase
       .from("messages")
@@ -1056,6 +1059,7 @@ export default function ChannelRoomScreen() {
   const handleTogglePin = useCallback(
     async (target: MessageRow, pin: boolean) => {
       if (!userId) return;
+      if (pin) tapSuccess(); // pinning is a commitment; unpinning stays silent
       const pinnedAt = pin ? new Date().toISOString() : null;
       setMessages((prev) =>
         prev.map((m) =>

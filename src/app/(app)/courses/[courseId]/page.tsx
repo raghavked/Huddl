@@ -12,6 +12,7 @@ import {
   FilePlus2,
   Hash,
   History,
+  Layers,
   ListChecks,
   UserPlus,
   type LucideIcon,
@@ -21,6 +22,12 @@ import {
   NotesSection,
   type NoteWithUploader,
 } from "@/features/notes/notes-section";
+import { CourseDetails } from "@/features/study/course-details";
+import {
+  COURSE_LINK_SELECT,
+  CourseLinks,
+  type CourseLinkRow,
+} from "@/features/study/course-links";
 import {
   Badge,
   Card,
@@ -33,7 +40,15 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import type { Course, EnrollmentSource, Term } from "@/lib/types";
 
-type CourseRow = Course & { term: Pick<Term, "name"> | null };
+// instructor / meeting_info / location are the classmate-kept details from
+// migration 0024 — on the row via select("*"), typed here until they land in
+// the shared Course type.
+type CourseRow = Course & {
+  term: Pick<Term, "name"> | null;
+  instructor: string | null;
+  meeting_info: string | null;
+  location: string | null;
+};
 
 // 'canvas' / 'schedule_image' are historical sources from retired import
 // flows — old rows keep them, so they render as a plain history label.
@@ -46,10 +61,11 @@ const SOURCE_META: Record<
   manual: { label: "Added by you", icon: ListChecks },
 };
 
-// The study layer that grew out of the course chat (migration 0018):
-// side rooms, the shared class calendar, and paste-first syllabus import.
+// The study layer that grew out of the course chat (migrations 0018 + 0024):
+// side rooms, the shared class calendar, paste-first syllabus import, and
+// shared flashcard decks.
 const STUDY_LINKS: {
-  segment: "rooms" | "calendar" | "syllabus";
+  segment: "rooms" | "calendar" | "syllabus" | "decks";
   label: string;
   description: string;
   icon: LucideIcon;
@@ -65,6 +81,12 @@ const STUDY_LINKS: {
     label: "Class calendar",
     description: "Shared dates — check off what you've handled",
     icon: CalendarDays,
+  },
+  {
+    segment: "decks",
+    label: "Flashcards",
+    description: "Shared decks the whole class builds together",
+    icon: Layers,
   },
   {
     segment: "syllabus",
@@ -142,29 +164,39 @@ export default async function CoursePage({
   if (!course) notFound();
 
   const supabase = await createClient();
-  const [{ data: channel }, { data: noteRows }, { data: enrollmentRows }] =
-    await Promise.all([
-      // A course can have many rooms (0018) — link to the main one.
-      supabase
-        .from("channels")
-        .select("id")
-        .eq("course_id", course.id)
-        .eq("is_main", true)
-        .maybeSingle(),
-      supabase
-        .from("notes")
-        .select(
-          "*, uploader:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
-        )
-        .eq("course_id", course.id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("enrollments")
-        .select(
-          "*, profile:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
-        )
-        .eq("course_id", course.id),
-    ]);
+  const [
+    { data: channel },
+    { data: noteRows },
+    { data: enrollmentRows },
+    { data: linkRows },
+  ] = await Promise.all([
+    // A course can have many rooms (0018) — link to the main one.
+    supabase
+      .from("channels")
+      .select("id")
+      .eq("course_id", course.id)
+      .eq("is_main", true)
+      .maybeSingle(),
+    supabase
+      .from("notes")
+      .select(
+        "*, uploader:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+      )
+      .eq("course_id", course.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("enrollments")
+      .select(
+        "*, profile:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+      )
+      .eq("course_id", course.id),
+    // Pinned course links (0024) — RLS keeps them classmate-only.
+    supabase
+      .from("course_links")
+      .select(COURSE_LINK_SELECT)
+      .eq("course_id", course.id)
+      .order("created_at", { ascending: true }),
+  ]);
 
   const classmates = ((enrollmentRows ?? []) as ClassmateEntry[]).filter(
     (row) => Boolean(row.profile)
@@ -226,6 +258,7 @@ export default async function CoursePage({
   }
 
   const notes = (noteRows ?? []) as NoteWithUploader[];
+  const courseLinks = (linkRows ?? []) as unknown as CourseLinkRow[];
   const tab = rawTab === "classmates" ? "classmates" : "notes";
   const source = SOURCE_META[myEnrollment.source];
   const SourceIcon = source.icon;
@@ -273,8 +306,8 @@ export default async function CoursePage({
         </Badge>
       </div>
 
-      {/* The study layer: rooms, the shared calendar, and syllabus import. */}
-      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {/* The study layer: rooms, the calendar, flashcards, syllabus import. */}
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {STUDY_LINKS.map(({ segment, label, description, icon: Icon }) => (
           <Link
             key={segment}
@@ -297,6 +330,23 @@ export default async function CoursePage({
             <ChevronRight className="size-4 shrink-0 text-muted" aria-hidden />
           </Link>
         ))}
+      </div>
+
+      {/* Classmate-kept course facts + pinned links (migration 0024). */}
+      <div className="mt-8 flex flex-col gap-8">
+        <CourseDetails
+          courseId={course.id}
+          initialDetails={{
+            instructor: course.instructor,
+            meeting_info: course.meeting_info,
+            location: course.location,
+          }}
+        />
+        <CourseLinks
+          courseId={course.id}
+          userId={user.userId}
+          initialLinks={courseLinks}
+        />
       </div>
 
       <nav

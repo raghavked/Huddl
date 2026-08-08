@@ -1,5 +1,36 @@
 # Huddl development log
 
+## Round 10 — study tools, course depth, and the feel pass
+
+Migrations 0024–0025 live, five agents across both clients:
+
+- **Flashcards**: shared decks per course — any classmate adds cards,
+  authors edit their own, deck creators curate; a three-button
+  spaced-repetition study mode (`again` 10 min · `good` 1/3/7/14/30 days
+  · `easy` 3/7/14/30/60, streak-indexed, pure `srs.ts` lib ported to
+  both clients with 19 tests) with private per-student review state,
+  interval previews on the grade buttons, and save-before-advance so
+  leaving mid-session loses nothing.
+- **Course depth**: classmate-edited course details (instructor, meeting
+  times, location via an enrollment-guarded RPC — "kept up by the class")
+  and pinned course links (syllabus, textbook, office hours; http(s)
+  validated, author-removable) on the course home in both clients.
+- **Notification control**: per-kind push toggles (DMs, mentions,
+  replies, class calendar, events, digest) writing
+  `profiles.notification_prefs`; the push trigger honors opt-outs while
+  the in-app inbox keeps everything. A pg_cron **weekly digest** lands
+  Monday morning with the week's due-date count, deep-linking to /plan.
+- **The feel pass**: haptics at moments of completion (check-offs,
+  sends, reactions, pins, tab presses) behind a web-safe wrapper; a
+  no-guilt study streak chip on the plan (consecutive check-off days,
+  hidden below 2); accessibility sweep of the touched screens
+  (checkbox roles + states, labeled icon buttons).
+
+Verification: mobile strict tsc + iOS Hermes export; web tsc, ESLint,
+114 Vitest tests, production build with the new deck and
+notification-settings routes. Security advisors re-run after 0024:
+clean (only the documented accepted items).
+
 ## Round 9 — discovery, depth, and App Store readiness
 
 The mobile-readiness round:

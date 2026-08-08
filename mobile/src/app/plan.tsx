@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
 import { radius, type Palette } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { tapLight, tapSuccess } from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
 import {
   buildPlan,
@@ -39,11 +40,12 @@ type CalendarItemRow = {
   due_at: string;
 };
 
-type CheckoffRow = { item_id: string };
+type CheckoffRow = { item_id: string; done_at: string };
 
 type PlanData = {
   items: PlanItem[];
-  checkoffs: Set<string>;
+  /** item_id → done_at ISO — membership drives the plan, times drive the streak. */
+  checkoffs: Map<string, string>;
   hasCourses: boolean;
   loadedAt: Date;
 };
@@ -67,6 +69,32 @@ function formatDayTime(d: Date): string {
 
 function kindLabel(kind: PlanKind): string {
   return kind.charAt(0).toUpperCase() + kind.slice(1);
+}
+
+/** Local calendar-day key — streaks live in the student's timezone. */
+function localDayKey(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+/**
+ * The study streak: consecutive local calendar days ending today-or-yesterday
+ * with at least one check-off. Yesterday still counts as alive so an unmarked
+ * morning doesn't zero out last night's run. Pure — feed it done_at ISO
+ * strings and a "now" and it hands back the day count.
+ */
+function computeStreak(doneAts: Iterable<string>, now: Date): number {
+  const days = new Set<string>();
+  for (const iso of doneAts) {
+    days.add(localDayKey(new Date(iso)));
+  }
+  const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (!days.has(localDayKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+  let streak = 0;
+  while (days.has(localDayKey(cursor))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
 }
 
 /** Exams and quizzes pop in the accent green; everything else stays quiet. */
@@ -142,10 +170,9 @@ function EntryRow({
       <Pressable
         accessibilityRole="checkbox"
         accessibilityState={{ checked: entry.done }}
-        accessibilityLabel={`${entry.courseCode} ${entry.title}`}
-        accessibilityHint={
-          entry.done ? "Marks it not handled" : "Marks it handled"
-        }
+        accessibilityLabel={`${entry.done ? "Mark not done" : "Mark done"} — ${
+          entry.courseCode
+        } ${entry.title}`}
         onPress={onToggle}
         hitSlop={4}
         style={({ pressed }) => ({
@@ -263,7 +290,7 @@ export default function PlanScreen() {
       .map((row) => row.course)
       .filter((c): c is { id: string; code: string } => c !== null);
     if (courses.length === 0) {
-      return { items: [], checkoffs: new Set(), hasCourses: false, loadedAt: now };
+      return { items: [], checkoffs: new Map(), hasCourses: false, loadedAt: now };
     }
 
     const codeById = new Map(courses.map((c) => [c.id, c.code]));
@@ -278,7 +305,10 @@ export default function PlanScreen() {
         .in("course_id", [...codeById.keys()])
         .gte("due_at", since)
         .order("due_at", { ascending: true }),
-      supabase.from("study_checkoffs").select("item_id").eq("user_id", userId),
+      supabase
+        .from("study_checkoffs")
+        .select("item_id, done_at")
+        .eq("user_id", userId),
     ]);
     if (itemsRes.error) throw itemsRes.error;
     if (checkoffsRes.error) throw checkoffsRes.error;
@@ -292,9 +322,9 @@ export default function PlanScreen() {
         dueAt: new Date(row.due_at),
       })
     );
-    const checkoffs = new Set(
+    const checkoffs = new Map(
       ((checkoffsRes.data ?? []) as unknown as CheckoffRow[]).map(
-        (row) => row.item_id
+        (row) => [row.item_id, row.done_at] as const
       )
     );
     return { items, checkoffs, hasCourses: true, loadedAt: now };
@@ -331,12 +361,14 @@ export default function PlanScreen() {
       const flip = (add: boolean) =>
         setData((prev) => {
           if (!prev) return prev;
-          const next = new Set(prev.checkoffs);
-          if (add) next.add(entry.id);
+          const next = new Map(prev.checkoffs);
+          if (add) next.set(entry.id, new Date().toISOString());
           else next.delete(entry.id);
           return { ...prev, checkoffs: next };
         });
       flip(marking);
+      if (marking) tapSuccess();
+      else tapLight();
       const res = marking
         ? await supabase
             .from("study_checkoffs")
@@ -358,7 +390,15 @@ export default function PlanScreen() {
   );
 
   const plan = useMemo(
-    () => (data ? buildPlan(data.items, data.checkoffs, data.loadedAt) : null),
+    () =>
+      data
+        ? buildPlan(data.items, new Set(data.checkoffs.keys()), data.loadedAt)
+        : null,
+    [data]
+  );
+
+  const streak = useMemo(
+    () => (data ? computeStreak(data.checkoffs.values(), data.loadedAt) : 0),
     [data]
   );
 
@@ -538,6 +578,33 @@ export default function PlanScreen() {
                       <AppText variant="caption" muted numberOfLines={1}>
                         Next up: {stats.nextUp.courseCode} {stats.nextUp.title}
                       </AppText>
+                    ) : null}
+                    {/* The streak stays quiet: nothing at 0 or 1 — no guilt UI. */}
+                    {streak >= 2 ? (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 5,
+                          alignSelf: "flex-start",
+                          paddingHorizontal: 8,
+                          paddingVertical: 3,
+                          borderRadius: radius.full,
+                          backgroundColor: theme.accentSoft,
+                        }}
+                      >
+                        <Feather name="zap" size={11} color={theme.accent} />
+                        <AppText
+                          variant="label"
+                          style={{
+                            color: theme.accent,
+                            fontSize: 11,
+                            lineHeight: 14,
+                          }}
+                        >
+                          {streak}-day streak
+                        </AppText>
+                      </View>
                     ) : null}
                   </Card>
                 ) : null}

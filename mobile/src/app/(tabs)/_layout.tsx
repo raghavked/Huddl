@@ -2,6 +2,7 @@ import Feather from "@expo/vector-icons/Feather";
 import { Redirect, Tabs } from "expo-router";
 import { fonts } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { tapLight } from "@/lib/haptics";
 import { useAuth } from "@/providers/auth-provider";
 
 const TAB_ICONS = {
@@ -22,6 +23,9 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      // A light tick on every tab press — the one "every touch" exception,
+      // since switching context is itself a small commitment.
+      screenListeners={{ tabPress: () => tapLight() }}
       screenOptions={({ route }) => ({
         headerShown: false,
         sceneStyle: { backgroundColor: theme.background },

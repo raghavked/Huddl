@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Field } from "@/components/ui";
 import { radius, type Palette } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { tapLight, tapSuccess } from "@/lib/haptics";
 import { CALENDAR_KINDS, kindLabel, type CalendarKind } from "@/lib/syllabus";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -231,6 +232,8 @@ export default function ClassCalendarScreen() {
         else next.add(item.id);
         return next;
       });
+      if (wasChecked) tapLight();
+      else tapSuccess();
       const { error } = wasChecked
         ? await supabase
             .from("study_checkoffs")
@@ -389,9 +392,9 @@ export default function ClassCalendarScreen() {
       <Pressable
         accessibilityRole="checkbox"
         accessibilityState={{ checked: done }}
-        accessibilityLabel={`${item.title}, ${shortDay(item.due_at)}. ${
-          done ? "Checked off" : "Tap to check off"
-        }${mine ? ". Long press to remove" : ""}`}
+        accessibilityLabel={`${done ? "Mark not done" : "Mark done"} — ${
+          item.title
+        }, ${shortDay(item.due_at)}${mine ? ". Long press to remove" : ""}`}
         onPress={() => void toggleCheck(item)}
         onLongPress={mine ? () => confirmDelete(item) : undefined}
         style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}

@@ -24,6 +24,7 @@ import { fonts, palettes, radius } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { unblockUser } from "@/lib/blocks";
+import { tapLight } from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -353,6 +354,7 @@ export default function DmRoomScreen() {
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [temp, ...prev]);
+    tapLight(); // the send lands with the optimistic bubble, not the round-trip
     setSending(true);
     const { data, error: insertError } = await supabase
       .from("dm_messages")

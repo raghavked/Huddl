@@ -38,6 +38,27 @@ type CourseRow = {
   code: string;
   title: string;
   term: { name: string } | null;
+  instructor: string | null;
+  meeting_info: string | null;
+  location: string | null;
+};
+
+/* Pinned course links — the syllabus, the textbook, wherever class lives. */
+type LinkKind = "syllabus" | "textbook" | "office_hours" | "lecture" | "other";
+
+type CourseLinkRow = {
+  id: string;
+  kind: LinkKind;
+  title: string;
+  url: string;
+};
+
+const LINK_ICON: Record<LinkKind, FeatherName> = {
+  syllabus: "file-text",
+  textbook: "book",
+  office_hours: "help-circle",
+  lecture: "video",
+  other: "link",
 };
 
 type ClassmateRole = "student" | "ta" | "instructor";
@@ -330,7 +351,19 @@ export default function CourseHubScreen() {
   const [mates, setMates] = useState<ClassmateRow[]>([]);
   const [upcoming, setUpcoming] = useState<UpcomingItem[]>([]);
   const [sessions, setSessions] = useState<CourseEventRow[]>([]);
+  const [links, setLinks] = useState<CourseLinkRow[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Classmate-kept course details: an inline three-field editor.
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [draftInstructor, setDraftInstructor] = useState("");
+  const [draftMeeting, setDraftMeeting] = useState("");
+  const [draftLocation, setDraftLocation] = useState("");
+  const [savingDetails, setSavingDetails] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+
+  // Opening a pinned link in the browser.
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   // Opening a note (signed URL -> browser/viewer).
   const [openingId, setOpeningId] = useState<string | null>(null);
@@ -364,10 +397,13 @@ export default function CourseHubScreen() {
         matesRes,
         upcomingRes,
         sessionsRes,
+        linksRes,
       ] = await Promise.all([
           supabase
             .from("courses")
-            .select("id, code, title, term:terms(name)")
+            .select(
+              "id, code, title, instructor, meeting_info, location, term:terms(name)"
+            )
             .eq("id", courseId)
             .maybeSingle(),
           // Courses grew rooms (extra channels) — the front room is is_main.
@@ -398,6 +434,13 @@ export default function CourseHubScreen() {
             .gte("starts_at", new Date().toISOString())
             .order("starts_at", { ascending: true })
             .limit(3),
+          // The first pins go up top — the full list lives on its own screen.
+          supabase
+            .from("course_links")
+            .select("id, kind, title, url")
+            .eq("course_id", courseId)
+            .order("created_at", { ascending: true })
+            .limit(3),
         ]);
       if (courseRes.error) {
         setStatus("error");
@@ -426,6 +469,8 @@ export default function CourseHubScreen() {
       setSessions(
         (sessionsRes.data ?? []) as unknown as CourseEventRow[]
       );
+      // And for pinned links — best-effort too.
+      setLinks((linksRes.data ?? []) as unknown as CourseLinkRow[]);
       const sortedMates = (
         (matesRes.data ?? []) as unknown as ClassmateRow[]
       ).sort(
@@ -449,8 +494,73 @@ export default function CourseHubScreen() {
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setOpenError(null);
+    setLinkError(null);
+    setDetailsError(null);
     void load().finally(() => setRefreshing(false));
   }, [load]);
+
+  /* ------------------- course details (classmate-kept) ------------------- */
+
+  const openDetailsEditor = useCallback(() => {
+    if (!course) return;
+    setDraftInstructor(course.instructor ?? "");
+    setDraftMeeting(course.meeting_info ?? "");
+    setDraftLocation(course.location ?? "");
+    setDetailsError(null);
+    setEditingDetails(true);
+  }, [course]);
+
+  const closeDetailsEditor = useCallback(() => {
+    setEditingDetails(false);
+    setDetailsError(null);
+  }, []);
+
+  const handleSaveDetails = useCallback(async () => {
+    if (!course || savingDetails) return;
+    const next = {
+      instructor: draftInstructor.trim() || null,
+      meeting_info: draftMeeting.trim() || null,
+      location: draftLocation.trim() || null,
+    };
+    const previous = {
+      instructor: course.instructor,
+      meeting_info: course.meeting_info,
+      location: course.location,
+    };
+    setDetailsError(null);
+    setSavingDetails(true);
+    // Optimistic: the card updates right away; a failure rolls it back.
+    setCourse((cur) => (cur ? { ...cur, ...next } : cur));
+    setEditingDetails(false);
+    const { error: rpcError } = await supabase.rpc("update_course_details", {
+      p_course_id: course.id,
+      p_instructor: next.instructor,
+      p_meeting_info: next.meeting_info,
+      p_location: next.location,
+    });
+    setSavingDetails(false);
+    if (rpcError) {
+      setCourse((cur) => (cur ? { ...cur, ...previous } : cur));
+      setDetailsError(
+        rpcError.message.includes("join the course")
+          ? "Details are kept by classmates — add this course to your classes first."
+          : "Couldn't save those details just now. Give it another try."
+      );
+    }
+  }, [course, savingDetails, draftInstructor, draftMeeting, draftLocation]);
+
+  /* ------------------------------ links ------------------------------ */
+
+  const handleOpenLink = useCallback(async (link: CourseLinkRow) => {
+    setLinkError(null);
+    try {
+      await Linking.openURL(link.url);
+    } catch {
+      setLinkError(
+        "That link wouldn't open — it may be mistyped. Try it from the full list."
+      );
+    }
+  }, []);
 
   const handleOpenNote = useCallback(async (note: NoteRow) => {
     setOpenError(null);
@@ -936,6 +1046,17 @@ export default function CourseHubScreen() {
 
   /* ------------------------------ the hub ---------------------------- */
 
+  const detailRows: { key: string; icon: FeatherName; value: string }[] = [];
+  if (course.instructor) {
+    detailRows.push({ key: "instructor", icon: "user", value: course.instructor });
+  }
+  if (course.meeting_info) {
+    detailRows.push({ key: "meeting", icon: "clock", value: course.meeting_info });
+  }
+  if (course.location) {
+    detailRows.push({ key: "location", icon: "map-pin", value: course.location });
+  }
+
   return (
     <View
       style={{
@@ -1017,6 +1138,255 @@ export default function CourseHubScreen() {
                 />
               </Card>
             ) : null}
+
+            {/* Course details — who teaches it, when it meets, where.
+                Classmate-kept, like the course list itself. */}
+            <View style={{ gap: 10, marginTop: 2 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <AppText variant="title">Course details</AppText>
+                {isEnrolled && !editingDetails ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Edit course details"
+                    onPress={openDetailsEditor}
+                    hitSlop={8}
+                    style={({ pressed }) => ({
+                      height: 44,
+                      marginVertical: -11,
+                      paddingHorizontal: 8,
+                      marginRight: -8,
+                      justifyContent: "center",
+                      opacity: pressed ? 0.6 : 1,
+                    })}
+                  >
+                    <AppText variant="label" style={{ color: theme.brandInk }}>
+                      Edit
+                    </AppText>
+                  </Pressable>
+                ) : null}
+              </View>
+              {editingDetails ? (
+                <Card style={{ gap: 12 }}>
+                  <Field
+                    label="Instructor"
+                    value={draftInstructor}
+                    onChangeText={setDraftInstructor}
+                    placeholder="Prof. Alvarez"
+                    maxLength={120}
+                    editable={!savingDetails}
+                  />
+                  <Field
+                    label="Meeting times"
+                    value={draftMeeting}
+                    onChangeText={setDraftMeeting}
+                    placeholder="MWF 10:00–10:50 AM"
+                    maxLength={120}
+                    editable={!savingDetails}
+                  />
+                  <Field
+                    label="Location"
+                    value={draftLocation}
+                    onChangeText={setDraftLocation}
+                    placeholder="Wellman 106"
+                    maxLength={120}
+                    editable={!savingDetails}
+                  />
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "flex-end",
+                      gap: 8,
+                    }}
+                  >
+                    <Button
+                      label="Cancel"
+                      variant="ghost"
+                      size="sm"
+                      disabled={savingDetails}
+                      onPress={closeDetailsEditor}
+                    />
+                    <Button
+                      label="Save details"
+                      size="sm"
+                      pending={savingDetails}
+                      onPress={() => void handleSaveDetails()}
+                    />
+                  </View>
+                </Card>
+              ) : detailRows.length > 0 ? (
+                <Card padded={false}>
+                  {detailRows.map((row, index) => (
+                    <View
+                      key={row.key}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                        paddingHorizontal: 14,
+                        paddingVertical: 10,
+                        minHeight: 48,
+                        borderTopWidth: index === 0 ? 0 : 1,
+                        borderTopColor: theme.border,
+                      }}
+                    >
+                      <Feather name={row.icon} size={15} color={theme.brand} />
+                      <AppText variant="bodyMedium" style={{ flex: 1 }}>
+                        {row.value}
+                      </AppText>
+                    </View>
+                  ))}
+                </Card>
+              ) : (
+                <Card
+                  style={{
+                    alignItems: "center",
+                    gap: 6,
+                    paddingVertical: 20,
+                    borderStyle: "dashed",
+                  }}
+                >
+                  <AppText
+                    variant="caption"
+                    muted
+                    style={{ textAlign: "center", maxWidth: 260 }}
+                  >
+                    Who teaches it, when it meets, where — fill it in for the
+                    class.
+                  </AppText>
+                </Card>
+              )}
+              {detailsError ? (
+                <AppText variant="caption" style={{ color: theme.danger }}>
+                  {detailsError}
+                </AppText>
+              ) : null}
+              <AppText variant="caption" muted>
+                Kept up by the class — anyone enrolled can edit.
+              </AppText>
+            </View>
+
+            {/* Links — the syllabus, the textbook, wherever class lives. */}
+            <View style={{ gap: 10, marginTop: 2 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <AppText variant="title">Links</AppText>
+                {links.length > 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="All links"
+                    onPress={() =>
+                      router.push({
+                        pathname: "/course/links",
+                        params: { courseId, courseCode: course.code },
+                      })
+                    }
+                    hitSlop={8}
+                    style={({ pressed }) => ({
+                      height: 44,
+                      marginVertical: -11,
+                      paddingHorizontal: 8,
+                      marginRight: -8,
+                      justifyContent: "center",
+                      opacity: pressed ? 0.6 : 1,
+                    })}
+                  >
+                    <AppText variant="label" style={{ color: theme.brandInk }}>
+                      All links
+                    </AppText>
+                  </Pressable>
+                ) : null}
+              </View>
+              {links.length > 0 ? (
+                <Card padded={false}>
+                  {links.map((link, index) => (
+                    <Pressable
+                      key={link.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open ${link.title}`}
+                      onPress={() => void handleOpenLink(link)}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 10,
+                          paddingHorizontal: 14,
+                          paddingVertical: 10,
+                          minHeight: 48,
+                          borderTopWidth: index === 0 ? 0 : 1,
+                          borderTopColor: theme.border,
+                        }}
+                      >
+                        <Feather
+                          name={LINK_ICON[link.kind]}
+                          size={15}
+                          color={theme.brand}
+                        />
+                        <AppText
+                          variant="bodyMedium"
+                          numberOfLines={1}
+                          style={{ flex: 1 }}
+                        >
+                          {link.title}
+                        </AppText>
+                        <Feather
+                          name="external-link"
+                          size={14}
+                          color={theme.muted}
+                        />
+                      </View>
+                    </Pressable>
+                  ))}
+                </Card>
+              ) : (
+                <Card
+                  padded={false}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: 12,
+                    borderStyle: "dashed",
+                  }}
+                >
+                  <AppText variant="caption" muted style={{ flex: 1 }}>
+                    {isEnrolled
+                      ? "Pin the syllabus, the textbook, office hours — the class will thank you."
+                      : "Classmates pin the syllabus and more here."}
+                  </AppText>
+                  {isEnrolled ? (
+                    <Button
+                      label="Add a link"
+                      variant="soft"
+                      size="sm"
+                      onPress={() =>
+                        router.push({
+                          pathname: "/course/links",
+                          params: { courseId, courseCode: course.code },
+                        })
+                      }
+                    />
+                  ) : null}
+                </Card>
+              )}
+              {linkError ? (
+                <AppText variant="caption" style={{ color: theme.danger }}>
+                  {linkError}
+                </AppText>
+              ) : null}
+            </View>
 
             {/* Class calendar — the shared schedule, right between the
                 header and Notes. */}
@@ -1235,6 +1605,50 @@ export default function CourseHubScreen() {
                   <AppText variant="bodySemi">Rooms</AppText>
                   <AppText variant="caption" muted>
                     Lectures, study groups, and side conversations
+                  </AppText>
+                </View>
+                <Feather name="chevron-right" size={18} color={theme.muted} />
+              </Card>
+            </Pressable>
+
+            {/* Flashcards — shared decks; the screens live behind this door. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Flashcards — shared decks the whole class builds"
+              onPress={() =>
+                router.push({
+                  pathname: "/course/decks",
+                  params: { courseId, courseCode: course.code },
+                })
+              }
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+            >
+              <Card
+                padded={false}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: 14,
+                  minHeight: 64,
+                }}
+              >
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: radius.control,
+                    backgroundColor: theme.brandSoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Feather name="layers" size={18} color={theme.brand} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                  <AppText variant="bodySemi">Flashcards</AppText>
+                  <AppText variant="caption" muted>
+                    Shared decks the whole class builds
                   </AppText>
                 </View>
                 <Feather name="chevron-right" size={18} color={theme.muted} />

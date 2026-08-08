@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   BadgeCheck,
+  Bell,
   ChevronRight,
   LogOut,
   ShieldCheck,
@@ -64,6 +65,14 @@ export default async function SettingsPage() {
       ) : (
         <Badge tone="brand">Add</Badge>
       ),
+    },
+    {
+      href: "/settings/notifications",
+      icon: Bell,
+      tile: "bg-brand-soft text-brand",
+      title: "Notifications",
+      description: "Choose what gets pushed to your phone",
+      trailing: null as React.ReactNode,
     },
     {
       href: "/settings/privacy",
