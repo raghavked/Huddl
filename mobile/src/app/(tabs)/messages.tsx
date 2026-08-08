@@ -12,6 +12,7 @@ import {
 import { Screen } from "@/components/screen";
 import { AppText, Button, Card } from "@/components/ui";
 import { fonts, radius } from "@/constants/theme";
+import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -232,6 +233,10 @@ export default function MessagesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Blocked classmates' threads stay hidden; refreshed on focus so a block
+  // made from a profile takes hold the moment you come back here.
+  const { blocked, refresh: refreshBlocked } = useBlockedIds();
+
   const fetchThreads = useCallback(async (): Promise<ThreadItem[]> => {
     if (!userId) throw new Error("Not signed in");
 
@@ -326,13 +331,18 @@ export default function MessagesScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
+      void refreshBlocked();
       if (loadedRef.current) {
         void run("silent");
       } else {
         loadedRef.current = true;
         void run("initial");
       }
-    }, [userId, run])
+    }, [userId, run, refreshBlocked])
+  );
+
+  const visibleThreads = (threads ?? []).filter(
+    (t) => !blocked.has(t.other.id)
   );
 
   const renderItem = useCallback(
@@ -385,7 +395,7 @@ export default function MessagesScreen() {
         </View>
       ) : (
         <FlatList
-          data={threads ?? []}
+          data={visibleThreads}
           keyExtractor={(item) => item.threadId}
           renderItem={renderItem}
           style={{ flex: 1 }}

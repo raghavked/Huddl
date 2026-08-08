@@ -5,7 +5,11 @@ import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import {
   BookOpen,
+  CalendarDays,
+  ChevronRight,
   CircleAlert,
+  DoorOpen,
+  FilePlus2,
   Hash,
   History,
   ListChecks,
@@ -22,6 +26,7 @@ import {
   Card,
   PageHeader,
   buttonClasses,
+  cardClasses,
 } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -40,6 +45,34 @@ const SOURCE_META: Record<
   schedule_image: { label: "Added a while back", icon: History },
   manual: { label: "Added by you", icon: ListChecks },
 };
+
+// The study layer that grew out of the course chat (migration 0018):
+// side rooms, the shared class calendar, and paste-first syllabus import.
+const STUDY_LINKS: {
+  segment: "rooms" | "calendar" | "syllabus";
+  label: string;
+  description: string;
+  icon: LucideIcon;
+}[] = [
+  {
+    segment: "rooms",
+    label: "Rooms",
+    description: "Side rooms for lectures and study groups",
+    icon: DoorOpen,
+  },
+  {
+    segment: "calendar",
+    label: "Class calendar",
+    description: "Shared dates — check off what you've handled",
+    icon: CalendarDays,
+  },
+  {
+    segment: "syllabus",
+    label: "Import syllabus",
+    description: "Paste it once, the whole class gets the schedule",
+    icon: FilePlus2,
+  },
+];
 
 /** RLS scopes courses to the viewer's university — outside it this is null. */
 const getCourse = cache(async (courseId: string): Promise<CourseRow | null> => {
@@ -238,6 +271,32 @@ export default async function CoursePage({
           <SourceIcon className="size-3.5" aria-hidden />
           {source.label}
         </Badge>
+      </div>
+
+      {/* The study layer: rooms, the shared calendar, and syllabus import. */}
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {STUDY_LINKS.map(({ segment, label, description, icon: Icon }) => (
+          <Link
+            key={segment}
+            href={`/courses/${course.id}/${segment}`}
+            className={cardClasses({
+              padding: "sm",
+              interactive: true,
+              className: "flex items-center gap-3",
+            })}
+          >
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+              <Icon className="size-5" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">{label}</span>
+              <span className="block truncate text-xs text-muted">
+                {description}
+              </span>
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-muted" aria-hidden />
+          </Link>
+        ))}
       </div>
 
       <nav

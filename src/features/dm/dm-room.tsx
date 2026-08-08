@@ -1,10 +1,18 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import {
   AlertCircle,
   ArrowLeft,
+  ImagePlus,
   Loader2,
   SendHorizontal,
   Trash2,
@@ -16,6 +24,12 @@ import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
 import { useRealtimeUpdates } from "@/lib/hooks/use-realtime-updates";
 import { usePresence } from "@/lib/hooks/use-presence";
 import { typingLabel, useTyping } from "@/lib/hooks/use-typing";
+import { AttachmentImage } from "@/features/chat/attachment-image";
+import {
+  MAX_ATTACHMENT_BYTES,
+  uploadChatImage,
+} from "@/features/chat/attachments";
+import { useBlockedIds } from "@/features/chat/blocks";
 import type { DmMessage, Profile } from "@/lib/types";
 import { cn, formatMessageTime } from "@/lib/utils";
 
@@ -51,7 +65,10 @@ export function DmRoom({
   const [messages, setMessages] = useState<DmMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { blockedIds, unblock } = useBlockedIds(userId);
+  const otherBlocked = blockedIds.has(other.id);
 
   // "New" divider: frozen from the server-rendered read cursor, so it doesn't
   // vanish the moment we advance last_read_at on mount.
@@ -68,6 +85,7 @@ export function DmRoom({
 
   const listRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const nearBottomRef = useRef(true);
   const pendingScrollRef = useRef<ScrollBehavior | null>("auto");
 
@@ -194,9 +212,16 @@ export function DmRoom({
   const online = usePresence(`dm:${threadId}`, userId);
   const otherOnline = online.has(other.id);
 
+  // While a block stands, the other student's messages stay out of view —
+  // unblocking brings them straight back (filtering happens at render).
+  const visibleMessages = useMemo(
+    () => messages.filter((m) => !blockedIds.has(m.author_id)),
+    [messages, blockedIds]
+  );
+
   async function handleSend() {
     const content = draft.trim();
-    if (!content) return;
+    if (!content || otherBlocked) return;
     setError(null);
     setDraft("");
     const tempId = `temp-${crypto.randomUUID()}`;
@@ -206,6 +231,7 @@ export function DmRoom({
         thread_id: threadId,
         author_id: userId,
         content,
+        attachment_path: null,
         edited_at: null,
         deleted_at: null,
         created_at: new Date().toISOString(),
@@ -236,6 +262,55 @@ export function DmRoom({
       return [...without, real];
     });
     markRead();
+  }
+
+  /** Pick → upload to the student's own chat-uploads folder → send. Any
+   *  typed draft rides along as the caption; otherwise content is "Photo". */
+  async function handleAttachmentPick(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // picking the same file twice should still fire
+    if (!file || otherBlocked) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Photos only here — pick an image file.");
+      return;
+    }
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      setError("That image is over 10 MB — try a smaller one.");
+      return;
+    }
+    setError(null);
+    setUploading(true);
+    try {
+      const path = await uploadChatImage(file, userId);
+      const content = draft.trim() || "Photo";
+      const supabase = createClient();
+      const { data, error: insertError } = await supabase
+        .from("dm_messages")
+        .insert({
+          thread_id: threadId,
+          author_id: userId,
+          content,
+          attachment_path: path,
+        })
+        .select("*")
+        .single();
+      if (insertError || !data) throw insertError ?? new Error("send failed");
+      setDraft("");
+      appendMessage(data as DmMessage, "smooth");
+      markRead();
+    } catch {
+      setError("Couldn't send your photo. Check your connection and try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleUnblock() {
+    setError(null);
+    const ok = await unblock(other.id);
+    if (!ok) setError("Couldn't unblock. Try again.");
   }
 
   async function handleDelete(id: string) {
@@ -308,7 +383,7 @@ export function DmRoom({
         aria-label={`Conversation with ${other.display_name}`}
         className="flex-1 overflow-y-auto pb-2 pt-4"
       >
-        {messages.length < PAGE_SIZE ? (
+        {visibleMessages.length < PAGE_SIZE ? (
           <div className="px-2 pb-4 pt-2 text-center">
             <Avatar
               name={other.display_name}
@@ -318,16 +393,16 @@ export function DmRoom({
             />
             <p className="mt-2 font-bold">{other.display_name}</p>
             <p className="mx-auto max-w-sm text-sm text-muted">
-              {messages.length === 0
+              {visibleMessages.length === 0
                 ? `This is the start of your conversation with ${other.display_name}. Say hi!`
                 : `This is the very beginning of your conversation with ${other.display_name}.`}
             </p>
           </div>
         ) : null}
 
-        {messages.map((m, i) => {
-          const prev = messages[i - 1];
-          const next = messages[i + 1];
+        {visibleMessages.map((m, i) => {
+          const prev = visibleMessages[i - 1];
+          const next = visibleMessages[i + 1];
           const own = m.author_id === userId;
           const isTemp = m.id.startsWith("temp-");
           const newDay = !prev || dayKey(prev.created_at) !== dayKey(m.created_at);
@@ -416,23 +491,46 @@ export function DmRoom({
                 ) : null}
 
                 <div
-                  title={formatMessageTime(m.created_at)}
                   className={cn(
-                    "max-w-[75%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm",
-                    m.deleted_at
-                      ? "border border-dashed border-border bg-surface-2/60 italic text-muted"
-                      : own
-                        ? "border border-brand/60 bg-brand-soft text-foreground"
-                        : "bg-surface-2 text-foreground",
-                    lastOfGroup && !m.deleted_at
-                      ? own
-                        ? "rounded-br-sm"
-                        : "rounded-bl-sm"
-                      : null,
-                    isTemp ? "opacity-70" : null
+                    "flex max-w-[75%] flex-col gap-1",
+                    own ? "items-end" : "items-start"
                   )}
                 >
-                  {m.deleted_at ? "Message deleted" : m.content}
+                  {!m.deleted_at && m.attachment_path ? (
+                    <AttachmentImage
+                      path={m.attachment_path}
+                      alt={
+                        own
+                          ? "Photo you sent"
+                          : `Photo from ${other.display_name}`
+                      }
+                      className={cn(isTemp && "opacity-70")}
+                    />
+                  ) : null}
+                  {/* "Photo" is the placeholder content for caption-less sends. */}
+                  {!m.deleted_at &&
+                  m.attachment_path &&
+                  m.content === "Photo" ? null : (
+                    <div
+                      title={formatMessageTime(m.created_at)}
+                      className={cn(
+                        "w-fit max-w-full whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm",
+                        m.deleted_at
+                          ? "border border-dashed border-border bg-surface-2/60 italic text-muted"
+                          : own
+                            ? "border border-brand/60 bg-brand-soft text-foreground"
+                            : "bg-surface-2 text-foreground",
+                        lastOfGroup && !m.deleted_at
+                          ? own
+                            ? "rounded-br-sm"
+                            : "rounded-bl-sm"
+                          : null,
+                        isTemp ? "opacity-70" : null
+                      )}
+                    >
+                      {m.deleted_at ? "Message deleted" : m.content}
+                    </div>
+                  )}
                   <span className="sr-only">
                     {own ? " — sent by you" : ` — from ${other.display_name}`}
                   </span>
@@ -476,6 +574,23 @@ export function DmRoom({
         </p>
       ) : null}
 
+      {otherBlocked ? (
+        <div className="mb-2 flex items-center justify-between gap-3 rounded-xl border border-border bg-surface-2 px-3 py-2">
+          <p className="text-xs text-muted">
+            You&rsquo;ve blocked {other.display_name}. You won&rsquo;t see
+            their messages, and they can&rsquo;t start new conversations with
+            you.
+          </p>
+          <button
+            type="button"
+            onClick={() => void handleUnblock()}
+            className="shrink-0 text-xs font-semibold text-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
+          >
+            Unblock
+          </button>
+        </div>
+      ) : null}
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -484,7 +599,28 @@ export function DmRoom({
         aria-label="Send a message"
         className="shrink-0 pb-3 pt-1"
       >
-        <div className="flex items-end gap-2 rounded-2xl border border-border bg-surface px-3 py-2 shadow-soft transition-colors focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/15">
+        <div className="flex items-end gap-1 rounded-2xl border border-border bg-surface px-2 py-2 shadow-soft transition-colors focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/15">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            tabIndex={-1}
+            onChange={(e) => void handleAttachmentPick(e)}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading || sending || otherBlocked}
+            aria-label="Send a photo"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {uploading ? (
+              <Loader2 className="size-4.5 animate-spin" aria-hidden />
+            ) : (
+              <ImagePlus className="size-4.5" aria-hidden />
+            )}
+          </button>
           <label htmlFor="dm-composer" className="sr-only">
             Message {other.display_name}
           </label>
@@ -492,6 +628,7 @@ export function DmRoom({
             id="dm-composer"
             ref={textareaRef}
             value={draft}
+            disabled={otherBlocked}
             onChange={(e) => {
               setDraft(e.target.value);
               noteTyping();
@@ -507,12 +644,16 @@ export function DmRoom({
               }
             }}
             rows={1}
-            placeholder={`Message ${other.display_name}`}
-            className="max-h-40 flex-1 resize-none bg-transparent py-1 text-sm outline-none placeholder:text-muted/70"
+            placeholder={
+              otherBlocked
+                ? `You've blocked ${other.display_name}`
+                : `Message ${other.display_name}`
+            }
+            className="max-h-40 flex-1 resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted/70 disabled:cursor-not-allowed disabled:opacity-60"
           />
           <button
             type="submit"
-            disabled={!draft.trim() || sending}
+            disabled={!draft.trim() || sending || uploading || otherBlocked}
             aria-label="Send message"
             className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-brand-fg shadow-soft transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
           >

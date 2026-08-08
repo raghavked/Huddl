@@ -41,6 +41,9 @@ export function OnboardingForm({ profile }: { profile: Profile }) {
         major: major.trim() || null,
         grad_year: gradYear ? Number(gradYear) : null,
         bio: bio.trim() || null,
+        // Signup told them creating an account is agreeing to the terms;
+        // this records when that agreement was made.
+        accepted_terms_at: new Date().toISOString(),
       })
       .eq("id", profile.id);
 

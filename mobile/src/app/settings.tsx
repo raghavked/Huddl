@@ -2,7 +2,7 @@ import Feather from "@expo/vector-icons/Feather";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
 import { radius } from "@/constants/theme";
@@ -89,6 +89,7 @@ export default function SettingsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     if (!userId) {
@@ -124,6 +125,57 @@ export default function SettingsScreen() {
       return;
     }
     router.replace("/(auth)/login");
+  }
+
+  /* Account deletion: two honest confirmations, then the RPC wipes the
+     account (rows and files) server-side and we walk out to the login. */
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    const { error: rpcError } = await supabase.rpc("delete_own_account");
+    if (rpcError) {
+      setDeleting(false);
+      Alert.alert(
+        "That didn't go through",
+        "We couldn't delete your account just now — nothing was removed. Give it another try in a minute."
+      );
+      return;
+    }
+    // The account is already gone server-side; signOut just clears this
+    // device, so a failure here shouldn't stop the walk to the door.
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Ignore — the session is dead either way.
+    }
+    router.replace("/(auth)/login");
+  }
+
+  function confirmDeleteAccount() {
+    Alert.alert(
+      "Delete your account?",
+      "This permanently deletes your profile and everything you've shared on Huddl. It can't be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Continue",
+          style: "destructive",
+          onPress: () =>
+            Alert.alert(
+              "Last check",
+              "This wipes your messages, courses, and files everywhere. There's no undo.",
+              [
+                { text: "Keep my account", style: "cancel" },
+                {
+                  text: "Delete everything",
+                  style: "destructive",
+                  onPress: () => void handleDeleteAccount(),
+                },
+              ]
+            ),
+        },
+      ]
+    );
   }
 
   const version = Constants.expoConfig?.version ?? "1.0.0";
@@ -235,6 +287,11 @@ export default function SettingsScreen() {
           onPress={() => router.push("/notifications")}
         />
         <SettingsLink
+          icon="bell"
+          label="Push notifications"
+          onPress={() => router.push("/push-settings")}
+        />
+        <SettingsLink
           icon="user"
           label="Account"
           onPress={() => router.push("/account")}
@@ -243,6 +300,16 @@ export default function SettingsScreen() {
           icon="users"
           label="People directory"
           onPress={() => router.push("/people")}
+        />
+        <SettingsLink
+          icon="slash"
+          label="Blocked people"
+          onPress={() => router.push("/blocked")}
+        />
+        <SettingsLink
+          icon="book"
+          label="Community guidelines"
+          onPress={() => router.push("/legal/guidelines")}
         />
       </Card>
 
@@ -284,6 +351,58 @@ export default function SettingsScreen() {
             {signOutError}
           </AppText>
         ) : null}
+      </View>
+
+      {/* Danger zone — deletion is real and forever, so it sits apart. */}
+      <View style={{ marginTop: 24, gap: 8 }}>
+        <AppText variant="label" style={{ color: theme.danger }}>
+          Danger zone
+        </AppText>
+        <Card padded={false}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Delete account"
+            disabled={deleting}
+            onPress={confirmDeleteAccount}
+            style={({ pressed }) => ({
+              minHeight: 52,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              opacity: deleting ? 0.6 : pressed ? 0.7 : 1,
+            })}
+          >
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: radius.control,
+                backgroundColor: theme.danger + "1f",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {deleting ? (
+                <ActivityIndicator size="small" color={theme.danger} />
+              ) : (
+                <Feather name="trash-2" size={16} color={theme.danger} />
+              )}
+            </View>
+            <AppText
+              variant="bodySemi"
+              style={{ flex: 1, color: theme.danger }}
+            >
+              Delete account
+            </AppText>
+            <Feather name="chevron-right" size={18} color={theme.danger} />
+          </Pressable>
+        </Card>
+        <AppText variant="caption" muted>
+          Permanently removes your profile, messages, and files. There's no
+          undo.
+        </AppText>
       </View>
 
       <View

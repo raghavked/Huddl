@@ -1,4 +1,5 @@
 import Feather from "@expo/vector-icons/Feather";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -11,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Avatar } from "@/components/avatar";
 import { AppText, Button, Card, Field } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
@@ -26,6 +28,7 @@ type AccountRow = {
   major: string | null;
   grad_year: number | null;
   bio: string | null;
+  avatar_url: string | null;
   is_public: boolean;
   university: { short_name: string } | null;
 };
@@ -55,6 +58,11 @@ export default function AccountScreen() {
   const [gradYear, setGradYear] = useState("");
   const [bio, setBio] = useState("");
   const [isPublic, setIsPublic] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  // The photo flow gets its own quiet corner of state.
+  const [photoBusy, setPhotoBusy] = useState<"upload" | "remove" | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -79,7 +87,7 @@ export default function AccountScreen() {
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "display_name, handle, major, grad_year, bio, is_public, university:universities(short_name)"
+        "display_name, handle, major, grad_year, bio, avatar_url, is_public, university:universities(short_name)"
       )
       .eq("id", userId)
       .maybeSingle();
@@ -99,8 +107,69 @@ export default function AccountScreen() {
     setGradYear(row.grad_year ? String(row.grad_year) : "");
     setBio(row.bio ?? "");
     setIsPublic(row.is_public);
+    setAvatarUrl(row.avatar_url);
     setUniversityName(row.university?.short_name ?? null);
   }, [userId]);
+
+  /** Pick a square photo, push it to the public avatars bucket, save the URL. */
+  const handleChangePhoto = useCallback(async () => {
+    if (!userId || photoBusy) return;
+    setPhotoError(null);
+    let asset: ImagePicker.ImagePickerAsset | null = null;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images",
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (result.canceled) return;
+      asset = result.assets[0] ?? null;
+    } catch {
+      setPhotoError("Couldn't open your photos. Give it another try.");
+      return;
+    }
+    if (!asset) return;
+    setPhotoBusy("upload");
+    try {
+      const buffer = await (await fetch(asset.uri)).arrayBuffer();
+      const path = `${userId}/avatar.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, buffer, { contentType: "image/jpeg", upsert: true });
+      if (uploadError) throw uploadError;
+      // Same path every time — the ?v= stamp is what busts stale caches.
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      const url = `${data.publicUrl}?v=${Date.now()}`;
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: url })
+        .eq("id", userId);
+      if (updateError) throw updateError;
+      setAvatarUrl(url);
+    } catch {
+      setPhotoError("Couldn't update your photo. Give it another try.");
+    } finally {
+      setPhotoBusy(null);
+    }
+  }, [userId, photoBusy]);
+
+  /** Back to initials — clears the profile link, leaves the file be. */
+  const handleRemovePhoto = useCallback(async () => {
+    if (!userId || photoBusy) return;
+    setPhotoError(null);
+    setPhotoBusy("remove");
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_url: null })
+      .eq("id", userId);
+    setPhotoBusy(null);
+    if (error) {
+      setPhotoError("Couldn't remove your photo. Give it another try.");
+      return;
+    }
+    setAvatarUrl(null);
+  }, [userId, photoBusy]);
 
   useEffect(() => {
     void load();
@@ -243,6 +312,65 @@ export default function AccountScreen() {
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
           >
+            <Card style={{ gap: 12 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 14,
+                }}
+              >
+                <Avatar
+                  url={avatarUrl}
+                  name={displayName || "You"}
+                  size={56}
+                />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <AppText variant="title">Your photo</AppText>
+                  <AppText variant="caption" muted>
+                    {avatarUrl
+                      ? "Classmates see this next to your name."
+                      : "Right now classmates see your initials."}
+                  </AppText>
+                </View>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  flexWrap: "wrap",
+                }}
+              >
+                <Button
+                  label={photoBusy === "upload" ? "Uploading…" : "Change photo"}
+                  variant="secondary"
+                  size="sm"
+                  pending={photoBusy === "upload"}
+                  disabled={photoBusy !== null}
+                  icon={
+                    <Feather name="camera" size={14} color={theme.foreground} />
+                  }
+                  onPress={() => void handleChangePhoto()}
+                />
+                {avatarUrl ? (
+                  <Button
+                    label={photoBusy === "remove" ? "Removing…" : "Remove photo"}
+                    variant="ghost"
+                    size="sm"
+                    pending={photoBusy === "remove"}
+                    disabled={photoBusy !== null}
+                    onPress={() => void handleRemovePhoto()}
+                  />
+                ) : null}
+              </View>
+              {photoError ? (
+                <AppText variant="caption" style={{ color: theme.danger }}>
+                  {photoError}
+                </AppText>
+              ) : null}
+            </Card>
+
             <Card style={{ gap: 14 }}>
               <AppText variant="title">About you</AppText>
               <Field

@@ -24,5 +24,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.5,
     },
+    ...["terms", "privacy", "guidelines"].map((slug) => ({
+      url: `${siteUrl}/legal/${slug}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.3,
+    })),
   ];
 }

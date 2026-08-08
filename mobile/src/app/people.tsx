@@ -1,5 +1,5 @@
 import Feather from "@expo/vector-icons/Feather";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
 import { fonts, radius } from "@/constants/theme";
+import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -323,12 +324,25 @@ export default function PeopleScreen() {
     void run("initial");
   }, [userId, run]);
 
+  // Blocked classmates stay out of the directory; refreshed on focus so a
+  // block made from a profile takes hold the moment you come back here.
+  const { blocked, refresh: refreshBlocked } = useBlockedIds();
+  useFocusEffect(
+    useCallback(() => {
+      void refreshBlocked();
+    }, [refreshBlocked])
+  );
+
+  const visiblePeople = useMemo(
+    () => (people ?? []).filter((p) => p.id === userId || !blocked.has(p.id)),
+    [people, blocked, userId]
+  );
   const filtered = useMemo(
-    () => (people ?? []).filter((p) => matches(p, query)),
-    [people, query]
+    () => visiblePeople.filter((p) => matches(p, query)),
+    [visiblePeople, query]
   );
   const searching = query.trim().length > 0;
-  const count = people?.length ?? 0;
+  const count = people === null ? 0 : visiblePeople.length;
 
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<DirectoryPerson>) => (

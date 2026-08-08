@@ -1,9 +1,15 @@
 import Feather from "@expo/vector-icons/Feather";
-import type { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
+import type {
+  RealtimePostgresInsertPayload,
+  RealtimePostgresUpdatePayload,
+} from "@supabase/supabase-js";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ComponentProps,
@@ -12,8 +18,10 @@ import {
   ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
+  ScrollView,
   TextInput,
   View,
   type ListRenderItemInfo,
@@ -21,8 +29,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
 import { fonts, palettes, radius } from "@/constants/theme";
+import { MentionText, useMentionSuggestions } from "@/features/mentions";
+import { PollBubble, PollComposer } from "@/features/polls";
+import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { typingLabel, useTyping } from "@/hooks/use-typing";
+import { setMessagePinned } from "@/lib/pins";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -53,6 +65,12 @@ type MessageRow = {
   author_id: string;
   parent_id: string | null;
   content: string;
+  attachment_path: string | null;
+  poll_id: string | null;
+  pinned_at: string | null;
+  pinned_by: string | null;
+  edited_at: string | null;
+  deleted_at: string | null;
   created_at: string;
   author: Author | null;
 };
@@ -64,6 +82,11 @@ type RawMessageRow = {
   author_id: string;
   parent_id: string | null;
   content: string;
+  attachment_path: string | null;
+  poll_id: string | null;
+  pinned_at: string | null;
+  pinned_by: string | null;
+  edited_at: string | null;
   created_at: string;
   deleted_at: string | null;
 };
@@ -81,7 +104,14 @@ type Status = "loading" | "error" | "notFound" | "notMember" | "ready";
 const PAGE_SIZE = 50;
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 const MESSAGE_SELECT =
-  "id, channel_id, author_id, parent_id, content, created_at, author:profiles(id, handle, display_name, avatar_url)";
+  "id, channel_id, author_id, parent_id, content, attachment_path, poll_id, pinned_at, pinned_by, edited_at, deleted_at, created_at, author:profiles(id, handle, display_name, avatar_url)";
+
+/** The message-body text style — MentionText needs it spelled out. */
+const BODY_TEXT = {
+  fontFamily: fonts.body,
+  fontSize: 15,
+  lineHeight: 21,
+} as const;
 
 /** The quick-react set for the long-press sheet. Pills still render any emoji
     web users send (their picker is wider), so nothing gets lost cross-client. */
@@ -151,6 +181,21 @@ function timeLabel(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, {
     hour: "numeric",
     minute: "2-digit",
+  });
+}
+
+/** "5m ago" / "2h ago" style stamps for the pinned list. */
+function relativeTime(iso: string): string {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
   });
 }
 
@@ -236,6 +281,115 @@ function BackChevron({ onPress }: { onPress: () => void }) {
   );
 }
 
+/** One 44px row in a bottom action sheet — icon chip + label. */
+function ActionRow({
+  icon,
+  label,
+  danger = false,
+  onPress,
+}: {
+  icon: FeatherName;
+  label: string;
+  danger?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: 44,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: radius.control,
+          backgroundColor: danger ? theme.surface2 : theme.brandSoft,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Feather
+          name={icon}
+          size={16}
+          color={danger ? theme.danger : theme.brand}
+        />
+      </View>
+      <AppText
+        variant="bodyMedium"
+        style={danger ? { color: theme.danger } : undefined}
+      >
+        {label}
+      </AppText>
+    </Pressable>
+  );
+}
+
+/** A chat image at thumb size — resolves its signed URL through the room's
+    per-path cache, then taps open the full-screen viewer. */
+function AttachmentImage({
+  path,
+  resolve,
+  onOpen,
+}: {
+  path: string;
+  resolve: (path: string) => Promise<string | null>;
+  onOpen: (url: string) => void;
+}) {
+  const theme = useTheme();
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void resolve(path).then((signed) => {
+      if (!cancelled) setUrl(signed);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [path, resolve]);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="View photo full screen"
+      disabled={!url}
+      onPress={() => {
+        if (url) onOpen(url);
+      }}
+      style={({ pressed }) => ({
+        width: 220,
+        height: 160,
+        borderRadius: 12,
+        overflow: "hidden",
+        backgroundColor: theme.surface2,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      {url ? (
+        <Image
+          source={{ uri: url }}
+          style={{ width: "100%", height: "100%" }}
+          contentFit="cover"
+          transition={150}
+        />
+      ) : (
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
+          <ActivityIndicator size="small" color={theme.muted} />
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
 export default function ChannelRoomScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -265,6 +419,23 @@ export default function ChannelRoomScreen() {
   const [actionsFor, setActionsFor] = useState<MessageRow | null>(null);
   const [selfName, setSelfName] = useState<string | null>(null);
 
+  // Power layer: attachments, editing, pins, polls, viewer, composer menu.
+  const [uploading, setUploading] = useState(false);
+  const [editing, setEditing] = useState<MessageRow | null>(null);
+  const draftBeforeEditRef = useRef("");
+  const [pinned, setPinned] = useState<MessageRow[]>([]);
+  const pinnedIdsRef = useRef<Set<string>>(new Set());
+  const [pinnedOpen, setPinnedOpen] = useState(false);
+  const [pollOpen, setPollOpen] = useState(false);
+  const [composerMenuOpen, setComposerMenuOpen] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const inputRef = useRef<TextInput>(null);
+  const { blocked } = useBlockedIds();
+
+  useEffect(() => {
+    pinnedIdsRef.current = new Set(pinned.map((p) => p.id));
+  }, [pinned]);
+
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace("/(tabs)/channels");
@@ -280,6 +451,24 @@ export default function ChannelRoomScreen() {
       .eq("user_id", userId)
       .then(() => undefined);
   }, [channelId, userId]);
+
+  /** Signed URLs for chat images, cached per path for the screen's lifetime
+      (they outlive the hour only across remounts, which refetch anyway). */
+  const signedUrlsRef = useRef(new Map<string, Promise<string | null>>());
+  const resolveAttachmentUrl = useCallback(
+    (path: string): Promise<string | null> => {
+      const cached = signedUrlsRef.current.get(path);
+      if (cached) return cached;
+      const promise = supabase.storage
+        .from("chat-uploads")
+        .createSignedUrl(path, 3600)
+        .then(({ data }) => data?.signedUrl ?? null)
+        .catch(() => null);
+      signedUrlsRef.current.set(path, promise);
+      return promise;
+    },
+    []
+  );
 
   /** One batched fetch of reactions for a page of messages — web's pattern. */
   const loadReactions = useCallback(async (messageIds: string[]) => {
@@ -316,6 +505,19 @@ export default function ChannelRoomScreen() {
     }
     setReplyCounts(counts);
   }, []);
+
+  /** The channel's pinned list, newest pin first (small by construction). */
+  const refreshPinned = useCallback(async () => {
+    if (!channelId) return;
+    const { data } = await supabase
+      .from("messages")
+      .select(MESSAGE_SELECT)
+      .eq("channel_id", channelId)
+      .not("pinned_at", "is", null)
+      .is("deleted_at", null)
+      .order("pinned_at", { ascending: false });
+    if (data) setPinned(data as unknown as MessageRow[]);
+  }, [channelId]);
 
   /** Count each reply exactly once, whether it arrives via the initial batch
       load or a realtime echo (including our own sends from the thread screen). */
@@ -404,7 +606,6 @@ export default function ChannelRoomScreen() {
         .select(MESSAGE_SELECT)
         .eq("channel_id", channelId)
         .is("parent_id", null)
-        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(PAGE_SIZE),
     ]);
@@ -427,7 +628,8 @@ export default function ChannelRoomScreen() {
       setStatus("error");
       return;
     }
-    // Newest first — exactly what an inverted FlatList wants.
+    // Newest first — exactly what an inverted FlatList wants. Deleted rows
+    // stay in the stream as tombstones, matching the web room.
     const rows = (messagesRes.data ?? []) as unknown as MessageRow[];
     setMessages(rows);
     setStatus("ready");
@@ -436,7 +638,8 @@ export default function ChannelRoomScreen() {
     const ids = rows.map((m) => m.id);
     void loadReactions(ids);
     void loadReplyCounts(ids);
-  }, [channelId, userId, markRead, loadReactions, loadReplyCounts]);
+    void refreshPinned();
+  }, [channelId, userId, markRead, loadReactions, loadReplyCounts, refreshPinned]);
 
   useEffect(() => {
     void load();
@@ -444,7 +647,8 @@ export default function ChannelRoomScreen() {
 
   // Live inserts: thread replies just bump their parent's badge; own echoes
   // are skipped (the optimistic path already has them); everything else gets
-  // its author hydrated and is prepended.
+  // its author hydrated and is prepended. Live updates (edits, soft deletes,
+  // pin flips) merge into the matching row in place.
   const isReady = status === "ready";
   useEffect(() => {
     if (!isReady || !channelId || !userId) return;
@@ -479,6 +683,12 @@ export default function ChannelRoomScreen() {
                 author_id: row.author_id,
                 parent_id: row.parent_id,
                 content: row.content,
+                attachment_path: row.attachment_path,
+                poll_id: row.poll_id,
+                pinned_at: row.pinned_at,
+                pinned_by: row.pinned_by,
+                edited_at: row.edited_at,
+                deleted_at: row.deleted_at,
                 created_at: row.created_at,
                 author: (data as unknown as Author | null) ?? null,
               };
@@ -490,11 +700,55 @@ export default function ChannelRoomScreen() {
             });
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `channel_id=eq.${channelId}`,
+        },
+        (payload: RealtimePostgresUpdatePayload<RawMessageRow>) => {
+          const row = payload.new;
+          if (row.parent_id) return; // replies aren't in this list
+          setMessages((prev) => {
+            let changed = false;
+            const next = prev.map((m) => {
+              if (m.id !== row.id) return m;
+              if (
+                m.content === row.content &&
+                m.edited_at === row.edited_at &&
+                m.deleted_at === row.deleted_at &&
+                m.pinned_at === row.pinned_at &&
+                m.pinned_by === row.pinned_by
+              ) {
+                return m;
+              }
+              changed = true;
+              return {
+                ...m,
+                content: row.content,
+                edited_at: row.edited_at,
+                deleted_at: row.deleted_at,
+                pinned_at: row.pinned_at,
+                pinned_by: row.pinned_by,
+              };
+            });
+            return changed ? next : prev;
+          });
+          // Pins can flip on rows outside the loaded window, and deleting a
+          // pinned message unlists it — refetch whenever the state differs.
+          const isPinnedNow = Boolean(row.pinned_at) && !row.deleted_at;
+          if (pinnedIdsRef.current.has(row.id) !== isPinnedNow) {
+            void refreshPinned();
+          }
+        }
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(room);
     };
-  }, [isReady, channelId, userId, markRead, bumpReplyCount]);
+  }, [isReady, channelId, userId, markRead, bumpReplyCount, refreshPinned]);
 
   // Own display name — broadcast alongside typing events so other clients
   // (web included) can show "Ada is typing…".
@@ -522,6 +776,9 @@ export default function ChannelRoomScreen() {
     name: selfName ?? "Someone",
   });
 
+  // Composer @-autocomplete, fed from the channel's member roster.
+  const mentions = useMentionSuggestions(isReady ? channelId : null);
+
   const handleJoin = useCallback(async () => {
     if (!channelId || !userId) return;
     setJoinError(null);
@@ -543,6 +800,7 @@ export default function ChannelRoomScreen() {
     if (!content || sending || !channelId || !userId) return;
     setSendError(null);
     setDraft("");
+    mentions.reset();
     const tempId = `temp-${Date.now().toString(36)}-${Math.random()
       .toString(36)
       .slice(2, 10)}`;
@@ -553,6 +811,12 @@ export default function ChannelRoomScreen() {
       author_id: userId,
       parent_id: null,
       content,
+      attachment_path: null,
+      poll_id: null,
+      pinned_at: null,
+      pinned_by: null,
+      edited_at: null,
+      deleted_at: null,
       created_at: new Date().toISOString(),
       author: null,
     };
@@ -578,13 +842,222 @@ export default function ChannelRoomScreen() {
       ...prev.filter((m) => m.id !== tempId && m.id !== real.id),
     ]);
     markRead();
-  }, [draft, sending, channelId, userId, markRead]);
+  }, [draft, sending, channelId, userId, markRead, mentions]);
+
+  /** Pick a photo → upload to the student's own chat-uploads folder → send.
+      Any typed draft rides along as the caption; otherwise content is "Photo". */
+  const handlePickPhoto = useCallback(async () => {
+    if (!channelId || !userId || uploading) return;
+    setSendError(null);
+    let asset: ImagePicker.ImagePickerAsset | null = null;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images",
+        quality: 0.7,
+      });
+      if (result.canceled) return;
+      asset = result.assets[0] ?? null;
+    } catch {
+      setSendError("Couldn't open your photos. Give it another try.");
+      return;
+    }
+    if (!asset) return;
+    setUploading(true);
+    try {
+      const buffer = await (await fetch(asset.uri)).arrayBuffer();
+      const contentType = asset.mimeType ?? "image/jpeg";
+      const path = `${userId}/${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("chat-uploads")
+        .upload(path, buffer, { contentType });
+      if (uploadError) throw uploadError;
+      const content = draft.trim() || "Photo";
+      const { data, error: insertError } = await supabase
+        .from("messages")
+        .insert({
+          channel_id: channelId,
+          author_id: userId,
+          content,
+          attachment_path: path,
+        })
+        .select(MESSAGE_SELECT)
+        .single();
+      if (insertError || !data) throw insertError ?? new Error("send failed");
+      setDraft("");
+      mentions.reset();
+      const real = data as unknown as MessageRow;
+      // Own realtime echoes are skipped, so append the row here.
+      setMessages((prev) =>
+        prev.some((m) => m.id === real.id) ? prev : [real, ...prev]
+      );
+      markRead();
+    } catch {
+      setSendError(
+        "Couldn't send your photo — check your connection and try again."
+      );
+    } finally {
+      setUploading(false);
+    }
+  }, [channelId, userId, uploading, draft, markRead, mentions]);
+
+  // The poll RPC writes the poll + carrying message atomically and hands back
+  // the message id. Our own realtime echoes are skipped, so fetch it here.
+  const handlePollCreated = useCallback(
+    (messageId: string) => {
+      void supabase
+        .from("messages")
+        .select(MESSAGE_SELECT)
+        .eq("id", messageId)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (!data) return;
+          const real = data as unknown as MessageRow;
+          setMessages((prev) =>
+            prev.some((m) => m.id === real.id) ? prev : [real, ...prev]
+          );
+        });
+      markRead();
+    },
+    [markRead]
+  );
+
+  /* -------------------- edit / delete / pin actions -------------------- */
+
+  const startEdit = useCallback(
+    (target: MessageRow) => {
+      draftBeforeEditRef.current = draft;
+      setEditing(target);
+      setDraft(target.content);
+      mentions.reset();
+      requestAnimationFrame(() => inputRef.current?.focus());
+    },
+    [draft, mentions]
+  );
+
+  const cancelEdit = useCallback(() => {
+    setEditing(null);
+    setDraft(draftBeforeEditRef.current);
+    draftBeforeEditRef.current = "";
+    mentions.reset();
+  }, [mentions]);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editing || !userId) return;
+    const content = draft.trim();
+    if (!content) return;
+    const target = editing;
+    setEditing(null);
+    setDraft(draftBeforeEditRef.current);
+    draftBeforeEditRef.current = "";
+    mentions.reset();
+    if (content === target.content) return;
+    const editedAt = new Date().toISOString();
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === target.id ? { ...m, content, edited_at: editedAt } : m
+      )
+    );
+    const { error: updateError } = await supabase
+      .from("messages")
+      .update({ content, edited_at: editedAt })
+      .eq("id", target.id)
+      .eq("author_id", userId);
+    if (updateError) {
+      setMessages((prev) => prev.map((m) => (m.id === target.id ? target : m)));
+      setSendError("Couldn't save your edit — give it another try.");
+    }
+  }, [editing, userId, draft, mentions]);
+
+  /** Soft delete: the row stays as a tombstone, matching the web room. */
+  const handleDelete = useCallback(
+    async (target: MessageRow) => {
+      if (!userId) return;
+      const deletedAt = new Date().toISOString();
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === target.id ? { ...m, deleted_at: deletedAt } : m
+        )
+      );
+      if (target.pinned_at) {
+        setPinned((prev) => prev.filter((p) => p.id !== target.id));
+      }
+      const { error: updateError } = await supabase
+        .from("messages")
+        .update({ deleted_at: deletedAt })
+        .eq("id", target.id)
+        .eq("author_id", userId);
+      if (updateError) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === target.id ? target : m))
+        );
+        if (target.pinned_at) void refreshPinned();
+        setSendError("Couldn't delete that — give it another try.");
+      }
+    },
+    [userId, refreshPinned]
+  );
+
+  /** Any member can pin or unpin — the RPC enforces membership server-side. */
+  const handleTogglePin = useCallback(
+    async (target: MessageRow, pin: boolean) => {
+      if (!userId) return;
+      const pinnedAt = pin ? new Date().toISOString() : null;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === target.id
+            ? { ...m, pinned_at: pinnedAt, pinned_by: pin ? userId : null }
+            : m
+        )
+      );
+      setPinned((prev) =>
+        pin
+          ? [
+              { ...target, pinned_at: pinnedAt, pinned_by: userId },
+              ...prev.filter((p) => p.id !== target.id),
+            ]
+          : prev.filter((p) => p.id !== target.id)
+      );
+      try {
+        await setMessagePinned(target.id, pin);
+        void refreshPinned();
+      } catch {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === target.id
+              ? { ...m, pinned_at: target.pinned_at, pinned_by: target.pinned_by }
+              : m
+          )
+        );
+        void refreshPinned();
+        setSendError(
+          pin
+            ? "Couldn't pin that — give it another try."
+            : "Couldn't unpin that — give it another try."
+        );
+      }
+    },
+    [userId, refreshPinned]
+  );
+
+  // Blocked students' messages never render — filtering happens at the edge
+  // so realtime, optimistic, and initial rows all pass through one gate.
+  const visibleMessages = useMemo(
+    () => messages.filter((m) => !blocked.has(m.author_id)),
+    [messages, blocked]
+  );
+  const visiblePinned = useMemo(
+    () => pinned.filter((m) => !blocked.has(m.author_id)),
+    [pinned, blocked]
+  );
 
   const renderMessage = useCallback(
     ({ item, index }: ListRenderItemInfo<MessageRow>) => {
       // Inverted list: index + 1 is the chronologically older neighbor.
-      const older = messages[index + 1] ?? null;
+      const older = visibleMessages[index + 1] ?? null;
       const isOwn = item.author_id === userId;
+      const deleted = Boolean(item.deleted_at);
       const newDay = !older || dayKey(older.created_at) !== dayKey(item.created_at);
       const grouped =
         !newDay &&
@@ -637,27 +1110,68 @@ export default function ChannelRoomScreen() {
                   <AppText variant="caption" muted>
                     {timeLabel(item.created_at)}
                   </AppText>
+                  {item.pinned_at ? (
+                    <Feather name="bookmark" size={10} color={theme.brand} />
+                  ) : null}
                 </View>
               ) : null}
               <Pressable
-                accessibilityHint="Long press for reactions and thread replies"
+                accessibilityHint="Long press for message actions"
                 onLongPress={() => {
-                  if (!item.id.startsWith("temp-")) setActionsFor(item);
+                  if (!item.id.startsWith("temp-") && !deleted) {
+                    setActionsFor(item);
+                  }
                 }}
                 delayLongPress={300}
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
-                <Card
-                  padded={false}
-                  style={{
-                    backgroundColor: isOwn ? theme.brandSoft : theme.surface2,
-                    borderRadius: 16,
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                  }}
-                >
-                  <AppText>{item.content}</AppText>
-                </Card>
+                {deleted ? (
+                  <View style={{ paddingHorizontal: 4, paddingVertical: 6 }}>
+                    <AppText muted style={{ fontStyle: "italic" }}>
+                      Message deleted
+                    </AppText>
+                  </View>
+                ) : item.poll_id ? (
+                  // The message is a poll carrier — render the live poll in
+                  // place of the text (content duplicates the question).
+                  <PollBubble pollId={item.poll_id} />
+                ) : (
+                  <Card
+                    padded={false}
+                    style={{
+                      backgroundColor: isOwn ? theme.brandSoft : theme.surface2,
+                      borderRadius: 16,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      gap: 6,
+                    }}
+                  >
+                    {item.attachment_path ? (
+                      <AttachmentImage
+                        path={item.attachment_path}
+                        resolve={resolveAttachmentUrl}
+                        onOpen={setViewerUrl}
+                      />
+                    ) : null}
+                    {/* "Photo" is the placeholder content for caption-less sends. */}
+                    {item.attachment_path && item.content === "Photo" ? null : (
+                      <MentionText
+                        text={item.content}
+                        baseStyle={{ ...BODY_TEXT, color: theme.foreground }}
+                        highlightColor={isOwn ? theme.brandInk : theme.brand}
+                      />
+                    )}
+                    {item.edited_at ? (
+                      <AppText
+                        variant="caption"
+                        muted
+                        style={{ fontSize: 10, lineHeight: 12 }}
+                      >
+                        (edited)
+                      </AppText>
+                    ) : null}
+                  </Card>
+                )}
               </Pressable>
               {isOwn && !grouped ? (
                 <AppText
@@ -668,7 +1182,7 @@ export default function ChannelRoomScreen() {
                   {timeLabel(item.created_at)}
                 </AppText>
               ) : null}
-              {pills.length > 0 ? (
+              {!deleted && pills.length > 0 ? (
                 <View
                   style={{
                     flexDirection: "row",
@@ -749,7 +1263,16 @@ export default function ChannelRoomScreen() {
         </View>
       );
     },
-    [messages, userId, theme, reactionsByMessage, replyCounts, toggleReaction, openThread]
+    [
+      visibleMessages,
+      userId,
+      theme,
+      reactionsByMessage,
+      replyCounts,
+      toggleReaction,
+      openThread,
+      resolveAttachmentUrl,
+    ]
   );
 
   const title = channel ? channelTitle(channel) : "";
@@ -921,6 +1444,10 @@ export default function ChannelRoomScreen() {
 
   const subtitle = channelSubtitle(channel);
   const canSend = draft.trim().length > 0 && !sending;
+  // The long-press sheet reads the live row, so pin state stays fresh.
+  const actionsMessage = actionsFor
+    ? messages.find((m) => m.id === actionsFor.id) ?? actionsFor
+    : null;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -962,11 +1489,45 @@ export default function ChannelRoomScreen() {
         </View>
       </View>
 
+      {visiblePinned.length > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`View pinned messages — ${
+            visiblePinned.length === 1
+              ? "1 pinned"
+              : `${visiblePinned.length} pinned`
+          }`}
+          onPress={() => setPinnedOpen(true)}
+          style={({ pressed }) => ({
+            minHeight: 40,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            paddingHorizontal: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border,
+            backgroundColor: pressed ? theme.surface2 : theme.surface,
+          })}
+        >
+          <Feather name="bookmark" size={14} color={theme.brand} />
+          <AppText
+            variant="label"
+            style={{ color: theme.brandInk, flex: 1 }}
+            numberOfLines={1}
+          >
+            {visiblePinned.length === 1
+              ? "1 pinned"
+              : `${visiblePinned.length} pinned`}
+          </AppText>
+          <Feather name="chevron-right" size={16} color={theme.muted} />
+        </Pressable>
+      ) : null}
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {messages.length === 0 ? (
+        {visibleMessages.length === 0 ? (
           <View
             style={{
               flex: 1,
@@ -995,7 +1556,7 @@ export default function ChannelRoomScreen() {
           </View>
         ) : (
           <FlatList
-            data={messages}
+            data={visibleMessages}
             inverted
             keyExtractor={(m) => m.id}
             renderItem={renderMessage}
@@ -1009,7 +1570,7 @@ export default function ChannelRoomScreen() {
             // In an inverted list the footer sits at the visual top — the
             // right home for a "beginning of the channel" note.
             ListFooterComponent={
-              messages.length < PAGE_SIZE ? (
+              visibleMessages.length < PAGE_SIZE ? (
                 <View style={{ paddingVertical: 16, gap: 2 }}>
                   <AppText variant="title">Welcome to {title}</AppText>
                   <AppText variant="caption" muted>
@@ -1077,6 +1638,88 @@ export default function ChannelRoomScreen() {
           </View>
         ) : null}
 
+        {mentions.active && mentions.suggestions.length > 0 ? (
+          <View
+            accessibilityLabel="Mention a channel member"
+            style={{
+              marginHorizontal: 16,
+              marginBottom: 6,
+              borderWidth: 1,
+              borderColor: theme.border,
+              borderRadius: radius.control,
+              backgroundColor: theme.surface,
+              overflow: "hidden",
+            }}
+          >
+            {mentions.suggestions.map((s) => (
+              <Pressable
+                key={s.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Mention ${s.displayName}`}
+                onPress={() => setDraft(mentions.applyMention(draft, s.handle))}
+                style={({ pressed }) => ({
+                  minHeight: 44,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  paddingHorizontal: 12,
+                  backgroundColor: pressed ? theme.surface2 : "transparent",
+                })}
+              >
+                <AppText variant="bodySemi" style={{ color: theme.brand }}>
+                  @{s.handle}
+                </AppText>
+                <AppText
+                  variant="caption"
+                  muted
+                  numberOfLines={1}
+                  style={{ flex: 1 }}
+                >
+                  {s.displayName}
+                </AppText>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
+        {editing ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              marginHorizontal: 16,
+              marginBottom: 6,
+              paddingHorizontal: 12,
+              paddingVertical: 4,
+              borderRadius: radius.control,
+              backgroundColor: theme.brandSoft,
+            }}
+          >
+            <Feather name="edit-2" size={13} color={theme.brandInk} />
+            <AppText
+              variant="caption"
+              style={{ color: theme.brandInk, flex: 1 }}
+            >
+              Editing message
+            </AppText>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Cancel editing"
+              onPress={cancelEdit}
+              hitSlop={10}
+              style={{
+                width: 28,
+                height: 28,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Feather name="x" size={14} color={theme.brandInk} />
+            </Pressable>
+          </View>
+        ) : null}
+
         <View
           style={{
             flexDirection: "row",
@@ -1090,15 +1733,42 @@ export default function ChannelRoomScreen() {
             backgroundColor: theme.surface,
           }}
         >
+          {!editing ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Add a photo or poll"
+              disabled={uploading}
+              onPress={() => setComposerMenuOpen(true)}
+              style={({ pressed }) => ({
+                width: 44,
+                height: 44,
+                borderRadius: radius.full,
+                borderWidth: 1,
+                borderColor: theme.border,
+                backgroundColor: theme.background,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: uploading ? 0.6 : pressed ? 0.7 : 1,
+              })}
+            >
+              {uploading ? (
+                <ActivityIndicator size="small" color={theme.brand} />
+              ) : (
+                <Feather name="plus" size={20} color={theme.brand} />
+              )}
+            </Pressable>
+          ) : null}
           <TextInput
+            ref={inputRef}
             value={draft}
             onChangeText={(text) => {
               setDraft(text);
+              mentions.onDraftChange(text);
               noteTyping();
             }}
-            placeholder={`Message ${title}`}
+            placeholder={editing ? "Edit your message" : `Message ${title}`}
             placeholderTextColor={theme.muted}
-            accessibilityLabel={`Message ${title}`}
+            accessibilityLabel={editing ? "Edit your message" : `Message ${title}`}
             multiline
             maxLength={4000}
             cursorColor={theme.brand}
@@ -1121,9 +1791,9 @@ export default function ChannelRoomScreen() {
           />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Send message"
+            accessibilityLabel={editing ? "Save edit" : "Send message"}
             disabled={!canSend}
-            onPress={() => void handleSend()}
+            onPress={() => void (editing ? handleSaveEdit() : handleSend())}
             style={({ pressed }) => ({
               width: 44,
               height: 44,
@@ -1137,13 +1807,232 @@ export default function ChannelRoomScreen() {
             {sending ? (
               <ActivityIndicator size="small" color={theme.brandFg} />
             ) : (
-              <Feather name="send" size={18} color={theme.brandFg} />
+              <Feather
+                name={editing ? "check" : "send"}
+                size={18}
+                color={theme.brandFg}
+              />
             )}
           </Pressable>
         </View>
       </KeyboardAvoidingView>
 
-      {actionsFor ? (
+      <PollComposer
+        channelId={channelId}
+        visible={pollOpen}
+        onClose={() => setPollOpen(false)}
+        onCreated={handlePollCreated}
+      />
+
+      {/* Pinned messages list. */}
+      <Modal
+        visible={pinnedOpen}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setPinnedOpen(false)}
+      >
+        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close pinned messages"
+            onPress={() => setPinnedOpen(false)}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              // The scrim stays candle-dark in both appearances.
+              backgroundColor: palettes.dark.background,
+              opacity: 0.55,
+            }}
+          />
+          <View
+            style={{
+              backgroundColor: theme.surface,
+              borderTopLeftRadius: radius.card,
+              borderTopRightRadius: radius.card,
+              borderWidth: 1,
+              borderColor: theme.border,
+              paddingTop: 14,
+              paddingHorizontal: 20,
+              paddingBottom: Math.max(insets.bottom, 16),
+              gap: 4,
+              maxHeight: "75%",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Feather name="bookmark" size={16} color={theme.brand} />
+              <AppText variant="title" style={{ flex: 1 }}>
+                Pinned messages
+              </AppText>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                onPress={() => setPinnedOpen(false)}
+                hitSlop={8}
+                style={({ pressed }) => ({
+                  width: 44,
+                  height: 44,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Feather name="x" size={20} color={theme.muted} />
+              </Pressable>
+            </View>
+            {visiblePinned.length === 0 ? (
+              <AppText muted style={{ paddingVertical: 16 }}>
+                Nothing pinned right now.
+              </AppText>
+            ) : (
+              <ScrollView
+                style={{ flexGrow: 0 }}
+                contentContainerStyle={{ paddingBottom: 4 }}
+                showsVerticalScrollIndicator={false}
+              >
+                {visiblePinned.map((m, i) => (
+                  <View
+                    key={m.id}
+                    style={{
+                      paddingVertical: 10,
+                      gap: 4,
+                      borderTopWidth: i === 0 ? 0 : 1,
+                      borderTopColor: theme.border,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <AppText variant="label" numberOfLines={1}>
+                        {m.author?.display_name ?? "A classmate"}
+                      </AppText>
+                      <AppText
+                        variant="caption"
+                        muted
+                        numberOfLines={1}
+                        style={{ flex: 1 }}
+                      >
+                        {relativeTime(m.created_at)}
+                      </AppText>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Unpin this message"
+                        onPress={() => void handleTogglePin(m, false)}
+                        hitSlop={10}
+                        style={({ pressed }) => ({
+                          minHeight: 32,
+                          paddingHorizontal: 10,
+                          borderRadius: radius.full,
+                          backgroundColor: theme.surface2,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          opacity: pressed ? 0.6 : 1,
+                        })}
+                      >
+                        <AppText variant="label" style={{ color: theme.brandInk }}>
+                          Unpin
+                        </AppText>
+                      </Pressable>
+                    </View>
+                    <MentionText
+                      text={m.content}
+                      numberOfLines={3}
+                      baseStyle={{ ...BODY_TEXT, color: theme.foreground }}
+                      highlightColor={theme.brand}
+                    />
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Full-screen photo viewer — tap anywhere to close. */}
+      <Modal
+        visible={viewerUrl !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setViewerUrl(null)}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close photo"
+          onPress={() => setViewerUrl(null)}
+          style={{ flex: 1, backgroundColor: "#000" }}
+        >
+          {viewerUrl ? (
+            <Image
+              source={{ uri: viewerUrl }}
+              style={{ flex: 1 }}
+              contentFit="contain"
+            />
+          ) : null}
+        </Pressable>
+      </Modal>
+
+      {composerMenuOpen ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            justifyContent: "flex-end",
+          }}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            onPress={() => setComposerMenuOpen(false)}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: palettes.dark.background,
+              opacity: 0.55,
+            }}
+          />
+          <Card
+            style={{
+              marginHorizontal: 12,
+              marginBottom: Math.max(insets.bottom, 12),
+              padding: 14,
+              gap: 4,
+            }}
+          >
+            <ActionRow
+              icon="image"
+              label="Photo"
+              onPress={() => {
+                setComposerMenuOpen(false);
+                void handlePickPhoto();
+              }}
+            />
+            <ActionRow
+              icon="bar-chart-2"
+              label="Poll"
+              onPress={() => {
+                setComposerMenuOpen(false);
+                setPollOpen(true);
+              }}
+            />
+          </Card>
+        </View>
+      ) : null}
+
+      {actionsMessage ? (
         <View
           style={{
             position: "absolute",
@@ -1178,11 +2067,11 @@ export default function ChannelRoomScreen() {
             }}
           >
             <AppText variant="caption" muted numberOfLines={2}>
-              {actionsFor.content}
+              {actionsMessage.content}
             </AppText>
             <View style={{ flexDirection: "row", gap: 10 }}>
               {REACTION_EMOJI.map((emoji) => {
-                const mine = (reactionsByMessage[actionsFor.id] ?? []).some(
+                const mine = (reactionsByMessage[actionsMessage.id] ?? []).some(
                   (r) => r.user_id === userId && r.emoji === emoji
                 );
                 return (
@@ -1195,7 +2084,7 @@ export default function ChannelRoomScreen() {
                         : `React with ${emoji}`
                     }
                     onPress={() => {
-                      const id = actionsFor.id;
+                      const id = actionsMessage.id;
                       setActionsFor(null);
                       void toggleReaction(id, emoji);
                     }}
@@ -1219,40 +2108,47 @@ export default function ChannelRoomScreen() {
               })}
             </View>
             <View style={{ height: 1, backgroundColor: theme.border }} />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Reply in thread"
+            <ActionRow
+              icon="corner-down-right"
+              label="Reply in thread"
               onPress={() => {
-                const id = actionsFor.id;
+                const id = actionsMessage.id;
                 setActionsFor(null);
                 openThread(id);
               }}
-              style={({ pressed }) => ({
-                minHeight: 44,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 10,
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: radius.control,
-                  backgroundColor: theme.brandSoft,
-                  alignItems: "center",
-                  justifyContent: "center",
+            />
+            <ActionRow
+              icon="bookmark"
+              label={actionsMessage.pinned_at ? "Unpin" : "Pin message"}
+              onPress={() => {
+                const target = actionsMessage;
+                setActionsFor(null);
+                void handleTogglePin(target, !target.pinned_at);
+              }}
+            />
+            {actionsMessage.author_id === userId && !actionsMessage.poll_id ? (
+              <ActionRow
+                icon="edit-2"
+                label="Edit"
+                onPress={() => {
+                  const target = actionsMessage;
+                  setActionsFor(null);
+                  startEdit(target);
                 }}
-              >
-                <Feather
-                  name="corner-down-right"
-                  size={16}
-                  color={theme.brand}
-                />
-              </View>
-              <AppText variant="bodyMedium">Reply in thread</AppText>
-            </Pressable>
+              />
+            ) : null}
+            {actionsMessage.author_id === userId ? (
+              <ActionRow
+                icon="trash-2"
+                label="Delete"
+                danger
+                onPress={() => {
+                  const target = actionsMessage;
+                  setActionsFor(null);
+                  void handleDelete(target);
+                }}
+              />
+            ) : null}
           </Card>
         </View>
       ) : null}

@@ -4,12 +4,22 @@ import {
   Fragment,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useFormStatus } from "react-dom";
-import { AlertCircle, Hash, Loader2, SendHorizontal, X } from "lucide-react";
+import {
+  AlertCircle,
+  BarChart3,
+  Hash,
+  ImagePlus,
+  Loader2,
+  SendHorizontal,
+  X,
+} from "lucide-react";
+import { Avatar } from "@/components/avatar";
 import { Badge, Button } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
@@ -22,11 +32,32 @@ import type {
   MessageWithAuthor,
   Profile,
 } from "@/lib/types";
+import {
+  MAX_ATTACHMENT_BYTES,
+  uploadChatImage,
+} from "@/features/chat/attachments";
+import { useBlockedIds } from "@/features/chat/blocks";
+import {
+  filterMentionCandidates,
+  insertMention,
+  mentionQuery,
+  type MentionCandidate,
+} from "@/features/chat/mentions";
 import { MessageItem, useReactions } from "@/features/chat/message-item";
+import { PinnedBar } from "@/features/chat/pinned-bar";
 import { ThreadPanel } from "@/features/chat/thread-panel";
+import { PollComposer } from "@/features/polls/poll-composer";
+import { cn } from "@/lib/utils";
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 const PAGE_SIZE = 50;
+
+/** The message row plus its joined author — one select shape everywhere. */
+const MESSAGE_WITH_AUTHOR_SELECT =
+  "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)";
+
+const COMPOSER_ICON_BUTTON =
+  "flex size-10 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50";
 
 /** Message shaped for the realtime hook's Record constraint. */
 type MessageRow = Message & Record<string, unknown>;
@@ -56,11 +87,25 @@ export function ChatRoom({
 
   const [messages, setMessages] = useState<MessageWithAuthor[]>(initialMessages);
   const [replyCounts, setReplyCounts] = useState<Record<string, number>>({});
+  const [pinned, setPinned] = useState<MessageWithAuthor[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [pollOpen, setPollOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { reactionsByMessage, loadReactions, toggleReaction } =
     useReactions(userId);
+  const { blockedIds } = useBlockedIds(userId);
+
+  // Mention autocomplete: track the caret, load the member roster lazily on
+  // the first `@`, and surface up to five matches above the composer.
+  const [caret, setCaret] = useState(0);
+  const [mentionMembers, setMentionMembers] = useState<
+    MentionCandidate[] | null
+  >(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [mentionDismissed, setMentionDismissed] = useState(false);
+  const mentionPartial = mentionQuery(draft.slice(0, caret));
 
   // "New" divider: frozen from the server-rendered read cursor, so it doesn't
   // vanish the moment we advance last_read_at on mount.
@@ -77,9 +122,11 @@ export function ChatRoom({
 
   const listRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const nearBottomRef = useRef(true);
   const pendingScrollRef = useRef<ScrollBehavior | null>("auto");
   const countedRepliesRef = useRef(new Set<string>());
+  const pinnedIdsRef = useRef<Set<string>>(new Set());
 
   const markRead = useCallback(() => {
     const supabase = createClient();
@@ -91,9 +138,27 @@ export function ChatRoom({
       .then(() => undefined);
   }, [channel.id, userId]);
 
+  /** The channel's pinned list, newest pin first (small by construction). */
+  const refreshPinned = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("messages")
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
+      .eq("channel_id", channel.id)
+      .not("pinned_at", "is", null)
+      .is("deleted_at", null)
+      .order("pinned_at", { ascending: false });
+    if (data) setPinned(data as unknown as MessageWithAuthor[]);
+  }, [channel.id]);
+
+  useEffect(() => {
+    pinnedIdsRef.current = new Set(pinned.map((p) => p.id));
+  }, [pinned]);
+
   // Mount: advance the read cursor, batch-load reactions + reply counts.
   useEffect(() => {
     markRead();
+    void refreshPinned();
     const ids = initialMessages.map((m) => m.id);
     void loadReactions(ids);
     if (ids.length > 0) {
@@ -169,9 +234,7 @@ export function ChatRoom({
       const supabase = createClient();
       void supabase
         .from("messages")
-        .select(
-          "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
-        )
+        .select(MESSAGE_WITH_AUTHOR_SELECT)
         .eq("id", row.id)
         .single()
         .then(({ data }) => {
@@ -201,7 +264,9 @@ export function ChatRoom({
           if (
             m.content === row.content &&
             m.edited_at === row.edited_at &&
-            m.deleted_at === row.deleted_at
+            m.deleted_at === row.deleted_at &&
+            m.pinned_at === row.pinned_at &&
+            m.pinned_by === row.pinned_by
           ) {
             return m;
           }
@@ -211,10 +276,18 @@ export function ChatRoom({
             content: row.content,
             edited_at: row.edited_at,
             deleted_at: row.deleted_at,
+            pinned_at: row.pinned_at,
+            pinned_by: row.pinned_by,
           };
         });
         return changed ? next : prev;
       });
+      // Pinned-strip upkeep: pins can flip on rows outside the loaded window,
+      // and deleting a pinned message unlists it — refetch when state differs.
+      const isPinnedNow = Boolean(row.pinned_at) && !row.deleted_at;
+      if (pinnedIdsRef.current.has(row.id) !== isPinnedNow) {
+        void refreshPinned();
+      }
     }
   );
 
@@ -225,6 +298,56 @@ export function ChatRoom({
     el.style.height = "0px";
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [draft]);
+
+  // Lazy-load the mention roster the first time an `@` token appears.
+  const mentionActive = mentionPartial !== null;
+  useEffect(() => {
+    if (!mentionActive || mentionMembers !== null) return;
+    const supabase = createClient();
+    void supabase
+      .from("channel_members")
+      .select("profile:profiles(id, handle, display_name, avatar_url)")
+      .eq("channel_id", channel.id)
+      .limit(400)
+      .then(({ data }) => {
+        const rows = (data ?? []) as unknown as {
+          profile: MentionCandidate | null;
+        }[];
+        setMentionMembers(
+          rows
+            .map((r) => r.profile)
+            .filter((p): p is MentionCandidate => Boolean(p))
+        );
+      });
+  }, [mentionActive, mentionMembers, channel.id]);
+
+  // A fresh token resets the highlight and clears any Escape dismissal.
+  useEffect(() => {
+    setMentionIndex(0);
+    setMentionDismissed(false);
+  }, [mentionPartial]);
+
+  const mentionSuggestions = useMemo(() => {
+    if (mentionPartial === null || mentionDismissed || !mentionMembers) {
+      return [];
+    }
+    return filterMentionCandidates(mentionMembers, mentionPartial, userId);
+  }, [mentionPartial, mentionDismissed, mentionMembers, userId]);
+
+  function applyMention(candidate: MentionCandidate) {
+    const { next, caret: nextCaret } = insertMention(
+      draft,
+      caret,
+      candidate.handle
+    );
+    setDraft(next);
+    setCaret(nextCaret);
+    const el = textareaRef.current;
+    if (el) {
+      el.focus();
+      requestAnimationFrame(() => el.setSelectionRange(nextCaret, nextCaret));
+    }
+  }
 
   async function handleSend() {
     const content = draft.trim();
@@ -240,6 +363,9 @@ export function ChatRoom({
         parent_id: null,
         content,
         attachment_path: null,
+        poll_id: null,
+        pinned_at: null,
+        pinned_by: null,
         edited_at: null,
         deleted_at: null,
         created_at: new Date().toISOString(),
@@ -252,9 +378,7 @@ export function ChatRoom({
     const { data, error: insertError } = await supabase
       .from("messages")
       .insert({ channel_id: channel.id, author_id: userId, content })
-      .select(
-        "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
-      )
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
       .single();
     setSending(false);
     if (insertError || !data) {
@@ -312,6 +436,96 @@ export function ChatRoom({
     }
   }
 
+  /** Pick → upload to the student's own chat-uploads folder → send. Any
+   *  typed draft rides along as the caption; otherwise content is "Photo". */
+  async function handleAttachmentPick(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // picking the same file twice should still fire
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Photos only here — pick an image file.");
+      return;
+    }
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      setError("That image is over 10 MB — try a smaller one.");
+      return;
+    }
+    setError(null);
+    setUploading(true);
+    try {
+      const path = await uploadChatImage(file, userId);
+      const content = draft.trim() || "Photo";
+      const supabase = createClient();
+      const { data, error: insertError } = await supabase
+        .from("messages")
+        .insert({
+          channel_id: channel.id,
+          author_id: userId,
+          content,
+          attachment_path: path,
+        })
+        .select(MESSAGE_WITH_AUTHOR_SELECT)
+        .single();
+      if (insertError || !data) throw insertError ?? new Error("send failed");
+      setDraft("");
+      appendMessage(data as unknown as MessageWithAuthor, "smooth");
+      markRead();
+    } catch {
+      setError("Couldn't send your photo. Check your connection and try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  /** Any member can pin or unpin — the RPC enforces membership server-side. */
+  async function handleTogglePin(id: string, pin: boolean) {
+    const supabase = createClient();
+    const { error: rpcError } = await supabase.rpc("set_message_pinned", {
+      p_message_id: id,
+      p_pinned: pin,
+    });
+    if (rpcError) {
+      setError(
+        pin
+          ? "Couldn't pin the message. Try again."
+          : "Couldn't unpin the message. Try again."
+      );
+      return;
+    }
+    const pinnedAt = pin ? new Date().toISOString() : null;
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === id
+          ? { ...m, pinned_at: pinnedAt, pinned_by: pin ? userId : null }
+          : m
+      )
+    );
+    void refreshPinned();
+  }
+
+  // The poll RPC writes the poll + carrying message atomically and hands back
+  // the message id. Our own realtime echoes are skipped, so append it here.
+  const handlePollCreated = useCallback(
+    (messageId: string) => {
+      setPollOpen(false);
+      const supabase = createClient();
+      void supabase
+        .from("messages")
+        .select(MESSAGE_WITH_AUTHOR_SELECT)
+        .eq("id", messageId)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            appendMessage(data as unknown as MessageWithAuthor, "smooth");
+          }
+        });
+      markRead();
+    },
+    [appendMessage, markRead]
+  );
+
   const openThread = useCallback(
     (id: string) => {
       router.push(`${pathname}?thread=${id}`, { scroll: false });
@@ -329,8 +543,23 @@ export function ChatRoom({
     name: profile.display_name,
   });
 
+  // Blocked students' messages never render — filtering happens at the edge
+  // so realtime, optimistic, and initial rows all pass through one gate.
+  const visibleMessages = useMemo(
+    () => messages.filter((m) => !blockedIds.has(m.author_id)),
+    [messages, blockedIds]
+  );
+  const visiblePinned = useMemo(
+    () => pinned.filter((m) => !blockedIds.has(m.author_id)),
+    [pinned, blockedIds]
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <PinnedBar
+        pinned={visiblePinned}
+        onUnpin={(id) => void handleTogglePin(id, false)}
+      />
       <div
         ref={listRef}
         onScroll={handleScroll}
@@ -338,7 +567,7 @@ export function ChatRoom({
         aria-label={`Messages in ${channel.name}`}
         className="flex-1 overflow-y-auto pb-2 pt-4"
       >
-        {messages.length < PAGE_SIZE ? (
+        {visibleMessages.length < PAGE_SIZE ? (
           <div className="px-2 pb-2">
             <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-brand">
               <Hash className="size-6" aria-hidden />
@@ -347,15 +576,15 @@ export function ChatRoom({
               Welcome to #{channel.slug}
             </p>
             <p className="text-sm text-muted">
-              {messages.length === 0
+              {visibleMessages.length === 0
                 ? "Nobody's said anything yet — be the first to say hi."
                 : "This is the very beginning of the channel."}
             </p>
           </div>
         ) : null}
 
-        {messages.map((m, i) => {
-          const prev = messages[i - 1];
+        {visibleMessages.map((m, i) => {
+          const prev = visibleMessages[i - 1];
           const isUnreadStart = m.id === firstUnreadId;
           const grouped =
             !isUnreadStart &&
@@ -393,6 +622,7 @@ export function ChatRoom({
                 onOpenThread={openThread}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onTogglePin={(id, pin) => void handleTogglePin(id, pin)}
               />
             </Fragment>
           );
@@ -427,9 +657,74 @@ export function ChatRoom({
           void handleSend();
         }}
         aria-label="Send a message"
-        className="shrink-0 pb-3 pt-1"
+        className="relative shrink-0 pb-3 pt-1"
       >
-        <div className="flex items-end gap-2 rounded-2xl border border-border bg-surface px-3 py-2 shadow-soft transition-colors focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/15">
+        {mentionSuggestions.length > 0 ? (
+          <div
+            role="listbox"
+            aria-label="Mention a channel member"
+            className="absolute bottom-full left-0 z-30 mb-1 w-full max-w-xs animate-scale-in rounded-card border border-border bg-surface p-1.5 shadow-lift"
+          >
+            {mentionSuggestions.map((candidate, index) => (
+              <button
+                key={candidate.id}
+                type="button"
+                role="option"
+                aria-selected={index === mentionIndex}
+                onMouseEnter={() => setMentionIndex(index)}
+                onClick={() => applyMention(candidate)}
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
+                  index === mentionIndex ? "bg-surface-2" : "hover:bg-surface-2/60"
+                )}
+              >
+                <Avatar
+                  name={candidate.display_name}
+                  src={candidate.avatar_url}
+                  size="xs"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold">
+                    {candidate.display_name}
+                  </span>
+                  <span className="block truncate text-xs text-muted">
+                    @{candidate.handle}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <div className="flex items-end gap-1 rounded-2xl border border-border bg-surface px-2 py-2 shadow-soft transition-colors focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/15">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            tabIndex={-1}
+            onChange={(e) => void handleAttachmentPick(e)}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading || sending}
+            aria-label="Send a photo"
+            className={COMPOSER_ICON_BUTTON}
+          >
+            {uploading ? (
+              <Loader2 className="size-4.5 animate-spin" aria-hidden />
+            ) : (
+              <ImagePlus className="size-4.5" aria-hidden />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setPollOpen(true)}
+            aria-label="Start a poll"
+            className={COMPOSER_ICON_BUTTON}
+          >
+            <BarChart3 className="size-4.5" aria-hidden />
+          </button>
           <label htmlFor="chat-composer" className="sr-only">
             Message #{channel.slug}
           </label>
@@ -439,9 +734,37 @@ export function ChatRoom({
             value={draft}
             onChange={(e) => {
               setDraft(e.target.value);
+              setCaret(e.target.selectionStart ?? e.target.value.length);
               noteTyping();
             }}
+            onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
             onKeyDown={(e) => {
+              if (mentionSuggestions.length > 0) {
+                if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                  e.preventDefault();
+                  const delta = e.key === "ArrowDown" ? 1 : -1;
+                  setMentionIndex(
+                    (i) =>
+                      (i + delta + mentionSuggestions.length) %
+                      mentionSuggestions.length
+                  );
+                  return;
+                }
+                if (e.key === "Enter" || e.key === "Tab") {
+                  e.preventDefault();
+                  applyMention(
+                    mentionSuggestions[
+                      Math.min(mentionIndex, mentionSuggestions.length - 1)
+                    ]
+                  );
+                  return;
+                }
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  setMentionDismissed(true);
+                  return;
+                }
+              }
               if (
                 e.key === "Enter" &&
                 !e.shiftKey &&
@@ -453,11 +776,11 @@ export function ChatRoom({
             }}
             rows={1}
             placeholder={`Message #${channel.slug}`}
-            className="max-h-40 flex-1 resize-none bg-transparent py-1 text-sm outline-none placeholder:text-muted"
+            className="max-h-40 flex-1 resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted"
           />
           <button
             type="submit"
-            disabled={!draft.trim() || sending}
+            disabled={!draft.trim() || sending || uploading}
             aria-label="Send message"
             className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-brand-fg shadow-soft transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -472,6 +795,14 @@ export function ChatRoom({
           Enter to send · Shift+Enter for a new line
         </p>
       </form>
+
+      {pollOpen ? (
+        <PollComposer
+          channelId={channel.id}
+          onClose={() => setPollOpen(false)}
+          onCreated={handlePollCreated}
+        />
+      ) : null}
 
       {threadId ? (
         <ThreadPanel

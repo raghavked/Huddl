@@ -64,6 +64,14 @@ type UpcomingItem = {
   due_at: string;
 };
 
+/* Upcoming events linked to this course — study sessions, mostly. */
+type CourseEventRow = {
+  id: string;
+  kind: "study_session" | "meetup";
+  title: string;
+  starts_at: string;
+};
+
 type Status = "loading" | "error" | "notFound" | "ready";
 
 type NoteItem = { key: string; type: "note"; note: NoteRow };
@@ -119,6 +127,15 @@ function dueDay(iso: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+/** "Fri, Oct 14 · 3:00 PM" — how study sessions read on the hub. */
+function sessionWhen(iso: string): string {
+  const time = new Date(iso).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `${dueDay(iso)} · ${time}`;
 }
 
 /** Quiet chip palette for calendar kinds — mirrored in course/calendar.tsx. */
@@ -312,6 +329,7 @@ export default function CourseHubScreen() {
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [mates, setMates] = useState<ClassmateRow[]>([]);
   const [upcoming, setUpcoming] = useState<UpcomingItem[]>([]);
+  const [sessions, setSessions] = useState<CourseEventRow[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   // Opening a note (signed URL -> browser/viewer).
@@ -339,8 +357,14 @@ export default function CourseHubScreen() {
       return;
     }
     try {
-      const [courseRes, channelRes, notesList, matesRes, upcomingRes] =
-        await Promise.all([
+      const [
+        courseRes,
+        channelRes,
+        notesList,
+        matesRes,
+        upcomingRes,
+        sessionsRes,
+      ] = await Promise.all([
           supabase
             .from("courses")
             .select("id, code, title, term:terms(name)")
@@ -367,6 +391,13 @@ export default function CourseHubScreen() {
             .gte("due_at", new Date().toISOString())
             .order("due_at", { ascending: true })
             .limit(3),
+          supabase
+            .from("events")
+            .select("id, kind, title, starts_at")
+            .eq("course_id", courseId)
+            .gte("starts_at", new Date().toISOString())
+            .order("starts_at", { ascending: true })
+            .limit(3),
         ]);
       if (courseRes.error) {
         setStatus("error");
@@ -390,6 +421,10 @@ export default function CourseHubScreen() {
       // The calendar preview is a bonus — a hiccup here shouldn't block the hub.
       setUpcoming(
         (upcomingRes.data ?? []) as unknown as UpcomingItem[]
+      );
+      // Same deal for study sessions — best-effort preview.
+      setSessions(
+        (sessionsRes.data ?? []) as unknown as CourseEventRow[]
       );
       const sortedMates = (
         (matesRes.data ?? []) as unknown as ClassmateRow[]
@@ -1071,6 +1106,95 @@ export default function CourseHubScreen() {
                   }
                 />
               </View>
+            </View>
+
+            {/* Study sessions — course-linked events, planned right here. */}
+            <View style={{ gap: 10, marginTop: 2 }}>
+              <AppText variant="title">Study sessions</AppText>
+              {sessions.length > 0 ? (
+                <Card padded={false}>
+                  {sessions.map((event, index) => (
+                    <Pressable
+                      key={event.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${event.title}, ${sessionWhen(event.starts_at)}`}
+                      onPress={() => router.push(`/event/${event.id}`)}
+                      style={({ pressed }) => ({
+                        opacity: pressed ? 0.7 : 1,
+                      })}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 10,
+                          paddingHorizontal: 14,
+                          paddingVertical: 10,
+                          minHeight: 48,
+                          borderTopWidth: index === 0 ? 0 : 1,
+                          borderTopColor: theme.border,
+                        }}
+                      >
+                        <Feather
+                          name={
+                            event.kind === "study_session"
+                              ? "book-open"
+                              : "smile"
+                          }
+                          size={15}
+                          color={theme.accent}
+                        />
+                        <AppText
+                          variant="bodyMedium"
+                          numberOfLines={1}
+                          style={{ flex: 1 }}
+                        >
+                          {event.title}
+                        </AppText>
+                        <AppText variant="caption" muted>
+                          {sessionWhen(event.starts_at)}
+                        </AppText>
+                        <Feather
+                          name="chevron-right"
+                          size={16}
+                          color={theme.muted}
+                        />
+                      </View>
+                    </Pressable>
+                  ))}
+                </Card>
+              ) : (
+                <Card
+                  style={{
+                    alignItems: "center",
+                    gap: 6,
+                    paddingVertical: 20,
+                    borderStyle: "dashed",
+                  }}
+                >
+                  <AppText
+                    variant="caption"
+                    muted
+                    style={{ textAlign: "center", maxWidth: 260 }}
+                  >
+                    Nothing planned yet — be the one who gets the class
+                    together.
+                  </AppText>
+                </Card>
+              )}
+              <Button
+                label="Plan a study session"
+                variant="soft"
+                size="sm"
+                icon={<Feather name="users" size={14} color={theme.brandInk} />}
+                onPress={() =>
+                  router.push({
+                    pathname: "/event/new",
+                    params: { courseId, courseCode: course.code },
+                  })
+                }
+                style={{ alignSelf: "flex-start" }}
+              />
             </View>
 
             {/* Rooms — built as its own screen; this is the doorway. */}

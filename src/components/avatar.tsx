@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 import { cn, initials } from "@/lib/utils";
 import { toneFor } from "@/components/avatar-tone";
 
@@ -23,13 +26,18 @@ export function Avatar({
   size?: keyof typeof SIZES;
   className?: string;
 }) {
-  if (src) {
+  // A broken avatar URL falls back to the initials look. Tracking the URL
+  // that failed (not just a boolean) lets a new src get a fresh attempt.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+
+  if (src && src !== failedSrc) {
     return (
       <Image
         src={src}
         alt={name}
         width={PX[size]}
         height={PX[size]}
+        onError={() => setFailedSrc(src)}
         className={cn(
           "shrink-0 rounded-full object-cover",
           SIZES[size],

@@ -1,11 +1,17 @@
 import Feather from "@expo/vector-icons/Feather";
-import type { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
+import type {
+  RealtimePostgresInsertPayload,
+  RealtimePostgresUpdatePayload,
+} from "@supabase/supabase-js";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   TextInput,
@@ -13,9 +19,11 @@ import {
   type ListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button } from "@/components/ui";
-import { fonts, radius } from "@/constants/theme";
+import { AppText, Button, Card } from "@/components/ui";
+import { fonts, palettes, radius } from "@/constants/theme";
+import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
+import { unblockUser } from "@/lib/blocks";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -33,6 +41,7 @@ type DmMessage = {
   thread_id: string;
   author_id: string;
   content: string;
+  attachment_path: string | null;
   edited_at: string | null;
   deleted_at: string | null;
   created_at: string;
@@ -74,6 +83,63 @@ function initialsOf(name: string): string {
     .toUpperCase();
 }
 
+/** A chat image at thumb size — resolves its signed URL through the screen's
+    per-path cache, then taps open the full-screen viewer. */
+function AttachmentImage({
+  path,
+  resolve,
+  onOpen,
+}: {
+  path: string;
+  resolve: (path: string) => Promise<string | null>;
+  onOpen: (url: string) => void;
+}) {
+  const theme = useTheme();
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void resolve(path).then((signed) => {
+      if (!cancelled) setUrl(signed);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [path, resolve]);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="View photo full screen"
+      disabled={!url}
+      onPress={() => {
+        if (url) onOpen(url);
+      }}
+      style={({ pressed }) => ({
+        width: 220,
+        height: 160,
+        borderRadius: 12,
+        overflow: "hidden",
+        backgroundColor: theme.surface2,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      {url ? (
+        <Image
+          source={{ uri: url }}
+          style={{ width: "100%", height: "100%" }}
+          contentFit="cover"
+          transition={150}
+        />
+      ) : (
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
+          <ActivityIndicator size="small" color={theme.muted} />
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
 /* ---- screen ---- */
 
 export default function DmRoomScreen() {
@@ -94,6 +160,17 @@ export default function DmRoomScreen() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
+  // Power layer: attachments, editing, the own-message sheet, the viewer,
+  // and the block gate on the composer.
+  const [uploading, setUploading] = useState(false);
+  const [editing, setEditing] = useState<DmMessage | null>(null);
+  const draftBeforeEditRef = useRef("");
+  const [actionsFor, setActionsFor] = useState<DmMessage | null>(null);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [unblocking, setUnblocking] = useState(false);
+  const inputRef = useRef<TextInput>(null);
+  const { blocked, refresh: refreshBlocked } = useBlockedIds();
+
   const markRead = useCallback(() => {
     if (!userId || !threadId) return;
     void supabase
@@ -103,6 +180,23 @@ export default function DmRoomScreen() {
       .eq("user_id", userId)
       .then(() => undefined);
   }, [threadId, userId]);
+
+  /** Signed URLs for chat images, cached per path for the screen's lifetime. */
+  const signedUrlsRef = useRef(new Map<string, Promise<string | null>>());
+  const resolveAttachmentUrl = useCallback(
+    (path: string): Promise<string | null> => {
+      const cached = signedUrlsRef.current.get(path);
+      if (cached) return cached;
+      const promise = supabase.storage
+        .from("chat-uploads")
+        .createSignedUrl(path, 3600)
+        .then(({ data }) => data?.signedUrl ?? null)
+        .catch(() => null);
+      signedUrlsRef.current.set(path, promise);
+      return promise;
+    },
+    []
+  );
 
   const load = useCallback(async () => {
     if (!userId || !threadId) return;
@@ -166,8 +260,9 @@ export default function DmRoomScreen() {
   }, [load]);
 
   // Realtime INSERTs on this thread. Own rows are skipped — the optimistic
-  // send path already has them. The handler lives in a ref so the channel
-  // subscribes once per thread.
+  // send path already has them. UPDATEs (their edits and deletes, or ours
+  // echoed) merge into the matching row. Handlers live in refs so the
+  // channel subscribes once per thread.
   const handleIncoming = useCallback(
     (row: DmMessage) => {
       if (row.author_id === userId) return;
@@ -180,6 +275,32 @@ export default function DmRoomScreen() {
   );
   const incomingRef = useRef(handleIncoming);
   incomingRef.current = handleIncoming;
+
+  const handleUpdated = useCallback((row: DmMessage) => {
+    setMessages((prev) => {
+      let changed = false;
+      const next = prev.map((m) => {
+        if (m.id !== row.id) return m;
+        if (
+          m.content === row.content &&
+          m.edited_at === row.edited_at &&
+          m.deleted_at === row.deleted_at
+        ) {
+          return m;
+        }
+        changed = true;
+        return {
+          ...m,
+          content: row.content,
+          edited_at: row.edited_at,
+          deleted_at: row.deleted_at,
+        };
+      });
+      return changed ? next : prev;
+    });
+  }, []);
+  const updatedRef = useRef(handleUpdated);
+  updatedRef.current = handleUpdated;
 
   useEffect(() => {
     if (!threadId) return;
@@ -195,6 +316,18 @@ export default function DmRoomScreen() {
         },
         (payload: RealtimePostgresInsertPayload<DmMessageRow>) => {
           incomingRef.current(payload.new as DmMessage);
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "dm_messages",
+          filter: `thread_id=eq.${threadId}`,
+        },
+        (payload: RealtimePostgresUpdatePayload<DmMessageRow>) => {
+          updatedRef.current(payload.new as DmMessage);
         }
       )
       .subscribe();
@@ -214,6 +347,7 @@ export default function DmRoomScreen() {
       thread_id: threadId,
       author_id: userId,
       content,
+      attachment_path: null,
       edited_at: null,
       deleted_at: null,
       created_at: new Date().toISOString(),
@@ -246,6 +380,149 @@ export default function DmRoomScreen() {
     markRead();
   }
 
+  /** Pick a photo → upload to the student's own chat-uploads folder → send.
+      Any typed draft rides along as the caption; otherwise content is "Photo". */
+  const handlePickPhoto = useCallback(async () => {
+    if (!threadId || !userId || uploading) return;
+    setSendError(null);
+    let asset: ImagePicker.ImagePickerAsset | null = null;
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images",
+        quality: 0.7,
+      });
+      if (result.canceled) return;
+      asset = result.assets[0] ?? null;
+    } catch {
+      setSendError("Couldn't open your photos. Give it another try.");
+      return;
+    }
+    if (!asset) return;
+    setUploading(true);
+    try {
+      const buffer = await (await fetch(asset.uri)).arrayBuffer();
+      const contentType = asset.mimeType ?? "image/jpeg";
+      const path = `${userId}/${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("chat-uploads")
+        .upload(path, buffer, { contentType });
+      if (uploadError) throw uploadError;
+      const content = draft.trim() || "Photo";
+      const { data, error: insertError } = await supabase
+        .from("dm_messages")
+        .insert({
+          thread_id: threadId,
+          author_id: userId,
+          content,
+          attachment_path: path,
+        })
+        .select("*")
+        .single();
+      if (insertError || !data) throw insertError ?? new Error("send failed");
+      setDraft("");
+      const real = data as DmMessage;
+      // Own realtime echoes are skipped, so append the row here.
+      setMessages((prev) =>
+        prev.some((m) => m.id === real.id) ? prev : [real, ...prev]
+      );
+      markRead();
+    } catch {
+      setSendError(
+        "Couldn't send your photo. Check your connection and try again."
+      );
+    } finally {
+      setUploading(false);
+    }
+  }, [threadId, userId, uploading, draft, markRead]);
+
+  /* -------------------- edit / delete own messages -------------------- */
+
+  const startEdit = useCallback(
+    (target: DmMessage) => {
+      draftBeforeEditRef.current = draft;
+      setEditing(target);
+      setDraft(target.content);
+      requestAnimationFrame(() => inputRef.current?.focus());
+    },
+    [draft]
+  );
+
+  const cancelEdit = useCallback(() => {
+    setEditing(null);
+    setDraft(draftBeforeEditRef.current);
+    draftBeforeEditRef.current = "";
+  }, []);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editing || !userId) return;
+    const content = draft.trim();
+    if (!content) return;
+    const target = editing;
+    setEditing(null);
+    setDraft(draftBeforeEditRef.current);
+    draftBeforeEditRef.current = "";
+    if (content === target.content) return;
+    const editedAt = new Date().toISOString();
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === target.id ? { ...m, content, edited_at: editedAt } : m
+      )
+    );
+    const { error: updateError } = await supabase
+      .from("dm_messages")
+      .update({ content, edited_at: editedAt })
+      .eq("id", target.id)
+      .eq("author_id", userId);
+    if (updateError) {
+      setMessages((prev) => prev.map((m) => (m.id === target.id ? target : m)));
+      setSendError("Couldn't save your edit. Give it another try.");
+    }
+  }, [editing, userId, draft]);
+
+  /** Soft delete: the row stays as a "Message deleted" tombstone. */
+  const handleDelete = useCallback(
+    async (target: DmMessage) => {
+      if (!userId) return;
+      const deletedAt = new Date().toISOString();
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === target.id ? { ...m, deleted_at: deletedAt } : m
+        )
+      );
+      const { error: updateError } = await supabase
+        .from("dm_messages")
+        .update({ deleted_at: deletedAt })
+        .eq("id", target.id)
+        .eq("author_id", userId);
+      if (updateError) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === target.id ? target : m))
+        );
+        setSendError("Couldn't delete that. Give it another try.");
+      }
+    },
+    [userId]
+  );
+
+  /* ----------------------------- blocking ----------------------------- */
+
+  const otherBlocked = other !== null && blocked.has(other.id);
+
+  const handleUnblock = useCallback(async () => {
+    if (!userId || !other || unblocking) return;
+    setUnblocking(true);
+    try {
+      await unblockUser(userId, other.id);
+      await refreshBlocked();
+    } catch {
+      setSendError("Couldn't unblock just now. Give it another try.");
+    } finally {
+      setUnblocking(false);
+    }
+  }, [userId, other, unblocking, refreshBlocked]);
+
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<DmMessage>) => {
       const own = item.author_id === userId;
@@ -258,7 +535,16 @@ export default function DmRoomScreen() {
             alignItems: own ? "flex-end" : "flex-start",
           }}
         >
-          <View
+          <Pressable
+            accessibilityHint={
+              own && !deleted && !isTemp
+                ? "Long press to edit or delete"
+                : undefined
+            }
+            onLongPress={() => {
+              if (own && !deleted && !isTemp) setActionsFor(item);
+            }}
+            delayLongPress={300}
             style={[
               {
                 maxWidth: "80%",
@@ -266,6 +552,7 @@ export default function DmRoomScreen() {
                 paddingHorizontal: 14,
                 paddingVertical: 9,
                 opacity: isTemp ? 0.7 : 1,
+                gap: 6,
               },
               deleted
                 ? {
@@ -285,11 +572,34 @@ export default function DmRoomScreen() {
             ]}
           >
             {deleted ? (
-              <AppText muted>Message deleted</AppText>
+              <AppText muted style={{ fontStyle: "italic" }}>
+                Message deleted
+              </AppText>
             ) : (
-              <AppText>{item.content}</AppText>
+              <>
+                {item.attachment_path ? (
+                  <AttachmentImage
+                    path={item.attachment_path}
+                    resolve={resolveAttachmentUrl}
+                    onOpen={setViewerUrl}
+                  />
+                ) : null}
+                {/* "Photo" is the placeholder content for caption-less sends. */}
+                {item.attachment_path && item.content === "Photo" ? null : (
+                  <AppText>{item.content}</AppText>
+                )}
+                {item.edited_at ? (
+                  <AppText
+                    variant="caption"
+                    muted
+                    style={{ fontSize: 10, lineHeight: 12 }}
+                  >
+                    (edited)
+                  </AppText>
+                ) : null}
+              </>
             )}
-          </View>
+          </Pressable>
           <AppText
             variant="caption"
             muted
@@ -300,10 +610,10 @@ export default function DmRoomScreen() {
         </View>
       );
     },
-    [userId, theme]
+    [userId, theme, resolveAttachmentUrl]
   );
 
-  const canSend = draft.trim().length > 0;
+  const canSend = draft.trim().length > 0 && !otherBlocked;
   const otherFirstName = other
     ? other.display_name.trim().split(/\s+/)[0] || other.handle
     : null;
@@ -531,6 +841,72 @@ export default function DmRoomScreen() {
             </View>
           ) : null}
 
+          {otherBlocked ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                marginHorizontal: 16,
+                marginBottom: 6,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: radius.control,
+                backgroundColor: theme.surface2,
+              }}
+            >
+              <Feather name="slash" size={14} color={theme.muted} />
+              <AppText variant="caption" muted style={{ flex: 1 }}>
+                You've blocked this person
+              </AppText>
+              <Button
+                label="Unblock"
+                variant="soft"
+                size="sm"
+                pending={unblocking}
+                onPress={() => void handleUnblock()}
+              />
+            </View>
+          ) : null}
+
+          {editing ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                marginHorizontal: 16,
+                marginBottom: 6,
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+                borderRadius: radius.control,
+                backgroundColor: theme.brandSoft,
+              }}
+            >
+              <Feather name="edit-2" size={13} color={theme.brandInk} />
+              <AppText
+                variant="caption"
+                style={{ color: theme.brandInk, flex: 1 }}
+              >
+                Editing message
+              </AppText>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cancel editing"
+                onPress={cancelEdit}
+                hitSlop={10}
+                style={{
+                  width: 28,
+                  height: 28,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Feather name="x" size={14} color={theme.brandInk} />
+              </Pressable>
+            </View>
+          ) : null}
+
           {/* Composer: optimistic send, reconciled against the insert. */}
           <View
             style={{
@@ -544,17 +920,53 @@ export default function DmRoomScreen() {
               borderTopColor: theme.border,
             }}
           >
+            {!editing ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Send a photo"
+                disabled={uploading || otherBlocked}
+                onPress={() => void handlePickPhoto()}
+                style={({ pressed }) => ({
+                  width: 44,
+                  height: 44,
+                  borderRadius: radius.full,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: uploading || otherBlocked ? 0.5 : pressed ? 0.7 : 1,
+                })}
+              >
+                {uploading ? (
+                  <ActivityIndicator size="small" color={theme.brand} />
+                ) : (
+                  <Feather name="image" size={19} color={theme.brand} />
+                )}
+              </Pressable>
+            ) : null}
             <TextInput
+              ref={inputRef}
               accessibilityLabel={
-                otherFirstName ? `Message ${otherFirstName}` : "Message"
+                editing
+                  ? "Edit your message"
+                  : otherFirstName
+                    ? `Message ${otherFirstName}`
+                    : "Message"
               }
               multiline
+              editable={!otherBlocked}
               value={draft}
               onChangeText={setDraft}
               placeholder={
-                otherFirstName ? `Message ${otherFirstName}` : "Message"
+                editing
+                  ? "Edit your message"
+                  : otherFirstName
+                    ? `Message ${otherFirstName}`
+                    : "Message"
               }
               placeholderTextColor={theme.muted}
+              maxLength={4000}
               cursorColor={theme.brand}
               selectionColor={theme.brandSoft}
               style={{
@@ -571,13 +983,14 @@ export default function DmRoomScreen() {
                 fontFamily: fonts.body,
                 fontSize: 15,
                 color: theme.foreground,
+                opacity: otherBlocked ? 0.5 : 1,
               }}
             />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Send message"
+              accessibilityLabel={editing ? "Save edit" : "Send message"}
               disabled={!canSend}
-              onPress={() => void handleSend()}
+              onPress={() => void (editing ? handleSaveEdit() : handleSend())}
               style={({ pressed }) => ({
                 width: 44,
                 height: 44,
@@ -591,12 +1004,144 @@ export default function DmRoomScreen() {
               {sending ? (
                 <ActivityIndicator size="small" color={theme.brandFg} />
               ) : (
-                <Feather name="send" size={18} color={theme.brandFg} />
+                <Feather
+                  name={editing ? "check" : "send"}
+                  size={18}
+                  color={theme.brandFg}
+                />
               )}
             </Pressable>
           </View>
         </>
       )}
+
+      {/* Full-screen photo viewer — tap anywhere to close. */}
+      <Modal
+        visible={viewerUrl !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setViewerUrl(null)}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close photo"
+          onPress={() => setViewerUrl(null)}
+          style={{ flex: 1, backgroundColor: "#000" }}
+        >
+          {viewerUrl ? (
+            <Image
+              source={{ uri: viewerUrl }}
+              style={{ flex: 1 }}
+              contentFit="contain"
+            />
+          ) : null}
+        </Pressable>
+      </Modal>
+
+      {actionsFor ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            justifyContent: "flex-end",
+          }}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close message actions"
+            onPress={() => setActionsFor(null)}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              // The scrim stays candle-dark in both appearances.
+              backgroundColor: palettes.dark.background,
+              opacity: 0.55,
+            }}
+          />
+          <Card
+            style={{
+              marginHorizontal: 12,
+              marginBottom: Math.max(insets.bottom, 12),
+              padding: 14,
+              gap: 8,
+            }}
+          >
+            <AppText variant="caption" muted numberOfLines={2}>
+              {actionsFor.content}
+            </AppText>
+            <View style={{ height: 1, backgroundColor: theme.border }} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Edit message"
+              onPress={() => {
+                const target = actionsFor;
+                setActionsFor(null);
+                startEdit(target);
+              }}
+              style={({ pressed }) => ({
+                minHeight: 44,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: radius.control,
+                  backgroundColor: theme.brandSoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Feather name="edit-2" size={16} color={theme.brand} />
+              </View>
+              <AppText variant="bodyMedium">Edit</AppText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Delete message"
+              onPress={() => {
+                const target = actionsFor;
+                setActionsFor(null);
+                void handleDelete(target);
+              }}
+              style={({ pressed }) => ({
+                minHeight: 44,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: radius.control,
+                  backgroundColor: theme.surface2,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Feather name="trash-2" size={16} color={theme.danger} />
+              </View>
+              <AppText variant="bodyMedium" style={{ color: theme.danger }}>
+                Delete
+              </AppText>
+            </Pressable>
+          </Card>
+        </View>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }

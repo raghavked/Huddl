@@ -182,6 +182,9 @@ export default function OnboardingScreen() {
       major: major.trim() || null,
       grad_year: year,
       bio: bio.trim() || null,
+      // Signup told them creating an account is agreeing to the terms;
+      // this records when that agreement was made.
+      accepted_terms_at: new Date().toISOString(),
     };
 
     let saveError: { code?: string } | null = null;

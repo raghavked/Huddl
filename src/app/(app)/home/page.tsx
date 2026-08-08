@@ -3,9 +3,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   CalendarDays,
+  ChevronRight,
   Compass,
   GraduationCap,
   Hash,
+  ListChecks,
   Megaphone,
   Plus,
 } from "lucide-react";
@@ -19,6 +21,7 @@ import {
 import { KindBadge } from "@/features/events/event-chips";
 import { JoinButton } from "@/features/discover/join-button";
 import { getCurrentUser } from "@/lib/auth";
+import { buildPlan, toPlanKind, type PlanItem } from "@/lib/study-plan";
 import { createClient } from "@/lib/supabase/server";
 import { formatEventTime, formatMessageTime } from "@/lib/utils";
 import type { CampusEvent, Channel, Course } from "@/lib/types";
@@ -42,7 +45,7 @@ export default async function HomePage() {
   const supabase = await createClient();
   const nowIso = new Date().toISOString();
 
-  const [membershipRes, eventsRes, topicsRes] = await Promise.all([
+  const [membershipRes, eventsRes, topicsRes, enrollRes] = await Promise.all([
     supabase
       .from("channel_members")
       .select("channel:channels(*, course:courses(id, code, title))")
@@ -61,7 +64,61 @@ export default async function HomePage() {
       .eq("kind", "topic")
       .order("created_at", { ascending: false })
       .limit(30),
+    supabase
+      .from("enrollments")
+      .select("course:courses(id, code)")
+      .eq("user_id", user.userId),
   ]);
+
+  // The study-plan card: shared class calendars + private check-offs,
+  // crunched by the same pure lib the /plan page uses. Same one-week-back
+  // window, so the numbers here match the plan page exactly.
+  const planCourses = (
+    (enrollRes.data ?? []) as unknown as {
+      course: { id: string; code: string } | null;
+    }[]
+  )
+    .map((row) => row.course)
+    .filter((c): c is { id: string; code: string } => c !== null);
+  let planStats: ReturnType<typeof buildPlan>["stats"] | null = null;
+  if (planCourses.length > 0) {
+    const codeById = new Map(planCourses.map((c) => [c.id, c.code]));
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const [itemsRes, checksRes] = await Promise.all([
+      supabase
+        .from("course_calendar_items")
+        .select("id, course_id, kind, title, due_at")
+        .in("course_id", [...codeById.keys()])
+        .gte("due_at", since),
+      supabase
+        .from("study_checkoffs")
+        .select("item_id")
+        .eq("user_id", user.userId),
+    ]);
+    const planItems = (
+      (itemsRes.data ?? []) as {
+        id: string;
+        course_id: string;
+        kind: string;
+        title: string;
+        due_at: string;
+      }[]
+    ).map(
+      (row): PlanItem => ({
+        id: row.id,
+        courseCode: codeById.get(row.course_id) ?? "Course",
+        kind: toPlanKind(row.kind),
+        title: row.title,
+        dueAt: new Date(row.due_at),
+      })
+    );
+    const checkoffs = new Set(
+      ((checksRes.data ?? []) as { item_id: string }[]).map(
+        (row) => row.item_id
+      )
+    );
+    planStats = buildPlan(planItems, checkoffs, new Date()).stats;
+  }
 
   const myChannels = (
     (membershipRes.data ?? []) as unknown as { channel: ChannelRow | null }[]
@@ -111,6 +168,40 @@ export default async function HomePage() {
         title={`Hey ${firstName}`}
         description="Here's what's happening on campus."
       />
+
+      {/* 0 — the study plan, when there are classes to plan around */}
+      {planStats ? (
+        <section className="mt-8" aria-label="Your plan">
+          <SectionHeader title="Your plan" />
+          <Link
+            href="/plan"
+            className={cardClasses({
+              padding: "none",
+              interactive: true,
+              className: "mt-3 flex items-center gap-3 px-4 py-3",
+            })}
+          >
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
+              <ListChecks className="size-5" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold">
+                {planStats.total === 0
+                  ? "Nothing on your plan yet"
+                  : planStats.nextUp
+                    ? `Next up: ${planStats.nextUp.courseCode} ${planStats.nextUp.title}`
+                    : "All caught up. Go touch grass."}
+              </span>
+              <span className="block truncate text-xs text-muted">
+                {planStats.total === 0
+                  ? "Import a syllabus and your whole term plans itself"
+                  : `${planStats.handled} of ${planStats.total} handled`}
+              </span>
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-muted" aria-hidden />
+          </Link>
+        </section>
+      ) : null}
 
       {/* 1 — campus channels I'm in, with latest-message previews */}
       <section className="mt-8" aria-label="Your campus">

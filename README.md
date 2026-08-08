@@ -18,15 +18,25 @@ roster and events.
 
 - **University-verified communities** — sign up with your school email
   (launching at UC Davis, then the UC system, then CSUs)
-- **Course channels** — user-managed course lists with catalog autocomplete;
-  adding a class creates and joins its channel automatically
+- **Course homes with rooms** — every course opens a main chat plus
+  student-created rooms: lectures, discussion, study groups, notes
+- **Class calendar + syllabus import** — paste a syllabus, preview the
+  parsed dates on-device, and the whole class gets the calendar; new exams
+  and due dates notify every classmate
+- **Personal study plan** — private check-offs over the shared calendars,
+  grouped by urgency, with recommended study blocks before every exam
+- **Chat power** — image attachments, polls with live results, @mentions,
+  pinned messages, edits, threads, reactions, typing indicators
+- **Device push** — DMs, mentions, replies, and class dates reach the
+  phone via Expo push, fanned out by a database trigger
+- **Safety by default** — blocking, categorized reporting with a 24-hour
+  review promise, server-side rate limits, and in-app account deletion
 - **Campus channels** — general, study-buddies, campus-events, asks-and-offers
   on every campus, plus student-created topic channels
 - **Clubs & organizations** — found a club, get a chat channel + roster +
   events board; open joining, officer roles
-- **Real-time chat** — threads, reactions, edits, soft deletes (Supabase
-  Realtime)
-- **Direct messages** — 1:1 threads with read state and notifications
+- **Direct messages** — 1:1 threads with read state, presence, and
+  notifications
 - **Note sharing** — per-course files with uploader credit and signed downloads
 - **Study sessions & meetups** — events with RSVPs, capacity, course/club links
 - **Public profiles & people directory** — majors, grad years, shared courses,

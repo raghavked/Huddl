@@ -1,5 +1,45 @@
 # Huddl development log
 
+## Round 8 — chat power, trust, and the legal layer
+
+Nine agents over four live migrations (0019–0022, plus the 0023
+performance sweep):
+
+- **Chat power, both clients**: image attachments in channels and DMs
+  (private `chat-uploads` bucket, signed URLs, lightbox/full-screen
+  viewers), polls that live in the message stream (single vote, live
+  results over realtime, creator close), @mentions with composer
+  autocomplete + server-trigger notifications, pinned messages (any
+  member, via RPC), and message edit/delete on native.
+- **Device push**: `push_tokens` per device; a pg_net trigger fans every
+  notification row out to Expo's push API. Native registers on sign-in,
+  routes notification taps by link, and has a push-settings screen.
+- **Safety**: blocking end to end (server-guarded DMs, muted
+  notifications, client filtering everywhere, blocked-people list),
+  categorized reporting (8 categories, 24-hour review promise),
+  server-side rate limits (30 messages/min, 10 reports/hour), and
+  in-app account deletion (`delete_own_account`, storage swept).
+- **Legal**: Terms of Service, Privacy Policy, and Community Guidelines
+  written for Huddl specifically, rendered in both clients from one
+  content source, linked at signup, acceptance stamped at onboarding
+  (`accepted_terms_at`); docs/LEGAL.md tracks the attorney-review
+  checklist.
+- **Events grow up**: native event creation (study session / meetup,
+  optional course link), course homes list upcoming study sessions and
+  announce new ones in the course chat; profile photos upload to the
+  avatars bucket with a shared Avatar component.
+- **Web parity**: rooms, class calendar, syllabus import, and the study
+  plan as web pages (ported pure libs + 28 new tests); attachments,
+  polls, mentions, pins, and block filtering in web chat.
+- **Security/perf sweep**: trigger functions revoked off the RPC surface,
+  all 53 RLS policies rewritten to evaluate `auth.uid()` once per
+  statement, hot-path FK indexes added. Remaining advisor item for the
+  dashboard: enable leaked-password protection (Auth setting).
+
+Verification: mobile strict tsc + iOS Hermes export (3.8 MB); web tsc,
+ESLint, 95 Vitest tests, production build with the new
+rooms/calendar/syllabus/plan/legal routes.
+
 ## Round 7 — the study layer, and courses become homes
 
 Two fleets on top of a live-backend round (migrations 0016–0018 applied

@@ -1,11 +1,16 @@
 import Feather from "@expo/vector-icons/Feather";
-import type { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
+import type {
+  RealtimePostgresInsertPayload,
+  RealtimePostgresUpdatePayload,
+} from "@supabase/supabase-js";
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -15,13 +20,16 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
-import { fonts, radius } from "@/constants/theme";
+import { fonts, palettes, radius } from "@/constants/theme";
+import { MentionText, useMentionSuggestions } from "@/features/mentions";
+import { PollBubble } from "@/features/polls";
+import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
-/** Minimal local row shapes — mirrors channel/[id].tsx, plus deleted_at so a
-    deleted parent renders honestly instead of showing stale content. */
+/** Minimal local row shapes — mirrors channel/[id].tsx, with the power
+    columns so edits, deletes, polls, and attachments render honestly. */
 type Author = {
   id: string;
   handle: string;
@@ -35,6 +43,9 @@ type MessageRow = {
   author_id: string;
   parent_id: string | null;
   content: string;
+  attachment_path: string | null;
+  poll_id: string | null;
+  edited_at: string | null;
   deleted_at: string | null;
   created_at: string;
   author: Author | null;
@@ -47,6 +58,9 @@ type RawMessageRow = {
   author_id: string;
   parent_id: string | null;
   content: string;
+  attachment_path: string | null;
+  poll_id: string | null;
+  edited_at: string | null;
   created_at: string;
   deleted_at: string | null;
 };
@@ -55,7 +69,14 @@ type Status = "loading" | "error" | "ready";
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 const MESSAGE_SELECT =
-  "id, channel_id, author_id, parent_id, content, deleted_at, created_at, author:profiles(id, handle, display_name, avatar_url)";
+  "id, channel_id, author_id, parent_id, content, attachment_path, poll_id, edited_at, deleted_at, created_at, author:profiles(id, handle, display_name, avatar_url)";
+
+/** The message-body text style — MentionText needs it spelled out. */
+const BODY_TEXT = {
+  fontFamily: fonts.body,
+  fontSize: 15,
+  lineHeight: 21,
+} as const;
 
 function timeLabel(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, {
@@ -138,6 +159,63 @@ function BackChevron({ onPress }: { onPress: () => void }) {
   );
 }
 
+/** A chat image at thumb size — resolves its signed URL through the screen's
+    per-path cache, then taps open the full-screen viewer. */
+function AttachmentImage({
+  path,
+  resolve,
+  onOpen,
+}: {
+  path: string;
+  resolve: (path: string) => Promise<string | null>;
+  onOpen: (url: string) => void;
+}) {
+  const theme = useTheme();
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void resolve(path).then((signed) => {
+      if (!cancelled) setUrl(signed);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [path, resolve]);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="View photo full screen"
+      disabled={!url}
+      onPress={() => {
+        if (url) onOpen(url);
+      }}
+      style={({ pressed }) => ({
+        width: 220,
+        height: 160,
+        borderRadius: 12,
+        overflow: "hidden",
+        backgroundColor: theme.surface2,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      {url ? (
+        <Image
+          source={{ uri: url }}
+          style={{ width: "100%", height: "100%" }}
+          contentFit="cover"
+          transition={150}
+        />
+      ) : (
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
+          <ActivityIndicator size="small" color={theme.muted} />
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
 export default function ThreadScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -160,6 +238,14 @@ export default function ThreadScreen() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
+  // Power layer: editing, the own-message action sheet, the photo viewer.
+  const [editing, setEditing] = useState<MessageRow | null>(null);
+  const draftBeforeEditRef = useRef("");
+  const [actionsFor, setActionsFor] = useState<MessageRow | null>(null);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const inputRef = useRef<TextInput>(null);
+  const { blocked } = useBlockedIds();
+
   const listRef = useRef<FlatList<MessageRow>>(null);
   const pendingScrollRef = useRef(false);
 
@@ -169,6 +255,23 @@ export default function ThreadScreen() {
       router.replace({ pathname: "/channel/[id]", params: { id: channelId } });
     } else router.replace("/(tabs)/channels");
   }, [router, channelId]);
+
+  /** Signed URLs for chat images, cached per path for the screen's lifetime. */
+  const signedUrlsRef = useRef(new Map<string, Promise<string | null>>());
+  const resolveAttachmentUrl = useCallback(
+    (path: string): Promise<string | null> => {
+      const cached = signedUrlsRef.current.get(path);
+      if (cached) return cached;
+      const promise = supabase.storage
+        .from("chat-uploads")
+        .createSignedUrl(path, 3600)
+        .then(({ data }) => data?.signedUrl ?? null)
+        .catch(() => null);
+      signedUrlsRef.current.set(path, promise);
+      return promise;
+    },
+    []
+  );
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -186,7 +289,6 @@ export default function ThreadScreen() {
         .from("messages")
         .select(MESSAGE_SELECT)
         .eq("parent_id", messageId)
-        .is("deleted_at", null)
         .order("created_at", { ascending: true }),
     ]);
     if (parentRes.error || repliesRes.error) {
@@ -194,6 +296,7 @@ export default function ThreadScreen() {
       return;
     }
     setParent((parentRes.data as unknown as MessageRow | null) ?? null);
+    // Deleted replies stay in the stream as tombstones, matching the web.
     setReplies((repliesRes.data ?? []) as unknown as MessageRow[]);
     setStatus("ready");
   }, [userId, channelId, messageId]);
@@ -215,9 +318,21 @@ export default function ThreadScreen() {
     pendingScrollRef.current = true;
   }, []);
 
+  /** Merge an edit/delete into the parent card or the matching reply row. */
+  const patchMessage = useCallback(
+    (id: string, patch: Partial<MessageRow>) => {
+      setParent((prev) => (prev && prev.id === id ? { ...prev, ...patch } : prev));
+      setReplies((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, ...patch } : m))
+      );
+    },
+    []
+  );
+
   // Live replies: the postgres filter is on the channel (mirrors the room's
   // subscription shape); parent_id is checked client-side. Own echoes are
-  // skipped — the optimistic path already has them.
+  // skipped — the optimistic path already has them. Updates (edits and soft
+  // deletes) merge into the parent card or the matching reply.
   const isReady = status === "ready";
   useEffect(() => {
     if (!isReady || !channelId || !messageId || !userId) return;
@@ -247,6 +362,9 @@ export default function ThreadScreen() {
                 author_id: row.author_id,
                 parent_id: row.parent_id,
                 content: row.content,
+                attachment_path: row.attachment_path,
+                poll_id: row.poll_id,
+                edited_at: row.edited_at,
                 deleted_at: row.deleted_at,
                 created_at: row.created_at,
                 author: (data as unknown as Author | null) ?? null,
@@ -254,17 +372,39 @@ export default function ThreadScreen() {
             });
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `channel_id=eq.${channelId}`,
+        },
+        (payload: RealtimePostgresUpdatePayload<RawMessageRow>) => {
+          const row = payload.new;
+          if (row.id !== messageId && row.parent_id !== messageId) return;
+          patchMessage(row.id, {
+            content: row.content,
+            edited_at: row.edited_at,
+            deleted_at: row.deleted_at,
+          });
+        }
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(room);
     };
-  }, [isReady, channelId, messageId, userId, appendReply]);
+  }, [isReady, channelId, messageId, userId, appendReply, patchMessage]);
+
+  // Composer @-autocomplete, fed from the channel's member roster.
+  const mentions = useMentionSuggestions(isReady ? channelId : null);
 
   const handleSend = useCallback(async () => {
     const content = draft.trim();
     if (!content || sending || !channelId || !messageId || !userId) return;
     setSendError(null);
     setDraft("");
+    mentions.reset();
     const tempId = `temp-${Date.now().toString(36)}-${Math.random()
       .toString(36)
       .slice(2, 10)}`;
@@ -275,6 +415,9 @@ export default function ThreadScreen() {
       author_id: userId,
       parent_id: messageId,
       content,
+      attachment_path: null,
+      poll_id: null,
+      edited_at: null,
       deleted_at: null,
       created_at: new Date().toISOString(),
       author: null,
@@ -306,13 +449,86 @@ export default function ThreadScreen() {
       real,
     ]);
     pendingScrollRef.current = true;
-  }, [draft, sending, channelId, messageId, userId, appendReply]);
+  }, [draft, sending, channelId, messageId, userId, appendReply, mentions]);
+
+  /* -------------------- edit / delete own messages -------------------- */
+
+  const startEdit = useCallback(
+    (target: MessageRow) => {
+      draftBeforeEditRef.current = draft;
+      setEditing(target);
+      setDraft(target.content);
+      mentions.reset();
+      requestAnimationFrame(() => inputRef.current?.focus());
+    },
+    [draft, mentions]
+  );
+
+  const cancelEdit = useCallback(() => {
+    setEditing(null);
+    setDraft(draftBeforeEditRef.current);
+    draftBeforeEditRef.current = "";
+    mentions.reset();
+  }, [mentions]);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editing || !userId) return;
+    const content = draft.trim();
+    if (!content) return;
+    const target = editing;
+    setEditing(null);
+    setDraft(draftBeforeEditRef.current);
+    draftBeforeEditRef.current = "";
+    mentions.reset();
+    if (content === target.content) return;
+    const editedAt = new Date().toISOString();
+    patchMessage(target.id, { content, edited_at: editedAt });
+    const { error: updateError } = await supabase
+      .from("messages")
+      .update({ content, edited_at: editedAt })
+      .eq("id", target.id)
+      .eq("author_id", userId);
+    if (updateError) {
+      patchMessage(target.id, {
+        content: target.content,
+        edited_at: target.edited_at,
+      });
+      setSendError("Couldn't save your edit — give it another try.");
+    }
+  }, [editing, userId, draft, mentions, patchMessage]);
+
+  /** Soft delete: the row stays as a tombstone, matching the web. */
+  const handleDelete = useCallback(
+    async (target: MessageRow) => {
+      if (!userId) return;
+      const deletedAt = new Date().toISOString();
+      patchMessage(target.id, { deleted_at: deletedAt });
+      const { error: updateError } = await supabase
+        .from("messages")
+        .update({ deleted_at: deletedAt })
+        .eq("id", target.id)
+        .eq("author_id", userId);
+      if (updateError) {
+        patchMessage(target.id, { deleted_at: target.deleted_at });
+        setSendError("Couldn't delete that — give it another try.");
+      }
+    },
+    [userId, patchMessage]
+  );
+
+  // Blocked students' replies never render; a blocked parent hides the card.
+  const visibleReplies = useMemo(
+    () => replies.filter((m) => !blocked.has(m.author_id)),
+    [replies, blocked]
+  );
+  const parentVisible = parent !== null && !blocked.has(parent.author_id);
 
   const renderReply = useCallback(
     ({ item, index }: ListRenderItemInfo<MessageRow>) => {
       // Top-down list: index - 1 is the chronologically older neighbor.
-      const older = index > 0 ? replies[index - 1] ?? null : null;
+      const older = index > 0 ? visibleReplies[index - 1] ?? null : null;
       const isOwn = item.author_id === userId;
+      const deleted = Boolean(item.deleted_at);
       const grouped =
         older !== null &&
         older.author_id === item.author_id &&
@@ -361,17 +577,63 @@ export default function ThreadScreen() {
                 </AppText>
               </View>
             ) : null}
-            <Card
-              padded={false}
-              style={{
-                backgroundColor: isOwn ? theme.brandSoft : theme.surface2,
-                borderRadius: 16,
-                paddingHorizontal: 12,
-                paddingVertical: 8,
+            <Pressable
+              accessibilityHint={
+                isOwn && !deleted ? "Long press to edit or delete" : undefined
+              }
+              onLongPress={() => {
+                if (isOwn && !deleted && !item.id.startsWith("temp-")) {
+                  setActionsFor(item);
+                }
               }}
+              delayLongPress={300}
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
             >
-              <AppText>{item.content}</AppText>
-            </Card>
+              {deleted ? (
+                <View style={{ paddingHorizontal: 4, paddingVertical: 6 }}>
+                  <AppText muted style={{ fontStyle: "italic" }}>
+                    Message deleted
+                  </AppText>
+                </View>
+              ) : item.poll_id ? (
+                <PollBubble pollId={item.poll_id} />
+              ) : (
+                <Card
+                  padded={false}
+                  style={{
+                    backgroundColor: isOwn ? theme.brandSoft : theme.surface2,
+                    borderRadius: 16,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    gap: 6,
+                  }}
+                >
+                  {item.attachment_path ? (
+                    <AttachmentImage
+                      path={item.attachment_path}
+                      resolve={resolveAttachmentUrl}
+                      onOpen={setViewerUrl}
+                    />
+                  ) : null}
+                  {item.attachment_path && item.content === "Photo" ? null : (
+                    <MentionText
+                      text={item.content}
+                      baseStyle={{ ...BODY_TEXT, color: theme.foreground }}
+                      highlightColor={isOwn ? theme.brandInk : theme.brand}
+                    />
+                  )}
+                  {item.edited_at ? (
+                    <AppText
+                      variant="caption"
+                      muted
+                      style={{ fontSize: 10, lineHeight: 12 }}
+                    >
+                      (edited)
+                    </AppText>
+                  ) : null}
+                </Card>
+              )}
+            </Pressable>
             {isOwn && !grouped ? (
               <AppText
                 variant="caption"
@@ -385,12 +647,14 @@ export default function ThreadScreen() {
         </View>
       );
     },
-    [replies, userId, theme]
+    [visibleReplies, userId, theme, resolveAttachmentUrl]
   );
 
-  const parentName = parent?.author?.display_name ?? "A classmate";
+  const parentName =
+    parentVisible && parent ? parent.author?.display_name ?? "A classmate" : "A classmate";
   const replyCountLabel =
-    replies.length === 1 ? "1 reply" : `${replies.length} replies`;
+    visibleReplies.length === 1 ? "1 reply" : `${visibleReplies.length} replies`;
+  const canSend = draft.trim().length > 0 && !sending;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -507,7 +771,7 @@ export default function ThreadScreen() {
         >
           <FlatList
             ref={listRef}
-            data={replies}
+            data={visibleReplies}
             keyExtractor={(m) => m.id}
             renderItem={renderReply}
             style={{ flex: 1 }}
@@ -532,37 +796,80 @@ export default function ThreadScreen() {
             }}
             ListHeaderComponent={
               <View style={{ paddingTop: 12 }}>
-                <Card style={{ padding: 12, gap: 8 }}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <Initials name={parentName} size={28} />
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <AppText variant="label" numberOfLines={1}>
-                        {parentName}
-                      </AppText>
-                      {parent ? (
-                        <AppText variant="caption" muted numberOfLines={1}>
-                          {dayLabel(parent.created_at)} ·{" "}
-                          {timeLabel(parent.created_at)}
+                <Pressable
+                  accessibilityHint={
+                    parentVisible &&
+                    parent &&
+                    parent.author_id === userId &&
+                    !parent.deleted_at
+                      ? "Long press to edit or delete"
+                      : undefined
+                  }
+                  onLongPress={() => {
+                    if (
+                      parentVisible &&
+                      parent &&
+                      parent.author_id === userId &&
+                      !parent.deleted_at
+                    ) {
+                      setActionsFor(parent);
+                    }
+                  }}
+                  delayLongPress={300}
+                >
+                  <Card style={{ padding: 12, gap: 8 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <Initials name={parentName} size={28} />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <AppText variant="label" numberOfLines={1}>
+                          {parentName}
                         </AppText>
-                      ) : null}
+                        {parentVisible && parent ? (
+                          <AppText variant="caption" muted numberOfLines={1}>
+                            {dayLabel(parent.created_at)} ·{" "}
+                            {timeLabel(parent.created_at)}
+                            {parent.edited_at ? " · (edited)" : ""}
+                          </AppText>
+                        ) : null}
+                      </View>
                     </View>
-                  </View>
-                  {!parent ? (
-                    <AppText muted>
-                      This message is no longer available.
-                    </AppText>
-                  ) : parent.deleted_at ? (
-                    <AppText muted>This message was deleted.</AppText>
-                  ) : (
-                    <AppText>{parent.content}</AppText>
-                  )}
-                </Card>
+                    {!parentVisible || !parent ? (
+                      <AppText muted>
+                        This message is no longer available.
+                      </AppText>
+                    ) : parent.deleted_at ? (
+                      <AppText muted style={{ fontStyle: "italic" }}>
+                        Message deleted
+                      </AppText>
+                    ) : parent.poll_id ? (
+                      <PollBubble pollId={parent.poll_id} />
+                    ) : (
+                      <>
+                        {parent.attachment_path ? (
+                          <AttachmentImage
+                            path={parent.attachment_path}
+                            resolve={resolveAttachmentUrl}
+                            onOpen={setViewerUrl}
+                          />
+                        ) : null}
+                        {parent.attachment_path &&
+                        parent.content === "Photo" ? null : (
+                          <MentionText
+                            text={parent.content}
+                            baseStyle={{ ...BODY_TEXT, color: theme.foreground }}
+                            highlightColor={theme.brand}
+                          />
+                        )}
+                      </>
+                    )}
+                  </Card>
+                </Pressable>
                 <View
                   style={{
                     flexDirection: "row",
@@ -625,6 +932,90 @@ export default function ThreadScreen() {
             </View>
           ) : null}
 
+          {mentions.active && mentions.suggestions.length > 0 ? (
+            <View
+              accessibilityLabel="Mention a channel member"
+              style={{
+                marginHorizontal: 16,
+                marginBottom: 6,
+                borderWidth: 1,
+                borderColor: theme.border,
+                borderRadius: radius.control,
+                backgroundColor: theme.surface,
+                overflow: "hidden",
+              }}
+            >
+              {mentions.suggestions.map((s) => (
+                <Pressable
+                  key={s.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Mention ${s.displayName}`}
+                  onPress={() =>
+                    setDraft(mentions.applyMention(draft, s.handle))
+                  }
+                  style={({ pressed }) => ({
+                    minHeight: 44,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    paddingHorizontal: 12,
+                    backgroundColor: pressed ? theme.surface2 : "transparent",
+                  })}
+                >
+                  <AppText variant="bodySemi" style={{ color: theme.brand }}>
+                    @{s.handle}
+                  </AppText>
+                  <AppText
+                    variant="caption"
+                    muted
+                    numberOfLines={1}
+                    style={{ flex: 1 }}
+                  >
+                    {s.displayName}
+                  </AppText>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
+          {editing ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                marginHorizontal: 16,
+                marginBottom: 6,
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+                borderRadius: radius.control,
+                backgroundColor: theme.brandSoft,
+              }}
+            >
+              <Feather name="edit-2" size={13} color={theme.brandInk} />
+              <AppText
+                variant="caption"
+                style={{ color: theme.brandInk, flex: 1 }}
+              >
+                Editing message
+              </AppText>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cancel editing"
+                onPress={cancelEdit}
+                hitSlop={10}
+                style={{
+                  width: 28,
+                  height: 28,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Feather name="x" size={14} color={theme.brandInk} />
+              </Pressable>
+            </View>
+          ) : null}
+
           <View
             style={{
               flexDirection: "row",
@@ -639,11 +1030,17 @@ export default function ThreadScreen() {
             }}
           >
             <TextInput
+              ref={inputRef}
               value={draft}
-              onChangeText={setDraft}
-              placeholder="Reply in thread"
+              onChangeText={(text) => {
+                setDraft(text);
+                mentions.onDraftChange(text);
+              }}
+              placeholder={editing ? "Edit your message" : "Reply in thread"}
               placeholderTextColor={theme.muted}
-              accessibilityLabel="Reply in thread"
+              accessibilityLabel={
+                editing ? "Edit your message" : "Reply in thread"
+              }
               multiline
               maxLength={4000}
               cursorColor={theme.brand}
@@ -666,9 +1063,9 @@ export default function ThreadScreen() {
             />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Send reply"
-              disabled={!draft.trim() || sending}
-              onPress={() => void handleSend()}
+              accessibilityLabel={editing ? "Save edit" : "Send reply"}
+              disabled={!canSend}
+              onPress={() => void (editing ? handleSaveEdit() : handleSend())}
               style={({ pressed }) => ({
                 width: 44,
                 height: 44,
@@ -676,18 +1073,152 @@ export default function ThreadScreen() {
                 backgroundColor: theme.brand,
                 alignItems: "center",
                 justifyContent: "center",
-                opacity: !draft.trim() || sending ? 0.5 : pressed ? 0.85 : 1,
+                opacity: !canSend ? 0.5 : pressed ? 0.85 : 1,
               })}
             >
               {sending ? (
                 <ActivityIndicator size="small" color={theme.brandFg} />
               ) : (
-                <Feather name="send" size={18} color={theme.brandFg} />
+                <Feather
+                  name={editing ? "check" : "send"}
+                  size={18}
+                  color={theme.brandFg}
+                />
               )}
             </Pressable>
           </View>
         </KeyboardAvoidingView>
       )}
+
+      {/* Full-screen photo viewer — tap anywhere to close. */}
+      <Modal
+        visible={viewerUrl !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setViewerUrl(null)}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close photo"
+          onPress={() => setViewerUrl(null)}
+          style={{ flex: 1, backgroundColor: "#000" }}
+        >
+          {viewerUrl ? (
+            <Image
+              source={{ uri: viewerUrl }}
+              style={{ flex: 1 }}
+              contentFit="contain"
+            />
+          ) : null}
+        </Pressable>
+      </Modal>
+
+      {actionsFor ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            justifyContent: "flex-end",
+          }}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close message actions"
+            onPress={() => setActionsFor(null)}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              // The scrim stays candle-dark in both appearances.
+              backgroundColor: palettes.dark.background,
+              opacity: 0.55,
+            }}
+          />
+          <Card
+            style={{
+              marginHorizontal: 12,
+              marginBottom: Math.max(insets.bottom, 12),
+              padding: 14,
+              gap: 8,
+            }}
+          >
+            <AppText variant="caption" muted numberOfLines={2}>
+              {actionsFor.content}
+            </AppText>
+            <View style={{ height: 1, backgroundColor: theme.border }} />
+            {!actionsFor.poll_id ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Edit message"
+                onPress={() => {
+                  const target = actionsFor;
+                  setActionsFor(null);
+                  startEdit(target);
+                }}
+                style={({ pressed }) => ({
+                  minHeight: 44,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: radius.control,
+                    backgroundColor: theme.brandSoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Feather name="edit-2" size={16} color={theme.brand} />
+                </View>
+                <AppText variant="bodyMedium">Edit</AppText>
+              </Pressable>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Delete message"
+              onPress={() => {
+                const target = actionsFor;
+                setActionsFor(null);
+                void handleDelete(target);
+              }}
+              style={({ pressed }) => ({
+                minHeight: 44,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: radius.control,
+                  backgroundColor: theme.surface2,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Feather name="trash-2" size={16} color={theme.danger} />
+              </View>
+              <AppText variant="bodyMedium" style={{ color: theme.danger }}>
+                Delete
+              </AppText>
+            </Pressable>
+          </Card>
+        </View>
+      ) : null}
     </View>
   );
 }

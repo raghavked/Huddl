@@ -1,14 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CornerDownRight, Loader2, SendHorizontal, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
 import { useRealtimeUpdates } from "@/lib/hooks/use-realtime-updates";
 import type { Message, MessageWithAuthor, Profile } from "@/lib/types";
+import { useBlockedIds } from "@/features/chat/blocks";
 import { MessageItem, useReactions } from "@/features/chat/message-item";
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
+
+/** The message row plus its joined author — one select shape everywhere. */
+const MESSAGE_WITH_AUTHOR_SELECT =
+  "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)";
 
 /** Message shaped for the realtime hook's Record constraint. */
 type MessageRow = Message & Record<string, unknown>;
@@ -47,6 +52,7 @@ export function ThreadPanel({
   const [error, setError] = useState<string | null>(null);
   const { reactionsByMessage, loadReactions, toggleReaction } =
     useReactions(userId);
+  const { blockedIds } = useBlockedIds(userId);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -65,9 +71,7 @@ export function ThreadPanel({
       if (!parentSeed) {
         const { data } = await supabase
           .from("messages")
-          .select(
-            "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
-          )
+          .select(MESSAGE_WITH_AUTHOR_SELECT)
           .eq("id", threadId)
           .maybeSingle();
         if (!cancelled && data) {
@@ -76,9 +80,7 @@ export function ThreadPanel({
       }
       const { data: rows } = await supabase
         .from("messages")
-        .select(
-          "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
-        )
+        .select(MESSAGE_WITH_AUTHOR_SELECT)
         .eq("parent_id", threadId)
         .order("created_at", { ascending: true });
       if (cancelled) return;
@@ -139,9 +141,7 @@ export function ThreadPanel({
       const supabase = createClient();
       void supabase
         .from("messages")
-        .select(
-          "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
-        )
+        .select(MESSAGE_WITH_AUTHOR_SELECT)
         .eq("id", row.id)
         .single()
         .then(({ data }) => {
@@ -204,6 +204,9 @@ export function ThreadPanel({
       parent_id: threadId,
       content,
       attachment_path: null,
+      poll_id: null,
+      pinned_at: null,
+      pinned_by: null,
       edited_at: null,
       deleted_at: null,
       created_at: new Date().toISOString(),
@@ -219,9 +222,7 @@ export function ThreadPanel({
         content,
         parent_id: threadId,
       })
-      .select(
-        "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
-      )
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
       .single();
     setSending(false);
     if (insertError || !data) {
@@ -278,6 +279,14 @@ export function ThreadPanel({
     }
   }
 
+  // Blocked students' replies never render; a blocked parent shows a quiet
+  // placeholder instead of its content.
+  const visibleReplies = useMemo(
+    () => replies.filter((m) => !blockedIds.has(m.author_id)),
+    [replies, blockedIds]
+  );
+  const parentHidden = Boolean(parent && blockedIds.has(parent.author_id));
+
   return (
     <div
       className="fixed inset-0 z-50 animate-fade-in"
@@ -305,8 +314,8 @@ export function ThreadPanel({
               <p aria-live="polite" className="truncate text-[11px] text-muted">
                 {loading
                   ? "Loading…"
-                  : `${replies.length} ${
-                      replies.length === 1 ? "reply" : "replies"
+                  : `${visibleReplies.length} ${
+                      visibleReplies.length === 1 ? "reply" : "replies"
                     }`}
               </p>
             </div>
@@ -322,7 +331,11 @@ export function ThreadPanel({
         </header>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-2 pb-3 pt-4">
-          {parent ? (
+          {parentHidden ? (
+            <p className="px-2 py-3 text-sm italic text-muted">
+              This message is hidden.
+            </p>
+          ) : parent ? (
             <MessageItem message={parent} userId={userId} />
           ) : loading ? (
             <div className="flex items-center gap-2 px-2 py-3 text-sm text-muted">
@@ -351,13 +364,13 @@ export function ThreadPanel({
               <Loader2 className="size-5 animate-spin text-muted" aria-hidden />
               <span className="sr-only">Loading replies…</span>
             </div>
-          ) : replies.length === 0 ? (
+          ) : visibleReplies.length === 0 ? (
             <p className="px-2 py-6 text-center text-sm text-muted">
               No replies yet — start the thread.
             </p>
           ) : (
-            replies.map((m, i) => {
-              const prev = replies[i - 1];
+            visibleReplies.map((m, i) => {
+              const prev = visibleReplies[i - 1];
               const grouped = Boolean(
                 prev &&
                   prev.author_id === m.author_id &&

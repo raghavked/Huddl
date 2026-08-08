@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import type { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
-import { router, type Href } from "expo-router";
+import { router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { routeForLink } from "@/lib/notification-links";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -57,29 +58,6 @@ function timeAgo(iso: string): string {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
   return then.toLocaleDateString([], { month: "short", day: "numeric" });
-}
-
-/**
- * Notification links are written in the web app's URL space; map the ones
- * with a native twin onto our routes. Anything unmapped stays a quiet row.
- */
-function routeForLink(link: string | null): Href | null {
-  if (!link) return null;
-  const match = /^\/(messages|events|courses|channels)\/([^/?#]+)/.exec(link);
-  const id = match?.[2];
-  if (!match || !id) return null;
-  switch (match[1]) {
-    case "messages":
-      return `/dm/${id}`;
-    case "events":
-      return `/event/${id}`;
-    case "courses":
-      return `/course/${id}`;
-    case "channels":
-      return `/channel/${id}`;
-    default:
-      return null;
-  }
 }
 
 /* ---- row ---- */

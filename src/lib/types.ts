@@ -150,6 +150,12 @@ export interface Message {
   parent_id: string | null;
   content: string;
   attachment_path: string | null;
+  // A message with poll_id carries a poll — clients render the live poll
+  // bubble instead of the text (content duplicates the question for search
+  // and notification previews). Migration 0019.
+  poll_id: string | null;
+  pinned_at: string | null;
+  pinned_by: string | null;
   edited_at: string | null;
   deleted_at: string | null;
   created_at: string;
@@ -178,9 +184,49 @@ export interface DmMessage {
   thread_id: string;
   author_id: string;
   content: string;
+  attachment_path: string | null;
   edited_at: string | null;
   deleted_at: string | null;
   created_at: string;
+}
+
+// Chat power + safety rows from migration 0019.
+
+export interface Poll {
+  id: string;
+  channel_id: string;
+  creator_id: string;
+  question: string;
+  closed_at: string | null;
+  created_at: string;
+}
+
+export interface PollOption {
+  id: string;
+  poll_id: string;
+  label: string;
+  position: number;
+}
+
+export interface PollVote {
+  poll_id: string;
+  option_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+// One-way and private to the blocker — the blocked person never finds out.
+export interface Block {
+  blocker_id: string;
+  blocked_id: string;
+  created_at: string;
+}
+
+export interface PushToken {
+  user_id: string;
+  token: string;
+  platform: "ios" | "android" | "unknown";
+  updated_at: string;
 }
 
 export interface Note {
@@ -230,7 +276,9 @@ export type NotificationKind =
   | "schedule_privacy"
   | "event"
   | "channel"
-  | "system";
+  | "system"
+  | "course_calendar"
+  | "mention";
 
 export interface AppNotification {
   id: string;

@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -11,7 +12,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
 import { radius } from "@/constants/theme";
+import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
+import { blockUser, unblockUser } from "@/lib/blocks";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -153,6 +156,46 @@ function Chip({
   );
 }
 
+/** One row of the profile overflow menu — 44px tall, icon + label. */
+function MenuItem({
+  icon,
+  label,
+  first = false,
+  danger = false,
+  onPress,
+}: {
+  icon: FeatherName;
+  label: string;
+  first?: boolean;
+  danger?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const color = danger ? theme.danger : theme.foreground;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: 44,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        paddingHorizontal: 16,
+        borderTopWidth: first ? 0 : 1,
+        borderTopColor: theme.border,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Feather name={icon} size={16} color={color} />
+      <AppText variant="bodySemi" style={{ color }}>
+        {label}
+      </AppText>
+    </Pressable>
+  );
+}
+
 function EmptySection({
   icon,
   title,
@@ -226,6 +269,11 @@ export default function ProfileScreen() {
   const [sectionsError, setSectionsError] = useState(false);
   const [messaging, setMessaging] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [unblocking, setUnblocking] = useState(false);
+
+  const { blocked, refresh: refreshBlocked } = useBlockedIds();
+  const isBlocked = profile ? blocked.has(profile.id) : false;
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -387,6 +435,68 @@ export default function ProfileScreen() {
     }
   }, [userId, profile, messaging]);
 
+  /* ----------------------- block / report actions ----------------------- */
+
+  // Private profiles only show a handle, so alerts and the report header use
+  // whichever name the viewer can actually see.
+  const visibleName = profile
+    ? profile.is_public || profile.id === userId
+      ? profile.display_name
+      : `@${profile.handle}`
+    : "";
+
+  const openReport = useCallback(() => {
+    if (!profile) return;
+    setMenuOpen(false);
+    router.push({
+      pathname: "/report",
+      params: { userId: profile.id, label: visibleName },
+    });
+  }, [profile, visibleName]);
+
+  const doBlock = useCallback(async () => {
+    if (!userId || !profile) return;
+    try {
+      await blockUser(userId, profile.id);
+      await refreshBlocked();
+    } catch {
+      Alert.alert(
+        "That didn't go through",
+        "We couldn't block them just now — give it another try."
+      );
+    }
+  }, [userId, profile, refreshBlocked]);
+
+  const confirmBlock = useCallback(() => {
+    if (!profile) return;
+    setMenuOpen(false);
+    Alert.alert(
+      `Block ${visibleName}?`,
+      "They won't be able to DM you, and you won't see their posts. They won't know.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Block", style: "destructive", onPress: () => void doBlock() },
+      ]
+    );
+  }, [profile, visibleName, doBlock]);
+
+  const doUnblock = useCallback(async () => {
+    if (!userId || !profile || unblocking) return;
+    setMenuOpen(false);
+    setUnblocking(true);
+    try {
+      await unblockUser(userId, profile.id);
+      await refreshBlocked();
+    } catch {
+      Alert.alert(
+        "That didn't go through",
+        "We couldn't unblock them just now — give it another try."
+      );
+    } finally {
+      setUnblocking(false);
+    }
+  }, [userId, profile, unblocking, refreshBlocked]);
+
   const backChevron = (
     <Pressable
       accessibilityRole="button"
@@ -404,6 +514,103 @@ export default function ProfileScreen() {
     >
       <Feather name="chevron-left" size={26} color={theme.foreground} />
     </Pressable>
+  );
+
+  const isOtherPerson = Boolean(profile && userId && profile.id !== userId);
+
+  const overflowButton = isOtherPerson ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="More options"
+      onPress={() => setMenuOpen((open) => !open)}
+      hitSlop={8}
+      style={({ pressed }) => ({
+        width: 44,
+        height: 44,
+        marginRight: -10,
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Feather name="more-horizontal" size={22} color={theme.foreground} />
+    </Pressable>
+  ) : null;
+
+  /* Overflow dropdown + a full-screen backdrop that dismisses it. */
+  const menuOverlay =
+    menuOpen && isOtherPerson ? (
+      <>
+        <Pressable
+          accessibilityLabel="Close menu"
+          onPress={() => setMenuOpen(false)}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 10,
+          }}
+        />
+        <Card
+          padded={false}
+          style={{
+            position: "absolute",
+            top: insets.top + 56,
+            right: 20,
+            zIndex: 11,
+            minWidth: 180,
+            elevation: 6,
+            shadowOpacity: 0.14,
+          }}
+        >
+          <MenuItem icon="flag" label="Report" first onPress={openReport} />
+          {isBlocked ? (
+            <MenuItem
+              icon="rotate-ccw"
+              label="Unblock"
+              onPress={() => void doUnblock()}
+            />
+          ) : (
+            <MenuItem
+              icon="slash"
+              label="Block"
+              danger
+              onPress={confirmBlock}
+            />
+          )}
+        </Card>
+      </>
+    ) : null;
+
+  /* Quiet blocked chip + the way back, shown in place of the Message button. */
+  const blockedActions = (
+    <View style={{ alignItems: "center", gap: 10 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          borderRadius: radius.full,
+          backgroundColor: theme.surface2,
+        }}
+      >
+        <Feather name="slash" size={12} color={theme.muted} />
+        <AppText variant="label" style={{ color: theme.muted }}>
+          Blocked
+        </AppText>
+      </View>
+      <Button
+        label="Unblock"
+        variant="secondary"
+        size="sm"
+        pending={unblocking}
+        onPress={() => void doUnblock()}
+      />
+    </View>
   );
 
   /* ------------------------- pre-profile states ------------------------- */
@@ -529,7 +736,16 @@ export default function ProfileScreen() {
           paddingHorizontal: 20,
         }}
       >
-        {backChevron}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          {backChevron}
+          {overflowButton}
+        </View>
         <Card
           style={{ alignItems: "center", gap: 12, paddingVertical: 32 }}
         >
@@ -548,10 +764,13 @@ export default function ProfileScreen() {
             muted
             style={{ textAlign: "center", maxWidth: 280 }}
           >
-            Only their handle and avatar are visible, but you can still say hi.
+            {isBlocked
+              ? "Only their handle and avatar are visible."
+              : "Only their handle and avatar are visible, but you can still say hi."}
           </AppText>
-          {messageButton}
+          {isBlocked ? blockedActions : messageButton}
         </Card>
+        {menuOverlay}
       </View>
     );
   }
@@ -564,7 +783,17 @@ export default function ProfileScreen() {
         paddingTop: insets.top + 8,
       }}
     >
-      <View style={{ paddingHorizontal: 20 }}>{backChevron}</View>
+      <View
+        style={{
+          paddingHorizontal: 20,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        {backChevron}
+        {overflowButton}
+      </View>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
@@ -659,6 +888,8 @@ export default function ProfileScreen() {
                 onPress={() => router.push("/account")}
                 icon={<Feather name="edit-2" size={15} color={theme.foreground} />}
               />
+            ) : isBlocked ? (
+              blockedActions
             ) : (
               messageButton
             )}
@@ -735,6 +966,7 @@ export default function ProfileScreen() {
           </View>
         )}
       </ScrollView>
+      {menuOverlay}
     </View>
   );
 }

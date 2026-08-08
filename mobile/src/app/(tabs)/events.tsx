@@ -241,7 +241,29 @@ export default function EventsScreen() {
   );
 
   return (
-    <Screen title="Events" scroll={false}>
+    <Screen
+      title="Events"
+      scroll={false}
+      action={
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Plan an event"
+          onPress={() => router.push("/event/new")}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            borderRadius: radius.full,
+            backgroundColor: theme.brandSoft,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Feather name="plus" size={20} color={theme.brandInk} />
+        </Pressable>
+      }
+    >
       {loading ? (
         <View
           style={{

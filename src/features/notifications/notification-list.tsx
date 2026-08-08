@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import {
+  AtSign,
   Bell,
+  BookOpen,
   CalendarDays,
   CheckCheck,
   Hash,
@@ -34,6 +36,8 @@ const KIND_META: Record<NotificationKind, { icon: LucideIcon; label: string }> =
     event: { icon: CalendarDays, label: "Event" },
     channel: { icon: Hash, label: "Channel" },
     system: { icon: Info, label: "System" },
+    course_calendar: { icon: BookOpen, label: "Class calendar" },
+    mention: { icon: AtSign, label: "Mention" },
   };
 
 /**

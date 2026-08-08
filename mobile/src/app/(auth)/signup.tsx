@@ -321,6 +321,28 @@ export default function SignupScreen() {
           />
 
           <AppText variant="caption" muted style={{ textAlign: "center" }}>
+            By creating an account you agree to our{" "}
+            <AppText
+              variant="caption"
+              accessibilityRole="link"
+              style={{ color: theme.brand, fontFamily: fonts.bodySemi }}
+              onPress={() => router.push("/legal/terms")}
+            >
+              Terms of Service
+            </AppText>{" "}
+            and{" "}
+            <AppText
+              variant="caption"
+              accessibilityRole="link"
+              style={{ color: theme.brand, fontFamily: fonts.bodySemi }}
+              onPress={() => router.push("/legal/privacy")}
+            >
+              Privacy Policy
+            </AppText>
+            .
+          </AppText>
+
+          <AppText variant="caption" muted style={{ textAlign: "center" }}>
             We'll email you a confirmation link to verify your student status.
           </AppText>
         </Card>

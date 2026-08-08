@@ -1,17 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Flag,
   Loader2,
   MessageSquareText,
   Pencil,
+  Pin,
+  PinOff,
   SmilePlus,
   Trash2,
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { createClient } from "@/lib/supabase/client";
 import { reportMessage } from "@/features/moderation/actions";
+import { AttachmentImage } from "@/features/chat/attachment-image";
+import { splitMentions } from "@/features/chat/mentions";
+import { PollBubble } from "@/features/polls/poll-bubble";
 import type { MessageReaction, MessageWithAuthor } from "@/lib/types";
 import { cn, formatMessageTime } from "@/lib/utils";
 
@@ -116,6 +128,7 @@ export function MessageItem({
   onOpenThread,
   onEdit,
   onDelete,
+  onTogglePin,
 }: {
   message: MessageWithAuthor;
   userId: string;
@@ -127,6 +140,8 @@ export function MessageItem({
   onOpenThread?: (messageId: string) => void;
   onEdit?: (messageId: string, content: string) => void;
   onDelete?: (messageId: string) => void;
+  /** Pin/unpin from the toolbar — any channel member can (RPC enforces). */
+  onTogglePin?: (messageId: string, pinned: boolean) => void;
 }) {
   const isOwn = message.author_id === userId;
   const isDeleted = Boolean(message.deleted_at);
@@ -170,6 +185,10 @@ export function MessageItem({
   // Others' messages are always reportable; own messages never are.
   const canReport = !isOwn;
 
+  // Polls carry their question in the bubble itself; editing the carrier
+  // message's text would only desync the two.
+  const canEdit = isOwn && !message.poll_id;
+
   const hasToolbar =
     !isDeleted &&
     !isPending &&
@@ -177,7 +196,8 @@ export function MessageItem({
     Boolean(
       onToggleReaction ||
         onOpenThread ||
-        (isOwn && (onEdit || onDelete)) ||
+        onTogglePin ||
+        (isOwn && ((canEdit && onEdit) || onDelete)) ||
         canReport
     );
 
@@ -240,6 +260,12 @@ export function MessageItem({
             >
               {formatMessageTime(message.created_at)}
             </time>
+            {message.pinned_at ? (
+              <span className="flex shrink-0 items-center text-brand-ink">
+                <Pin className="size-3" aria-hidden />
+                <span className="sr-only">Pinned</span>
+              </span>
+            ) : null}
           </p>
         ) : null}
 
@@ -291,20 +317,52 @@ export function MessageItem({
               </span>
             </div>
           </div>
+        ) : message.poll_id ? (
+          // The message is a poll carrier — render the live poll in place of
+          // the text (content duplicates the question for previews/search).
+          <PollBubble
+            pollId={message.poll_id}
+            userId={userId}
+            className={cn(!grouped && "mt-1")}
+          />
         ) : (
-          <p
-            className={cn(
-              "w-fit max-w-full whitespace-pre-wrap break-words rounded-2xl bg-surface-2 px-3.5 py-2 text-sm leading-relaxed",
-              !grouped && "mt-1 rounded-tl-sm"
-            )}
-          >
-            {message.content}
-            {message.edited_at ? (
-              <span className="ml-1.5 align-baseline text-[10px] text-muted">
-                (edited)
-              </span>
+          <>
+            {message.attachment_path ? (
+              <AttachmentImage
+                path={message.attachment_path}
+                alt={`Photo from ${message.author.display_name}`}
+                className={cn(!grouped && "mt-1")}
+              />
             ) : null}
-          </p>
+            {/* "Photo" is the placeholder content for caption-less sends. */}
+            {message.attachment_path && message.content === "Photo" ? null : (
+              <p
+                className={cn(
+                  "w-fit max-w-full whitespace-pre-wrap break-words rounded-2xl bg-surface-2 px-3.5 py-2 text-sm leading-relaxed",
+                  !grouped && !message.attachment_path && "mt-1 rounded-tl-sm",
+                  message.attachment_path && "mt-1"
+                )}
+              >
+                {splitMentions(message.content).map((segment, index) =>
+                  segment.mention ? (
+                    <span
+                      key={index}
+                      className="font-semibold text-brand"
+                    >
+                      {segment.text}
+                    </span>
+                  ) : (
+                    <Fragment key={index}>{segment.text}</Fragment>
+                  )
+                )}
+                {message.edited_at ? (
+                  <span className="ml-1.5 align-baseline text-[10px] text-muted">
+                    (edited)
+                  </span>
+                ) : null}
+              </p>
+            )}
+          </>
         )}
 
         {!isDeleted && reactionGroups.length > 0 ? (
@@ -432,7 +490,24 @@ export function MessageItem({
               <MessageSquareText className="size-4" aria-hidden />
             </button>
           ) : null}
-          {isOwn && onEdit ? (
+          {onTogglePin ? (
+            <button
+              type="button"
+              onClick={() => {
+                setTapped(false);
+                onTogglePin(message.id, !message.pinned_at);
+              }}
+              aria-label={message.pinned_at ? "Unpin message" : "Pin message"}
+              className={TOOL_BUTTON}
+            >
+              {message.pinned_at ? (
+                <PinOff className="size-4" aria-hidden />
+              ) : (
+                <Pin className="size-4" aria-hidden />
+              )}
+            </button>
+          ) : null}
+          {canEdit && onEdit ? (
             <button
               type="button"
               onClick={startEdit}

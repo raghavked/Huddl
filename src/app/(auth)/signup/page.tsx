@@ -27,6 +27,23 @@ export default async function SignupPage() {
           you&apos;re a student.
         </p>
         <SignupForm />
+        <p className="mt-4 text-center text-xs text-muted">
+          By creating an account you agree to our{" "}
+          <Link
+            href="/legal/terms"
+            className="font-semibold text-brand hover:underline"
+          >
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/legal/privacy"
+            className="font-semibold text-brand hover:underline"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </Card>
       <p className="mt-6 text-center text-sm text-muted">
         Already on Huddl?{" "}
