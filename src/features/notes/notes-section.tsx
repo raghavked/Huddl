@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CircleAlert,
@@ -9,6 +9,7 @@ import {
   FileImage,
   FileSpreadsheet,
   FileText,
+  Heart,
   Loader2,
   Presentation,
   Trash2,
@@ -21,10 +22,15 @@ import { NotesScene } from "@/components/illustrations";
 import { buttonClasses, cardClasses } from "@/components/ui";
 import { NoteUpload } from "@/features/notes/note-upload";
 import { createClient } from "@/lib/supabase/client";
-import { formatFileSize, formatMessageTime } from "@/lib/utils";
+import { cn, formatFileSize, formatMessageTime } from "@/lib/utils";
 import type { Note, Profile } from "@/lib/types";
 
 export type NoteWithUploader = Note & { uploader: Profile | null };
+
+/** Per-note gratitude: how many classmates said thanks, and whether I did. */
+type ThanksEntry = { count: number; mine: boolean };
+
+const NO_THANKS: ThanksEntry = { count: 0, mine: false };
 
 const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "heic"]);
 const SHEET_EXTENSIONS = new Set(["xls", "xlsx", "csv"]);
@@ -76,6 +82,93 @@ export function NotesSection({
       (note) => !removed.has(note.id)
     );
   }, [notes, extraNotes, removedIds]);
+
+  // Gratitude on the visible notes (migration 0026): one query, reduced to
+  // {count, mine} per note. Keyed on the id set so toggles don't refetch.
+  const [thanks, setThanks] = useState<Record<string, ThanksEntry>>({});
+  const thanksInFlight = useRef<Set<string>>(new Set());
+  const visibleIdsKey = useMemo(
+    () => visible.map((note) => note.id).sort().join(","),
+    [visible]
+  );
+
+  useEffect(() => {
+    if (visibleIdsKey === "") {
+      setThanks({});
+      return;
+    }
+    let cancelled = false;
+    const supabase = createClient();
+    void supabase
+      .from("note_thanks")
+      .select("note_id, user_id")
+      .in("note_id", visibleIdsKey.split(","))
+      .then(({ data, error: fetchError }) => {
+        // Best effort — a hiccup keeps whatever we already had.
+        if (cancelled || fetchError) return;
+        const reduced: Record<string, ThanksEntry> = {};
+        for (const row of (data ?? []) as { note_id: string; user_id: string }[]) {
+          const current = reduced[row.note_id] ?? NO_THANKS;
+          reduced[row.note_id] = {
+            count: current.count + 1,
+            mine: current.mine || row.user_id === currentUser.id,
+          };
+        }
+        setThanks(reduced);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [visibleIdsKey, currentUser.id]);
+
+  /** Give thanks, or take it back — optimistic either way, rolled back on
+   *  failure. The uploader hears about it through the server-side trigger. */
+  async function toggleThanks(note: NoteWithUploader) {
+    // You can't thank yourself — the server agrees, so don't even try.
+    if (note.uploader_id === currentUser.id) return;
+    if (thanksInFlight.current.has(note.id)) return;
+    thanksInFlight.current.add(note.id);
+    const previous = thanks[note.id] ?? NO_THANKS;
+    const giving = !previous.mine;
+    setError(null);
+    setThanks((prev) => ({
+      ...prev,
+      [note.id]: giving
+        ? { count: previous.count + 1, mine: true }
+        : { count: Math.max(previous.count - 1, 0), mine: false },
+    }));
+    const supabase = createClient();
+    try {
+      if (giving) {
+        const { error: insertError } = await supabase
+          .from("note_thanks")
+          .insert({ note_id: note.id, user_id: currentUser.id });
+        // Already thanked from another tab? The heart is right as drawn.
+        if (insertError && insertError.code !== "23505") throw insertError;
+      } else {
+        const { error: deleteError } = await supabase
+          .from("note_thanks")
+          .delete()
+          .eq("note_id", note.id)
+          .eq("user_id", currentUser.id);
+        if (deleteError) throw deleteError;
+      }
+      setAnnouncement(
+        giving
+          ? `Thanks sent for "${note.title}".`
+          : `Thanks taken back for "${note.title}".`
+      );
+    } catch {
+      setThanks((prev) => ({ ...prev, [note.id]: previous }));
+      setError(
+        giving
+          ? "Your thanks didn't make it through — give it another try."
+          : "Couldn't take that back just now — give it another try."
+      );
+    } finally {
+      thanksInFlight.current.delete(note.id);
+    }
+  }
 
   function handleUploaded(note: Note) {
     setExtraNotes((prev) => [{ ...note, uploader: currentUser }, ...prev]);
@@ -167,6 +260,7 @@ export function NotesSection({
             const TypeIcon = fileTypeIcon(note.mime_type, note.file_name);
             const mine = note.uploader_id === currentUser.id;
             const uploaderName = note.uploader?.display_name ?? "Classmate";
+            const thanksEntry = thanks[note.id] ?? NO_THANKS;
             return (
               <li
                 key={note.id}
@@ -238,6 +332,66 @@ export function NotesSection({
                     </>
                   ) : (
                     <>
+                      {mine ? (
+                        /* Your own notes: the warmth just shows — you can't
+                           thank yourself, and the server agrees. */
+                        <span
+                          className="flex items-center gap-1 p-2 text-xs font-semibold text-muted"
+                          aria-hidden={thanksEntry.count === 0}
+                          title={
+                            thanksEntry.count > 0
+                              ? thanksEntry.count === 1
+                                ? "1 classmate said thanks"
+                                : `${thanksEntry.count} classmates said thanks`
+                              : undefined
+                          }
+                        >
+                          <Heart className="size-4" aria-hidden />
+                          {thanksEntry.count > 0 ? (
+                            <>
+                              <span aria-hidden>{thanksEntry.count}</span>
+                              <span className="sr-only">
+                                {thanksEntry.count === 1
+                                  ? "1 classmate said thanks"
+                                  : `${thanksEntry.count} classmates said thanks`}
+                              </span>
+                            </>
+                          ) : null}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => void toggleThanks(note)}
+                          aria-pressed={thanksEntry.mine}
+                          aria-label={
+                            thanksEntry.mine
+                              ? `Take back your thanks for ${note.title}`
+                              : `Say thanks for ${note.title}`
+                          }
+                          title={thanksEntry.mine ? "Take back your thanks" : "Say thanks"}
+                          className={cn(
+                            "flex items-center gap-1 rounded-full p-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                            thanksEntry.mine
+                              ? "bg-brand-soft text-brand"
+                              : "text-muted hover:bg-brand-soft hover:text-brand-ink"
+                          )}
+                        >
+                          <Heart
+                            className="size-4"
+                            fill={thanksEntry.mine ? "currentColor" : "none"}
+                            aria-hidden
+                          />
+                          {thanksEntry.count > 0 ? (
+                            <span
+                              className={
+                                thanksEntry.mine ? "text-brand-ink" : undefined
+                              }
+                            >
+                              {thanksEntry.count}
+                            </span>
+                          ) : null}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleDownload(note)}

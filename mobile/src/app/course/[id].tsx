@@ -1,7 +1,13 @@
 import Feather from "@expo/vector-icons/Feather";
 import * as DocumentPicker from "expo-document-picker";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState, type ComponentProps } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+} from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -16,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Field } from "@/components/ui";
 import { radius, type Palette } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { tapLight } from "@/lib/haptics";
 import {
   formatFileSize,
   getSignedUrl,
@@ -92,6 +99,11 @@ type CourseEventRow = {
   title: string;
   starts_at: string;
 };
+
+/* Per-note gratitude: how many classmates said thanks, and whether I did. */
+type NoteThanksEntry = { count: number; mine: boolean };
+
+const NO_THANKS: NoteThanksEntry = { count: 0, mine: false };
 
 type Status = "loading" | "error" | "notFound" | "ready";
 
@@ -348,6 +360,9 @@ export default function CourseHubScreen() {
   const [course, setCourse] = useState<CourseRow | null>(null);
   const [channelId, setChannelId] = useState<string | null>(null);
   const [notes, setNotes] = useState<NoteRow[]>([]);
+  const [noteThanks, setNoteThanks] = useState<Record<string, NoteThanksEntry>>(
+    {}
+  );
   const [mates, setMates] = useState<ClassmateRow[]>([]);
   const [upcoming, setUpcoming] = useState<UpcomingItem[]>([]);
   const [sessions, setSessions] = useState<CourseEventRow[]>([]);
@@ -368,6 +383,10 @@ export default function CourseHubScreen() {
   // Opening a note (signed URL -> browser/viewer).
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [openError, setOpenError] = useState<string | null>(null);
+
+  // Saying thanks on a classmate's note — optimistic, retractable.
+  const [thanksError, setThanksError] = useState<string | null>(null);
+  const thanksInFlight = useRef<Set<string>>(new Set());
 
   // The share-notes flow: pick a file, then a small inline title form.
   const [picking, setPicking] = useState(false);
@@ -461,6 +480,33 @@ export default function CourseHubScreen() {
         (channelRes.data as unknown as { id: string } | null)?.id ?? null
       );
       setNotes(notesList);
+      // Gratitude on the listed notes: one query, reduced to {count, mine}
+      // per note. Best-effort — a hiccup keeps whatever we already had.
+      if (notesList.length > 0) {
+        const { data: thanksRows, error: thanksFetchError } = await supabase
+          .from("note_thanks")
+          .select("note_id, user_id")
+          .in(
+            "note_id",
+            notesList.map((n) => n.id)
+          );
+        if (!thanksFetchError) {
+          const reduced: Record<string, NoteThanksEntry> = {};
+          for (const row of (thanksRows ?? []) as unknown as {
+            note_id: string;
+            user_id: string;
+          }[]) {
+            const current = reduced[row.note_id] ?? NO_THANKS;
+            reduced[row.note_id] = {
+              count: current.count + 1,
+              mine: current.mine || row.user_id === userId,
+            };
+          }
+          setNoteThanks(reduced);
+        }
+      } else {
+        setNoteThanks({});
+      }
       // The calendar preview is a bonus — a hiccup here shouldn't block the hub.
       setUpcoming(
         (upcomingRes.data ?? []) as unknown as UpcomingItem[]
@@ -494,6 +540,7 @@ export default function CourseHubScreen() {
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setOpenError(null);
+    setThanksError(null);
     setLinkError(null);
     setDetailsError(null);
     void load().finally(() => setRefreshing(false));
@@ -578,6 +625,53 @@ export default function CourseHubScreen() {
       setOpeningId(null);
     }
   }, []);
+
+  /** Give thanks, or take it back — optimistic either way, rolled back on
+      failure. The uploader hears about it through the server-side trigger. */
+  const handleToggleThanks = useCallback(
+    async (note: NoteRow) => {
+      // You can't thank yourself — the server agrees, so don't even try.
+      if (!userId || note.uploader_id === userId) return;
+      if (thanksInFlight.current.has(note.id)) return;
+      thanksInFlight.current.add(note.id);
+      const previous = noteThanks[note.id] ?? NO_THANKS;
+      const giving = !previous.mine;
+      setThanksError(null);
+      setNoteThanks((prev) => ({
+        ...prev,
+        [note.id]: giving
+          ? { count: previous.count + 1, mine: true }
+          : { count: Math.max(previous.count - 1, 0), mine: false },
+      }));
+      if (giving) tapLight();
+      try {
+        if (giving) {
+          const { error: insertError } = await supabase
+            .from("note_thanks")
+            .insert({ note_id: note.id, user_id: userId });
+          // Already thanked from elsewhere? The heart is right as drawn.
+          if (insertError && insertError.code !== "23505") throw insertError;
+        } else {
+          const { error: deleteError } = await supabase
+            .from("note_thanks")
+            .delete()
+            .eq("note_id", note.id)
+            .eq("user_id", userId);
+          if (deleteError) throw deleteError;
+        }
+      } catch {
+        setNoteThanks((prev) => ({ ...prev, [note.id]: previous }));
+        setThanksError(
+          giving
+            ? "Your thanks didn't make it through — give it another try."
+            : "Couldn't take that back just now — give it another try."
+        );
+      } finally {
+        thanksInFlight.current.delete(note.id);
+      }
+    },
+    [userId, noteThanks]
+  );
 
   const handlePickFile = useCallback(async () => {
     setUploadError(null);
@@ -695,6 +789,7 @@ export default function CourseHubScreen() {
       ? "You"
       : note.uploader?.display_name ?? "A classmate";
     const opening = openingId === note.id;
+    const thanksEntry = noteThanks[note.id] ?? NO_THANKS;
     return (
       <Pressable
         accessibilityRole="button"
@@ -744,6 +839,76 @@ export default function CourseHubScreen() {
               {shortDate(note.created_at)}
             </AppText>
           </View>
+          {mine ? (
+            /* Your own notes: the warmth just shows — you can't thank
+               yourself, and the server agrees. */
+            <View
+              accessible={thanksEntry.count > 0}
+              accessibilityLabel={
+                thanksEntry.count === 1
+                  ? "1 classmate said thanks"
+                  : `${thanksEntry.count} classmates said thanks`
+              }
+              style={{
+                minWidth: 44,
+                height: 44,
+                marginVertical: -12,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 4,
+              }}
+            >
+              <Feather name="heart" size={16} color={theme.muted} />
+              {thanksEntry.count > 0 ? (
+                <AppText variant="caption" muted>
+                  {thanksEntry.count}
+                </AppText>
+              ) : null}
+            </View>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                thanksEntry.mine
+                  ? `Take back your thanks for ${note.title}`
+                  : `Say thanks for ${note.title}`
+              }
+              accessibilityState={{ selected: thanksEntry.mine }}
+              onPress={() => void handleToggleThanks(note)}
+              style={({ pressed }) => ({
+                minWidth: 44,
+                height: 44,
+                marginVertical: -12,
+                paddingHorizontal: 6,
+                borderRadius: radius.full,
+                backgroundColor: thanksEntry.mine
+                  ? theme.brandSoft
+                  : undefined,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 4,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Feather
+                name="heart"
+                size={16}
+                color={thanksEntry.mine ? theme.brand : theme.muted}
+              />
+              {thanksEntry.count > 0 ? (
+                <AppText
+                  variant="caption"
+                  style={{
+                    color: thanksEntry.mine ? theme.brandInk : theme.muted,
+                  }}
+                >
+                  {thanksEntry.count}
+                </AppText>
+              ) : null}
+            </Pressable>
+          )}
           {opening ? (
             <ActivityIndicator size="small" color={theme.brand} />
           ) : (
@@ -975,6 +1140,11 @@ export default function CourseHubScreen() {
           {openError ? (
             <AppText variant="caption" style={{ color: theme.danger }}>
               {openError}
+            </AppText>
+          ) : null}
+          {thanksError ? (
+            <AppText variant="caption" style={{ color: theme.danger }}>
+              {thanksError}
             </AppText>
           ) : null}
         </View>

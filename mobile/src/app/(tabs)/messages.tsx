@@ -9,6 +9,7 @@ import {
   View,
   type ListRenderItemInfo,
 } from "react-native";
+import { PaperPlane } from "@/components/illustrations";
 import { Screen } from "@/components/screen";
 import { AppText, Button, Card } from "@/components/ui";
 import { fonts, radius } from "@/constants/theme";
@@ -195,19 +196,7 @@ function EmptyThreads() {
         borderStyle: "dashed",
       }}
     >
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: radius.full,
-          backgroundColor: theme.brandSoft,
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: 2,
-        }}
-      >
-        <Feather name="message-circle" size={20} color={theme.brand} />
-      </View>
+      <PaperPlane size={72} color={theme.muted} softColor={theme.surface2} />
       <AppText variant="bodySemi">No conversations yet</AppText>
       <AppText
         variant="caption"

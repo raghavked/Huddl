@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   CalendarDays,
+  CalendarRange,
   CheckCircle2,
   Clock,
   HelpCircle,
@@ -131,6 +132,21 @@ export default async function EventsPage({
     </Link>
   );
 
+  // Your whole month at a glance — class dates and the events you're going to.
+  const calendarButton = (
+    <Link
+      href="/calendar"
+      className={buttonClasses({
+        variant: "secondary",
+        size: "sm",
+        className: "gap-1.5",
+      })}
+    >
+      <CalendarRange className="size-4" aria-hidden />
+      Your calendar
+    </Link>
+  );
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
@@ -142,7 +158,16 @@ export default async function EventsPage({
         }
         backHref={showPast ? eventsHref(activeKind, false) : undefined}
         backLabel="Upcoming events"
-        action={events.length === 0 && !showPast ? undefined : planButton}
+        action={
+          events.length === 0 && !showPast ? (
+            calendarButton
+          ) : (
+            <span className="flex flex-wrap items-center justify-end gap-2">
+              {calendarButton}
+              {planButton}
+            </span>
+          )
+        }
       />
 
       <nav

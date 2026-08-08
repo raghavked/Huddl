@@ -10,6 +10,7 @@ import {
   type ListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Mug } from "@/components/illustrations";
 import { AppText, Button, Card } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -296,19 +297,7 @@ export default function BlockedPeopleScreen() {
                 borderStyle: "dashed",
               }}
             >
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: radius.full,
-                  backgroundColor: theme.brandSoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 2,
-                }}
-              >
-                <Feather name="smile" size={20} color={theme.brand} />
-              </View>
+              <Mug size={72} color={theme.muted} softColor={theme.surface2} />
               <AppText variant="bodySemi">No one on the list</AppText>
               <AppText
                 variant="caption"

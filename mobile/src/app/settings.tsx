@@ -156,7 +156,7 @@ export default function SettingsScreen() {
       "Delete your account?",
       "This permanently deletes your profile and everything you've shared on Huddl. It can't be undone.",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Keep it", style: "cancel" },
         {
           text: "Continue",
           style: "destructive",

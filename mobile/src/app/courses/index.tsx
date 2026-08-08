@@ -238,7 +238,7 @@ export default function MyCoursesScreen() {
         `Drop ${enrollment.course.code}?`,
         "You'll leave its chat too — you can add it back anytime.",
         [
-          { text: "Cancel", style: "cancel" },
+          { text: "Keep it", style: "cancel" },
           {
             text: "Drop course",
             style: "destructive",

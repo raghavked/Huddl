@@ -245,23 +245,42 @@ export default function EventsScreen() {
       title="Events"
       scroll={false}
       action={
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Plan an event"
-          onPress={() => router.push("/event/new")}
-          hitSlop={8}
-          style={({ pressed }) => ({
-            width: 44,
-            height: 44,
-            borderRadius: radius.full,
-            backgroundColor: theme.brandSoft,
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: pressed ? 0.7 : 1,
-          })}
-        >
-          <Feather name="plus" size={20} color={theme.brandInk} />
-        </Pressable>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Your calendar"
+            onPress={() => router.push("/calendar")}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              borderRadius: radius.full,
+              backgroundColor: theme.accentSoft,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Feather name="calendar" size={20} color={theme.accent} />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Plan an event"
+            onPress={() => router.push("/event/new")}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              borderRadius: radius.full,
+              backgroundColor: theme.brandSoft,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Feather name="plus" size={20} color={theme.brandInk} />
+          </Pressable>
+        </View>
       }
     >
       {loading ? (

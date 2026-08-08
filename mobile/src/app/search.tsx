@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
+import { Lantern } from "@/components/illustrations";
 import { AppText, Button, Card, Field } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -124,11 +125,14 @@ function CenteredState({
   icon,
   title,
   message,
+  art,
   children,
 }: {
   icon: FeatherName;
   title: string;
   message: string;
+  /** A hand-drawn mark shown in place of the icon circle. */
+  art?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   const theme = useTheme();
@@ -143,18 +147,20 @@ function CenteredState({
         paddingBottom: 96,
       }}
     >
-      <View
-        style={{
-          width: 52,
-          height: 52,
-          borderRadius: 16,
-          backgroundColor: theme.brandSoft,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Feather name={icon} size={22} color={theme.brand} />
-      </View>
+      {art ?? (
+        <View
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 16,
+            backgroundColor: theme.brandSoft,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Feather name={icon} size={22} color={theme.brand} />
+        </View>
+      )}
       <AppText variant="title">{title}</AppText>
       <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
         {message}
@@ -463,6 +469,9 @@ export default function SearchScreen() {
           icon="search"
           title="Find your people and places"
           message="Search your campus — people, channels, courses, clubs, events"
+          art={
+            <Lantern size={96} color={theme.muted} softColor={theme.surface2} />
+          }
         />
       ) : sections.length === 0 ? (
         <CenteredState

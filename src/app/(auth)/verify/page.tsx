@@ -33,7 +33,10 @@ function VerifyContent() {
     });
     if (resendError) {
       setResendState("idle");
-      setError(resendError.message);
+      // Warm words, not raw API text — the fix is the same either way.
+      setError(
+        "That resend didn't go through — give it a minute, then try again."
+      );
       return;
     }
     setResendState("sent");

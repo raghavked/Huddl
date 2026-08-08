@@ -243,6 +243,14 @@ export interface Note {
   created_at: string;
 }
 
+// A thanks per classmate per note (migration 0026) — one row each,
+// retractable. The uploader hears about it through the notification pipeline.
+export interface NoteThanks {
+  note_id: string;
+  user_id: string;
+  created_at: string;
+}
+
 export type EventKind = "study_session" | "meetup";
 
 export interface CampusEvent {
@@ -278,7 +286,8 @@ export type NotificationKind =
   | "channel"
   | "system"
   | "course_calendar"
-  | "mention";
+  | "mention"
+  | "thanks";
 
 export interface AppNotification {
   id: string;

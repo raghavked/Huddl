@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
   type ComponentProps,
+  type ComponentType,
 } from "react";
 import {
   ActivityIndicator,
@@ -15,6 +16,7 @@ import {
   View,
   type ListRenderItemInfo,
 } from "react-native";
+import { Mug, type IllustrationProps } from "@/components/illustrations";
 import { Screen } from "@/components/screen";
 import { AppText, Button, Card } from "@/components/ui";
 import { radius } from "@/constants/theme";
@@ -116,6 +118,8 @@ type ListRow =
       title: string;
       body: string;
       action?: RowAction;
+      /** A hand-drawn mark shown in place of the icon circle. */
+      illustration?: ComponentType<IllustrationProps>;
     };
 
 /* ---- time formatting, ported from the web's utils ---- */
@@ -284,11 +288,13 @@ function EmptySection({
   title,
   body,
   action,
+  illustration: Illustration,
 }: {
   icon: FeatherName;
   title: string;
   body: string;
   action?: RowAction;
+  illustration?: ComponentType<IllustrationProps>;
 }) {
   const theme = useTheme();
   return (
@@ -300,19 +306,23 @@ function EmptySection({
         borderStyle: "dashed",
       }}
     >
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: radius.full,
-          backgroundColor: theme.brandSoft,
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: 2,
-        }}
-      >
-        <Feather name={icon} size={18} color={theme.brand} />
-      </View>
+      {Illustration ? (
+        <Illustration size={72} color={theme.muted} softColor={theme.surface2} />
+      ) : (
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: radius.full,
+            backgroundColor: theme.brandSoft,
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 2,
+          }}
+        >
+          <Feather name={icon} size={18} color={theme.brand} />
+        </View>
+      )}
       <AppText variant="bodySemi">{title}</AppText>
       <AppText
         variant="caption"
@@ -757,6 +767,7 @@ export default function HomeScreen() {
         type: "empty",
         key: "empty-campus",
         icon: "volume-2",
+        illustration: Mug,
         title: "No campus channels yet",
         body: "Campus channels usually come free with your profile — they'll show up here soon.",
       });
@@ -885,6 +896,7 @@ export default function HomeScreen() {
               title={item.title}
               body={item.body}
               action={item.action}
+              illustration={item.illustration}
             />
           );
       }

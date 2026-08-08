@@ -286,7 +286,7 @@ export default function ClassCalendarScreen() {
         `Remove “${item.title}”?`,
         "It comes off the calendar for the whole class.",
         [
-          { text: "Cancel", style: "cancel" },
+          { text: "Keep it", style: "cancel" },
           {
             text: "Remove",
             style: "destructive",

@@ -9,6 +9,7 @@ import {
   SectionList,
   View,
 } from "react-native";
+import { Doorway } from "@/components/illustrations";
 import { Screen } from "@/components/screen";
 import { AppText, Button, Card } from "@/components/ui";
 import { radius } from "@/constants/theme";
@@ -397,18 +398,11 @@ export default function ChannelsScreen() {
                 padding: 24,
               }}
             >
-              <View
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 16,
-                  backgroundColor: theme.brandSoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Feather name="hash" size={22} color={theme.brand} />
-              </View>
+              <Doorway
+                size={96}
+                color={theme.muted}
+                softColor={theme.surface2}
+              />
               <AppText variant="title">No channels yet</AppText>
               <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
                 Add your courses and you'll land in a channel for each class

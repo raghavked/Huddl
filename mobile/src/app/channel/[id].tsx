@@ -367,7 +367,7 @@ function AttachmentImage({
       style={({ pressed }) => ({
         width: 220,
         height: 160,
-        borderRadius: 12,
+        borderRadius: radius.control,
         overflow: "hidden",
         backgroundColor: theme.surface2,
         opacity: pressed ? 0.85 : 1,
@@ -1636,7 +1636,7 @@ export default function ChannelRoomScreen() {
           }`}
           onPress={() => setPinnedOpen(true)}
           style={({ pressed }) => ({
-            minHeight: 40,
+            minHeight: 44,
             flexDirection: "row",
             alignItems: "center",
             gap: 8,
@@ -2180,7 +2180,7 @@ export default function ChannelRoomScreen() {
           accessibilityRole="button"
           accessibilityLabel="Close photo"
           onPress={() => setViewerUrl(null)}
-          style={{ flex: 1, backgroundColor: "#000" }}
+          style={{ flex: 1, backgroundColor: palettes.dark.background }}
         >
           {viewerUrl ? (
             <Image

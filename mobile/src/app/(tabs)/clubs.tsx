@@ -9,6 +9,7 @@ import {
   View,
   type ListRenderItemInfo,
 } from "react-native";
+import { Pennant } from "@/components/illustrations";
 import { Screen } from "@/components/screen";
 import { AppText, Button, Card } from "@/components/ui";
 import { radius } from "@/constants/theme";
@@ -418,19 +419,7 @@ export default function ClubsScreen() {
                 borderStyle: "dashed",
               }}
             >
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: radius.full,
-                  backgroundColor: theme.brandSoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 2,
-                }}
-              >
-                <Feather name="users" size={18} color={theme.brand} />
-              </View>
+              <Pennant size={72} color={theme.muted} softColor={theme.surface2} />
               <AppText variant="bodySemi">No clubs yet</AppText>
               <AppText
                 variant="caption"

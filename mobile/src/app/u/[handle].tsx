@@ -474,7 +474,7 @@ export default function ProfileScreen() {
       `Block ${visibleName}?`,
       "They won't be able to DM you, and you won't see their posts. They won't know.",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Never mind", style: "cancel" },
         { text: "Block", style: "destructive", onPress: () => void doBlock() },
       ]
     );
@@ -651,7 +651,7 @@ export default function ProfileScreen() {
               >
                 <Feather name="user-x" size={22} color={theme.brand} />
               </View>
-              <AppText variant="title">Profile not found</AppText>
+              <AppText variant="title">Nobody's here</AppText>
               <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
                 There's nobody at @{handle || "that handle"} — maybe they
                 changed their handle.

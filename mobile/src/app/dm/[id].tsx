@@ -117,7 +117,7 @@ function AttachmentImage({
       style={({ pressed }) => ({
         width: 220,
         height: 160,
-        borderRadius: 12,
+        borderRadius: radius.control,
         overflow: "hidden",
         backgroundColor: theme.surface2,
         opacity: pressed ? 0.85 : 1,
@@ -1029,7 +1029,7 @@ export default function DmRoomScreen() {
           accessibilityRole="button"
           accessibilityLabel="Close photo"
           onPress={() => setViewerUrl(null)}
-          style={{ flex: 1, backgroundColor: "#000" }}
+          style={{ flex: 1, backgroundColor: palettes.dark.background }}
         >
           {viewerUrl ? (
             <Image

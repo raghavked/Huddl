@@ -345,7 +345,7 @@ export default function ReportScreen() {
 
         <View style={{ marginTop: 12, gap: 10 }}>
           <Button
-            label="Submit report"
+            label="Send report"
             pending={submitting}
             onPress={() => void handleSubmit()}
             icon={<Feather name="flag" size={15} color={theme.brandFg} />}

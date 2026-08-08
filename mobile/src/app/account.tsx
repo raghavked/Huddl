@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
 import { AppText, Button, Card, Field } from "@/components/ui";
+import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -478,7 +479,7 @@ export default function AccountScreen() {
                   gap: 8,
                   paddingHorizontal: 12,
                   paddingVertical: 10,
-                  borderRadius: 12,
+                  borderRadius: radius.control,
                   backgroundColor: theme.surface2,
                 }}
               >

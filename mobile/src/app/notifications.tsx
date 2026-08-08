@@ -42,6 +42,7 @@ const KIND_ICONS: Partial<Record<string, keyof typeof Feather.glyphMap>> = {
   event: "calendar",
   channel: "hash",
   course_calendar: "book-open",
+  thanks: "heart",
   system: "bell",
 };
 
@@ -455,8 +456,8 @@ export default function NotificationsScreen() {
                 muted
                 style={{ textAlign: "center", maxWidth: 280 }}
               >
-                New messages, thread replies, event updates and class calendar
-                changes will land here.
+                New messages, thread replies, event updates, class calendar
+                changes and thanks for your notes will land here.
               </AppText>
             </Card>
           }

@@ -11,6 +11,7 @@ import {
   CalendarDays,
   CheckCheck,
   Hash,
+  Heart,
   Info,
   Loader2,
   MessageCircle,
@@ -38,6 +39,7 @@ const KIND_META: Record<NotificationKind, { icon: LucideIcon; label: string }> =
     system: { icon: Info, label: "System" },
     course_calendar: { icon: BookOpen, label: "Class calendar" },
     mention: { icon: AtSign, label: "Mention" },
+    thanks: { icon: Heart, label: "Thanks" },
   };
 
 /**

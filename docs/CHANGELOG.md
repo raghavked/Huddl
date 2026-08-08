@@ -1,5 +1,34 @@
 # Huddl development log
 
+## Round 11 — the hearth round: your calendar, thanks, and the vibe audit
+
+Migration 0026 live, five agents:
+
+- **Your calendar**: one month view merging every class due date with the
+  events you've RSVP'd (and your courses' events) — Monday-start grid,
+  ember dots for class dates, fern dots for events, today in clay, an
+  agenda for the selected day with in-place check-offs. Both clients;
+  entry from the Events header.
+- **Note thanks**: a heart on every shared note — one tap per classmate,
+  retractable, and the uploader's inbox warms up ("Maya said thanks for
+  your notes — '"'"'Week 4'"'"' in MAT 21A just made someone's week."), delivered
+  by a block-aware trigger that skips self-thanks. Both clients, with a
+  'thanks' notification kind end to end.
+- **Hand-drawn illustrations**: a five-mark stroke library (Mug, Doorway,
+  PaperPlane, Pennant, Lantern — quadratic wobble, no perfect circles,
+  theme-token colors only) now warming the empty states of home,
+  channels, messages, clubs, search, and the blocked list.
+- **The hearth audit**: all 33 remaining native screens swept — raw hex
+  literals normalized to theme tokens (photo viewers now use the
+  candle-dark pattern), cold copy warmed ("Cancel" pairs became "Keep
+  it" / "Never mind" / "Stay", "Profile not found" became "Nobody's
+  here"), sub-44px targets fixed, radius literals tokenized; 22 screens
+  verified already clean. Web audit of auth/settings/DM surfaces: one
+  raw-error leak fixed, everything else already on tokens.
+
+Verification: mobile strict tsc + iOS Hermes export; web tsc, ESLint,
+114 Vitest tests, production build with the /calendar route.
+
 ## Round 10 — study tools, course depth, and the feel pass
 
 Migrations 0024–0025 live, five agents across both clients:

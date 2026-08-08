@@ -375,7 +375,7 @@ export default function ClubHomeScreen() {
       `Leave ${club.name}?`,
       "You'll be removed from the roster and the club chat. You can rejoin any time.",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Stay", style: "cancel" },
         { text: "Leave club", style: "destructive", onPress: () => void doLeave() },
       ]
     );

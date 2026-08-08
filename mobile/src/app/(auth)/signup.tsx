@@ -112,7 +112,9 @@ export default function SignupScreen() {
       } else if (/already registered/i.test(signUpError.message)) {
         setAccountExists(true);
       } else {
-        setError(signUpError.message);
+        setError(
+          "We couldn't create your account just now — give it a moment and try again."
+        );
       }
       return;
     }
