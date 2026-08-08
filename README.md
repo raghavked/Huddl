@@ -65,6 +65,10 @@ Checks: `npm run build && npm run lint && npm test`.
 
 ## Repository layout
 
+The repo holds two clients over one Supabase backend: the Next.js
+mobile-exclusive PWA at the root, and the native Expo app (App Store /
+Play Store track) in `mobile/` — see `mobile/README.md` for running it.
+
 ```
 supabase/migrations/  Full schema: tables, RLS policies, triggers, RPCs
 supabase/seed.sql     Universities + default campus channels (no sample content)

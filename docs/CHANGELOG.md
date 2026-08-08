@@ -1,5 +1,15 @@
 # Huddl development log
 
+## Round 6 — native app (App Store track)
+
+New `mobile/` Expo app (SDK 57, expo-router, TypeScript strict) sharing
+the same Supabase backend: hearth tokens and fonts ported natively,
+AsyncStorage-persisted auth, five-tab shell, and real screens — home
+feed, channels + realtime chat room with optimistic sends, messages +
+DM room with unread dots, clubs with join, events with RSVP, settings
+with sign-out. Verified by full iOS Hermes bundle export. App identity
+app.huddl.mobile; EAS build/submit are the remaining user-side steps.
+
 ## Round 5 — mobile-exclusive
 
 Huddl is a mobile app, full stop: the desktop sidebar is gone, every
