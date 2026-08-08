@@ -1,5 +1,33 @@
 # Huddl development log
 
+## Round 9 — discovery, depth, and App Store readiness
+
+The mobile-readiness round:
+
+- **Campus discovery**: a global `/search` screen (people, channels,
+  courses, clubs, events in one debounced query fan), a campus channel
+  directory with join-in-place, and topic-channel creation — all native.
+- **Clubs grow up on native**: full club homes (roster with roles,
+  upcoming events, join/leave, open chat), club founding with the web's
+  exact trigger-backed semantics, and club-linked event creation that
+  announces itself in the club chat.
+- **Unread state**: channel unread dots on the Channels tab and Home
+  (latest message vs `last_read_at`, never for muted or own messages),
+  long-press mute per channel, and mark-as-read stamped by the room on
+  focus and blur.
+- **Finishing flows**: in-room message search, creator event editing and
+  cancellation, and onboarding now hands off to "add your classes".
+- **App Store packaging**: hearth-branded icon/splash/adaptive/monochrome/
+  favicon/notification assets generated from the Bricolage wordmark (the
+  "h." mark, ember + cream); app.json with photo/camera permission
+  strings, brand splash colors in both themes, build numbers, and the
+  encryption-exempt flag; eas.json build profiles; docs/APP_STORE.md
+  with listing copy, age-rating guidance, review notes, screenshot plan,
+  and the pre-submission checklist; template Expo assets removed.
+
+Verification: mobile strict tsc clean and full iOS Hermes export; web
+tsc/tests untouched and still green (95).
+
 ## Round 8 — chat power, trust, and the legal layer
 
 Nine agents over four live migrations (0019–0022, plus the 0023

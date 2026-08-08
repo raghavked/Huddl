@@ -8,17 +8,20 @@
     "scheme": "huddl",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "app.huddl.mobile",
-      "supportsTablet": false
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#b5502f",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "versionCode": 1,
       "predictiveBackGestureEnabled": false,
       "package": "app.huddl.mobile"
     },
@@ -28,13 +31,29 @@
     },
     "plugins": [
       "expo-router",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#b5502f"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Huddl uses your photo library so you can share pictures in chats and set a profile photo.",
+          "cameraPermission": "Huddl uses the camera so you can take a photo to share in chats or use as your profile photo."
+        }
+      ],
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#faf6ee",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 140,
+          "dark": {
+            "backgroundColor": "#1c1612"
+          }
         }
       ]
     ],

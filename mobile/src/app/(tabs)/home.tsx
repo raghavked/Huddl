@@ -50,7 +50,18 @@ type EventRow = {
 type MessagePreview = {
   content: string;
   created_at: string;
+  author_id: string;
   author: { display_name: string } | null;
+};
+
+/** My membership extras per channel — the campus rows' unread dots hang off
+    these (latest preview newer than my last_read_at, not mine, not muted). */
+type MemberMeta = { lastReadAt: string; muted: boolean };
+
+type MemberMetaRow = {
+  channel_id: string;
+  last_read_at: string;
+  muted: boolean;
 };
 
 /* Rows feeding the "Your plan" card, built via buildPlan over the week
@@ -77,6 +88,7 @@ type HomeData = {
   courseChannels: ChannelRow[];
   events: EventRow[];
   previews: Record<string, MessagePreview>;
+  memberMeta: Record<string, MemberMeta>;
   plan: PlanSummary;
 };
 
@@ -93,6 +105,7 @@ type ListRow =
       key: string;
       channel: ChannelRow;
       preview: MessagePreview | null;
+      unread: boolean;
     }
   | { type: "courses"; key: string; left: CourseCell; right: CourseCell | null }
   | { type: "event"; key: string; event: EventRow }
@@ -324,9 +337,11 @@ function EmptySection({
 function CampusRow({
   channel,
   preview,
+  unread,
 }: {
   channel: ChannelRow;
   preview: MessagePreview | null;
+  unread: boolean;
 }) {
   const theme = useTheme();
   const authorFirst =
@@ -369,13 +384,32 @@ function CampusRow({
               gap: 8,
             }}
           >
-            <AppText
-              variant="bodySemi"
-              numberOfLines={1}
-              style={{ flexShrink: 1 }}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                flexShrink: 1,
+              }}
             >
-              #{channel.slug}
-            </AppText>
+              <AppText
+                variant="bodySemi"
+                numberOfLines={1}
+                style={{ flexShrink: 1 }}
+              >
+                #{channel.slug}
+              </AppText>
+              {unread ? (
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: radius.full,
+                    backgroundColor: theme.brand,
+                  }}
+                />
+              ) : null}
+            </View>
             {preview ? (
               <AppText variant="caption" muted>
                 {formatMessageTime(preview.created_at)}
@@ -522,7 +556,9 @@ export default function HomeScreen() {
         .single(),
       supabase
         .from("channel_members")
-        .select("channel:channels(id, kind, name, slug, course:courses(id, code, title))")
+        .select(
+          "channel_id, last_read_at, muted, channel:channels(id, kind, name, slug, course:courses(id, code, title))"
+        )
         .eq("user_id", userId),
       supabase
         .from("enrollments")
@@ -539,11 +575,20 @@ export default function HomeScreen() {
       university_id: string;
     };
 
-    const myChannels = (
-      (membershipRes.data ?? []) as unknown as { channel: ChannelRow | null }[]
-    )
+    const membershipRows = (membershipRes.data ?? []) as unknown as
+      (MemberMetaRow & { channel: ChannelRow | null })[];
+
+    const myChannels = membershipRows
       .map((row) => row.channel)
       .filter((c): c is ChannelRow => Boolean(c));
+
+    const memberMeta: Record<string, MemberMeta> = {};
+    for (const row of membershipRows) {
+      memberMeta[row.channel_id] = {
+        lastReadAt: row.last_read_at,
+        muted: row.muted,
+      };
+    }
 
     const campusChannels = myChannels
       .filter((c) => c.kind === "campus")
@@ -625,7 +670,7 @@ export default function HomeScreen() {
       [...campusChannels, ...courseChannels].map(async (channel) => {
         const { data: preview } = await supabase
           .from("messages")
-          .select("content, created_at, author:profiles(display_name)")
+          .select("content, created_at, author_id, author:profiles(display_name)")
           .eq("channel_id", channel.id)
           .is("deleted_at", null)
           .order("created_at", { ascending: false })
@@ -640,7 +685,15 @@ export default function HomeScreen() {
     const firstName =
       profile.display_name.trim().split(/\s+/)[0] || profile.handle;
 
-    return { firstName, campusChannels, courseChannels, events, previews, plan };
+    return {
+      firstName,
+      campusChannels,
+      courseChannels,
+      events,
+      previews,
+      memberMeta,
+      plan,
+    };
   }, [userId]);
 
   const run = useCallback(
@@ -665,12 +718,33 @@ export default function HomeScreen() {
     void run("initial");
   }, [userId, run]);
 
+  // Opening a channel bumps my last_read_at there (the room screen's job), so
+  // re-pull just my membership rows on focus — that's what clears a campus
+  // row's unread dot when you come back from reading it.
+  const refreshMemberMeta = useCallback(async () => {
+    if (!userId) return;
+    const { data: metaRows, error: metaError } = await supabase
+      .from("channel_members")
+      .select("channel_id, last_read_at, muted")
+      .eq("user_id", userId);
+    if (metaError) return;
+    const memberMeta: Record<string, MemberMeta> = {};
+    for (const row of (metaRows ?? []) as unknown as MemberMetaRow[]) {
+      memberMeta[row.channel_id] = {
+        lastReadAt: row.last_read_at,
+        muted: row.muted,
+      };
+    }
+    setData((prev) => (prev ? { ...prev, memberMeta } : prev));
+  }, [userId]);
+
   // Coming back from the inbox: rows marked read arrive as UPDATEs, which the
   // count subscription ignores, so re-count whenever the tab regains focus.
   useFocusEffect(
     useCallback(() => {
       refreshUnread();
-    }, [refreshUnread])
+      void refreshMemberMeta();
+    }, [refreshUnread, refreshMemberMeta])
   );
 
   const rows = useMemo<ListRow[]>(() => {
@@ -688,11 +762,23 @@ export default function HomeScreen() {
       });
     } else {
       for (const channel of data.campusChannels) {
+        const preview = data.previews[channel.id] ?? null;
+        const meta = data.memberMeta[channel.id];
         out.push({
           type: "campus",
           key: `campus-${channel.id}`,
           channel,
-          preview: data.previews[channel.id] ?? null,
+          preview,
+          // Unread = the latest message is newer than my last_read_at and not
+          // mine; a muted channel never shows a dot.
+          unread: Boolean(
+            preview &&
+              meta &&
+              !meta.muted &&
+              preview.author_id !== userId &&
+              new Date(preview.created_at).getTime() >
+                new Date(meta.lastReadAt).getTime()
+          ),
         });
       }
     }
@@ -746,7 +832,7 @@ export default function HomeScreen() {
     }
 
     return out;
-  }, [data]);
+  }, [data, userId]);
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<ListRow>) => {
@@ -762,7 +848,11 @@ export default function HomeScreen() {
         case "campus":
           return (
             <View style={{ marginBottom: 10 }}>
-              <CampusRow channel={item.channel} preview={item.preview} />
+              <CampusRow
+                channel={item.channel}
+                preview={item.preview}
+                unread={item.unread}
+              />
             </View>
           );
         case "courses":

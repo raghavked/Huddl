@@ -231,7 +231,9 @@ export default function OnboardingScreen() {
       return;
     }
 
-    router.replace("/(tabs)/home");
+    // First-run handoff: profile's saved, so go straight to adding classes —
+    // course chats are where campus life starts.
+    router.replace("/courses/add");
   }
 
   if (!ready) {

@@ -1,7 +1,8 @@
 import Feather from "@expo/vector-icons/Feather";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -22,22 +23,25 @@ const KIND_OPTIONS: readonly { value: EventKind; label: string }[] = [
   { value: "meetup", label: "Meetup" },
 ];
 
+/** Minimal local row shape — the web app's types live outside this tsconfig. */
+type EventRow = {
+  id: string;
+  kind: EventKind;
+  title: string;
+  description: string | null;
+  location: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  capacity: number | null;
+  creator_id: string;
+  course: { code: string } | null;
+  club: { name: string } | null;
+};
+
+type Status = "loading" | "error" | "notFound" | "ready";
+
 function daysInMonth(month: number, year: number): number {
   return new Date(year, month, 0).getDate();
-}
-
-/** "Sat, Aug 9 · 3:00 PM" — how the plan reads in the class chat. */
-function announceWhen(d: Date): string {
-  const day = d.toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-  const time = d.toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  return `${day} · ${time}`;
 }
 
 /** "14:30" -> { hours, minutes }, or null when it doesn't parse. */
@@ -50,32 +54,35 @@ function parseTime(raw: string): { hours: number; minutes: number } | null {
   return { hours, minutes };
 }
 
-export default function NewEventScreen() {
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+/** ISO timestamp -> "2026-10-14" in device-local time, form-ready. */
+function toDateInput(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** ISO timestamp -> "15:00" in device-local time, form-ready. */
+function toTimeInput(iso: string): string {
+  const d = new Date(iso);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export default function EditEventScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { session, ready } = useAuth();
   const userId = session?.user.id ?? null;
-  const { courseId, courseCode, clubId, clubName } = useLocalSearchParams<{
-    courseId?: string;
-    courseCode?: string;
-    clubId?: string;
-    clubName?: string;
-  }>();
+  const { eventId } = useLocalSearchParams<{ eventId?: string }>();
+  const id = eventId ?? "";
 
-  // The course link arrives via params and can be quietly dropped.
-  const [linkedCourseId, setLinkedCourseId] = useState<string | null>(
-    courseId ?? null
-  );
-  // Same deal for the club link — officers land here from the club page.
-  const [linkedClubId, setLinkedClubId] = useState<string | null>(
-    clubId ?? null
-  );
+  const [status, setStatus] = useState<Status>("loading");
+  const [event, setEvent] = useState<EventRow | null>(null);
 
-  // Club plans lean social, so they start as meetups — same as the web.
-  const [kind, setKind] = useState<EventKind>(
-    clubId ? "meetup" : "study_session"
-  );
+  const [kind, setKind] = useState<EventKind>("study_session");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -91,8 +98,52 @@ export default function NewEventScreen() {
     else router.replace("/(tabs)/events");
   }, [router]);
 
-  const handleCreate = useCallback(async () => {
-    if (!userId || pending) return;
+  const load = useCallback(async () => {
+    if (!userId) return;
+    if (!id) {
+      setStatus("notFound");
+      return;
+    }
+    const { data, error: queryError } = await supabase
+      .from("events")
+      .select(
+        "id, kind, title, description, location, starts_at, ends_at, capacity, creator_id, course:courses(code), club:clubs(name)"
+      )
+      .eq("id", id)
+      .maybeSingle();
+    if (queryError) {
+      setStatus("error");
+      return;
+    }
+    const row = data as unknown as EventRow | null;
+    // RLS hides other campuses' events, so "not found" covers both cases.
+    if (!row) {
+      setStatus("notFound");
+      return;
+    }
+    // Only the creator edits — everyone else steps quietly back.
+    if (row.creator_id !== userId) {
+      goBack();
+      return;
+    }
+    setEvent(row);
+    setKind(row.kind);
+    setTitle(row.title);
+    setDescription(row.description ?? "");
+    setLocation(row.location ?? "");
+    setDate(toDateInput(row.starts_at));
+    setStartTime(toTimeInput(row.starts_at));
+    setEndTime(row.ends_at ? toTimeInput(row.ends_at) : "");
+    setCapacity(row.capacity !== null ? String(row.capacity) : "");
+    setStatus("ready");
+  }, [id, userId, goBack]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const handleSave = useCallback(async () => {
+    if (!userId || !event || pending) return;
 
     const cleanTitle = title.trim();
     if (cleanTitle === "") {
@@ -150,28 +201,10 @@ export default function NewEventScreen() {
     setFormError(null);
     setPending(true);
 
-    // The event lives on your campus — grab it from your profile.
-    const profileRes = await supabase
-      .from("profiles")
-      .select("university_id")
-      .eq("id", userId)
-      .single();
-    if (profileRes.error) {
-      setPending(false);
-      setFormError("We couldn't reach your profile. Give it another try.");
-      return;
-    }
-    const { university_id: universityId } = profileRes.data as unknown as {
-      university_id: string;
-    };
-
-    const insertRes = await supabase
+    // No announcement post on edits — the plan already made its entrance.
+    const { error: updateError } = await supabase
       .from("events")
-      .insert({
-        university_id: universityId,
-        course_id: linkedCourseId,
-        club_id: linkedClubId,
-        creator_id: userId,
+      .update({
         kind,
         title: cleanTitle,
         description: description.trim() || null,
@@ -180,93 +213,129 @@ export default function NewEventScreen() {
         ends_at: endsAt ? endsAt.toISOString() : null,
         capacity: capacityNumber,
       })
-      .select("id")
-      .single();
-    if (insertRes.error || !insertRes.data) {
-      setPending(false);
-      setFormError("We couldn't create your event. Give it another try.");
+      .eq("id", event.id)
+      .eq("creator_id", userId);
+    setPending(false);
+    if (updateError) {
+      setFormError("We couldn't save your changes. Give it another try.");
       return;
     }
-    const eventId = (insertRes.data as unknown as { id: string }).id;
 
-    // You're hosting — you're going. Best-effort: the event exists either way.
-    await supabase
-      .from("event_rsvps")
-      .upsert(
-        { event_id: eventId, user_id: userId, status: "going" },
-        { onConflict: "event_id,user_id" }
-      );
-
-    // Course-linked plans get a quiet heads-up in the class's front room.
-    // Best-effort on purpose — a chat hiccup shouldn't eat the event.
-    if (linkedCourseId) {
-      try {
-        const channelRes = await supabase
-          .from("channels")
-          .select("id")
-          .eq("course_id", linkedCourseId)
-          .eq("is_main", true)
-          .maybeSingle();
-        const channel = channelRes.data as unknown as { id: string } | null;
-        if (channel) {
-          const label =
-            kind === "study_session" ? "Study session planned" : "Meetup planned";
-          await supabase.from("messages").insert({
-            channel_id: channel.id,
-            author_id: userId,
-            content: `${label}: ${cleanTitle} · ${announceWhen(startsAt)}`,
-          });
-        }
-      } catch {
-        // The announcement is a bonus — carry on to the event.
-      }
-    }
-
-    // Club events get the same quiet heads-up in the club's chat channel.
-    // Best-effort on purpose — a chat hiccup shouldn't eat the event.
-    if (linkedClubId) {
-      try {
-        const channelRes = await supabase
-          .from("channels")
-          .select("id")
-          .eq("club_id", linkedClubId)
-          .maybeSingle();
-        const channel = channelRes.data as unknown as { id: string } | null;
-        if (channel) {
-          const label =
-            kind === "study_session" ? "Study session planned" : "Meetup planned";
-          await supabase.from("messages").insert({
-            channel_id: channel.id,
-            author_id: userId,
-            content: `${label}: ${cleanTitle} · ${announceWhen(startsAt)}`,
-          });
-        }
-      } catch {
-        // The announcement is a bonus — carry on to the event.
-      }
-    }
-
-    router.replace(`/event/${eventId}`);
+    goBack();
   }, [
     userId,
+    event,
     pending,
     title,
     date,
     startTime,
     endTime,
     capacity,
-    linkedCourseId,
-    linkedClubId,
     kind,
     description,
     location,
-    router,
+    goBack,
   ]);
 
   // Deep links land here directly — signed-out visitors get a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
+
+  /* -------------------------- pre-form states -------------------------- */
+
+  if (status !== "ready" || !event) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: theme.background,
+          paddingTop: insets.top + 8,
+        }}
+      >
+        <View style={{ paddingHorizontal: 12 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            onPress={goBack}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Feather name="chevron-left" size={26} color={theme.foreground} />
+          </Pressable>
+        </View>
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            padding: 28,
+          }}
+        >
+          {status === "loading" ? (
+            <ActivityIndicator size="large" color={theme.brand} />
+          ) : status === "notFound" ? (
+            <>
+              <View
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 16,
+                  backgroundColor: theme.brandSoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Feather name="calendar" size={22} color={theme.brand} />
+              </View>
+              <AppText variant="title">Event not available</AppText>
+              <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
+                This event doesn't exist anymore, or it belongs to another
+                campus.
+              </AppText>
+              <Button label="Back to events" variant="soft" onPress={goBack} />
+            </>
+          ) : (
+            <>
+              <View
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 16,
+                  backgroundColor: theme.brandSoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Feather name="wifi-off" size={22} color={theme.brand} />
+              </View>
+              <AppText variant="title">Something hiccuped</AppText>
+              <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
+                We couldn't load this event. Give it another try.
+              </AppText>
+              <Button
+                label="Try again"
+                variant="soft"
+                onPress={() => {
+                  setStatus("loading");
+                  void load();
+                }}
+              />
+            </>
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  /* ------------------------------ the form ----------------------------- */
 
   return (
     <KeyboardAvoidingView
@@ -304,19 +373,18 @@ export default function NewEventScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={{ gap: 6 }}>
-            <AppText variant="display">Plan something</AppText>
+            <AppText variant="display">Edit your event</AppText>
             <AppText variant="caption" muted>
-              Put it on the campus calendar — classmates can RSVP right away.
+              Fix the details — everyone who RSVP'd keeps their spot.
             </AppText>
           </View>
 
-          {linkedCourseId && courseCode ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Linked to ${courseCode}. Tap to remove the link`}
-              onPress={() => setLinkedCourseId(null)}
-              hitSlop={8}
-              style={({ pressed }) => ({
+          {/* The course/club link is set when the plan is made — shown here,
+              not editable. */}
+          {event.course ? (
+            <View
+              accessibilityLabel={`Linked to ${event.course.code}`}
+              style={{
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 6,
@@ -325,24 +393,19 @@ export default function NewEventScreen() {
                 paddingVertical: 7,
                 borderRadius: radius.full,
                 backgroundColor: theme.accentSoft,
-                opacity: pressed ? 0.7 : 1,
-              })}
+              }}
             >
               <Feather name="book-open" size={13} color={theme.accent} />
               <AppText variant="label" style={{ color: theme.accent }}>
-                For {courseCode}
+                For {event.course.code}
               </AppText>
-              <Feather name="x" size={13} color={theme.accent} />
-            </Pressable>
+            </View>
           ) : null}
 
-          {linkedClubId && clubName ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Hosted by ${clubName}. Tap to remove the link`}
-              onPress={() => setLinkedClubId(null)}
-              hitSlop={8}
-              style={({ pressed }) => ({
+          {event.club ? (
+            <View
+              accessibilityLabel={`Hosted by ${event.club.name}`}
+              style={{
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 6,
@@ -351,15 +414,13 @@ export default function NewEventScreen() {
                 paddingVertical: 7,
                 borderRadius: radius.full,
                 backgroundColor: theme.accentSoft,
-                opacity: pressed ? 0.7 : 1,
-              })}
+              }}
             >
               <Feather name="users" size={13} color={theme.accent} />
               <AppText variant="label" style={{ color: theme.accent }}>
-                For {clubName}
+                For {event.club.name}
               </AppText>
-              <Feather name="x" size={13} color={theme.accent} />
-            </Pressable>
+            </View>
           ) : null}
 
           <View style={{ flexDirection: "row", gap: 8 }}>
@@ -485,10 +546,10 @@ export default function NewEventScreen() {
           ) : null}
 
           <Button
-            label={pending ? "Planning…" : "Put it on the calendar"}
+            label={pending ? "Saving…" : "Save changes"}
             pending={pending}
-            icon={<Feather name="calendar" size={16} color={theme.brandFg} />}
-            onPress={() => void handleCreate()}
+            icon={<Feather name="check" size={16} color={theme.brandFg} />}
+            onPress={() => void handleSave()}
             style={{ marginTop: 4 }}
           />
         </ScrollView>

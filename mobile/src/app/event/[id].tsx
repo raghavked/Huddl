@@ -1,8 +1,9 @@
 import Feather from "@expo/vector-icons/Feather";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState, type ComponentProps } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useState, type ComponentProps } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -10,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
-import { fonts, radius } from "@/constants/theme";
+import { fonts, palettes, radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -195,6 +196,58 @@ function BackChevron({ onPress }: { onPress: () => void }) {
   );
 }
 
+/** One 44px row in the creator's action sheet — icon chip + label. */
+function ActionRow({
+  icon,
+  label,
+  danger = false,
+  onPress,
+}: {
+  icon: FeatherName;
+  label: string;
+  danger?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: 44,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: radius.control,
+          backgroundColor: danger ? theme.surface2 : theme.brandSoft,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Feather
+          name={icon}
+          size={16}
+          color={danger ? theme.danger : theme.brand}
+        />
+      </View>
+      <AppText
+        variant="bodyMedium"
+        style={danger ? { color: theme.danger } : undefined}
+      >
+        {label}
+      </AppText>
+    </Pressable>
+  );
+}
+
 export default function EventDetailScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -210,6 +263,8 @@ export default function EventDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<RsvpStatus | null>(null);
   const [rsvpError, setRsvpError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -253,9 +308,48 @@ export default function EventDetailScreen() {
     setStatus("ready");
   }, [eventId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // Reload on focus, not just mount — coming back from the edit screen
+  // should show the saved changes right away.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load])
+  );
+
+  /** Creator-only: confirm, delete the row, and step back to the list. */
+  const handleCancelEvent = useCallback(() => {
+    if (!event || !userId || cancelling) return;
+    Alert.alert(
+      "Cancel this event?",
+      "Everyone who RSVP'd will see it disappear.",
+      [
+        { text: "Keep it", style: "cancel" },
+        {
+          text: "Cancel event",
+          style: "destructive",
+          onPress: () => {
+            void (async () => {
+              setCancelling(true);
+              const { error: deleteError } = await supabase
+                .from("events")
+                .delete()
+                .eq("id", event.id)
+                .eq("creator_id", userId);
+              setCancelling(false);
+              if (deleteError) {
+                Alert.alert(
+                  "Couldn't cancel the event",
+                  "Give it another try."
+                );
+                return;
+              }
+              goBack();
+            })();
+          },
+        },
+      ]
+    );
+  }, [event, userId, cancelling, goBack]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -401,6 +495,7 @@ export default function EventDetailScreen() {
   /* ----------------------------- the detail ---------------------------- */
 
   const hostName = event.creator?.display_name ?? "A classmate";
+  const isCreator = userId !== null && event.creator_id === userId;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -413,6 +508,32 @@ export default function EventDetailScreen() {
         }}
       >
         <BackChevron onPress={goBack} />
+        <View style={{ flex: 1 }} />
+        {isCreator ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Event options"
+            onPress={() => setMenuOpen(true)}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            {cancelling ? (
+              <ActivityIndicator size="small" color={theme.brand} />
+            ) : (
+              <Feather
+                name="more-horizontal"
+                size={22}
+                color={theme.foreground}
+              />
+            )}
+          </Pressable>
+        ) : null}
       </View>
 
       <ScrollView
@@ -596,6 +717,64 @@ export default function EventDetailScreen() {
           )}
         </View>
       </ScrollView>
+
+      {menuOpen ? (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            justifyContent: "flex-end",
+          }}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            onPress={() => setMenuOpen(false)}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              // The scrim stays candle-dark in both appearances.
+              backgroundColor: palettes.dark.background,
+              opacity: 0.55,
+            }}
+          />
+          <Card
+            style={{
+              marginHorizontal: 12,
+              marginBottom: Math.max(insets.bottom, 12),
+              padding: 14,
+              gap: 4,
+            }}
+          >
+            <ActionRow
+              icon="edit-2"
+              label="Edit event"
+              onPress={() => {
+                setMenuOpen(false);
+                router.push({
+                  pathname: "/event/edit",
+                  params: { eventId: event.id },
+                });
+              }}
+            />
+            <ActionRow
+              icon="x-circle"
+              label="Cancel event"
+              danger
+              onPress={() => {
+                setMenuOpen(false);
+                handleCancelEvent();
+              }}
+            />
+          </Card>
+        </View>
+      ) : null}
     </View>
   );
 }

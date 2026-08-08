@@ -3,6 +3,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState, type ComponentProps } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   RefreshControl,
   SectionList,
@@ -29,6 +30,18 @@ type ChannelRow = {
   is_main: boolean;
   course: { id: string; code: string; title: string } | null;
 };
+
+/** My membership extras per channel — unread and mute both hang off these. */
+type MemberMeta = { lastReadAt: string; muted: boolean };
+
+type MemberJoinRow = {
+  channel_id: string;
+  last_read_at: string;
+  muted: boolean;
+  channel: ChannelRow | null;
+};
+
+type LatestMessage = { createdAt: string; authorId: string };
 
 /** A course is a home now: its main chat row, indented side rooms under it,
     and a small "+ room" door per course. Other kinds stay one row each. */
@@ -66,6 +79,24 @@ function channelSubtitle(channel: ChannelRow): string | null {
   return channel.description;
 }
 
+/** Muted rows get a small crossed-out speaker; unread rows get a brand dot.
+    A muted channel never shows a dot. */
+function RowIndicator({ muted, unread }: { muted: boolean; unread: boolean }) {
+  const theme = useTheme();
+  if (muted) return <Feather name="volume-x" size={13} color={theme.muted} />;
+  if (!unread) return null;
+  return (
+    <View
+      style={{
+        width: 8,
+        height: 8,
+        borderRadius: radius.full,
+        backgroundColor: theme.brand,
+      }}
+    />
+  );
+}
+
 export default function ChannelsScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -73,6 +104,8 @@ export default function ChannelsScreen() {
   const userId = session?.user.id;
 
   const [channels, setChannels] = useState<ChannelRow[]>([]);
+  const [memberMeta, setMemberMeta] = useState<Record<string, MemberMeta>>({});
+  const [latest, setLatest] = useState<Record<string, LatestMessage>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,20 +115,117 @@ export default function ChannelsScreen() {
     const { data, error: queryError } = await supabase
       .from("channel_members")
       .select(
-        "channel:channels(id, kind, name, slug, description, is_main, course:courses(id, code, title))"
+        "channel_id, last_read_at, muted, channel:channels(id, kind, name, slug, description, is_main, course:courses(id, code, title))"
       )
       .eq("user_id", userId);
     if (queryError) {
       setError("We couldn't load your channels. Pull down to try again.");
       return;
     }
-    const rows = ((data ?? []) as unknown as { channel: ChannelRow | null }[])
+    const memberRows = (data ?? []) as unknown as MemberJoinRow[];
+    const rows = memberRows
       .map((row) => row.channel)
       .filter((c): c is ChannelRow => Boolean(c))
       .sort((a, b) => channelTitle(a).localeCompare(channelTitle(b)));
+    const meta: Record<string, MemberMeta> = {};
+    for (const row of memberRows) {
+      meta[row.channel_id] = { lastReadAt: row.last_read_at, muted: row.muted };
+    }
     setError(null);
     setChannels(rows);
+    setMemberMeta(meta);
+
+    // Latest message per joined channel in ONE query: pull the newest ~300
+    // messages across all my channels and reduce client-side to the newest
+    // per channel. Cheap and index-friendly (channel_id, created_at desc),
+    // with one tradeoff: a few very busy channels can push a quiet channel's
+    // newest message past the window, so its dot can read stale until the
+    // next fetch. Fine for a hint-level indicator.
+    const ids = rows.map((c) => c.id);
+    if (ids.length === 0) {
+      setLatest({});
+      return;
+    }
+    const { data: messageData, error: messagesError } = await supabase
+      .from("messages")
+      .select("channel_id, created_at, author_id")
+      .in("channel_id", ids)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(300);
+    // On failure the dots just keep their last state — not worth an error UI.
+    if (messagesError) return;
+    const newest: Record<string, LatestMessage> = {};
+    for (const message of (messageData ?? []) as unknown as {
+      channel_id: string;
+      created_at: string;
+      author_id: string;
+    }[]) {
+      // Rows arrive newest-first, so the first row seen per channel is its max.
+      if (!newest[message.channel_id]) {
+        newest[message.channel_id] = {
+          createdAt: message.created_at,
+          authorId: message.author_id,
+        };
+      }
+    }
+    setLatest(newest);
   }, [userId]);
+
+  // Unread = the channel's newest message is newer than my last_read_at and
+  // isn't mine. Opening a room marks it read (the room screen's job); the
+  // focus refetch below is what clears the dot when you come back here.
+  const isUnread = useCallback(
+    (channelId: string) => {
+      const meta = memberMeta[channelId];
+      const newest = latest[channelId];
+      if (!meta || !newest || meta.muted) return false;
+      if (newest.authorId === userId) return false;
+      return (
+        new Date(newest.createdAt).getTime() >
+        new Date(meta.lastReadAt).getTime()
+      );
+    },
+    [memberMeta, latest, userId]
+  );
+
+  // Long-press a joined row → mute or unmute it, optimistically.
+  const onLongPressChannel = useCallback(
+    (channel: ChannelRow) => {
+      if (!userId) return;
+      const wasMuted = memberMeta[channel.id]?.muted ?? false;
+      const applyMuted = (muted: boolean) =>
+        setMemberMeta((prev) => {
+          const current = prev[channel.id];
+          return current
+            ? { ...prev, [channel.id]: { ...current, muted } }
+            : prev;
+        });
+      const title =
+        channel.kind === "course" && !channel.is_main
+          ? channel.name
+          : channelTitle(channel);
+      Alert.alert(title, undefined, [
+        {
+          text: wasMuted ? "Unmute channel" : "Mute channel",
+          onPress: () => {
+            applyMuted(!wasMuted);
+            void supabase
+              .from("channel_members")
+              .update({ muted: !wasMuted })
+              .eq("channel_id", channel.id)
+              .eq("user_id", userId)
+              .then(({ error: muteError }) => {
+                // Roll the optimistic flip back if the write didn't land.
+                if (muteError) applyMuted(wasMuted);
+              });
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ]);
+    },
+    [memberMeta, userId]
+  );
 
   // Refetch on every focus so new joins (courses, clubs) show up right away.
   useFocusEffect(
@@ -157,7 +287,42 @@ export default function ChannelsScreen() {
   }, [channels]);
 
   return (
-    <Screen title="Channels" scroll={false}>
+    <Screen
+      title="Channels"
+      scroll={false}
+      action={
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Search"
+            onPress={() => router.push("/search")}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Feather name="search" size={22} color={theme.muted} />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Browse channels"
+            onPress={() => router.push("/channels/browse")}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Feather name="compass" size={22} color={theme.muted} />
+          </Pressable>
+        </View>
+      }
+    >
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator size="large" color={theme.brand} />
@@ -271,11 +436,14 @@ export default function ChannelsScreen() {
             if (item.type === "room") {
               // An indented side room under its course's main row.
               const room = item.channel;
+              const roomMuted = memberMeta[room.id]?.muted ?? false;
+              const roomUnread = isUnread(room.id);
               return (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Open ${room.name}`}
                   onPress={() => router.push(`/channel/${room.id}`)}
+                  onLongPress={() => onLongPressChannel(room)}
                   style={({ pressed }) => ({
                     opacity: pressed ? 0.85 : 1,
                     marginLeft: 24,
@@ -298,13 +466,24 @@ export default function ChannelsScreen() {
                       size={15}
                       color={theme.muted}
                     />
-                    <AppText
-                      variant="bodyMedium"
-                      numberOfLines={1}
-                      style={{ flex: 1, minWidth: 0 }}
+                    <View
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
                     >
-                      {room.name}
-                    </AppText>
+                      <AppText
+                        variant={roomUnread ? "bodySemi" : "bodyMedium"}
+                        numberOfLines={1}
+                        style={{ flexShrink: 1 }}
+                      >
+                        {room.name}
+                      </AppText>
+                      <RowIndicator muted={roomMuted} unread={roomUnread} />
+                    </View>
                     <Feather
                       name="chevron-right"
                       size={14}
@@ -351,11 +530,14 @@ export default function ChannelsScreen() {
             }
             const channel = item.channel;
             const subtitle = channelSubtitle(channel);
+            const channelMuted = memberMeta[channel.id]?.muted ?? false;
+            const channelUnread = isUnread(channel.id);
             return (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Open ${channelTitle(channel)}`}
                 onPress={() => router.push(`/channel/${channel.id}`)}
+                onLongPress={() => onLongPressChannel(channel)}
                 style={({ pressed }) => ({
                   opacity: pressed ? 0.85 : 1,
                   marginBottom: 10,
@@ -392,9 +574,25 @@ export default function ChannelsScreen() {
                     />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <AppText variant="bodySemi" numberOfLines={1}>
-                      {channelTitle(channel)}
-                    </AppText>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <AppText
+                        variant="bodySemi"
+                        numberOfLines={1}
+                        style={{ flexShrink: 1 }}
+                      >
+                        {channelTitle(channel)}
+                      </AppText>
+                      <RowIndicator
+                        muted={channelMuted}
+                        unread={channelUnread}
+                      />
+                    </View>
                     {subtitle ? (
                       <AppText variant="caption" muted numberOfLines={1}>
                         {subtitle}

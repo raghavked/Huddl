@@ -5,7 +5,7 @@ import type {
 } from "@supabase/supabase-js";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
   useCallback,
   useEffect,
@@ -432,6 +432,12 @@ export default function ChannelRoomScreen() {
   const inputRef = useRef<TextInput>(null);
   const { blocked } = useBlockedIds();
 
+  // In-room search — a reading surface over this channel's history.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<MessageRow[]>([]);
+  const [searching, setSearching] = useState(false);
+
   useEffect(() => {
     pinnedIdsRef.current = new Set(pinned.map((p) => p.id));
   }, [pinned]);
@@ -644,6 +650,53 @@ export default function ChannelRoomScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Landing in the room and leaving it both count as caught up — the focus
+  // effect's cleanup runs on blur and unmount alike, clearing the lists' dots.
+  useFocusEffect(
+    useCallback(() => {
+      markRead();
+      return markRead;
+    }, [markRead])
+  );
+
+  // Debounced in-room search: ilike over this channel's messages, wildcards
+  // escaped so "100%" searches literally. Results are read-only rows.
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!searchOpen || q === "") {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      const escaped = q.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+      void supabase
+        .from("messages")
+        .select(MESSAGE_SELECT)
+        .eq("channel_id", channelId)
+        .is("deleted_at", null)
+        .ilike("content", `%${escaped}%`)
+        .order("created_at", { ascending: false })
+        .limit(20)
+        .then(({ data }) => {
+          if (cancelled) return;
+          setSearching(false);
+          setSearchResults((data ?? []) as unknown as MessageRow[]);
+        });
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchOpen, searchQuery, channelId]);
+
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    setSearchQuery("");
+  }, []);
 
   // Live inserts: thread replies just bump their parent's badge; own echoes
   // are skipped (the optimistic path already has them); everything else gets
@@ -1444,6 +1497,9 @@ export default function ChannelRoomScreen() {
 
   const subtitle = channelSubtitle(channel);
   const canSend = draft.trim().length > 0 && !sending;
+  const searchActive = searchOpen && searchQuery.trim() !== "";
+  // Blocked students stay hidden in search too — same gate as the stream.
+  const visibleResults = searchResults.filter((m) => !blocked.has(m.author_id));
   // The long-press sheet reads the live row, so pin state stays fresh.
   const actionsMessage = actionsFor
     ? messages.find((m) => m.id === actionsFor.id) ?? actionsFor
@@ -1487,7 +1543,84 @@ export default function ChannelRoomScreen() {
             </AppText>
           ) : null}
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            searchOpen ? "Close search" : "Search this room"
+          }
+          onPress={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Feather
+            name="search"
+            size={20}
+            color={searchOpen ? theme.brand : theme.foreground}
+          />
+        </Pressable>
       </View>
+
+      {searchOpen ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border,
+            backgroundColor: theme.surface,
+          }}
+        >
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoFocus
+            placeholder="Search this room"
+            placeholderTextColor={theme.muted}
+            accessibilityLabel="Search this room"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            cursorColor={theme.brand}
+            selectionColor={theme.brandSoft}
+            style={{
+              flex: 1,
+              minHeight: 44,
+              borderWidth: 1,
+              borderColor: theme.border,
+              borderRadius: 22,
+              backgroundColor: theme.background,
+              paddingHorizontal: 14,
+              fontFamily: fonts.body,
+              fontSize: 15,
+              color: theme.foreground,
+            }}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close search"
+            onPress={closeSearch}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Feather name="x" size={20} color={theme.muted} />
+          </Pressable>
+        </View>
+      ) : null}
 
       {visiblePinned.length > 0 ? (
         <Pressable
@@ -1527,7 +1660,83 @@ export default function ChannelRoomScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {visibleMessages.length === 0 ? (
+        {searchActive ? (
+          // Search results replace the stream while a query is typed — a
+          // reading surface only; rows don't jump into the conversation.
+          searching && visibleResults.length === 0 ? (
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 28,
+              }}
+            >
+              <ActivityIndicator size="small" color={theme.brand} />
+            </View>
+          ) : visibleResults.length === 0 ? (
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 28,
+              }}
+            >
+              <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
+                Nothing in this room matches that.
+              </AppText>
+            </View>
+          ) : (
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+              }}
+              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="handled"
+            >
+              {visibleResults.map((m, i) => (
+                <View
+                  key={m.id}
+                  style={{
+                    paddingVertical: 10,
+                    gap: 4,
+                    borderTopWidth: i === 0 ? 0 : 1,
+                    borderTopColor: theme.border,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <AppText variant="label" numberOfLines={1}>
+                      {m.author?.display_name ?? "A classmate"}
+                    </AppText>
+                    <AppText variant="caption" muted>
+                      {relativeTime(m.created_at)}
+                    </AppText>
+                  </View>
+                  {m.attachment_path && m.content === "Photo" ? (
+                    <AppText muted style={{ fontStyle: "italic" }}>
+                      Photo
+                    </AppText>
+                  ) : (
+                    <MentionText
+                      text={m.content}
+                      baseStyle={{ ...BODY_TEXT, color: theme.foreground }}
+                      highlightColor={theme.brand}
+                    />
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+          )
+        ) : visibleMessages.length === 0 ? (
           <View
             style={{
               flex: 1,

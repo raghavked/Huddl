@@ -1,8 +1,10 @@
 import Feather from "@expo/vector-icons/Feather";
+import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   RefreshControl,
   View,
   type ListRenderItemInfo,
@@ -15,8 +17,8 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /* Minimal local row shapes — the web app's types live outside this tsconfig.
-   Club detail doesn't ship in mobile v1, so rows aren't tappable yet: this
-   screen is the directory plus one-tap join, mirroring the web clubs page. */
+   The directory with one-tap join, mirroring the web clubs page: each row
+   opens the club home, and the header plus starts a brand-new club. */
 
 type ClubCategory =
   | "academic"
@@ -104,6 +106,7 @@ function ClubRow({
   joinDisabled,
   joinError,
   onJoin,
+  onOpen,
 }: {
   club: ClubItem;
   myRole: ClubRole | null;
@@ -111,67 +114,77 @@ function ClubRow({
   joinDisabled: boolean;
   joinError: string | null;
   onJoin: () => void;
+  onOpen: () => void;
 }) {
   const theme = useTheme();
   return (
-    <Card padded={false} style={{ padding: 14, gap: 10 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: radius.control,
-            backgroundColor: theme.brandSoft,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Feather name="users" size={18} color={theme.brand} />
-        </View>
-        <AppText
-          variant="bodySemi"
-          numberOfLines={2}
-          style={{ flex: 1, minWidth: 0 }}
-        >
-          {club.name}
-        </AppText>
-        {myRole ? (
-          <RolePill role={myRole} />
-        ) : (
-          <Button
-            label="Join"
-            variant="soft"
-            pending={joining}
-            disabled={joinDisabled}
-            accessibilityLabel={`Join ${club.name}`}
-            icon={<Feather name="user-plus" size={15} color={theme.brandInk} />}
-            onPress={onJoin}
-          />
-        )}
-      </View>
-
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <CategoryPill category={club.category} />
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-          <Feather name="user" size={12} color={theme.muted} />
-          <AppText variant="caption" muted>
-            {club.memberCount} {club.memberCount === 1 ? "member" : "members"}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${club.name}`}
+      onPress={onOpen}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
+      <Card padded={false} style={{ padding: 14, gap: 10 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: radius.control,
+              backgroundColor: theme.brandSoft,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Feather name="users" size={18} color={theme.brand} />
+          </View>
+          <AppText
+            variant="bodySemi"
+            numberOfLines={2}
+            style={{ flex: 1, minWidth: 0 }}
+          >
+            {club.name}
           </AppText>
+          {myRole ? (
+            <RolePill role={myRole} />
+          ) : (
+            <Button
+              label="Join"
+              variant="soft"
+              pending={joining}
+              disabled={joinDisabled}
+              accessibilityLabel={`Join ${club.name}`}
+              icon={
+                <Feather name="user-plus" size={15} color={theme.brandInk} />
+              }
+              onPress={onJoin}
+            />
+          )}
         </View>
-      </View>
 
-      {club.description ? (
-        <AppText variant="caption" muted numberOfLines={2}>
-          {club.description}
-        </AppText>
-      ) : null}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <CategoryPill category={club.category} />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Feather name="user" size={12} color={theme.muted} />
+            <AppText variant="caption" muted>
+              {club.memberCount} {club.memberCount === 1 ? "member" : "members"}
+            </AppText>
+          </View>
+        </View>
 
-      {joinError ? (
-        <AppText variant="caption" style={{ color: theme.danger }}>
-          {joinError}
-        </AppText>
-      ) : null}
-    </Card>
+        {club.description ? (
+          <AppText variant="caption" muted numberOfLines={2}>
+            {club.description}
+          </AppText>
+        ) : null}
+
+        {joinError ? (
+          <AppText variant="caption" style={{ color: theme.danger }}>
+            {joinError}
+          </AppText>
+        ) : null}
+      </Card>
+    </Pressable>
   );
 }
 
@@ -305,6 +318,7 @@ export default function ClubsScreen() {
             joinError && joinError.clubId === item.id ? joinError.message : null
           }
           onJoin={() => void handleJoin(item.id)}
+          onOpen={() => router.push(`/club/${item.id}`)}
         />
       </View>
     ),
@@ -312,7 +326,29 @@ export default function ClubsScreen() {
   );
 
   return (
-    <Screen title="Clubs" scroll={false}>
+    <Screen
+      title="Clubs"
+      scroll={false}
+      action={
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Start a club"
+          onPress={() => router.push("/club/new")}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            borderRadius: radius.full,
+            backgroundColor: theme.brandSoft,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Feather name="plus" size={20} color={theme.brandInk} />
+        </Pressable>
+      }
+    >
       {loading ? (
         <View
           style={{
@@ -401,9 +437,17 @@ export default function ClubsScreen() {
                 muted
                 style={{ textAlign: "center", maxWidth: 260 }}
               >
-                Nobody's founded a club at your school yet. Hop on Huddl on the
-                web to start the first one.
+                Nobody's founded a club at your school yet — yours could be
+                the first.
               </AppText>
+              <Button
+                label="Start a club"
+                variant="soft"
+                size="sm"
+                icon={<Feather name="plus" size={14} color={theme.brandInk} />}
+                onPress={() => router.push("/club/new")}
+                style={{ marginTop: 4 }}
+              />
             </Card>
           }
           refreshControl={
