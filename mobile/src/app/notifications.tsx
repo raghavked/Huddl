@@ -11,7 +11,13 @@ import {
   type ListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card } from "@/components/ui";
+import {
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  SkeletonRow,
+} from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { routeForLink } from "@/lib/notification-links";
@@ -365,19 +371,11 @@ export default function NotificationsScreen() {
       ) : null}
 
       {loading ? (
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 12,
-            paddingBottom: 80,
-          }}
-        >
-          <ActivityIndicator size="large" color={theme.brand} />
-          <AppText variant="caption" muted>
-            Checking what's new…
-          </AppText>
+        // Every row is the same shape — a ghost list beats a spinner here.
+        <View style={{ flex: 1 }}>
+          {[0, 1, 2, 3].map((index) => (
+            <SkeletonRow key={index} />
+          ))}
         </View>
       ) : error && items === null ? (
         <View
@@ -427,39 +425,11 @@ export default function NotificationsScreen() {
             ) : null
           }
           ListEmptyComponent={
-            <Card
-              style={{
-                alignItems: "center",
-                gap: 6,
-                paddingVertical: 28,
-                borderStyle: "dashed",
-              }}
-            >
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: radius.full,
-                  backgroundColor: theme.brandSoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 2,
-                }}
-              >
-                <Feather name="bell" size={20} color={theme.brand} />
-              </View>
-              <AppText variant="bodySemi">
-                All quiet — you're caught up.
-              </AppText>
-              <AppText
-                variant="caption"
-                muted
-                style={{ textAlign: "center", maxWidth: 280 }}
-              >
-                New messages, thread replies, event updates, class calendar
-                changes and thanks for your notes will land here.
-              </AppText>
-            </Card>
+            <EmptyState
+              icon="bell"
+              title="All quiet — you're caught up."
+              body="New messages, thread replies, event updates, class calendar changes and thanks for your notes will land here."
+            />
           }
           ListFooterComponent={
             (items?.length ?? 0) >= PAGE_SIZE ? (

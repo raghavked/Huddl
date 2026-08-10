@@ -10,8 +10,16 @@ import {
   type ListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card } from "@/components/ui";
-import { radius, type Palette } from "@/constants/theme";
+import {
+  AppText,
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  SectionLabel,
+  type ChipTone,
+} from "@/components/ui";
+import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapLight, tapSuccess } from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
@@ -98,48 +106,11 @@ function computeStreak(doneAts: Iterable<string>, now: Date): number {
 }
 
 /** Exams and quizzes pop in the accent green; everything else stays quiet. */
-function kindChipColors(kind: PlanKind, theme: Palette): { bg: string; fg: string } {
-  if (kind === "exam" || kind === "quiz") {
-    return { bg: theme.accentSoft, fg: theme.accent };
-  }
-  return { bg: theme.surface2, fg: theme.muted };
-}
-
-function Chip({ text, bg, fg }: { text: string; bg: string; fg: string }) {
-  return (
-    <View
-      style={{
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: radius.full,
-        backgroundColor: bg,
-      }}
-    >
-      <AppText variant="label" style={{ color: fg, fontSize: 11, lineHeight: 14 }}>
-        {text}
-      </AppText>
-    </View>
-  );
+function kindTone(kind: PlanKind): ChipTone {
+  return kind === "exam" || kind === "quiz" ? "accent" : "neutral";
 }
 
 /* ---------------------------- row pieces ---------------------------- */
-
-function GroupLabel({ label, first }: { label: PlanGroupLabel; first: boolean }) {
-  return (
-    <AppText
-      variant="label"
-      muted
-      style={{
-        textTransform: "uppercase",
-        letterSpacing: 1.2,
-        marginTop: first ? 4 : 18,
-        marginBottom: 10,
-      }}
-    >
-      {label}
-    </AppText>
-  );
-}
 
 function EntryRow({
   entry,
@@ -152,7 +123,6 @@ function EntryRow({
 }) {
   const theme = useTheme();
   const overdue = entry.dueAt.getTime() < now.getTime();
-  const kindColors = kindChipColors(entry.kind, theme);
   const dueLine = `${overdue ? "Was due" : "Due"} ${formatDayTime(entry.dueAt)}`;
   return (
     <Card
@@ -210,8 +180,8 @@ function EntryRow({
       </Pressable>
       <View style={{ flex: 1, gap: 4 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <Chip text={entry.courseCode} bg={theme.brandSoft} fg={theme.brandInk} />
-          <Chip text={kindLabel(entry.kind)} bg={kindColors.bg} fg={kindColors.fg} />
+          <Chip label={entry.courseCode} tone="brand" />
+          <Chip label={kindLabel(entry.kind)} tone={kindTone(entry.kind)} />
         </View>
         <AppText
           variant="bodySemi"
@@ -421,7 +391,7 @@ export default function PlanScreen() {
     ({ item, index }: ListRenderItemInfo<ListRow>) => {
       switch (item.type) {
         case "group":
-          return <GroupLabel label={item.label} first={index === 0} />;
+          return <SectionLabel text={item.label} first={index === 0} />;
         case "entry":
           return (
             <View style={{ marginBottom: 8 }}>
@@ -581,30 +551,11 @@ export default function PlanScreen() {
                     ) : null}
                     {/* The streak stays quiet: nothing at 0 or 1 — no guilt UI. */}
                     {streak >= 2 ? (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 5,
-                          alignSelf: "flex-start",
-                          paddingHorizontal: 8,
-                          paddingVertical: 3,
-                          borderRadius: radius.full,
-                          backgroundColor: theme.accentSoft,
-                        }}
-                      >
-                        <Feather name="zap" size={11} color={theme.accent} />
-                        <AppText
-                          variant="label"
-                          style={{
-                            color: theme.accent,
-                            fontSize: 11,
-                            lineHeight: 14,
-                          }}
-                        >
-                          {streak}-day streak
-                        </AppText>
-                      </View>
+                      <Chip
+                        label={`${streak}-day streak`}
+                        tone="accent"
+                        icon="zap"
+                      />
                     ) : null}
                   </Card>
                 ) : null}
@@ -621,49 +572,24 @@ export default function PlanScreen() {
               </View>
             }
             ListEmptyComponent={
-              <Card
-                style={{
-                  alignItems: "center",
-                  gap: 6,
-                  paddingVertical: 28,
-                  borderStyle: "dashed",
-                }}
-              >
-                <View
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: radius.full,
-                    backgroundColor: theme.brandSoft,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: 2,
-                  }}
-                >
-                  <Feather name="calendar" size={18} color={theme.brand} />
-                </View>
-                <AppText variant="bodySemi">
-                  {data?.hasCourses ? "Nothing on your plan yet" : "No courses yet"}
-                </AppText>
-                <AppText
-                  variant="caption"
-                  muted
-                  style={{ textAlign: "center", maxWidth: 270 }}
-                >
-                  {data?.hasCourses
+              <EmptyState
+                icon="calendar"
+                title={
+                  data?.hasCourses ? "Nothing on your plan yet" : "No courses yet"
+                }
+                body={
+                  data?.hasCourses
                     ? "Import a syllabus from a course home — assignments and exams land here, ready to check off."
-                    : "Add your classes first — then import a syllabus and your whole term plans itself."}
-                </AppText>
-                <Button
-                  label={data?.hasCourses ? "Open your courses" : "Add your courses"}
-                  variant="soft"
-                  size="sm"
-                  style={{ marginTop: 6 }}
-                  onPress={() =>
-                    router.push(data?.hasCourses ? "/courses" : "/courses/add")
-                  }
-                />
-              </Card>
+                    : "Add your classes first — then import a syllabus and your whole term plans itself."
+                }
+                action={{
+                  label: data?.hasCourses
+                    ? "Open your courses"
+                    : "Add your courses",
+                  onPress: () =>
+                    router.push(data?.hasCourses ? "/courses" : "/courses/add"),
+                }}
+              />
             }
           />
         )}

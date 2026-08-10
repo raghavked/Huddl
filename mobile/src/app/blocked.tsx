@@ -2,7 +2,6 @@ import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -11,7 +10,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Mug } from "@/components/illustrations";
-import { AppText, Button, Card } from "@/components/ui";
+import {
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  SkeletonRow,
+} from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { unblockUser } from "@/lib/blocks";
@@ -233,16 +238,11 @@ export default function BlockedPeopleScreen() {
       </AppText>
 
       {loading ? (
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 12,
-            paddingBottom: 80,
-          }}
-        >
-          <ActivityIndicator size="large" color={theme.brand} />
+        // The row shape is honest here — ghost it rather than spin.
+        <View style={{ flex: 1 }}>
+          {[0, 1, 2].map((index) => (
+            <SkeletonRow key={index} />
+          ))}
         </View>
       ) : error && people === null ? (
         <View
@@ -289,24 +289,11 @@ export default function BlockedPeopleScreen() {
             ) : null
           }
           ListEmptyComponent={
-            <Card
-              style={{
-                alignItems: "center",
-                gap: 6,
-                paddingVertical: 28,
-                borderStyle: "dashed",
-              }}
-            >
-              <Mug size={72} color={theme.muted} softColor={theme.surface2} />
-              <AppText variant="bodySemi">No one on the list</AppText>
-              <AppText
-                variant="caption"
-                muted
-                style={{ textAlign: "center", maxWidth: 280 }}
-              >
-                You haven't blocked anyone. Hopefully it stays that way.
-              </AppText>
-            </Card>
+            <EmptyState
+              illustration={Mug}
+              title="No one on the list"
+              body="You haven't blocked anyone. Hopefully it stays that way."
+            />
           }
           refreshControl={
             <RefreshControl

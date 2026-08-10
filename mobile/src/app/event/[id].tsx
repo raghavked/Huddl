@@ -10,8 +10,15 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card } from "@/components/ui";
-import { fonts, palettes, radius } from "@/constants/theme";
+import {
+  AppText,
+  Button,
+  Card,
+  Chip,
+  SectionLabel,
+  Sheet,
+} from "@/components/ui";
+import { fonts, radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -123,34 +130,16 @@ function DateTile({ iso }: { iso: string }) {
   );
 }
 
-function KindPill({ kind }: { kind: EventDetail["kind"] }) {
-  const theme = useTheme();
+/** The event's kind, as the house pill: fern for study, ember for a meetup. */
+function KindChip({ kind }: { kind: EventDetail["kind"] }) {
   const isStudy = kind === "study_session";
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
-        paddingHorizontal: 9,
-        paddingVertical: 3,
-        borderRadius: radius.full,
-        backgroundColor: isStudy ? theme.accentSoft : theme.brandSoft,
-        alignSelf: "flex-start",
-      }}
-    >
-      <Feather
-        name={isStudy ? "book-open" : "smile"}
-        size={12}
-        color={isStudy ? theme.accent : theme.brandInk}
-      />
-      <AppText
-        variant="label"
-        style={{ color: isStudy ? theme.accent : theme.brandInk }}
-      >
-        {isStudy ? "Study session" : "Meetup"}
-      </AppText>
-    </View>
+    <Chip
+      label={isStudy ? "Study session" : "Meetup"}
+      tone={isStudy ? "accent" : "brand"}
+      size="md"
+      icon={isStudy ? "book-open" : "smile"}
+    />
   );
 }
 
@@ -192,58 +181,6 @@ function BackChevron({ onPress }: { onPress: () => void }) {
       })}
     >
       <Feather name="chevron-left" size={26} color={theme.foreground} />
-    </Pressable>
-  );
-}
-
-/** One 44px row in the creator's action sheet — icon chip + label. */
-function ActionRow({
-  icon,
-  label,
-  danger = false,
-  onPress,
-}: {
-  icon: FeatherName;
-  label: string;
-  danger?: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        minHeight: 44,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: radius.control,
-          backgroundColor: danger ? theme.surface2 : theme.brandSoft,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Feather
-          name={icon}
-          size={16}
-          color={danger ? theme.danger : theme.brand}
-        />
-      </View>
-      <AppText
-        variant="bodyMedium"
-        style={danger ? { color: theme.danger } : undefined}
-      >
-        {label}
-      </AppText>
     </Pressable>
   );
 }
@@ -573,21 +510,8 @@ export default function EventDetailScreen() {
                   flexWrap: "wrap",
                 }}
               >
-                <KindPill kind={event.kind} />
-                {isPast ? (
-                  <View
-                    style={{
-                      paddingHorizontal: 9,
-                      paddingVertical: 3,
-                      borderRadius: radius.full,
-                      backgroundColor: theme.surface2,
-                    }}
-                  >
-                    <AppText variant="label" muted>
-                      Ended
-                    </AppText>
-                  </View>
-                ) : null}
+                <KindChip kind={event.kind} />
+                {isPast ? <Chip label="Ended" size="md" /> : null}
               </View>
               <MetaRow icon="clock">
                 <AppText variant="bodyMedium">
@@ -627,18 +551,7 @@ export default function EventDetailScreen() {
           ) : null}
         </Card>
 
-        <AppText
-          variant="label"
-          muted
-          style={{
-            textTransform: "uppercase",
-            letterSpacing: 1.2,
-            marginTop: 24,
-            marginBottom: 10,
-          }}
-        >
-          Your RSVP
-        </AppText>
+        <SectionLabel text="Your RSVP" />
 
         {isPast ? (
           <Card padded={false} style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
@@ -718,63 +631,32 @@ export default function EventDetailScreen() {
         </View>
       </ScrollView>
 
-      {menuOpen ? (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            justifyContent: "flex-end",
+      <Sheet
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title={event.title}
+      >
+        <Sheet.Row
+          icon="edit-2"
+          label="Edit event"
+          onPress={() => {
+            setMenuOpen(false);
+            router.push({
+              pathname: "/event/edit",
+              params: { eventId: event.id },
+            });
           }}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-            onPress={() => setMenuOpen(false)}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              // The scrim stays candle-dark in both appearances.
-              backgroundColor: palettes.dark.background,
-              opacity: 0.55,
-            }}
-          />
-          <Card
-            style={{
-              marginHorizontal: 12,
-              marginBottom: Math.max(insets.bottom, 12),
-              padding: 14,
-              gap: 4,
-            }}
-          >
-            <ActionRow
-              icon="edit-2"
-              label="Edit event"
-              onPress={() => {
-                setMenuOpen(false);
-                router.push({
-                  pathname: "/event/edit",
-                  params: { eventId: event.id },
-                });
-              }}
-            />
-            <ActionRow
-              icon="x-circle"
-              label="Cancel event"
-              danger
-              onPress={() => {
-                setMenuOpen(false);
-                handleCancelEvent();
-              }}
-            />
-          </Card>
-        </View>
-      ) : null}
+        />
+        <Sheet.Row
+          icon="x-circle"
+          label="Cancel event"
+          danger
+          onPress={() => {
+            setMenuOpen(false);
+            handleCancelEvent();
+          }}
+        />
+      </Sheet>
     </View>
   );
 }

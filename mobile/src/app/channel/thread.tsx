@@ -19,7 +19,7 @@ import {
   type ListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card } from "@/components/ui";
+import { AppText, Button, Card, Sheet } from "@/components/ui";
 import { fonts, palettes, radius } from "@/constants/theme";
 import { MentionText, useMentionSuggestions } from "@/features/mentions";
 import { PollBubble } from "@/features/polls";
@@ -1114,111 +1114,34 @@ export default function ThreadScreen() {
         </Pressable>
       </Modal>
 
-      {actionsFor ? (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            justifyContent: "flex-end",
-          }}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close message actions"
-            onPress={() => setActionsFor(null)}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              // The scrim stays candle-dark in both appearances.
-              backgroundColor: palettes.dark.background,
-              opacity: 0.55,
+      {/* The long-press menu on your own message. */}
+      <Sheet visible={actionsFor !== null} onClose={() => setActionsFor(null)}>
+        <AppText variant="caption" muted numberOfLines={2}>
+          {actionsFor?.content ?? ""}
+        </AppText>
+        <View style={{ height: 1, backgroundColor: theme.border }} />
+        {actionsFor && !actionsFor.poll_id ? (
+          <Sheet.Row
+            icon="edit-2"
+            label="Edit"
+            onPress={() => {
+              const target = actionsFor;
+              setActionsFor(null);
+              startEdit(target);
             }}
           />
-          <Card
-            style={{
-              marginHorizontal: 12,
-              marginBottom: Math.max(insets.bottom, 12),
-              padding: 14,
-              gap: 8,
-            }}
-          >
-            <AppText variant="caption" muted numberOfLines={2}>
-              {actionsFor.content}
-            </AppText>
-            <View style={{ height: 1, backgroundColor: theme.border }} />
-            {!actionsFor.poll_id ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Edit message"
-                onPress={() => {
-                  const target = actionsFor;
-                  setActionsFor(null);
-                  startEdit(target);
-                }}
-                style={({ pressed }) => ({
-                  minHeight: 44,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 10,
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <View
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: radius.control,
-                    backgroundColor: theme.brandSoft,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Feather name="edit-2" size={16} color={theme.brand} />
-                </View>
-                <AppText variant="bodyMedium">Edit</AppText>
-              </Pressable>
-            ) : null}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Delete message"
-              onPress={() => {
-                const target = actionsFor;
-                setActionsFor(null);
-                void handleDelete(target);
-              }}
-              style={({ pressed }) => ({
-                minHeight: 44,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 10,
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: radius.control,
-                  backgroundColor: theme.surface2,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Feather name="trash-2" size={16} color={theme.danger} />
-              </View>
-              <AppText variant="bodyMedium" style={{ color: theme.danger }}>
-                Delete
-              </AppText>
-            </Pressable>
-          </Card>
-        </View>
-      ) : null}
+        ) : null}
+        <Sheet.Row
+          icon="trash-2"
+          label="Delete"
+          danger
+          onPress={() => {
+            const target = actionsFor;
+            setActionsFor(null);
+            if (target) void handleDelete(target);
+          }}
+        />
+      </Sheet>
     </View>
   );
 }

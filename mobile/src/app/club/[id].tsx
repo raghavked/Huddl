@@ -1,5 +1,10 @@
 import Feather from "@expo/vector-icons/Feather";
-import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  Redirect,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,17 +13,37 @@ import {
   Pressable,
   RefreshControl,
   View,
+  type AccessibilityActionEvent,
   type ListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
-import { AppText, Button, Card } from "@/components/ui";
+import {
+  AppText,
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  SectionLabel,
+  Sheet,
+  SkeletonRow,
+} from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import {
+  ClubAnnouncementError,
+  canDeleteAnnouncement,
+  canPostAnnouncements,
+  deleteAnnouncement,
+  fetchAnnouncements,
+  type ClubAnnouncement,
+  type ClubRole,
+} from "@/lib/club-announcements";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
-/* The club home: who's in it, what's coming up, and the door to the chat.
+/* The club home: who's in it, what officers have posted, what's coming up,
+   and the door to the chat.
    Joining inserts the club_members row — a DB trigger mirrors membership
    into the club's channel, exactly like the web app. Leaving deletes it
    (same trigger cleans up the chat); owners can't leave, only disband. */
@@ -31,8 +56,6 @@ type ClubCategory =
   | "social"
   | "service"
   | "other";
-
-type ClubRole = "member" | "officer" | "owner";
 
 type ClubRow = {
   id: string;
@@ -65,6 +88,9 @@ type ClubEventRow = {
 };
 
 type Status = "loading" | "error" | "notFound" | "ready";
+
+/** The board shows the three most recent; the rest live in notifications. */
+const ANNOUNCEMENT_PREVIEW = 3;
 
 /** "academic" -> "Academic" — every category is a single word. */
 function categoryLabel(category: ClubCategory): string {
@@ -102,50 +128,17 @@ function eventWhen(iso: string): string {
   return `${day} · ${time}`;
 }
 
-function Pill({
-  label,
-  tone,
-}: {
-  label: string;
-  tone: "brand" | "accent";
-}) {
-  const theme = useTheme();
-  const colors =
-    tone === "brand"
-      ? { bg: theme.brandSoft, fg: theme.brandInk }
-      : { bg: theme.accentSoft, fg: theme.accent };
-  return (
-    <View
-      style={{
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: radius.full,
-        backgroundColor: colors.bg,
-      }}
-    >
-      <AppText variant="label" style={{ color: colors.fg, fontSize: 11 }}>
-        {label}
-      </AppText>
-    </View>
-  );
-}
-
-function CategoryPill({ category }: { category: ClubCategory }) {
-  const theme = useTheme();
-  return (
-    <View
-      style={{
-        paddingHorizontal: 9,
-        paddingVertical: 3,
-        borderRadius: radius.full,
-        backgroundColor: theme.brandSoft,
-      }}
-    >
-      <AppText variant="label" style={{ color: theme.brandInk }}>
-        {categoryLabel(category)}
-      </AppText>
-    </View>
-  );
+/** "Just now", "5m ago", "3h ago", "2d ago", then "Aug 2". */
+function timeAgo(iso: string): string {
+  const then = new Date(iso);
+  const minutes = Math.floor((Date.now() - then.getTime()) / 60_000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return then.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
 function BackChevron({ onPress }: { onPress: () => void }) {
@@ -195,7 +188,7 @@ function CenteredState({
         style={{
           width: 52,
           height: 52,
-          borderRadius: 16,
+          borderRadius: radius.control,
           backgroundColor: theme.brandSoft,
           alignItems: "center",
           justifyContent: "center",
@@ -209,6 +202,70 @@ function CenteredState({
       </AppText>
       {children}
     </View>
+  );
+}
+
+/**
+ * One notice on the club's board: headline, the first two lines of it, and
+ * who posted when. Your own posts answer a long press with the action sheet
+ * (and the same thing through the screen reader's long-press action) —
+ * everyone else's are quiet text, because only an author can take one down.
+ */
+function AnnouncementRow({
+  post,
+  first,
+  mine,
+  onMenu,
+}: {
+  post: ClubAnnouncement;
+  first: boolean;
+  mine: boolean;
+  onMenu: () => void;
+}) {
+  const theme = useTheme();
+  const when = timeAgo(post.created_at);
+  // A post outlives its author's account — the byline degrades, the notice
+  // stays, because the club still needs to have read it.
+  const who = post.author?.display_name ?? "A past officer";
+
+  const content = (
+    <View
+      style={{
+        gap: 4,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        borderTopWidth: first ? 0 : 1,
+        borderTopColor: theme.border,
+      }}
+    >
+      <AppText variant="bodySemi" numberOfLines={2}>
+        {post.title}
+      </AppText>
+      <AppText muted numberOfLines={2}>
+        {post.body}
+      </AppText>
+      <AppText variant="caption" muted numberOfLines={1}>
+        {who} · {when}
+      </AppText>
+    </View>
+  );
+
+  if (!mine) return content;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${post.title}, posted ${when}`}
+      accessibilityHint="Press and hold for options"
+      accessibilityActions={[{ name: "longpress", label: "Post options" }]}
+      onAccessibilityAction={(event: AccessibilityActionEvent) => {
+        if (event.nativeEvent.actionName === "longpress") onMenu();
+      }}
+      onLongPress={onMenu}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
+      {content}
+    </Pressable>
   );
 }
 
@@ -231,6 +288,14 @@ export default function ClubHomeScreen() {
   const [myProfile, setMyProfile] = useState<MemberProfile | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  const [announcements, setAnnouncements] = useState<ClubAnnouncement[]>([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
+  const [announcementsError, setAnnouncementsError] = useState<string | null>(
+    null
+  );
+  const [postError, setPostError] = useState<string | null>(null);
+  const [menuPost, setMenuPost] = useState<ClubAnnouncement | null>(null);
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -302,19 +367,95 @@ export default function ClubHomeScreen() {
     }
   }, [clubId, userId]);
 
+  /* The board loads on its own track: RLS hands non-members an empty list
+     rather than an error, and a hiccup here should cost the announcements
+     section, not the whole club page. */
+  const loadAnnouncements = useCallback(async () => {
+    if (!clubId) return;
+    try {
+      setAnnouncements(await fetchAnnouncements(clubId, ANNOUNCEMENT_PREVIEW));
+      setAnnouncementsError(null);
+    } catch (caught) {
+      setAnnouncementsError(
+        caught instanceof ClubAnnouncementError
+          ? caught.message
+          : "We couldn't load this club's posts. Give it another go."
+      );
+    } finally {
+      setAnnouncementsLoading(false);
+    }
+  }, [clubId]);
+
   useEffect(() => {
     void load();
   }, [load]);
 
+  // Refetch the board on every focus, so a notice written on the composer is
+  // already here when it hands you back.
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+      void loadAnnouncements();
+    }, [userId, loadAnnouncements])
+  );
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    void load().finally(() => setRefreshing(false));
-  }, [load]);
+    setPostError(null);
+    void Promise.all([load(), loadAnnouncements()]).finally(() =>
+      setRefreshing(false)
+    );
+  }, [load, loadAnnouncements]);
 
   const me = roster.find((m) => m.user_id === userId) ?? null;
   const myRole = me?.role ?? null;
   const isMember = myRole !== null;
-  const isOfficer = myRole === "officer" || myRole === "owner";
+  const isOfficer = canPostAnnouncements(myRole);
+
+  const openComposer = useCallback(() => {
+    if (!club) return;
+    router.push({
+      pathname: "/club/announce",
+      params: { clubId: club.id, clubName: club.name },
+    });
+  }, [router, club]);
+
+  const removePost = useCallback(
+    (post: ClubAnnouncement) => {
+      // Optimistic: the notice leaves the board immediately and comes back
+      // with a warm note if the delete doesn't land.
+      const previous = announcements;
+      setPostError(null);
+      setAnnouncements(previous.filter((row) => row.id !== post.id));
+      void deleteAnnouncement(post.id).catch((caught: unknown) => {
+        setAnnouncements(previous);
+        setPostError(
+          caught instanceof ClubAnnouncementError
+            ? caught.message
+            : "We couldn't take that post down. Give it another go."
+        );
+      });
+    },
+    [announcements]
+  );
+
+  const confirmRemovePost = useCallback(
+    (post: ClubAnnouncement) => {
+      Alert.alert(
+        "Delete this post?",
+        "It comes off the club's board for everyone. Notifications that already went out stay where they are.",
+        [
+          { text: "Keep it", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: () => removePost(post),
+          },
+        ]
+      );
+    },
+    [removePost]
+  );
 
   const handleJoin = useCallback(async () => {
     if (!userId || busy) return;
@@ -344,8 +485,11 @@ export default function ClubHomeScreen() {
         "That didn't go through",
         "We couldn't add you to the club just now — give it another try."
       );
+      return;
     }
-  }, [userId, busy, roster, myProfile, clubId]);
+    // The board is members-only, so it has words on it now.
+    void loadAnnouncements();
+  }, [userId, busy, roster, myProfile, clubId, loadAnnouncements]);
 
   const doLeave = useCallback(async () => {
     if (!userId || busy) return;
@@ -366,7 +510,11 @@ export default function ClubHomeScreen() {
         "That didn't go through",
         "We couldn't take you off the roster just now — give it another try."
       );
+      return;
     }
+    // The board goes back behind the door with the rest of the membership.
+    setAnnouncements([]);
+    setPostError(null);
   }, [userId, busy, roster, clubId]);
 
   const confirmLeave = useCallback(() => {
@@ -417,11 +565,11 @@ export default function ClubHomeScreen() {
               >
                 {name}
               </AppText>
-              {isMe ? <Pill label="You" tone="brand" /> : null}
+              {isMe ? <Chip label="You" tone="brand" /> : null}
               {item.role === "owner" ? (
-                <Pill label="Owner" tone="brand" />
+                <Chip label="Owner" tone="brand" />
               ) : item.role === "officer" ? (
-                <Pill label="Officer" tone="accent" />
+                <Chip label="Officer" tone="accent" />
               ) : null}
             </View>
             {caption ? (
@@ -544,89 +692,180 @@ export default function ClubHomeScreen() {
           />
         }
         ListHeaderComponent={
-          <View style={{ gap: 12, marginBottom: 14 }}>
-            <View style={{ gap: 8 }}>
-              <AppText variant="display">{club.name}</AppText>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  flexWrap: "wrap",
-                }}
-              >
-                <CategoryPill category={club.category} />
+          <View>
+            <View style={{ gap: 12 }}>
+              <View style={{ gap: 8 }}>
+                <AppText variant="display">{club.name}</AppText>
                 <View
-                  style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    flexWrap: "wrap",
+                  }}
                 >
-                  <Feather name="user" size={12} color={theme.muted} />
-                  <AppText variant="caption" muted>
-                    {roster.length} {roster.length === 1 ? "member" : "members"}
-                  </AppText>
-                </View>
-                {myRole ? (
-                  <Pill
-                    label={
-                      myRole === "owner"
-                        ? "Owner"
-                        : myRole === "officer"
-                          ? "Officer"
-                          : "Joined"
-                    }
+                  <Chip
+                    label={categoryLabel(club.category)}
                     tone="brand"
+                    size="md"
                   />
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <Feather name="user" size={12} color={theme.muted} />
+                    <AppText variant="caption" muted>
+                      {roster.length}{" "}
+                      {roster.length === 1 ? "member" : "members"}
+                    </AppText>
+                  </View>
+                  {myRole ? (
+                    <Chip
+                      label={
+                        myRole === "owner"
+                          ? "Owner"
+                          : myRole === "officer"
+                            ? "Officer"
+                            : "Joined"
+                      }
+                      tone="brand"
+                    />
+                  ) : null}
+                </View>
+                {club.description ? (
+                  <AppText muted>{club.description}</AppText>
                 ) : null}
               </View>
-              {club.description ? (
-                <AppText muted>{club.description}</AppText>
+
+              {isMember && channel ? (
+                <Button
+                  label="Open club chat"
+                  icon={
+                    <Feather
+                      name="message-circle"
+                      size={16}
+                      color={theme.brandFg}
+                    />
+                  }
+                  onPress={() => router.push(`/channel/${channel.id}`)}
+                />
+              ) : null}
+
+              {!isMember ? (
+                <View style={{ gap: 8 }}>
+                  <Button
+                    label="Join club"
+                    pending={busy}
+                    icon={
+                      <Feather
+                        name="user-plus"
+                        size={16}
+                        color={theme.brandFg}
+                      />
+                    }
+                    onPress={() => void handleJoin()}
+                  />
+                  {channel ? (
+                    <AppText variant="caption" muted>
+                      Join to get into #{channel.slug} and meet the members.
+                    </AppText>
+                  ) : null}
+                </View>
+              ) : myRole !== "owner" ? (
+                <Button
+                  label="Leave club"
+                  variant="secondary"
+                  size="sm"
+                  pending={busy}
+                  icon={<Feather name="log-out" size={14} color={theme.muted} />}
+                  onPress={confirmLeave}
+                  style={{ alignSelf: "flex-start" }}
+                />
               ) : null}
             </View>
 
-            {isMember && channel ? (
-              <Button
-                label="Open club chat"
-                icon={
-                  <Feather
-                    name="message-circle"
-                    size={16}
-                    color={theme.brandFg}
-                  />
-                }
-                onPress={() => router.push(`/channel/${channel.id}`)}
-              />
-            ) : null}
-
-            {!isMember ? (
-              <View style={{ gap: 8 }}>
-                <Button
-                  label="Join club"
-                  pending={busy}
-                  icon={
-                    <Feather name="user-plus" size={16} color={theme.brandFg} />
+            {/* The board — officers writing to the whole club at once. It's
+                members-only by RLS, so it stays behind the join button. */}
+            {isMember ? (
+              <>
+                <SectionLabel
+                  text="Announcements"
+                  action={
+                    isOfficer
+                      ? { label: "Post", onPress: openComposer }
+                      : undefined
                   }
-                  onPress={() => void handleJoin()}
                 />
-                {channel ? (
-                  <AppText variant="caption" muted>
-                    Join to get into #{channel.slug} and meet the members.
+                {postError ? (
+                  <AppText
+                    variant="caption"
+                    style={{ color: theme.danger, marginBottom: 10 }}
+                  >
+                    {postError}
                   </AppText>
                 ) : null}
-              </View>
-            ) : myRole !== "owner" ? (
-              <Button
-                label="Leave club"
-                variant="secondary"
-                size="sm"
-                pending={busy}
-                icon={<Feather name="log-out" size={14} color={theme.muted} />}
-                onPress={confirmLeave}
-                style={{ alignSelf: "flex-start" }}
-              />
+                {announcementsLoading ? (
+                  <View>
+                    <SkeletonRow avatar={false} lines={2} />
+                    <SkeletonRow avatar={false} lines={2} />
+                  </View>
+                ) : announcementsError ? (
+                  <Card style={{ alignItems: "center", gap: 8 }}>
+                    <Feather name="cloud-off" size={20} color={theme.muted} />
+                    <AppText
+                      variant="caption"
+                      muted
+                      style={{ textAlign: "center", maxWidth: 260 }}
+                    >
+                      {announcementsError}
+                    </AppText>
+                    <Button
+                      label="Try again"
+                      variant="soft"
+                      size="sm"
+                      onPress={() => void loadAnnouncements()}
+                    />
+                  </Card>
+                ) : announcements.length > 0 ? (
+                  <Card padded={false}>
+                    {announcements.map((post, index) => (
+                      <AnnouncementRow
+                        key={post.id}
+                        post={post}
+                        first={index === 0}
+                        mine={canDeleteAnnouncement(post, userId)}
+                        onMenu={() => setMenuPost(post)}
+                      />
+                    ))}
+                  </Card>
+                ) : (
+                  <EmptyState
+                    compact
+                    icon="bell"
+                    title={
+                      isOfficer ? "Nothing posted yet" : "No announcements yet"
+                    }
+                    body={
+                      isOfficer
+                        ? "Tell the club what is happening — everyone gets it once, in their notifications."
+                        : "When an officer posts, it lands here and in your notifications."
+                    }
+                    action={
+                      isOfficer
+                        ? { label: "Write the first one", onPress: openComposer }
+                        : undefined
+                    }
+                  />
+                )}
+              </>
             ) : null}
 
             {/* Upcoming events — the club's next three plans. */}
-            <View style={{ gap: 10, marginTop: 2 }}>
-              <AppText variant="title">Upcoming events</AppText>
+            <SectionLabel text="Upcoming events" />
+            <View style={{ gap: 10 }}>
               {events.length > 0 ? (
                 <Card padded={false}>
                   {events.map((event, index) => (
@@ -677,25 +916,16 @@ export default function ClubHomeScreen() {
                   ))}
                 </Card>
               ) : (
-                <Card
-                  style={{
-                    alignItems: "center",
-                    gap: 6,
-                    paddingVertical: 20,
-                    borderStyle: "dashed",
-                  }}
-                >
-                  <AppText variant="bodySemi">No upcoming events</AppText>
-                  <AppText
-                    variant="caption"
-                    muted
-                    style={{ textAlign: "center", maxWidth: 260 }}
-                  >
-                    {isOfficer
+                <EmptyState
+                  compact
+                  icon="calendar"
+                  title="No upcoming events"
+                  body={
+                    isOfficer
                       ? "Plan the first one — members will see it here and on the events board."
-                      : "Nothing on the calendar yet. Check back soon."}
-                  </AppText>
-                </Card>
+                      : "Nothing on the calendar yet. Check back soon."
+                  }
+                />
               )}
               {isOfficer ? (
                 <Button
@@ -703,11 +933,7 @@ export default function ClubHomeScreen() {
                   variant="soft"
                   size="sm"
                   icon={
-                    <Feather
-                      name="calendar"
-                      size={14}
-                      color={theme.brandInk}
-                    />
+                    <Feather name="calendar" size={14} color={theme.brandInk} />
                   }
                   onPress={() =>
                     router.push({
@@ -720,44 +946,34 @@ export default function ClubHomeScreen() {
               ) : null}
             </View>
 
-            <AppText variant="title" style={{ marginTop: 2 }}>
-              Members · {roster.length}
-            </AppText>
+            <SectionLabel text={`Members · ${roster.length}`} />
           </View>
         }
         ListEmptyComponent={
-          <Card
-            style={{
-              alignItems: "center",
-              gap: 6,
-              paddingVertical: 24,
-              borderStyle: "dashed",
-            }}
-          >
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: radius.full,
-                backgroundColor: theme.brandSoft,
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 2,
-              }}
-            >
-              <Feather name="users" size={18} color={theme.brand} />
-            </View>
-            <AppText variant="bodySemi">No members yet</AppText>
-            <AppText
-              variant="caption"
-              muted
-              style={{ textAlign: "center", maxWidth: 260 }}
-            >
-              Join to get this club going.
-            </AppText>
-          </Card>
+          <EmptyState
+            icon="users"
+            title="No members yet"
+            body="Join to get this club going."
+          />
         }
       />
+
+      <Sheet
+        visible={menuPost !== null}
+        onClose={() => setMenuPost(null)}
+        title={menuPost?.title ?? "Your post"}
+      >
+        <Sheet.Row
+          icon="trash-2"
+          label="Delete post"
+          danger
+          onPress={() => {
+            const post = menuPost;
+            setMenuPost(null);
+            if (post) confirmRemovePost(post);
+          }}
+        />
+      </Sheet>
     </View>
   );
 }

@@ -14,8 +14,16 @@ import {
   type SectionListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card, Field } from "@/components/ui";
-import { radius, type Palette } from "@/constants/theme";
+import {
+  AppText,
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  Field,
+  type ChipTone,
+} from "@/components/ui";
+import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapLight, tapSuccess } from "@/lib/haptics";
 import { CALENDAR_KINDS, kindLabel, type CalendarKind } from "@/lib/syllabus";
@@ -41,36 +49,16 @@ const ITEM_SELECT = "id, course_id, created_by, kind, title, due_at, source";
 
 /** Quiet chip palette: exams glow ember-clay, quizzes/projects lean sage,
     the rest stay neutral. Mirrored in course/syllabus.tsx. */
-function kindColors(kind: CalendarKind, theme: Palette): { bg: string; fg: string } {
+function kindTone(kind: CalendarKind): ChipTone {
   switch (kind) {
     case "exam":
-      return { bg: theme.brandSoft, fg: theme.brandInk };
+      return "brand";
     case "quiz":
     case "project":
-      return { bg: theme.accentSoft, fg: theme.accent };
+      return "accent";
     default:
-      return { bg: theme.surface2, fg: theme.muted };
+      return "neutral";
   }
-}
-
-function KindChip({ kind }: { kind: CalendarKind }) {
-  const theme = useTheme();
-  const colors = kindColors(kind, theme);
-  return (
-    <View
-      style={{
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: radius.full,
-        backgroundColor: colors.bg,
-        alignSelf: "flex-start",
-      }}
-    >
-      <AppText variant="label" style={{ color: colors.fg, fontSize: 11, lineHeight: 14 }}>
-        {kindLabel(kind)}
-      </AppText>
-    </View>
-  );
 }
 
 /** "Fri, Oct 14" */
@@ -419,7 +407,7 @@ export default function ClassCalendarScreen() {
                 flexWrap: "wrap",
               }}
             >
-              <KindChip kind={item.kind} />
+              <Chip label={kindLabel(item.kind)} tone={kindTone(item.kind)} />
               <AppText
                 variant="bodySemi"
                 numberOfLines={1}
@@ -500,36 +488,17 @@ export default function ClassCalendarScreen() {
         </Pressable>
       </View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {CALENDAR_KINDS.map((kind) => {
-          const selected = kind === formKind;
-          const colors = kindColors(kind, theme);
-          return (
-            <Pressable
-              key={kind}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              accessibilityLabel={`Kind: ${kindLabel(kind)}`}
-              onPress={() => setFormKind(kind)}
-              hitSlop={6}
-              style={({ pressed }) => ({
-                paddingHorizontal: 12,
-                paddingVertical: 7,
-                borderRadius: radius.full,
-                backgroundColor: selected ? colors.bg : theme.surface,
-                borderWidth: 1,
-                borderColor: selected ? colors.fg : theme.border,
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <AppText
-                variant="label"
-                style={{ color: selected ? colors.fg : theme.muted, fontSize: 12 }}
-              >
-                {kindLabel(kind)}
-              </AppText>
-            </Pressable>
-          );
-        })}
+        {CALENDAR_KINDS.map((kind) => (
+          <Chip
+            key={kind}
+            label={kindLabel(kind)}
+            tone={kindTone(kind)}
+            size="md"
+            selected={kind === formKind}
+            accessibilityLabel={`Kind: ${kindLabel(kind)}`}
+            onPress={() => setFormKind(kind)}
+          />
+        ))}
       </View>
       <Field
         label="Title"
@@ -612,43 +581,12 @@ export default function ClassCalendarScreen() {
   );
 
   const emptyState = (
-    <Card
-      style={{
-        alignItems: "center",
-        gap: 6,
-        paddingVertical: 28,
-        borderStyle: "dashed",
-      }}
-    >
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: radius.full,
-          backgroundColor: theme.brandSoft,
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: 2,
-        }}
-      >
-        <Feather name="calendar" size={18} color={theme.brand} />
-      </View>
-      <AppText variant="bodySemi">Nothing on the calendar yet</AppText>
-      <AppText
-        variant="caption"
-        muted
-        style={{ textAlign: "center", maxWidth: 260 }}
-      >
-        Paste the syllabus once and every classmate gets the whole schedule.
-      </AppText>
-      <Button
-        label="Import syllabus"
-        variant="soft"
-        size="sm"
-        style={{ marginTop: 6 }}
-        onPress={openSyllabus}
-      />
-    </Card>
+    <EmptyState
+      icon="calendar"
+      title="Nothing on the calendar yet"
+      body="Paste the syllabus once and every classmate gets the whole schedule."
+      action={{ label: "Import syllabus", onPress: openSyllabus }}
+    />
   );
 
   /* ------------------------------ screen ------------------------------ */

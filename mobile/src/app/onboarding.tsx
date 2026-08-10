@@ -231,9 +231,9 @@ export default function OnboardingScreen() {
       return;
     }
 
-    // First-run handoff: profile's saved, so go straight to adding classes —
-    // course chats are where campus life starts.
-    router.replace("/courses/add");
+    // First-run handoff: profile's saved, so hand off to the welcome, which
+    // shows what the app does and then walks them into adding classes.
+    router.replace("/welcome");
   }
 
   if (!ready) {

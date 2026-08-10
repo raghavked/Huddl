@@ -27,7 +27,7 @@ import {
   type ListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card } from "@/components/ui";
+import { AppText, Button, Card, Sheet } from "@/components/ui";
 import { fonts, palettes, radius } from "@/constants/theme";
 import { MentionText, useMentionSuggestions } from "@/features/mentions";
 import { PollBubble, PollComposer } from "@/features/polls";
@@ -278,58 +278,6 @@ function BackChevron({ onPress }: { onPress: () => void }) {
       })}
     >
       <Feather name="chevron-left" size={26} color={theme.foreground} />
-    </Pressable>
-  );
-}
-
-/** One 44px row in a bottom action sheet — icon chip + label. */
-function ActionRow({
-  icon,
-  label,
-  danger = false,
-  onPress,
-}: {
-  icon: FeatherName;
-  label: string;
-  danger?: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        minHeight: 44,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: radius.control,
-          backgroundColor: danger ? theme.surface2 : theme.brandSoft,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Feather
-          name={icon}
-          size={16}
-          color={danger ? theme.danger : theme.brand}
-        />
-      </View>
-      <AppText
-        variant="bodyMedium"
-        style={danger ? { color: theme.danger } : undefined}
-      >
-        {label}
-      </AppText>
     </Pressable>
   );
 }
@@ -2110,136 +2058,82 @@ export default function ChannelRoomScreen() {
         onCreated={handlePollCreated}
       />
 
-      {/* Pinned messages list. */}
-      <Modal
+      {/* Pinned messages list — a reading surface, so the sheet's children
+          are a scroller rather than action rows. */}
+      <Sheet
         visible={pinnedOpen}
-        transparent
-        animationType="slide"
-        statusBarTranslucent
-        onRequestClose={() => setPinnedOpen(false)}
+        onClose={() => setPinnedOpen(false)}
+        title="Pinned messages"
       >
-        <View style={{ flex: 1, justifyContent: "flex-end" }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close pinned messages"
-            onPress={() => setPinnedOpen(false)}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              // The scrim stays candle-dark in both appearances.
-              backgroundColor: palettes.dark.background,
-              opacity: 0.55,
-            }}
-          />
-          <View
-            style={{
-              backgroundColor: theme.surface,
-              borderTopLeftRadius: radius.card,
-              borderTopRightRadius: radius.card,
-              borderWidth: 1,
-              borderColor: theme.border,
-              paddingTop: 14,
-              paddingHorizontal: 20,
-              paddingBottom: Math.max(insets.bottom, 16),
-              gap: 4,
-              maxHeight: "75%",
-            }}
+        {visiblePinned.length === 0 ? (
+          <AppText muted style={{ paddingVertical: 16 }}>
+            Nothing pinned right now.
+          </AppText>
+        ) : (
+          <ScrollView
+            style={{ flexGrow: 0 }}
+            contentContainerStyle={{ paddingBottom: 4 }}
+            showsVerticalScrollIndicator={false}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <Feather name="bookmark" size={16} color={theme.brand} />
-              <AppText variant="title" style={{ flex: 1 }}>
-                Pinned messages
-              </AppText>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-                onPress={() => setPinnedOpen(false)}
-                hitSlop={8}
-                style={({ pressed }) => ({
-                  width: 44,
-                  height: 44,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: pressed ? 0.6 : 1,
-                })}
+            {visiblePinned.map((m, i) => (
+              <View
+                key={m.id}
+                style={{
+                  paddingVertical: 10,
+                  gap: 4,
+                  borderTopWidth: i === 0 ? 0 : 1,
+                  borderTopColor: theme.border,
+                }}
               >
-                <Feather name="x" size={20} color={theme.muted} />
-              </Pressable>
-            </View>
-            {visiblePinned.length === 0 ? (
-              <AppText muted style={{ paddingVertical: 16 }}>
-                Nothing pinned right now.
-              </AppText>
-            ) : (
-              <ScrollView
-                style={{ flexGrow: 0 }}
-                contentContainerStyle={{ paddingBottom: 4 }}
-                showsVerticalScrollIndicator={false}
-              >
-                {visiblePinned.map((m, i) => (
-                  <View
-                    key={m.id}
-                    style={{
-                      paddingVertical: 10,
-                      gap: 4,
-                      borderTopWidth: i === 0 ? 0 : 1,
-                      borderTopColor: theme.border,
-                    }}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <AppText variant="label" numberOfLines={1}>
+                    {m.author?.display_name ?? "A classmate"}
+                  </AppText>
+                  <AppText
+                    variant="caption"
+                    muted
+                    numberOfLines={1}
+                    style={{ flex: 1 }}
                   >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      <AppText variant="label" numberOfLines={1}>
-                        {m.author?.display_name ?? "A classmate"}
-                      </AppText>
-                      <AppText
-                        variant="caption"
-                        muted
-                        numberOfLines={1}
-                        style={{ flex: 1 }}
-                      >
-                        {relativeTime(m.created_at)}
-                      </AppText>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Unpin this message"
-                        onPress={() => void handleTogglePin(m, false)}
-                        hitSlop={10}
-                        style={({ pressed }) => ({
-                          minHeight: 32,
-                          paddingHorizontal: 10,
-                          borderRadius: radius.full,
-                          backgroundColor: theme.surface2,
-                          alignItems: "center",
-                          justifyContent: "center",
-                          opacity: pressed ? 0.6 : 1,
-                        })}
-                      >
-                        <AppText variant="label" style={{ color: theme.brandInk }}>
-                          Unpin
-                        </AppText>
-                      </Pressable>
-                    </View>
-                    <MentionText
-                      text={m.content}
-                      numberOfLines={3}
-                      baseStyle={{ ...BODY_TEXT, color: theme.foreground }}
-                      highlightColor={theme.brand}
-                    />
-                  </View>
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
+                    {relativeTime(m.created_at)}
+                  </AppText>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Unpin this message"
+                    onPress={() => void handleTogglePin(m, false)}
+                    hitSlop={10}
+                    style={({ pressed }) => ({
+                      minHeight: 32,
+                      paddingHorizontal: 10,
+                      borderRadius: radius.full,
+                      backgroundColor: theme.surface2,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: pressed ? 0.6 : 1,
+                    })}
+                  >
+                    <AppText variant="label" style={{ color: theme.brandInk }}>
+                      Unpin
+                    </AppText>
+                  </Pressable>
+                </View>
+                <MentionText
+                  text={m.content}
+                  numberOfLines={3}
+                  baseStyle={{ ...BODY_TEXT, color: theme.foreground }}
+                  highlightColor={theme.brand}
+                />
+              </View>
+            ))}
+          </ScrollView>
+        )}
+      </Sheet>
 
       {/* Full-screen photo viewer — tap anywhere to close. */}
       <Modal
@@ -2265,6 +2159,11 @@ export default function ChannelRoomScreen() {
         </Pressable>
       </Modal>
 
+      {/* The composer's "+" menu wears the sheet's rows but keeps its own
+          in-tree scrim: both choices hand off to another native surface in
+          the same tick — the system photo picker, and the poll composer's
+          own Modal — and a Modal dismissing underneath either one is how you
+          get a picker that never appears. Everything else here is `Sheet`. */}
       {composerMenuOpen ? (
         <View
           style={{
@@ -2286,11 +2185,14 @@ export default function ChannelRoomScreen() {
               left: 0,
               right: 0,
               bottom: 0,
+              // The scrim stays candle-dark in both appearances.
               backgroundColor: palettes.dark.background,
               opacity: 0.55,
             }}
           />
           <Card
+            elevation="floating"
+            padded={false}
             style={{
               marginHorizontal: 12,
               marginBottom: Math.max(insets.bottom, 12),
@@ -2298,7 +2200,7 @@ export default function ChannelRoomScreen() {
               gap: 4,
             }}
           >
-            <ActionRow
+            <Sheet.Row
               icon="image"
               label="Photo"
               onPress={() => {
@@ -2306,7 +2208,7 @@ export default function ChannelRoomScreen() {
                 void handlePickPhoto();
               }}
             />
-            <ActionRow
+            <Sheet.Row
               icon="bar-chart-2"
               label="Poll"
               onPress={() => {
@@ -2318,140 +2220,115 @@ export default function ChannelRoomScreen() {
         </View>
       ) : null}
 
-      {actionsMessage ? (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            justifyContent: "flex-end",
+      {/* The long-press menu: quick reactions on top, then the actions. */}
+      <Sheet
+        visible={actionsMessage !== null}
+        onClose={() => setActionsFor(null)}
+      >
+        <View style={{ gap: 12 }}>
+          <AppText variant="caption" muted numberOfLines={2}>
+            {actionsMessage?.content ?? ""}
+          </AppText>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            {REACTION_EMOJI.map((emoji) => {
+              const mine = (
+                (actionsMessage ? reactionsByMessage[actionsMessage.id] : []) ??
+                []
+              ).some((r) => r.user_id === userId && r.emoji === emoji);
+              return (
+                <Pressable
+                  key={emoji}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    mine
+                      ? `Remove your ${emoji} reaction`
+                      : `React with ${emoji}`
+                  }
+                  onPress={() => {
+                    const id = actionsMessage?.id;
+                    setActionsFor(null);
+                    if (id) void toggleReaction(id, emoji);
+                  }}
+                  style={({ pressed }) => ({
+                    width: 48,
+                    height: 48,
+                    borderRadius: radius.control,
+                    borderWidth: 1,
+                    borderColor: mine ? theme.brand : theme.border,
+                    backgroundColor: mine ? theme.brandSoft : theme.surface2,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <AppText style={{ fontSize: 22, lineHeight: 28 }}>
+                    {emoji}
+                  </AppText>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={{ height: 1, backgroundColor: theme.border }} />
+        </View>
+        <Sheet.Row
+          icon="corner-down-right"
+          label="Reply in thread"
+          onPress={() => {
+            const id = actionsMessage?.id;
+            setActionsFor(null);
+            if (id) openThread(id);
           }}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close message actions"
-            onPress={() => setActionsFor(null)}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              // The scrim stays candle-dark in both appearances.
-              backgroundColor: palettes.dark.background,
-              opacity: 0.55,
+        />
+        <Sheet.Row
+          icon="bookmark"
+          label={actionsMessage?.pinned_at ? "Unpin" : "Pin message"}
+          onPress={() => {
+            const target = actionsMessage;
+            setActionsFor(null);
+            if (target) void handleTogglePin(target, !target.pinned_at);
+          }}
+        />
+        <Sheet.Row
+          icon="star"
+          label={
+            actionsMessage && savedIds.has(actionsMessage.id)
+              ? "Remove from saved"
+              : "Save message"
+          }
+          onPress={() => {
+            const id = actionsMessage?.id;
+            if (!id) return;
+            const save = !savedIds.has(id);
+            setActionsFor(null);
+            void handleToggleSaved(id, save);
+          }}
+        />
+        {actionsMessage &&
+        actionsMessage.author_id === userId &&
+        !actionsMessage.poll_id ? (
+          <Sheet.Row
+            icon="edit-2"
+            label="Edit"
+            onPress={() => {
+              const target = actionsMessage;
+              setActionsFor(null);
+              startEdit(target);
             }}
           />
-          <Card
-            style={{
-              marginHorizontal: 12,
-              marginBottom: Math.max(insets.bottom, 12),
-              padding: 14,
-              gap: 12,
+        ) : null}
+        {actionsMessage && actionsMessage.author_id === userId ? (
+          <Sheet.Row
+            icon="trash-2"
+            label="Delete"
+            danger
+            onPress={() => {
+              const target = actionsMessage;
+              setActionsFor(null);
+              void handleDelete(target);
             }}
-          >
-            <AppText variant="caption" muted numberOfLines={2}>
-              {actionsMessage.content}
-            </AppText>
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              {REACTION_EMOJI.map((emoji) => {
-                const mine = (reactionsByMessage[actionsMessage.id] ?? []).some(
-                  (r) => r.user_id === userId && r.emoji === emoji
-                );
-                return (
-                  <Pressable
-                    key={emoji}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      mine
-                        ? `Remove your ${emoji} reaction`
-                        : `React with ${emoji}`
-                    }
-                    onPress={() => {
-                      const id = actionsMessage.id;
-                      setActionsFor(null);
-                      void toggleReaction(id, emoji);
-                    }}
-                    style={({ pressed }) => ({
-                      width: 48,
-                      height: 48,
-                      borderRadius: radius.control,
-                      borderWidth: 1,
-                      borderColor: mine ? theme.brand : theme.border,
-                      backgroundColor: mine ? theme.brandSoft : theme.surface2,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      opacity: pressed ? 0.7 : 1,
-                    })}
-                  >
-                    <AppText style={{ fontSize: 22, lineHeight: 28 }}>
-                      {emoji}
-                    </AppText>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <View style={{ height: 1, backgroundColor: theme.border }} />
-            <ActionRow
-              icon="corner-down-right"
-              label="Reply in thread"
-              onPress={() => {
-                const id = actionsMessage.id;
-                setActionsFor(null);
-                openThread(id);
-              }}
-            />
-            <ActionRow
-              icon="bookmark"
-              label={actionsMessage.pinned_at ? "Unpin" : "Pin message"}
-              onPress={() => {
-                const target = actionsMessage;
-                setActionsFor(null);
-                void handleTogglePin(target, !target.pinned_at);
-              }}
-            />
-            <ActionRow
-              icon="star"
-              label={
-                savedIds.has(actionsMessage.id)
-                  ? "Remove from saved"
-                  : "Save message"
-              }
-              onPress={() => {
-                const id = actionsMessage.id;
-                const save = !savedIds.has(id);
-                setActionsFor(null);
-                void handleToggleSaved(id, save);
-              }}
-            />
-            {actionsMessage.author_id === userId && !actionsMessage.poll_id ? (
-              <ActionRow
-                icon="edit-2"
-                label="Edit"
-                onPress={() => {
-                  const target = actionsMessage;
-                  setActionsFor(null);
-                  startEdit(target);
-                }}
-              />
-            ) : null}
-            {actionsMessage.author_id === userId ? (
-              <ActionRow
-                icon="trash-2"
-                label="Delete"
-                danger
-                onPress={() => {
-                  const target = actionsMessage;
-                  setActionsFor(null);
-                  void handleDelete(target);
-                }}
-              />
-            ) : null}
-          </Card>
-        </View>
-      ) : null}
+          />
+        ) : null}
+      </Sheet>
     </View>
   );
 }

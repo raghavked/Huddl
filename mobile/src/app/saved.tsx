@@ -11,8 +11,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PaperPlane } from "@/components/illustrations";
-import { AppText, Button, Card } from "@/components/ui";
-import { fonts, radius } from "@/constants/theme";
+import { AppText, Button, Card, Chip, EmptyState } from "@/components/ui";
+import { fonts } from "@/constants/theme";
 import { MentionText } from "@/features/mentions";
 import { useTheme } from "@/hooks/use-theme";
 import { tapLight } from "@/lib/haptics";
@@ -147,9 +147,6 @@ function SavedRow({
   onRemove: () => void;
 }) {
   const theme = useTheme();
-  // Rooms wear ember, DMs wear fern — one glance tells you where it's from.
-  const chipBg = item.kind === "channel" ? theme.brandSoft : theme.accentSoft;
-  const chipInk = item.kind === "channel" ? theme.brandInk : theme.accent;
 
   return (
     <Card
@@ -187,19 +184,13 @@ function SavedRow({
           <AppText variant="bodySemi" numberOfLines={1} style={{ flexShrink: 1 }}>
             {item.authorName}
           </AppText>
-          <View
-            style={{
-              borderRadius: radius.full,
-              backgroundColor: chipBg,
-              paddingHorizontal: 8,
-              paddingVertical: 2,
-              maxWidth: 160,
-            }}
-          >
-            <AppText variant="label" numberOfLines={1} style={{ color: chipInk }}>
-              {item.context}
-            </AppText>
-          </View>
+          {/* Rooms wear ember, DMs wear fern — one glance tells you where
+              it's from. */}
+          <Chip
+            label={item.context}
+            tone={item.kind === "channel" ? "brand" : "accent"}
+            style={{ maxWidth: 160 }}
+          />
         </View>
 
         {item.attachmentOnly ? (
@@ -478,24 +469,11 @@ export default function SavedMessagesScreen() {
             ) : null
           }
           ListEmptyComponent={
-            <Card
-              style={{
-                alignItems: "center",
-                gap: 6,
-                paddingVertical: 28,
-                borderStyle: "dashed",
-              }}
-            >
-              <PaperPlane size={72} color={theme.muted} softColor={theme.surface2} />
-              <AppText variant="bodySemi">Nothing saved yet.</AppText>
-              <AppText
-                variant="caption"
-                muted
-                style={{ textAlign: "center", maxWidth: 280 }}
-              >
-                Long-press any message to keep it handy.
-              </AppText>
-            </Card>
+            <EmptyState
+              illustration={PaperPlane}
+              title="Nothing saved yet."
+              body="Long-press any message to keep it handy."
+            />
           }
           ListFooterComponent={
             count >= SAVED_LIMIT ? (
