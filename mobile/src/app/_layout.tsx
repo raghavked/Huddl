@@ -18,6 +18,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { routeForLink } from "@/lib/notification-links";
 import { configureNotificationHandler, registerForPush } from "@/lib/push";
 import { AuthProvider, useAuth } from "@/providers/auth-provider";
+import { DisplayProvider, useDisplay } from "@/providers/display-provider";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -65,8 +66,14 @@ function PushGateway() {
   return null;
 }
 
-export default function RootLayout() {
+/**
+ * Everything below the display preferences. Split out from `RootLayout` on
+ * purpose: `useTheme()` now reads the resolved appearance out of
+ * `DisplayProvider`, so no component that paints may sit above it.
+ */
+function RootShell() {
   const theme = useTheme();
+  const { ready, resolvedScheme } = useDisplay();
   const [fontsLoaded] = useFonts({
     BricolageGrotesque_600SemiBold,
     BricolageGrotesque_700Bold,
@@ -76,17 +83,23 @@ export default function RootLayout() {
     PlusJakartaSans_700Bold,
   });
 
+  // Hold the splash until the fonts are in *and* the stored appearance has
+  // been read, so a student who picked dark never gets a flash of cream.
+  const canPaint = fontsLoaded && ready;
+
   useEffect(() => {
-    if (fontsLoaded) {
+    if (canPaint) {
       void SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [canPaint]);
 
-  if (!fontsLoaded) return null;
+  if (!canPaint) return null;
 
   return (
     <AuthProvider>
-      <StatusBar style="auto" />
+      {/* Follows the chosen appearance, not the device's — "auto" would
+          fight an explicit light/dark pick. */}
+      <StatusBar style={resolvedScheme === "dark" ? "light" : "dark"} />
       <PushGateway />
       <Stack
         screenOptions={{
@@ -98,5 +111,13 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)" />
       </Stack>
     </AuthProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <DisplayProvider>
+      <RootShell />
+    </DisplayProvider>
   );
 }

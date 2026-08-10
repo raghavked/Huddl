@@ -1,14 +1,23 @@
-import { View, type ViewProps } from "react-native";
-import { radius } from "@/constants/theme";
+import { useColorScheme, View, type ViewProps } from "react-native";
+import { elevationFor, radius, type ElevationStep } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
-/** Hearth card: warm surface, hairline border, soft shadow. */
+/**
+ * Hearth card: warm surface, hairline border, warm low shadow.
+ *
+ * The default `rest` elevation is what almost everything wants. Step up only
+ * when the card genuinely left the page: `raised` for a menu or a popover,
+ * `floating` for a bottom sheet or a modal. In dark the same steps lean on
+ * surface contrast instead of shadow — see the `elevation` token docs.
+ */
 export function Card({
   padded = true,
+  elevation = "rest",
   style,
   ...props
-}: ViewProps & { padded?: boolean }) {
+}: ViewProps & { padded?: boolean; elevation?: ElevationStep }) {
   const theme = useTheme();
+  const scheme = useColorScheme();
   return (
     <View
       style={[
@@ -18,11 +27,7 @@ export function Card({
           borderWidth: 1,
           borderColor: theme.border,
           padding: padded ? 16 : 0,
-          shadowColor: "#3e2c18",
-          shadowOpacity: 0.06,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 2,
+          ...elevationFor(scheme)[elevation],
         },
         style,
       ]}

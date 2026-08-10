@@ -1,4 +1,10 @@
 export { AppText } from "./app-text";
 export { Button } from "./button";
 export { Card } from "./card";
+export { Chip, type ChipSize, type ChipTone } from "./chip";
+export { EmptyState } from "./empty-state";
 export { Field } from "./field";
+export { SectionLabel } from "./section-label";
+export { Sheet } from "./sheet";
+export { Skeleton, SkeletonRow } from "./skeleton";
+export { useReducedMotion } from "./use-reduced-motion";

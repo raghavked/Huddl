@@ -6,7 +6,7 @@ import type {
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -19,11 +19,19 @@ import {
   type ListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Avatar } from "@/components/avatar";
 import { AppText, Button, Card } from "@/components/ui";
 import { fonts, palettes, radius } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { unblockUser } from "@/lib/blocks";
+import {
+  fetchThread,
+  fetchThreadPeople,
+  threadDisplay,
+  type GroupThreadRow,
+  type ThreadPerson,
+} from "@/lib/group-dm";
 import { tapLight } from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -151,6 +159,10 @@ export default function DmRoomScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const threadId = typeof params.id === "string" ? params.id : "";
 
+  // The thread row carries is_group/title; `people` is everyone in it,
+  // which a group needs for author names and the "N people" subtitle.
+  const [thread, setThread] = useState<GroupThreadRow | null>(null);
+  const [people, setPeople] = useState<ThreadPerson[]>([]);
   const [other, setOther] = useState<ProfileLite | null>(null);
   // Newest first — the FlatList is inverted so index 0 sits at the bottom.
   const [messages, setMessages] = useState<DmMessage[]>([]);
@@ -245,13 +257,9 @@ export default function DmRoomScreen() {
         return;
       }
 
-      const [otherRes, messagesRes] = await Promise.all([
-        supabase
-          .from("dm_participants")
-          .select("user_id, profile:profiles(id, handle, display_name, avatar_url)")
-          .eq("thread_id", threadId)
-          .neq("user_id", userId)
-          .maybeSingle(),
+      const [threadRow, roster, messagesRes] = await Promise.all([
+        fetchThread(threadId),
+        fetchThreadPeople(threadId),
         supabase
           .from("dm_messages")
           .select("*")
@@ -259,18 +267,24 @@ export default function DmRoomScreen() {
           .order("created_at", { ascending: false })
           .limit(PAGE_SIZE),
       ]);
-      if (otherRes.error) throw otherRes.error;
       if (messagesRes.error) throw messagesRes.error;
-
-      const otherProfile =
-        (otherRes.data as unknown as { profile: ProfileLite | null } | null)
-          ?.profile ?? null;
-      // The other account is gone — the thread has nothing left to show.
-      if (!otherProfile) {
+      if (!threadRow) {
         setNotFound(true);
         return;
       }
 
+      // A group is named after itself; a 1:1 is named after whoever isn't
+      // you, and has nothing left to show once that account is gone.
+      const otherProfile = threadRow.is_group
+        ? null
+        : (roster.find((person) => person.id !== userId) ?? null);
+      if (!threadRow.is_group && !otherProfile) {
+        setNotFound(true);
+        return;
+      }
+
+      setThread(threadRow);
+      setPeople(roster);
       setOther(otherProfile);
       const rows = (messagesRes.data ?? []) as DmMessage[];
       setMessages(rows);
@@ -574,9 +588,30 @@ export default function DmRoomScreen() {
     [userId]
   );
 
+  /* ------------------------- group vs. one-to-one ------------------------ */
+
+  const isGroup = thread?.is_group === true;
+  const display = thread ? threadDisplay(thread, people, userId) : null;
+  const peopleById = useMemo(
+    () => new Map(people.map((person) => [person.id, person] as const)),
+    [people]
+  );
+
   /* ----------------------------- blocking ----------------------------- */
 
-  const otherBlocked = other !== null && blocked.has(other.id);
+  // A group can hold someone you've blocked, so there's no banner and no
+  // gate on the composer — their messages simply don't render.
+  const otherBlocked = !isGroup && other !== null && blocked.has(other.id);
+
+  const visibleMessages = useMemo(
+    () =>
+      isGroup
+        ? messages.filter(
+            (m) => m.author_id === userId || !blocked.has(m.author_id)
+          )
+        : messages,
+    [isGroup, messages, userId, blocked]
+  );
 
   const handleUnblock = useCallback(async () => {
     if (!userId || !other || unblocking) return;
@@ -592,10 +627,18 @@ export default function DmRoomScreen() {
   }, [userId, other, unblocking, refreshBlocked]);
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<DmMessage>) => {
+    ({ item, index }: ListRenderItemInfo<DmMessage>) => {
       const own = item.author_id === userId;
       const isTemp = item.id.startsWith("temp-");
       const deleted = Boolean(item.deleted_at);
+      // In a group, say who's talking — once per run, not once per bubble.
+      // The list is inverted, so the bubble drawn above this one is next.
+      const author = own ? null : (peopleById.get(item.author_id) ?? null);
+      const authorName = author?.display_name ?? "Someone who left";
+      const showAuthor =
+        isGroup &&
+        !own &&
+        visibleMessages[index + 1]?.author_id !== item.author_id;
       return (
         <View
           style={{
@@ -603,6 +646,27 @@ export default function DmRoomScreen() {
             alignItems: own ? "flex-end" : "flex-start",
           }}
         >
+          {showAuthor ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                marginBottom: 4,
+                marginLeft: 2,
+                maxWidth: "80%",
+              }}
+            >
+              <Avatar
+                url={author?.avatar_url ?? null}
+                name={authorName}
+                size={20}
+              />
+              <AppText variant="label" muted numberOfLines={1}>
+                {authorName}
+              </AppText>
+            </View>
+          ) : null}
           <Pressable
             accessibilityHint={
               deleted || isTemp
@@ -680,13 +744,19 @@ export default function DmRoomScreen() {
         </View>
       );
     },
-    [userId, theme, resolveAttachmentUrl]
+    [userId, theme, resolveAttachmentUrl, isGroup, peopleById, visibleMessages]
   );
 
   const canSend = draft.trim().length > 0 && !otherBlocked;
   const otherFirstName = other
     ? other.display_name.trim().split(/\s+/)[0] || other.handle
     : null;
+  // What the composer says it's talking to.
+  const composerTarget = isGroup
+    ? "the group"
+    : otherFirstName
+      ? otherFirstName
+      : null;
 
   return (
     <KeyboardAvoidingView
@@ -720,7 +790,47 @@ export default function DmRoomScreen() {
         >
           <Feather name="chevron-left" size={26} color={theme.foreground} />
         </Pressable>
-        {other ? (
+        {isGroup && display ? (
+          // The whole header is the way into the group's page.
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${display.title} group info`}
+            accessibilityHint="Opens who's in the group and its settings"
+            onPress={() =>
+              router.push(`/dm/info?threadId=${encodeURIComponent(threadId)}`)
+            }
+            style={({ pressed }) => ({
+              flex: 1,
+              minHeight: 44,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <View
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: radius.full,
+                backgroundColor: theme.brandSoft,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Feather name="users" size={17} color={theme.brandInk} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppText variant="title" numberOfLines={1}>
+                {display.title}
+              </AppText>
+              <AppText variant="caption" muted numberOfLines={1}>
+                {display.subtitle ?? "Group chat"}
+              </AppText>
+            </View>
+            <Feather name="chevron-right" size={18} color={theme.muted} />
+          </Pressable>
+        ) : other ? (
           <View
             style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}
           >
@@ -824,7 +934,7 @@ export default function DmRoomScreen() {
         </View>
       ) : (
         <>
-          {messages.length === 0 ? (
+          {visibleMessages.length === 0 ? (
             <View
               style={{
                 flex: 1,
@@ -844,29 +954,38 @@ export default function DmRoomScreen() {
                   justifyContent: "center",
                 }}
               >
-                <AppText
-                  variant="title"
-                  style={{ color: theme.brandInk, fontSize: 20 }}
-                >
-                  {other ? initialsOf(other.display_name) || "?" : "?"}
-                </AppText>
+                {isGroup ? (
+                  <Feather name="users" size={22} color={theme.brandInk} />
+                ) : (
+                  <AppText
+                    variant="title"
+                    style={{ color: theme.brandInk, fontSize: 20 }}
+                  >
+                    {other ? initialsOf(other.display_name) || "?" : "?"}
+                  </AppText>
+                )}
               </View>
               <AppText variant="bodySemi">
-                {other?.display_name ?? "Your classmate"}
+                {isGroup
+                  ? (display?.title ?? "Group chat")
+                  : (other?.display_name ?? "Your classmate")}
               </AppText>
               <AppText
                 variant="caption"
                 muted
                 style={{ textAlign: "center", maxWidth: 280 }}
               >
-                This is the start of your conversation
-                {otherFirstName ? ` with ${otherFirstName}` : ""}. Say hi!
+                {isGroup
+                  ? "This is the start of the group. Say hi to everyone."
+                  : `This is the start of your conversation${
+                      otherFirstName ? ` with ${otherFirstName}` : ""
+                    }. Say hi!`}
               </AppText>
             </View>
           ) : (
             <FlatList
               inverted
-              data={messages}
+              data={visibleMessages}
               keyExtractor={(item) => item.id}
               renderItem={renderItem}
               style={{ flex: 1 }}
@@ -1020,8 +1139,8 @@ export default function DmRoomScreen() {
               accessibilityLabel={
                 editing
                   ? "Edit your message"
-                  : otherFirstName
-                    ? `Message ${otherFirstName}`
+                  : composerTarget
+                    ? `Message ${composerTarget}`
                     : "Message"
               }
               multiline
@@ -1031,8 +1150,8 @@ export default function DmRoomScreen() {
               placeholder={
                 editing
                   ? "Edit your message"
-                  : otherFirstName
-                    ? `Message ${otherFirstName}`
+                  : composerTarget
+                    ? `Message ${composerTarget}`
                     : "Message"
               }
               placeholderTextColor={theme.muted}

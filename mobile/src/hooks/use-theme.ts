@@ -1,8 +1,10 @@
-import { useColorScheme } from "react-native";
 import { palettes, type Palette } from "@/constants/theme";
+import { useResolvedScheme } from "@/providers/display-provider";
 
-/** The active hearth palette — follows the system appearance. */
+/**
+ * The active hearth palette — follows the student's display preference,
+ * which itself follows the system appearance when set to "system".
+ */
 export function useTheme(): Palette {
-  const scheme = useColorScheme();
-  return scheme === "dark" ? palettes.dark : palettes.light;
+  return useResolvedScheme() === "dark" ? palettes.dark : palettes.light;
 }
