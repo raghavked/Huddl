@@ -38,6 +38,37 @@ type MessagePreview = {
   author: { display_name: string } | null;
 };
 
+/** What's still on deck today, skimmed from the plan the page already built. */
+type TodaySummary = { dueCount: number; firstDueTitle: string | null };
+
+/** "PHYS 9B review tonight" / "Coffee hour at 3:00 PM" for the Today strip. */
+function eventTodayPhrase(event: Pick<CampusEvent, "title" | "starts_at">) {
+  const start = new Date(event.starts_at);
+  if (start.getHours() >= 17) return `${event.title} tonight`;
+  const time = start.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `${event.title} at ${time}`;
+}
+
+/** One calm line from what today actually holds — null means stay silent. */
+function buildTodayLine(
+  today: TodaySummary,
+  event: Pick<CampusEvent, "title" | "starts_at"> | null
+): string | null {
+  const eventPart = event ? eventTodayPhrase(event) : null;
+  if (today.dueCount > 0 && eventPart) {
+    return `${today.dueCount} due · ${eventPart}`;
+  }
+  if (today.dueCount > 0) {
+    return today.firstDueTitle
+      ? `${today.dueCount} due today · ${today.firstDueTitle}`
+      : `${today.dueCount} due today`;
+  }
+  return eventPart;
+}
+
 export default async function HomePage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -81,6 +112,7 @@ export default async function HomePage() {
     .map((row) => row.course)
     .filter((c): c is { id: string; code: string } => c !== null);
   let planStats: ReturnType<typeof buildPlan>["stats"] | null = null;
+  let today: TodaySummary = { dueCount: 0, firstDueTitle: null };
   if (planCourses.length > 0) {
     const codeById = new Map(planCourses.map((c) => [c.id, c.code]));
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -117,7 +149,21 @@ export default async function HomePage() {
         (row) => row.item_id
       )
     );
-    planStats = buildPlan(planItems, checkoffs, new Date()).stats;
+    const plan = buildPlan(planItems, checkoffs, new Date());
+    planStats = plan.stats;
+    // The Today strip skims the same plan: what's still ahead of me today
+    // and unhandled. No extra queries — silence when the day is clear.
+    const dueToday =
+      plan.groups
+        .find((group) => group.label === "Today")
+        ?.entries.filter((entry) => !entry.done) ?? [];
+    const firstDue = dueToday[0];
+    today = {
+      dueCount: dueToday.length,
+      firstDueTitle: firstDue
+        ? `${firstDue.courseCode} ${firstDue.title}`
+        : null,
+    };
   }
 
   const myChannels = (
@@ -136,6 +182,16 @@ export default async function HomePage() {
     );
 
   const events = (eventsRes.data ?? []) as CampusEvent[];
+
+  // Today at a glance: due items from the plan above + the first event that
+  // lands today, both already in hand. No line means nothing to say.
+  const todayStamp = new Date().toDateString();
+  const todayLine = buildTodayLine(
+    today,
+    events.find(
+      (event) => new Date(event.starts_at).toDateString() === todayStamp
+    ) ?? null
+  );
 
   const joinedIds = new Set(myChannels.map((c) => c.id));
   const discover = ((topicsRes.data ?? []) as Channel[])
@@ -169,7 +225,30 @@ export default async function HomePage() {
         description="Here's what's happening on campus."
       />
 
-      {/* 0 — the study plan, when there are classes to plan around */}
+      {/* 0 — today at a glance, only when today actually holds something */}
+      {todayLine ? (
+        <section className="mt-8" aria-label="Today">
+          <Link
+            href="/calendar"
+            aria-label={`Today: ${todayLine}`}
+            className={cardClasses({
+              padding: "none",
+              interactive: true,
+              className: "flex items-center gap-3 px-4 py-3",
+            })}
+          >
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
+              <CalendarDays className="size-5" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+              {todayLine}
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-muted" aria-hidden />
+          </Link>
+        </section>
+      ) : null}
+
+      {/* 1 — the study plan, when there are classes to plan around */}
       {planStats ? (
         <section className="mt-8" aria-label="Your plan">
           <SectionHeader title="Your plan" />
@@ -203,7 +282,7 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      {/* 1 — campus channels I'm in, with latest-message previews */}
+      {/* 2 — campus channels I'm in, with latest-message previews */}
       <section className="mt-8" aria-label="Your campus">
         <SectionHeader
           title="Your campus"
@@ -278,7 +357,7 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* 2 — course channels grid */}
+      {/* 3 — course channels grid */}
       <section className="mt-8" aria-label="Your courses">
         <SectionHeader title="Your courses" />
         {courseChannels.length === 0 ? (
@@ -335,7 +414,7 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* 3 — next events at my university */}
+      {/* 4 — next events at my university */}
       <section className="mt-8" aria-label="Coming up">
         <SectionHeader title="Coming up" href="/events" linkLabel="All events" />
         {events.length === 0 ? (
@@ -387,7 +466,7 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* 4 — topic channels I haven't joined */}
+      {/* 5 — topic channels I haven't joined */}
       <section className="mt-8" aria-label="Discover">
         <SectionHeader title="Discover" />
         {discover.length === 0 ? (

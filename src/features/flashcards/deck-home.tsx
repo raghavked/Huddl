@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Check,
   ChevronLeft,
   CircleAlert,
+  ClipboardList,
   Coffee,
   FileText,
   Loader2,
@@ -58,6 +59,65 @@ export type DeckInfo = {
 };
 
 type ReviewsMap = Map<string, { streak: number; dueAt: Date }>;
+
+/** Which card form is open — one at a time, both closed by default. */
+type Composer = "none" | "single" | "paste";
+
+const CARD_SELECT = "id, deck_id, created_by, front, back, position, created_at";
+
+/* ------------------------------ paste parser ------------------------------ */
+
+type ParsedCard = { front: string; back: string };
+
+/** Separators a pasted line can use, checked in this order. */
+const PASTE_SEPARATORS = [" - ", " — ", ": ", "\t"] as const;
+
+/**
+ * One card per line: split on the first " - ", " — ", ": ", or tab (in that
+ * priority), trim both sides, and skip anything that doesn't make a card —
+ * no separator, an empty side, an oversized side, or a front the deck (or an
+ * earlier line) already has, compared case-insensitively.
+ */
+function parsePastedCards(
+  text: string,
+  existingFronts: ReadonlySet<string>
+): { cards: ParsedCard[]; skipped: number } {
+  const cards: ParsedCard[] = [];
+  const seen = new Set(existingFronts);
+  let skipped = 0;
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (line.length === 0) continue; // blank lines aren't held against anyone
+    let front: string | null = null;
+    let back = "";
+    for (const separator of PASTE_SEPARATORS) {
+      const at = line.indexOf(separator);
+      if (at !== -1) {
+        front = line.slice(0, at).trim();
+        back = line.slice(at + separator.length).trim();
+        break;
+      }
+    }
+    if (
+      front === null ||
+      front.length === 0 ||
+      back.length === 0 ||
+      front.length > 1000 ||
+      back.length > 2000
+    ) {
+      skipped += 1;
+      continue;
+    }
+    const key = front.toLowerCase();
+    if (seen.has(key)) {
+      skipped += 1;
+      continue;
+    }
+    seen.add(key);
+    cards.push({ front, back });
+  }
+  return { cards, skipped };
+}
 
 type Counts = { again: number; good: number; easy: number };
 
@@ -160,12 +220,17 @@ export function DeckHome({
   const [againIds, setAgainIds] = useState<string[]>([]);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
-  // The add-card form (front/back), tucked behind a button until needed.
-  const [formOpen, setFormOpen] = useState(false);
+  // The card forms — one card at a time, or a whole pasted stack. Both stay
+  // tucked behind their buttons until needed.
+  const [composer, setComposer] = useState<Composer>("none");
   const [front, setFront] = useState("");
   const [back, setBack] = useState("");
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const [pasteText, setPasteText] = useState("");
+  const [bulkAdding, setBulkAdding] = useState(false);
+  const [pasteError, setPasteError] = useState<string | null>(null);
+  const [pasteSuccess, setPasteSuccess] = useState<string | null>(null);
 
   // Editing one of your own cards, inline where the row was.
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -253,7 +318,7 @@ export function DeckHome({
   /* ------------------------------ add a card ----------------------------- */
 
   function resetForm() {
-    setFormOpen(false);
+    setComposer("none");
     setFront("");
     setBack("");
     setAddError(null);
@@ -285,7 +350,7 @@ export function DeckHome({
         back: backText,
         position,
       })
-      .select("id, deck_id, created_by, front, back, position, created_at")
+      .select(CARD_SELECT)
       .single();
     setAdding(false);
     if (error || !data) {
@@ -300,6 +365,72 @@ export function DeckHome({
     // Keep the form open and clear — card entry comes in bursts.
     setFront("");
     setBack("");
+  }
+
+  /* ------------------------- paste a stack at once ------------------------ */
+
+  function resetPaste() {
+    setComposer("none");
+    setPasteText("");
+    setPasteError(null);
+    setPasteSuccess(null);
+  }
+
+  const existingFronts = useMemo(
+    () => new Set(cards.map((card) => card.front.trim().toLowerCase())),
+    [cards]
+  );
+
+  const parsed = useMemo(
+    () => parsePastedCards(pasteText, existingFronts),
+    [pasteText, existingFronts]
+  );
+  const readyCount = parsed.cards.length;
+
+  async function handleBulkAdd() {
+    if (bulkAdding) return;
+    const ready = parsed.cards;
+    if (ready.length === 0) {
+      setPasteError(
+        "Nothing to add yet — paste a few lines, one card per line."
+      );
+      return;
+    }
+    setPasteError(null);
+    setPasteSuccess(null);
+    setBulkAdding(true);
+    const basePosition =
+      cards.length > 0 ? Math.max(...cards.map((card) => card.position)) + 1 : 0;
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("cards")
+      .insert(
+        ready.map((card, offset) => ({
+          deck_id: deck.id,
+          created_by: userId,
+          front: card.front,
+          back: card.back,
+          position: basePosition + offset,
+        }))
+      )
+      .select(CARD_SELECT);
+    setBulkAdding(false);
+    if (error || !data) {
+      setPasteError(
+        error?.message.includes("row-level security")
+          ? "Cards are for classmates — add this course to your classes first."
+          : "Those cards didn't make it in. Give it another try."
+      );
+      return;
+    }
+    const inserted = [...(data as unknown as DeckCardRow[])].sort(
+      (a, b) => a.position - b.position
+    );
+    setCards((prev) => [...prev, ...inserted]);
+    setPasteText("");
+    setPasteSuccess(
+      `${inserted.length === 1 ? "1 card" : `${inserted.length} cards`} in — the class thanks you.`
+    );
   }
 
   /* ---------------------- edit / delete (yours only) ---------------------- */
@@ -567,7 +698,7 @@ export function DeckHome({
         </h2>
 
         <div className="mt-3">
-          {formOpen ? (
+          {composer === "single" ? (
             <Card className="animate-fade-up">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="font-bold tracking-tight">Add a card</h3>
@@ -646,11 +777,104 @@ export function DeckHome({
                 </Button>
               </form>
             </Card>
+          ) : composer === "paste" ? (
+            <Card className="animate-fade-up">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-bold tracking-tight">Paste cards</h3>
+                <button
+                  type="button"
+                  onClick={resetPaste}
+                  disabled={bulkAdding}
+                  aria-label="Close the paste form"
+                  className="rounded-full p-2 text-muted transition-colors hover:bg-surface-2 hover:text-foreground disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                >
+                  <X className="size-4" aria-hidden />
+                </button>
+              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void handleBulkAdd();
+                }}
+              >
+                <div className="mt-3">
+                  <Label htmlFor="card-paste">
+                    One card per line — front and back separated by a dash,
+                    colon, or tab
+                  </Label>
+                  <Textarea
+                    id="card-paste"
+                    value={pasteText}
+                    onChange={(e) => {
+                      setPasteText(e.target.value);
+                      if (pasteError) setPasteError(null);
+                      if (pasteSuccess) setPasteSuccess(null);
+                    }}
+                    placeholder={
+                      "osmosis - water moving across a membrane\nATP: the cell's energy currency"
+                    }
+                    disabled={bulkAdding}
+                    aria-describedby="card-paste-status"
+                    className="mt-1.5 min-h-32"
+                  />
+                </div>
+                <p
+                  id="card-paste-status"
+                  aria-live="polite"
+                  className="mt-2 min-h-4 text-xs text-muted"
+                >
+                  {pasteText.trim().length === 0
+                    ? null
+                    : readyCount === 0
+                      ? "No cards in there yet — try lines like “osmosis - water moving across a membrane”, one per line."
+                      : `${readyCount === 1 ? "1 card ready" : `${readyCount} cards ready`} · ${
+                          parsed.skipped === 1
+                            ? "1 line skipped"
+                            : `${parsed.skipped} lines skipped`
+                        }`}
+                </p>
+                {pasteError ? (
+                  <p role="alert" className="mt-2 text-xs font-medium text-danger">
+                    {pasteError}
+                  </p>
+                ) : null}
+                {pasteSuccess ? (
+                  <p role="status" className="mt-2 text-xs font-medium text-success">
+                    {pasteSuccess}
+                  </p>
+                ) : null}
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="mt-4"
+                  disabled={bulkAdding || readyCount === 0}
+                >
+                  {bulkAdding ? (
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                  ) : (
+                    <Plus className="size-3.5" aria-hidden />
+                  )}
+                  {readyCount === 1 ? "Add 1 card" : `Add ${readyCount} cards`}
+                </Button>
+              </form>
+            </Card>
           ) : (
-            <Button variant="secondary" onClick={() => setFormOpen(true)}>
-              <Plus className="size-4" aria-hidden />
-              Add a card
-            </Button>
+            <div className="flex flex-wrap gap-2.5">
+              <Button variant="secondary" onClick={() => setComposer("single")}>
+                <Plus className="size-4" aria-hidden />
+                Add a card
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setPasteSuccess(null);
+                  setComposer("paste");
+                }}
+              >
+                <ClipboardList className="size-4" aria-hidden />
+                Paste cards
+              </Button>
+            </div>
           )}
         </div>
 

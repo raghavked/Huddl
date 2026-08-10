@@ -12,6 +12,8 @@ import Link from "next/link";
 import {
   AlertCircle,
   ArrowLeft,
+  Bookmark,
+  BookmarkCheck,
   ImagePlus,
   Loader2,
   SendHorizontal,
@@ -44,6 +46,39 @@ function dayKey(iso: string): string {
 }
 
 /**
+ * The bubble's save toggle: quiet until you hover the row, and always visible
+ * once a message is saved so the flag never hides. Private to you either way.
+ */
+function SaveBubbleButton({
+  saved,
+  onClick,
+}: {
+  saved: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={saved}
+      aria-label={saved ? "Remove from saved" : "Save message"}
+      className={cn(
+        "flex size-7 shrink-0 items-center justify-center self-center rounded-md transition-opacity hover:bg-surface-2 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand group-hover:opacity-100 group-focus-within:opacity-100",
+        saved
+          ? "text-brand"
+          : "text-muted opacity-0 hover:text-foreground"
+      )}
+    >
+      {saved ? (
+        <BookmarkCheck className="size-4" aria-hidden />
+      ) : (
+        <Bookmark className="size-4" aria-hidden />
+      )}
+    </button>
+  );
+}
+
+/**
  * The 1:1 conversation surface: header linking to the other student's
  * profile, day-separated bubbles (own right/brand-soft, theirs
  * left/surface), realtime inserts, optimistic sends, soft-delete of own
@@ -69,6 +104,9 @@ export function DmRoom({
   const [error, setError] = useState<string | null>(null);
   const { blockedIds, unblock } = useBlockedIds(userId);
   const otherBlocked = blockedIds.has(other.id);
+  // Saved messages: my private bookmarks among the loaded bubbles, so each
+  // toggle can tell "Save message" from "Remove from saved".
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   // "New" divider: frozen from the server-rendered read cursor, so it doesn't
   // vanish the moment we advance last_read_at on mount.
@@ -107,9 +145,33 @@ export function DmRoom({
       .then(() => undefined);
   }, [threadId, userId]);
 
-  // Mount: advance the read cursor once.
+  /** Which of these bubbles I've saved — one query per loaded page keeps
+   *  every toggle's label truthful. */
+  const loadSaved = useCallback(
+    async (messageIds: string[]) => {
+      if (messageIds.length === 0) return;
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("message_bookmarks")
+        .select("dm_message_id")
+        .eq("user_id", userId)
+        .in("dm_message_id", messageIds);
+      if (!data) return;
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        for (const row of data as { dm_message_id: string }[]) {
+          next.add(row.dm_message_id);
+        }
+        return next;
+      });
+    },
+    [userId]
+  );
+
+  // Mount: advance the read cursor once, and learn what's already saved.
   useEffect(() => {
     markRead();
+    void loadSaved(initialMessages.map((m) => m.id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -307,6 +369,43 @@ export function DmRoom({
     }
   }
 
+  /** Optimistic save/remove in message_bookmarks — a private keep-it-handy
+   *  flag. A double-click race (23505) already means saved, so it stands. */
+  const handleToggleSaved = useCallback(
+    async (messageId: string, save: boolean) => {
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        if (save) next.add(messageId);
+        else next.delete(messageId);
+        return next;
+      });
+      const supabase = createClient();
+      const { error: savedError } = save
+        ? await supabase
+            .from("message_bookmarks")
+            .insert({ user_id: userId, dm_message_id: messageId })
+        : await supabase
+            .from("message_bookmarks")
+            .delete()
+            .eq("user_id", userId)
+            .eq("dm_message_id", messageId);
+      if (savedError && !(save && savedError.code === "23505")) {
+        setSavedIds((prev) => {
+          const next = new Set(prev);
+          if (save) next.delete(messageId);
+          else next.add(messageId);
+          return next;
+        });
+        setError(
+          save
+            ? "Couldn't save that — give it another try."
+            : "Couldn't remove that from saved — give it another try."
+        );
+      }
+    },
+    [userId]
+  );
+
   async function handleUnblock() {
     setError(null);
     const ok = await unblock(other.id);
@@ -479,6 +578,17 @@ export function DmRoom({
                   )
                 ) : null}
 
+                {/* Own row reads [save][delete][bubble]; theirs puts the
+                    save toggle after the bubble, out past the text. */}
+                {own && !m.deleted_at && !isTemp ? (
+                  <SaveBubbleButton
+                    saved={savedIds.has(m.id)}
+                    onClick={() =>
+                      void handleToggleSaved(m.id, !savedIds.has(m.id))
+                    }
+                  />
+                ) : null}
+
                 {own && !m.deleted_at && !isTemp ? (
                   <button
                     type="button"
@@ -535,6 +645,15 @@ export function DmRoom({
                     {own ? " — sent by you" : ` — from ${other.display_name}`}
                   </span>
                 </div>
+
+                {!own && !m.deleted_at && !isTemp ? (
+                  <SaveBubbleButton
+                    saved={savedIds.has(m.id)}
+                    onClick={() =>
+                      void handleToggleSaved(m.id, !savedIds.has(m.id))
+                    }
+                  />
+                ) : null}
               </div>
 
               {lastOfGroup ? (

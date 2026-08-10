@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 import {
+  Bookmark,
+  BookmarkCheck,
   Flag,
   Loader2,
   MessageSquareText,
@@ -124,11 +126,13 @@ export function MessageItem({
   grouped = false,
   reactions,
   replyCount = 0,
+  saved = false,
   onToggleReaction,
   onOpenThread,
   onEdit,
   onDelete,
   onTogglePin,
+  onToggleSaved,
 }: {
   message: MessageWithAuthor;
   userId: string;
@@ -136,12 +140,16 @@ export function MessageItem({
   grouped?: boolean;
   reactions?: MessageReaction[];
   replyCount?: number;
+  /** Whether this message is in my private saved list — drives the label. */
+  saved?: boolean;
   onToggleReaction?: (messageId: string, emoji: string) => void;
   onOpenThread?: (messageId: string) => void;
   onEdit?: (messageId: string, content: string) => void;
   onDelete?: (messageId: string) => void;
   /** Pin/unpin from the toolbar — any channel member can (RPC enforces). */
   onTogglePin?: (messageId: string, pinned: boolean) => void;
+  /** Save/unsave privately — nobody else ever sees this flag. */
+  onToggleSaved?: (messageId: string, save: boolean) => void;
 }) {
   const isOwn = message.author_id === userId;
   const isDeleted = Boolean(message.deleted_at);
@@ -197,6 +205,7 @@ export function MessageItem({
       onToggleReaction ||
         onOpenThread ||
         onTogglePin ||
+        onToggleSaved ||
         (isOwn && ((canEdit && onEdit) || onDelete)) ||
         canReport
     );
@@ -488,6 +497,24 @@ export function MessageItem({
               className={TOOL_BUTTON}
             >
               <MessageSquareText className="size-4" aria-hidden />
+            </button>
+          ) : null}
+          {onToggleSaved ? (
+            <button
+              type="button"
+              onClick={() => {
+                setTapped(false);
+                onToggleSaved(message.id, !saved);
+              }}
+              aria-pressed={saved}
+              aria-label={saved ? "Remove from saved" : "Save message"}
+              className={cn(TOOL_BUTTON, saved && "text-brand")}
+            >
+              {saved ? (
+                <BookmarkCheck className="size-4" aria-hidden />
+              ) : (
+                <Bookmark className="size-4" aria-hidden />
+              )}
             </button>
           ) : null}
           {onTogglePin ? (

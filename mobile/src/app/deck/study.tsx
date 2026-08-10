@@ -1,9 +1,11 @@
 import Feather from "@expo/vector-icons/Feather";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
-  LayoutAnimation,
+  Animated,
+  Easing,
   Pressable,
   ScrollView,
   View,
@@ -12,13 +14,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
 import { fonts, radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { tapLight } from "@/lib/haptics";
 import { buildQueue, nextReview, type Grade } from "@/lib/srs";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /* The study session: one card at a time, tap to flip, three honest buttons.
-   Every grade saves before the next card comes up, so backing out mid-stack
-   loses nothing — the queue just picks up where it left off next time. */
+   The flip is a real one — two faces on one card, turning in 3D — and every
+   grade saves before the next card comes up, so backing out mid-stack loses
+   nothing. The queue just picks up where it left off next time. */
 
 /* Minimal local row shapes — the web app's types live outside this tsconfig. */
 type CardRow = {
@@ -36,6 +40,9 @@ type Counts = { again: number; good: number; easy: number };
 type Status = "loading" | "error" | "notFound" | "ready";
 
 const ZERO_COUNTS: Counts = { again: 0, good: 0, easy: 0 };
+
+/** The card face never renders shorter than this, so short cards feel solid. */
+const MIN_CARD_HEIGHT = 300;
 
 /** "10 min", "1 day", "30 days" — what pressing a button buys you. */
 function intervalPreview(
@@ -137,6 +144,30 @@ export default function StudySessionScreen() {
   const [againIds, setAgainIds] = useState<string[]>([]);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
+  /* The flip: one value, 0 (front up) to 1 (back up), driving both faces.
+     Advancing snaps it back to 0 with setValue — the next card never turns. */
+  const flipAnim = useRef(new Animated.Value(0)).current;
+  const [reduceMotion, setReduceMotion] = useState(false);
+  // Each face reports its natural height so the card fits the taller side.
+  const [faceHeights, setFaceHeights] = useState({ front: 0, back: 0 });
+
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((reduced) => {
+        if (mounted) setReduceMotion(reduced);
+      })
+      .catch(() => undefined);
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      setReduceMotion
+    );
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
+
   // No Alert on the way out — every grade already saved, card by card.
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -199,21 +230,34 @@ export default function StudySessionScreen() {
     // New cards first, then oldest-due — capped so it stays one sitting.
     setQueue(buildQueue(cards, reviewMap, new Date()));
     setIndex(0);
+    flipAnim.setValue(0);
     setRevealed(false);
     setCounts(ZERO_COUNTS);
     setAgainIds([]);
     setSessionError(null);
     setStatus("ready");
-  }, [userId, id]);
+  }, [userId, id, flipAnim]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   const flip = useCallback(() => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setRevealed((prev) => !prev);
-  }, []);
+    const toValue = revealed ? 0 : 1;
+    tapLight();
+    if (reduceMotion) {
+      // Reduced motion asks for no turning — the other face just appears.
+      flipAnim.setValue(toValue);
+    } else {
+      Animated.timing(flipAnim, {
+        toValue,
+        duration: 320,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    }
+    setRevealed(!revealed);
+  }, [revealed, reduceMotion, flipAnim]);
 
   const handleGrade = useCallback(
     async (grade: Grade) => {
@@ -258,11 +302,12 @@ export default function StudySessionScreen() {
           prev.includes(card.id) ? prev : [...prev, card.id]
         );
       }
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      // Snap — never spin — back to the front for the next card.
+      flipAnim.setValue(0);
       setRevealed(false);
       setIndex((prev) => prev + 1);
     },
-    [queue, index, userId, grading, reviews]
+    [queue, index, userId, grading, reviews, flipAnim]
   );
 
   /** Re-run just the cards graded "again" — they're due back in minutes. */
@@ -272,11 +317,12 @@ export default function StudySessionScreen() {
     if (nextQueue.length === 0) return;
     setQueue(nextQueue);
     setIndex(0);
+    flipAnim.setValue(0);
     setRevealed(false);
     setCounts(ZERO_COUNTS);
     setAgainIds([]);
     setSessionError(null);
-  }, [againIds, queue]);
+  }, [againIds, queue, flipAnim]);
 
   // Deep links land here directly — a signed-out visitor gets a proper door.
   if (ready && !session) {
@@ -534,6 +580,59 @@ export default function StudySessionScreen() {
   const prevState = card ? reviews.get(card.id) ?? null : null;
   const prevStreak = prevState ? { streak: prevState.streak } : null;
 
+  // 0 → 1 turns the front away (0° → 180°) as the back arrives (180° → 360°).
+  const frontRotate = flipAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "180deg"],
+  });
+  const backRotate = flipAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["180deg", "360deg"],
+  });
+  // The card stands as tall as its taller face, so the flip never reflows.
+  const shellHeight = Math.max(
+    MIN_CARD_HEIGHT,
+    faceHeights.front,
+    faceHeights.back
+  );
+
+  const face = (side: "front" | "back", fill: boolean, row: CardRow) => (
+    <Card
+      style={{
+        padding: 24,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 18,
+        ...(fill ? { flex: 1 } : { minHeight: MIN_CARD_HEIGHT }),
+      }}
+    >
+      <AppText
+        variant="title"
+        style={{ fontSize: 22, lineHeight: 30, textAlign: "center" }}
+      >
+        {row.front}
+      </AppText>
+      {side === "back" ? (
+        <>
+          <View
+            style={{
+              alignSelf: "stretch",
+              height: 1,
+              backgroundColor: theme.border,
+            }}
+          />
+          <AppText style={{ fontSize: 16, lineHeight: 24, textAlign: "center" }}>
+            {row.back}
+          </AppText>
+        </>
+      ) : (
+        <AppText variant="caption" muted>
+          Tap to flip
+        </AppText>
+      )}
+    </Card>
+  );
+
   return scaffold(
     <ScrollView
       style={{ flex: 1 }}
@@ -550,46 +649,83 @@ export default function StudySessionScreen() {
         <>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={revealed ? "Card back shown. Tap to flip" : "Tap to flip"}
+            accessibilityLabel={
+              revealed ? "Card back shown. Tap to flip" : "Tap to flip"
+            }
             onPress={flip}
             style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}
           >
-            <Card
-              style={{
-                minHeight: 300,
-                padding: 24,
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 18,
-              }}
-            >
-              <AppText
-                variant="title"
-                style={{ fontSize: 22, lineHeight: 30, textAlign: "center" }}
+            <View style={{ height: shellHeight }}>
+              {/* Invisible sizers — they measure each face's natural height. */}
+              <View
+                pointerEvents="none"
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  opacity: 0,
+                }}
+                onLayout={(event) => {
+                  const height = event.nativeEvent.layout.height;
+                  setFaceHeights((prev) =>
+                    prev.front === height ? prev : { ...prev, front: height }
+                  );
+                }}
               >
-                {card.front}
-              </AppText>
-              {revealed ? (
-                <>
-                  <View
-                    style={{
-                      alignSelf: "stretch",
-                      height: 1,
-                      backgroundColor: theme.border,
-                    }}
-                  />
-                  <AppText
-                    style={{ fontSize: 16, lineHeight: 24, textAlign: "center" }}
-                  >
-                    {card.back}
-                  </AppText>
-                </>
-              ) : (
-                <AppText variant="caption" muted>
-                  Tap to flip
-                </AppText>
-              )}
-            </Card>
+                {face("front", false, card)}
+              </View>
+              <View
+                pointerEvents="none"
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  opacity: 0,
+                }}
+                onLayout={(event) => {
+                  const height = event.nativeEvent.layout.height;
+                  setFaceHeights((prev) =>
+                    prev.back === height ? prev : { ...prev, back: height }
+                  );
+                }}
+              >
+                {face("back", false, card)}
+              </View>
+
+              {/* The two real faces, stacked and turning around one axis. */}
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backfaceVisibility: "hidden",
+                  transform: [{ perspective: 1000 }, { rotateY: frontRotate }],
+                }}
+              >
+                {face("front", true, card)}
+              </Animated.View>
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backfaceVisibility: "hidden",
+                  transform: [{ perspective: 1000 }, { rotateY: backRotate }],
+                }}
+              >
+                {face("back", true, card)}
+              </Animated.View>
+            </View>
           </Pressable>
 
           {revealed ? (

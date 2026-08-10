@@ -420,6 +420,10 @@ export default function ChannelRoomScreen() {
   const [actionsFor, setActionsFor] = useState<MessageRow | null>(null);
   const [selfName, setSelfName] = useState<string | null>(null);
 
+  // Saved messages: my private bookmarks among the loaded rows, so the
+  // long-press menu can tell "Save message" from "Remove from saved".
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+
   // Power layer: attachments, editing, pins, polls, viewer, composer menu.
   const [uploading, setUploading] = useState(false);
   const [editing, setEditing] = useState<MessageRow | null>(null);
@@ -512,6 +516,28 @@ export default function ChannelRoomScreen() {
     }
     setReplyCounts(counts);
   }, []);
+
+  /** Which of these messages I've saved — one query per loaded page keeps
+      the long-press menu label truthful. */
+  const loadSaved = useCallback(
+    async (messageIds: string[]) => {
+      if (!userId || messageIds.length === 0) return;
+      const { data } = await supabase
+        .from("message_bookmarks")
+        .select("message_id")
+        .eq("user_id", userId)
+        .in("message_id", messageIds);
+      if (!data) return;
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        for (const row of data as { message_id: string }[]) {
+          next.add(row.message_id);
+        }
+        return next;
+      });
+    },
+    [userId]
+  );
 
   /** The channel's pinned list, newest pin first (small by construction). */
   const refreshPinned = useCallback(async () => {
@@ -646,8 +672,17 @@ export default function ChannelRoomScreen() {
     const ids = rows.map((m) => m.id);
     void loadReactions(ids);
     void loadReplyCounts(ids);
+    void loadSaved(ids);
     void refreshPinned();
-  }, [channelId, userId, markRead, loadReactions, loadReplyCounts, refreshPinned]);
+  }, [
+    channelId,
+    userId,
+    markRead,
+    loadReactions,
+    loadReplyCounts,
+    loadSaved,
+    refreshPinned,
+  ]);
 
   useEffect(() => {
     void load();
@@ -1096,6 +1131,44 @@ export default function ChannelRoomScreen() {
       }
     },
     [userId, refreshPinned]
+  );
+
+  /** Optimistic save/remove in message_bookmarks — a private keep-it-handy
+      flag. A double-tap race (23505) already means saved, so it stands. */
+  const handleToggleSaved = useCallback(
+    async (messageId: string, save: boolean) => {
+      if (!userId) return;
+      if (save) tapLight();
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        if (save) next.add(messageId);
+        else next.delete(messageId);
+        return next;
+      });
+      const { error: savedError } = save
+        ? await supabase
+            .from("message_bookmarks")
+            .insert({ user_id: userId, message_id: messageId })
+        : await supabase
+            .from("message_bookmarks")
+            .delete()
+            .eq("user_id", userId)
+            .eq("message_id", messageId);
+      if (savedError && !(save && savedError.code === "23505")) {
+        setSavedIds((prev) => {
+          const next = new Set(prev);
+          if (save) next.delete(messageId);
+          else next.add(messageId);
+          return next;
+        });
+        setSendError(
+          save
+            ? "Couldn't save that — give it another try."
+            : "Couldn't remove that from saved — give it another try."
+        );
+      }
+    },
+    [userId]
   );
 
   // Blocked students' messages never render — filtering happens at the edge
@@ -2337,6 +2410,20 @@ export default function ChannelRoomScreen() {
                 const target = actionsMessage;
                 setActionsFor(null);
                 void handleTogglePin(target, !target.pinned_at);
+              }}
+            />
+            <ActionRow
+              icon="star"
+              label={
+                savedIds.has(actionsMessage.id)
+                  ? "Remove from saved"
+                  : "Save message"
+              }
+              onPress={() => {
+                const id = actionsMessage.id;
+                const save = !savedIds.has(id);
+                setActionsFor(null);
+                void handleToggleSaved(id, save);
               }}
             />
             {actionsMessage.author_id === userId && !actionsMessage.poll_id ? (

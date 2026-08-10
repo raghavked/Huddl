@@ -93,6 +93,9 @@ export function ChatRoom({
   const [uploading, setUploading] = useState(false);
   const [pollOpen, setPollOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Saved messages: my private bookmarks among the loaded rows, so the
+  // toolbar can tell "Save message" from "Remove from saved".
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const { reactionsByMessage, loadReactions, toggleReaction } =
     useReactions(userId);
   const { blockedIds } = useBlockedIds(userId);
@@ -155,12 +158,36 @@ export function ChatRoom({
     pinnedIdsRef.current = new Set(pinned.map((p) => p.id));
   }, [pinned]);
 
+  /** Which of these messages I've saved — one query per loaded page keeps
+   *  the toolbar label truthful. */
+  const loadSaved = useCallback(
+    async (messageIds: string[]) => {
+      if (messageIds.length === 0) return;
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("message_bookmarks")
+        .select("message_id")
+        .eq("user_id", userId)
+        .in("message_id", messageIds);
+      if (!data) return;
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        for (const row of data as { message_id: string }[]) {
+          next.add(row.message_id);
+        }
+        return next;
+      });
+    },
+    [userId]
+  );
+
   // Mount: advance the read cursor, batch-load reactions + reply counts.
   useEffect(() => {
     markRead();
     void refreshPinned();
     const ids = initialMessages.map((m) => m.id);
     void loadReactions(ids);
+    void loadSaved(ids);
     if (ids.length > 0) {
       const supabase = createClient();
       void supabase
@@ -505,6 +532,43 @@ export function ChatRoom({
     void refreshPinned();
   }
 
+  /** Optimistic save/remove in message_bookmarks — a private keep-it-handy
+   *  flag. A double-click race (23505) already means saved, so it stands. */
+  const handleToggleSaved = useCallback(
+    async (messageId: string, save: boolean) => {
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        if (save) next.add(messageId);
+        else next.delete(messageId);
+        return next;
+      });
+      const supabase = createClient();
+      const { error: savedError } = save
+        ? await supabase
+            .from("message_bookmarks")
+            .insert({ user_id: userId, message_id: messageId })
+        : await supabase
+            .from("message_bookmarks")
+            .delete()
+            .eq("user_id", userId)
+            .eq("message_id", messageId);
+      if (savedError && !(save && savedError.code === "23505")) {
+        setSavedIds((prev) => {
+          const next = new Set(prev);
+          if (save) next.delete(messageId);
+          else next.add(messageId);
+          return next;
+        });
+        setError(
+          save
+            ? "Couldn't save that — give it another try."
+            : "Couldn't remove that from saved — give it another try."
+        );
+      }
+    },
+    [userId]
+  );
+
   // The poll RPC writes the poll + carrying message atomically and hands back
   // the message id. Our own realtime echoes are skipped, so append it here.
   const handlePollCreated = useCallback(
@@ -618,11 +682,13 @@ export function ChatRoom({
                 grouped={grouped}
                 reactions={reactionsByMessage[m.id]}
                 replyCount={replyCounts[m.id] ?? 0}
+                saved={savedIds.has(m.id)}
                 onToggleReaction={toggleReaction}
                 onOpenThread={openThread}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onTogglePin={(id, pin) => void handleTogglePin(id, pin)}
+                onToggleSaved={(id, save) => void handleToggleSaved(id, save)}
               />
             </Fragment>
           );

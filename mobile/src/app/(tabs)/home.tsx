@@ -4,20 +4,23 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ComponentProps,
   type ComponentType,
 } from "react";
 import {
-  ActivityIndicator,
+  AccessibilityInfo,
+  Animated,
   FlatList,
   Pressable,
   RefreshControl,
   View,
   type ListRenderItemInfo,
+  type ViewStyle,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Mug, type IllustrationProps } from "@/components/illustrations";
-import { Screen } from "@/components/screen";
 import { AppText, Button, Card } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -84,6 +87,10 @@ type PlanSummary = {
   nextUp: { courseCode: string; title: string; dueAt: Date } | null;
 };
 
+/** What's still on deck today, skimmed from the same plan fetch — the Today
+    strip renders only when there's something here or an event tonight. */
+type TodaySummary = { dueCount: number; firstDueTitle: string | null };
+
 type HomeData = {
   firstName: string;
   campusChannels: ChannelRow[];
@@ -92,6 +99,7 @@ type HomeData = {
   previews: Record<string, MessagePreview>;
   memberMeta: Record<string, MemberMeta>;
   plan: PlanSummary;
+  today: TodaySummary;
 };
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
@@ -170,7 +178,87 @@ function formatDueTime(d: Date): string {
   return `${day} · ${time}`;
 }
 
+/* ---- the opening moment's words ---- */
+
+/** "Morning" / "Afternoon" / "Evening" for the greeting's first word. */
+function daypartGreeting(now: Date): "Morning" | "Afternoon" | "Evening" {
+  const hour = now.getHours();
+  if (hour < 12) return "Morning";
+  if (hour < 18) return "Afternoon";
+  return "Evening";
+}
+
+/** "PHYS 9B review tonight" / "Coffee hour at 3:00 PM" for the Today strip. */
+function eventTodayPhrase(event: EventRow): string {
+  const start = new Date(event.starts_at);
+  if (start.getHours() >= 17) return `${event.title} tonight`;
+  const time = start.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `${event.title} at ${time}`;
+}
+
+/** One calm line from what today actually holds — null means stay silent. */
+function buildTodayLine(
+  today: TodaySummary,
+  event: EventRow | null
+): string | null {
+  const eventPart = event ? eventTodayPhrase(event) : null;
+  if (today.dueCount > 0 && eventPart) {
+    return `${today.dueCount} due · ${eventPart}`;
+  }
+  if (today.dueCount > 0) {
+    return today.firstDueTitle
+      ? `${today.dueCount} due today · ${today.firstDueTitle}`
+      : `${today.dueCount} due today`;
+  }
+  return eventPart;
+}
+
 /* ---- section pieces ---- */
+
+/** The "today at a glance" strip — only exists when today holds something. */
+function TodayCard({ line }: { line: string }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Today: ${line}`}
+      onPress={() => router.push("/calendar")}
+      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+    >
+      <Card
+        padded={false}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+          minHeight: 64,
+        }}
+      >
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: radius.control,
+            backgroundColor: theme.accentSoft,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Feather name="calendar" size={18} color={theme.accent} />
+        </View>
+        <AppText variant="bodySemi" numberOfLines={1} style={{ flex: 1 }}>
+          {line}
+        </AppText>
+        <Feather name="chevron-right" size={18} color={theme.muted} />
+      </Card>
+    </Pressable>
+  );
+}
 
 /** The study-plan doorway: next thing due, this week's score, one tap in. */
 function PlanCard({ plan }: { plan: PlanSummary }) {
@@ -193,7 +281,7 @@ function PlanCard({ plan }: { plan: PlanSummary }) {
       accessibilityRole="button"
       accessibilityLabel="Your plan"
       onPress={() => router.push("/plan")}
-      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, marginTop: 4 })}
+      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
     >
       <Card
         padded={false}
@@ -232,15 +320,8 @@ function PlanCard({ plan }: { plan: PlanSummary }) {
   );
 }
 
-function SectionLabel({
-  text,
-  first,
-  action,
-}: {
-  text: string;
-  first: boolean;
-  action?: RowAction;
-}) {
+/** Section labels carry the whole page rhythm: 24 above, 12 below, always. */
+function SectionLabel({ text, action }: { text: string; action?: RowAction }) {
   const theme = useTheme();
   return (
     <View
@@ -249,8 +330,8 @@ function SectionLabel({
         alignItems: "center",
         justifyContent: "space-between",
         gap: 8,
-        marginTop: first ? 6 : 24,
-        marginBottom: 10,
+        marginTop: 24,
+        marginBottom: 12,
       }}
     >
       <AppText
@@ -541,10 +622,47 @@ function EventCard({ event }: { event: EventRow }) {
   );
 }
 
+/** Quiet surface2 blocks mirroring the real layout while home loads. */
+function HomeGhosts() {
+  const theme = useTheme();
+  const block = (height: number): ViewStyle => ({
+    height,
+    borderRadius: radius.card,
+    backgroundColor: theme.surface2,
+  });
+  const labelBar: ViewStyle = {
+    width: 112,
+    height: 12,
+    borderRadius: radius.full,
+    backgroundColor: theme.surface2,
+    marginTop: 24,
+    marginBottom: 12,
+  };
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      <View style={block(64)} />
+      <View style={labelBar} />
+      <View style={[block(64), { marginBottom: 12 }]} />
+      <View style={block(64)} />
+      <View style={labelBar} />
+      <View style={{ flexDirection: "row", gap: 12 }}>
+        <View style={[block(88), { flex: 1 }]} />
+        <View style={[block(88), { flex: 1 }]} />
+      </View>
+      <View style={labelBar} />
+      <View style={block(64)} />
+    </View>
+  );
+}
+
 /* ---- screen ---- */
 
 export default function HomeScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
   const { count: unreadCount, refresh: refreshUnread } =
@@ -554,6 +672,10 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // One calm settle when the first data lands: opacity 0→1, translateY 8→0.
+  const entrance = useRef(new Animated.Value(0)).current;
+  const entranceRan = useRef(false);
 
   const fetchHome = useCallback(async (): Promise<HomeData> => {
     if (!userId) throw new Error("Not signed in");
@@ -628,6 +750,7 @@ export default function HomeScreen() {
       .map((row) => row.course)
       .filter((c): c is { id: string; code: string } => c !== null);
     let plan: PlanSummary = { total: 0, handled: 0, nextUp: null };
+    let today: TodaySummary = { dueCount: 0, firstDueTitle: null };
     if (enrolledCourses.length > 0) {
       const now = new Date();
       const codeById = new Map(enrolledCourses.map((c) => [c.id, c.code]));
@@ -659,7 +782,7 @@ export default function HomeScreen() {
           (row) => row.item_id
         )
       );
-      const { stats } = buildPlan(planItems, checkoffs, now);
+      const { groups, stats } = buildPlan(planItems, checkoffs, now);
       plan = {
         total: stats.total,
         handled: stats.handled,
@@ -669,6 +792,19 @@ export default function HomeScreen() {
               title: stats.nextUp.title,
               dueAt: stats.nextUp.dueAt,
             }
+          : null,
+      };
+      // The Today strip skims the same plan: what's still ahead of me today
+      // and unhandled. No extra queries — silence when the day is clear.
+      const dueToday =
+        groups
+          .find((g) => g.label === "Today")
+          ?.entries.filter((e) => !e.done) ?? [];
+      const firstDue = dueToday[0];
+      today = {
+        dueCount: dueToday.length,
+        firstDueTitle: firstDue
+          ? `${firstDue.courseCode} ${firstDue.title}`
           : null,
       };
     }
@@ -703,6 +839,7 @@ export default function HomeScreen() {
       previews,
       memberMeta,
       plan,
+      today,
     };
   }, [userId]);
 
@@ -727,6 +864,26 @@ export default function HomeScreen() {
     if (!userId) return;
     void run("initial");
   }, [userId, run]);
+
+  // The entrance runs exactly once, on first data — and not at all when the
+  // system asks for reduced motion (content just appears, settled).
+  useEffect(() => {
+    if (!data || entranceRan.current) return;
+    entranceRan.current = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((reduced) => {
+        if (reduced) {
+          entrance.setValue(1);
+          return;
+        }
+        Animated.timing(entrance, {
+          toValue: 1,
+          duration: 240,
+          useNativeDriver: true,
+        }).start();
+      })
+      .catch(() => entrance.setValue(1));
+  }, [data, entrance]);
 
   // Opening a channel bumps my last_read_at there (the room screen's job), so
   // re-pull just my membership rows on focus — that's what clears a campus
@@ -827,7 +984,12 @@ export default function HomeScreen() {
       }
     }
 
-    out.push({ type: "label", key: "label-events", text: "Coming up" });
+    out.push({
+      type: "label",
+      key: "label-events",
+      text: "Coming up",
+      action: { label: "Calendar", onPress: () => router.push("/calendar") },
+    });
     if (data.events.length === 0) {
       out.push({
         type: "empty",
@@ -845,70 +1007,110 @@ export default function HomeScreen() {
     return out;
   }, [data, userId]);
 
-  const renderItem = useCallback(
-    ({ item, index }: ListRenderItemInfo<ListRow>) => {
-      switch (item.type) {
-        case "label":
-          return (
-            <SectionLabel
-              text={item.text}
-              first={index === 0}
-              action={item.action}
+  const renderItem = useCallback(({ item }: ListRenderItemInfo<ListRow>) => {
+    switch (item.type) {
+      case "label":
+        return <SectionLabel text={item.text} action={item.action} />;
+      case "campus":
+        return (
+          <View style={{ marginBottom: 12 }}>
+            <CampusRow
+              channel={item.channel}
+              preview={item.preview}
+              unread={item.unread}
             />
-          );
-        case "campus":
-          return (
-            <View style={{ marginBottom: 10 }}>
-              <CampusRow
-                channel={item.channel}
-                preview={item.preview}
-                unread={item.unread}
-              />
-            </View>
-          );
-        case "courses":
-          return (
-            <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+          </View>
+        );
+      case "courses":
+        return (
+          <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
+            <CourseCard
+              channel={item.left.channel}
+              preview={item.left.preview}
+            />
+            {item.right ? (
               <CourseCard
-                channel={item.left.channel}
-                preview={item.left.preview}
+                channel={item.right.channel}
+                preview={item.right.preview}
               />
-              {item.right ? (
-                <CourseCard
-                  channel={item.right.channel}
-                  preview={item.right.preview}
-                />
-              ) : (
-                <View style={{ flex: 1 }} />
-              )}
-            </View>
-          );
-        case "event":
-          return (
-            <View style={{ marginBottom: 10 }}>
-              <EventCard event={item.event} />
-            </View>
-          );
-        case "empty":
-          return (
-            <EmptySection
-              icon={item.icon}
-              title={item.title}
-              body={item.body}
-              action={item.action}
-              illustration={item.illustration}
-            />
-          );
-      }
-    },
-    []
-  );
+            ) : (
+              <View style={{ flex: 1 }} />
+            )}
+          </View>
+        );
+      case "event":
+        return (
+          <View style={{ marginBottom: 12 }}>
+            <EventCard event={item.event} />
+          </View>
+        );
+      case "empty":
+        return (
+          <EmptySection
+            icon={item.icon}
+            title={item.title}
+            body={item.body}
+            action={item.action}
+            illustration={item.illustration}
+          />
+        );
+    }
+  }, []);
 
+  const now = new Date();
+  const dateLine = now.toLocaleDateString([], {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+  const greeting = data ? `${daypartGreeting(now)}, ${data.firstName}` : "Home";
+
+  // Today's strip: due items from the plan fetch + the first event that lands
+  // today, all data home already has in hand. No line, no card.
+  const todayLine = useMemo(() => {
+    if (!data) return null;
+    const todayStamp = new Date().toDateString();
+    const todayEvent =
+      data.events.find(
+        (e) => new Date(e.starts_at).toDateString() === todayStamp
+      ) ?? null;
+    return buildTodayLine(data.today, todayEvent);
+  }, [data]);
+
+  /* Home builds its own header (instead of Screen's) for one reason: the
+     quiet date eyebrow has to sit ABOVE the display greeting, and Screen's
+     title slot can't host it. Metrics mirror Screen exactly — same safe-area
+     padding, same margins — so the front door still feels like every room. */
   return (
-    <Screen
-      title={data ? `Hey ${data.firstName}` : "Home"}
-      scroll={false}
-      action={
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: theme.background,
+        paddingTop: insets.top + 12,
+        paddingHorizontal: 20,
+      }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
+        <View style={{ flexShrink: 1, gap: 4 }}>
+          <AppText
+            variant="label"
+            muted
+            style={{ textTransform: "uppercase", letterSpacing: 1.2 }}
+          >
+            {dateLine}
+          </AppText>
+          <AppText variant="display" numberOfLines={1}>
+            {greeting}
+          </AppText>
+        </View>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Pressable
             accessibilityRole="button"
@@ -958,23 +1160,9 @@ export default function HomeScreen() {
             <Feather name="settings" size={22} color={theme.muted} />
           </Pressable>
         </View>
-      }
-    >
+      </View>
       {loading ? (
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 12,
-            paddingBottom: 80,
-          }}
-        >
-          <ActivityIndicator size="large" color={theme.brand} />
-          <AppText variant="caption" muted>
-            Getting your campus ready…
-          </AppText>
-        </View>
+        <HomeGhosts />
       ) : error && !data ? (
         <View
           style={{
@@ -1002,37 +1190,52 @@ export default function HomeScreen() {
           />
         </View>
       ) : (
-        <FlatList
-          data={rows}
-          keyExtractor={(row) => row.key}
-          renderItem={renderItem}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 40 }}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <View style={{ gap: 6 }}>
-              <AppText muted>Here's what's happening on campus.</AppText>
-              {error ? (
-                <AppText variant="caption" style={{ color: theme.danger }}>
-                  We couldn't refresh just now — pull down to try again.
-                </AppText>
-              ) : null}
-              {data ? <PlanCard plan={data.plan} /> : null}
-            </View>
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                refreshUnread();
-                void run("refresh");
-              }}
-              tintColor={theme.brand}
-              colors={[theme.brand]}
-            />
-          }
-        />
+        <Animated.View
+          style={{
+            flex: 1,
+            opacity: entrance,
+            transform: [
+              {
+                translateY: entrance.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [8, 0],
+                }),
+              },
+            ],
+          }}
+        >
+          <FlatList
+            data={rows}
+            keyExtractor={(row) => row.key}
+            renderItem={renderItem}
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingBottom: 40 }}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              <View style={{ gap: 12 }}>
+                {error ? (
+                  <AppText variant="caption" style={{ color: theme.danger }}>
+                    We couldn't refresh just now — pull down to try again.
+                  </AppText>
+                ) : null}
+                {todayLine ? <TodayCard line={todayLine} /> : null}
+                {data ? <PlanCard plan={data.plan} /> : null}
+              </View>
+            }
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => {
+                  refreshUnread();
+                  void run("refresh");
+                }}
+                tintColor={theme.brand}
+                colors={[theme.brand]}
+              />
+            }
+          />
+        </Animated.View>
       )}
-    </Screen>
+    </View>
   );
 }

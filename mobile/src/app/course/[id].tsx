@@ -50,24 +50,6 @@ type CourseRow = {
   location: string | null;
 };
 
-/* Pinned course links — the syllabus, the textbook, wherever class lives. */
-type LinkKind = "syllabus" | "textbook" | "office_hours" | "lecture" | "other";
-
-type CourseLinkRow = {
-  id: string;
-  kind: LinkKind;
-  title: string;
-  url: string;
-};
-
-const LINK_ICON: Record<LinkKind, FeatherName> = {
-  syllabus: "file-text",
-  textbook: "book",
-  office_hours: "help-circle",
-  lecture: "video",
-  other: "link",
-};
-
 type ClassmateRole = "student" | "ta" | "instructor";
 
 type ClassmateRow = {
@@ -213,6 +195,106 @@ function titleFromFileName(name: string): string {
 }
 
 /* --------------------------- tiny pieces ---------------------------- */
+
+/** Uniform section label — the same quiet uppercase rhythm as home. */
+function SectionLabel({
+  text,
+  action,
+}: {
+  text: string;
+  action?: { label: string; onPress: () => void };
+}) {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+        marginTop: 24,
+        marginBottom: 10,
+      }}
+    >
+      <AppText
+        variant="label"
+        muted
+        style={{ textTransform: "uppercase", letterSpacing: 1.2 }}
+      >
+        {text}
+      </AppText>
+      {action ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={action.label}
+          onPress={action.onPress}
+          hitSlop={{ top: 14, bottom: 14, left: 12, right: 12 }}
+          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+        >
+          <AppText variant="label" style={{ color: theme.brand }}>
+            {action.label}
+          </AppText>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+/** One doorway in the grid: an icon tile, a name, a one-line hint. */
+function DoorwayTile({
+  icon,
+  title,
+  caption,
+  tone,
+  onPress,
+}: {
+  icon: FeatherName;
+  title: string;
+  caption: string;
+  tone: "brand" | "accent";
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const colors =
+    tone === "brand"
+      ? { bg: theme.brandSoft, fg: theme.brand }
+      : { bg: theme.accentSoft, fg: theme.accent };
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title} — ${caption}`}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexBasis: "47%",
+        flexGrow: 1,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Card padded={false} style={{ flex: 1, padding: 12, minHeight: 92, gap: 8 }}>
+        <View
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: radius.control,
+            backgroundColor: colors.bg,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Feather name={icon} size={16} color={colors.fg} />
+        </View>
+        <View style={{ gap: 2 }}>
+          <AppText variant="bodySemi" numberOfLines={1}>
+            {title}
+          </AppText>
+          <AppText variant="caption" muted numberOfLines={1}>
+            {caption}
+          </AppText>
+        </View>
+      </Card>
+    </Pressable>
+  );
+}
 
 /** Tiny avatar stand-in: two initials on a warm circle, tinted by name hash. */
 function Initials({ name, size = 40 }: { name: string; size?: number }) {
@@ -366,7 +448,7 @@ export default function CourseHubScreen() {
   const [mates, setMates] = useState<ClassmateRow[]>([]);
   const [upcoming, setUpcoming] = useState<UpcomingItem[]>([]);
   const [sessions, setSessions] = useState<CourseEventRow[]>([]);
-  const [links, setLinks] = useState<CourseLinkRow[]>([]);
+  const [linkCount, setLinkCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
   // Classmate-kept course details: an inline three-field editor.
@@ -376,9 +458,6 @@ export default function CourseHubScreen() {
   const [draftLocation, setDraftLocation] = useState("");
   const [savingDetails, setSavingDetails] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
-
-  // Opening a pinned link in the browser.
-  const [linkError, setLinkError] = useState<string | null>(null);
 
   // Opening a note (signed URL -> browser/viewer).
   const [openingId, setOpeningId] = useState<string | null>(null);
@@ -453,13 +532,11 @@ export default function CourseHubScreen() {
             .gte("starts_at", new Date().toISOString())
             .order("starts_at", { ascending: true })
             .limit(3),
-          // The first pins go up top — the full list lives on its own screen.
+          // The Links doorway shows a tally — the list lives on its own screen.
           supabase
             .from("course_links")
-            .select("id, kind, title, url")
-            .eq("course_id", courseId)
-            .order("created_at", { ascending: true })
-            .limit(3),
+            .select("id", { count: "exact", head: true })
+            .eq("course_id", courseId),
         ]);
       if (courseRes.error) {
         setStatus("error");
@@ -515,8 +592,8 @@ export default function CourseHubScreen() {
       setSessions(
         (sessionsRes.data ?? []) as unknown as CourseEventRow[]
       );
-      // And for pinned links — best-effort too.
-      setLinks((linksRes.data ?? []) as unknown as CourseLinkRow[]);
+      // And for the pinned-links tally — best-effort too.
+      setLinkCount(linksRes.count ?? 0);
       const sortedMates = (
         (matesRes.data ?? []) as unknown as ClassmateRow[]
       ).sort(
@@ -541,7 +618,6 @@ export default function CourseHubScreen() {
     setRefreshing(true);
     setOpenError(null);
     setThanksError(null);
-    setLinkError(null);
     setDetailsError(null);
     void load().finally(() => setRefreshing(false));
   }, [load]);
@@ -595,19 +671,6 @@ export default function CourseHubScreen() {
       );
     }
   }, [course, savingDetails, draftInstructor, draftMeeting, draftLocation]);
-
-  /* ------------------------------ links ------------------------------ */
-
-  const handleOpenLink = useCallback(async (link: CourseLinkRow) => {
-    setLinkError(null);
-    try {
-      await Linking.openURL(link.url);
-    } catch {
-      setLinkError(
-        "That link wouldn't open — it may be mistyped. Try it from the full list."
-      );
-    }
-  }, []);
 
   const handleOpenNote = useCallback(async (note: NoteRow) => {
     setOpenError(null);
@@ -1021,10 +1084,8 @@ export default function CourseHubScreen() {
   }: {
     section: SectionListData<Item, Section>;
   }) => (
-    <View style={{ gap: 10, marginTop: section.key === "notes" ? 4 : 10 }}>
-      <AppText variant="title" style={{ marginBottom: 2 }}>
-        {section.title}
-      </AppText>
+    <View>
+      <SectionLabel text={section.title} />
 
       {section.key === "notes" ? (
         <View style={{ gap: 10, marginBottom: 10 }}>
@@ -1261,7 +1322,7 @@ export default function CourseHubScreen() {
           />
         }
         ListHeaderComponent={
-          <View style={{ gap: 12, marginBottom: 14 }}>
+          <View>
             <View style={{ gap: 4 }}>
               <AppText variant="display">{course.code}</AppText>
               <AppText variant="bodyMedium">{course.title}</AppText>
@@ -1282,6 +1343,7 @@ export default function CourseHubScreen() {
                   />
                 }
                 onPress={() => router.push(`/channel/${channelId}`)}
+                style={{ marginTop: 12 }}
               />
             ) : null}
             {!isEnrolled ? (
@@ -1292,6 +1354,7 @@ export default function CourseHubScreen() {
                   alignItems: "center",
                   gap: 10,
                   padding: 12,
+                  marginTop: 12,
                   backgroundColor: theme.surface2,
                 }}
               >
@@ -1311,36 +1374,15 @@ export default function CourseHubScreen() {
 
             {/* Course details — who teaches it, when it meets, where.
                 Classmate-kept, like the course list itself. */}
-            <View style={{ gap: 10, marginTop: 2 }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <AppText variant="title">Course details</AppText>
-                {isEnrolled && !editingDetails ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Edit course details"
-                    onPress={openDetailsEditor}
-                    hitSlop={8}
-                    style={({ pressed }) => ({
-                      height: 44,
-                      marginVertical: -11,
-                      paddingHorizontal: 8,
-                      marginRight: -8,
-                      justifyContent: "center",
-                      opacity: pressed ? 0.6 : 1,
-                    })}
-                  >
-                    <AppText variant="label" style={{ color: theme.brandInk }}>
-                      Edit
-                    </AppText>
-                  </Pressable>
-                ) : null}
-              </View>
+            <SectionLabel
+              text="Course details"
+              action={
+                isEnrolled && !editingDetails
+                  ? { label: "Edit", onPress: openDetailsEditor }
+                  : undefined
+              }
+            />
+            <View style={{ gap: 10 }}>
               {editingDetails ? (
                 <Card style={{ gap: 12 }}>
                   <Field
@@ -1441,127 +1483,75 @@ export default function CourseHubScreen() {
               </AppText>
             </View>
 
-            {/* Links — the syllabus, the textbook, wherever class lives. */}
-            <View style={{ gap: 10, marginTop: 2 }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <AppText variant="title">Links</AppText>
-                {links.length > 0 ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="All links"
-                    onPress={() =>
-                      router.push({
-                        pathname: "/course/links",
-                        params: { courseId, courseCode: course.code },
-                      })
-                    }
-                    hitSlop={8}
-                    style={({ pressed }) => ({
-                      height: 44,
-                      marginVertical: -11,
-                      paddingHorizontal: 8,
-                      marginRight: -8,
-                      justifyContent: "center",
-                      opacity: pressed ? 0.6 : 1,
-                    })}
-                  >
-                    <AppText variant="label" style={{ color: theme.brandInk }}>
-                      All links
-                    </AppText>
-                  </Pressable>
-                ) : null}
-              </View>
-              {links.length > 0 ? (
-                <Card padded={false}>
-                  {links.map((link, index) => (
-                    <Pressable
-                      key={link.id}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Open ${link.title}`}
-                      onPress={() => void handleOpenLink(link)}
-                      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                    >
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 10,
-                          paddingHorizontal: 14,
-                          paddingVertical: 10,
-                          minHeight: 48,
-                          borderTopWidth: index === 0 ? 0 : 1,
-                          borderTopColor: theme.border,
-                        }}
-                      >
-                        <Feather
-                          name={LINK_ICON[link.kind]}
-                          size={15}
-                          color={theme.brand}
-                        />
-                        <AppText
-                          variant="bodyMedium"
-                          numberOfLines={1}
-                          style={{ flex: 1 }}
-                        >
-                          {link.title}
-                        </AppText>
-                        <Feather
-                          name="external-link"
-                          size={14}
-                          color={theme.muted}
-                        />
-                      </View>
-                    </Pressable>
-                  ))}
-                </Card>
-              ) : (
-                <Card
-                  padded={false}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: 12,
-                    borderStyle: "dashed",
-                  }}
-                >
-                  <AppText variant="caption" muted style={{ flex: 1 }}>
-                    {isEnrolled
-                      ? "Pin the syllabus, the textbook, office hours — the class will thank you."
-                      : "Classmates pin the syllabus and more here."}
-                  </AppText>
-                  {isEnrolled ? (
-                    <Button
-                      label="Add a link"
-                      variant="soft"
-                      size="sm"
-                      onPress={() =>
-                        router.push({
-                          pathname: "/course/links",
-                          params: { courseId, courseCode: course.code },
-                        })
-                      }
-                    />
-                  ) : null}
-                </Card>
-              )}
-              {linkError ? (
-                <AppText variant="caption" style={{ color: theme.danger }}>
-                  {linkError}
-                </AppText>
-              ) : null}
+            {/* Doorways — every room of the course, four tiles deep. Each
+                opens a screen that was built as its own feature. */}
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 10,
+                marginTop: 16,
+              }}
+            >
+              <DoorwayTile
+                icon="book-open"
+                title="Calendar"
+                caption={upcoming[0]?.title ?? "Nothing due"}
+                tone="brand"
+                onPress={() =>
+                  router.push({
+                    pathname: "/course/calendar",
+                    params: { courseId, courseCode: course.code },
+                  })
+                }
+              />
+              <DoorwayTile
+                icon="message-square"
+                title="Rooms"
+                caption="Lectures, study groups…"
+                tone="accent"
+                onPress={() =>
+                  router.push({
+                    pathname: "/course/rooms",
+                    params: { courseId, courseCode: course.code },
+                  })
+                }
+              />
+              <DoorwayTile
+                icon="layers"
+                title="Flashcards"
+                caption="Shared decks"
+                tone="brand"
+                onPress={() =>
+                  router.push({
+                    pathname: "/course/decks",
+                    params: { courseId, courseCode: course.code },
+                  })
+                }
+              />
+              <DoorwayTile
+                icon="link"
+                title="Links"
+                caption={
+                  linkCount === 0
+                    ? "Pin the syllabus"
+                    : linkCount === 1
+                      ? "1 link pinned"
+                      : `${linkCount} links pinned`
+                }
+                tone="accent"
+                onPress={() =>
+                  router.push({
+                    pathname: "/course/links",
+                    params: { courseId, courseCode: course.code },
+                  })
+                }
+              />
             </View>
 
-            {/* Class calendar — the shared schedule, right between the
-                header and Notes. */}
-            <View style={{ gap: 10, marginTop: 2 }}>
-              <AppText variant="title">Class calendar</AppText>
+            {/* Class calendar — the next few shared dates, previewed. */}
+            <SectionLabel text="Class calendar" />
+            <View style={{ gap: 10 }}>
               {upcoming.length > 0 ? (
                 <Card padded={false}>
                   {upcoming.map((item, index) => (
@@ -1612,45 +1602,30 @@ export default function CourseHubScreen() {
                   </AppText>
                 </Card>
               )}
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                <Button
-                  label="Open calendar"
-                  variant="soft"
-                  size="sm"
-                  icon={
-                    <Feather name="calendar" size={14} color={theme.brandInk} />
-                  }
-                  onPress={() =>
-                    router.push({
-                      pathname: "/course/calendar",
-                      params: { courseId, courseCode: course.code },
-                    })
-                  }
-                />
-                <Button
-                  label="Import syllabus"
-                  variant="secondary"
-                  size="sm"
-                  icon={
-                    <Feather
-                      name="file-plus"
-                      size={14}
-                      color={theme.foreground}
-                    />
-                  }
-                  onPress={() =>
-                    router.push({
-                      pathname: "/course/syllabus",
-                      params: { courseId, courseCode: course.code },
-                    })
-                  }
-                />
-              </View>
+              <Button
+                label="Import syllabus"
+                variant="secondary"
+                size="sm"
+                icon={
+                  <Feather
+                    name="file-plus"
+                    size={14}
+                    color={theme.foreground}
+                  />
+                }
+                onPress={() =>
+                  router.push({
+                    pathname: "/course/syllabus",
+                    params: { courseId, courseCode: course.code },
+                  })
+                }
+                style={{ alignSelf: "flex-start" }}
+              />
             </View>
 
             {/* Study sessions — course-linked events, planned right here. */}
-            <View style={{ gap: 10, marginTop: 2 }}>
-              <AppText variant="title">Study sessions</AppText>
+            <SectionLabel text="Study sessions" />
+            <View style={{ gap: 10 }}>
               {sessions.length > 0 ? (
                 <Card padded={false}>
                   {sessions.map((event, index) => (
@@ -1736,94 +1711,6 @@ export default function CourseHubScreen() {
                 style={{ alignSelf: "flex-start" }}
               />
             </View>
-
-            {/* Rooms — built as its own screen; this is the doorway. */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Rooms — lectures, study groups, and side conversations"
-              onPress={() =>
-                router.push({
-                  pathname: "/course/rooms",
-                  params: { courseId, courseCode: course.code },
-                })
-              }
-              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-            >
-              <Card
-                padded={false}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: 14,
-                  minHeight: 64,
-                }}
-              >
-                <View
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: radius.control,
-                    backgroundColor: theme.brandSoft,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Feather name="grid" size={18} color={theme.brand} />
-                </View>
-                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                  <AppText variant="bodySemi">Rooms</AppText>
-                  <AppText variant="caption" muted>
-                    Lectures, study groups, and side conversations
-                  </AppText>
-                </View>
-                <Feather name="chevron-right" size={18} color={theme.muted} />
-              </Card>
-            </Pressable>
-
-            {/* Flashcards — shared decks; the screens live behind this door. */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Flashcards — shared decks the whole class builds"
-              onPress={() =>
-                router.push({
-                  pathname: "/course/decks",
-                  params: { courseId, courseCode: course.code },
-                })
-              }
-              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-            >
-              <Card
-                padded={false}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: 14,
-                  minHeight: 64,
-                }}
-              >
-                <View
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: radius.control,
-                    backgroundColor: theme.brandSoft,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Feather name="layers" size={18} color={theme.brand} />
-                </View>
-                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                  <AppText variant="bodySemi">Flashcards</AppText>
-                  <AppText variant="caption" muted>
-                    Shared decks the whole class builds
-                  </AppText>
-                </View>
-                <Feather name="chevron-right" size={18} color={theme.muted} />
-              </Card>
-            </Pressable>
           </View>
         }
       />

@@ -251,6 +251,17 @@ export interface NoteThanks {
   created_at: string;
 }
 
+// A private saved message (migration 0027) — one row per message per student,
+// retractable, never visible to anyone else. EXACTLY ONE subject is set: a
+// channel message_id or a dm_message_id, never both and never neither (the
+// bookmark_has_one_subject check enforces it).
+export interface MessageBookmark {
+  user_id: string;
+  message_id: string | null;
+  dm_message_id: string | null;
+  created_at: string;
+}
+
 export type EventKind = "study_session" | "meetup";
 
 export interface CampusEvent {

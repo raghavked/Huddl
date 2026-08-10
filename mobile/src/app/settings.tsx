@@ -302,6 +302,11 @@ export default function SettingsScreen() {
           onPress={() => router.push("/people")}
         />
         <SettingsLink
+          icon="bookmark"
+          label="Saved messages"
+          onPress={() => router.push("/saved")}
+        />
+        <SettingsLink
           icon="slash"
           label="Blocked people"
           onPress={() => router.push("/blocked")}

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import {
   BadgeCheck,
   Bell,
+  Bookmark,
   ChevronRight,
   LogOut,
   ShieldCheck,
@@ -72,6 +73,14 @@ export default async function SettingsPage() {
       tile: "bg-brand-soft text-brand",
       title: "Notifications",
       description: "Choose what gets pushed to your phone",
+      trailing: null as React.ReactNode,
+    },
+    {
+      href: "/saved",
+      icon: Bookmark,
+      tile: "bg-brand-soft text-brand",
+      title: "Saved messages",
+      description: "Every message you kept — private to you",
       trailing: null as React.ReactNode,
     },
     {

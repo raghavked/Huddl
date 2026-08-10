@@ -168,6 +168,10 @@ export default function DmRoomScreen() {
   const draftBeforeEditRef = useRef("");
   const [actionsFor, setActionsFor] = useState<DmMessage | null>(null);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+
+  // Saved messages: my private bookmarks among the loaded rows, so the
+  // long-press menu can tell "Save message" from "Remove from saved".
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [unblocking, setUnblocking] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const { blocked, refresh: refreshBlocked } = useBlockedIds();
@@ -197,6 +201,28 @@ export default function DmRoomScreen() {
       return promise;
     },
     []
+  );
+
+  /** Which of these messages I've saved — one query per loaded page keeps
+      the long-press menu label truthful. */
+  const loadSaved = useCallback(
+    async (messageIds: string[]) => {
+      if (!userId || messageIds.length === 0) return;
+      const { data } = await supabase
+        .from("message_bookmarks")
+        .select("dm_message_id")
+        .eq("user_id", userId)
+        .in("dm_message_id", messageIds);
+      if (!data) return;
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        for (const row of data as { dm_message_id: string }[]) {
+          next.add(row.dm_message_id);
+        }
+        return next;
+      });
+    },
+    [userId]
   );
 
   const load = useCallback(async () => {
@@ -246,7 +272,9 @@ export default function DmRoomScreen() {
       }
 
       setOther(otherProfile);
-      setMessages((messagesRes.data ?? []) as DmMessage[]);
+      const rows = (messagesRes.data ?? []) as DmMessage[];
+      setMessages(rows);
+      void loadSaved(rows.map((m) => m.id));
       // Mount: advance the read cursor once we're actually looking.
       markRead();
     } catch {
@@ -254,7 +282,7 @@ export default function DmRoomScreen() {
     } finally {
       setLoading(false);
     }
-  }, [threadId, userId, markRead]);
+  }, [threadId, userId, markRead, loadSaved]);
 
   useEffect(() => {
     void load();
@@ -508,6 +536,44 @@ export default function DmRoomScreen() {
     [userId]
   );
 
+  /** Optimistic save/remove in message_bookmarks — a private keep-it-handy
+      flag. A double-tap race (23505) already means saved, so it stands. */
+  const handleToggleSaved = useCallback(
+    async (messageId: string, save: boolean) => {
+      if (!userId) return;
+      if (save) tapLight();
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        if (save) next.add(messageId);
+        else next.delete(messageId);
+        return next;
+      });
+      const { error: savedError } = save
+        ? await supabase
+            .from("message_bookmarks")
+            .insert({ user_id: userId, dm_message_id: messageId })
+        : await supabase
+            .from("message_bookmarks")
+            .delete()
+            .eq("user_id", userId)
+            .eq("dm_message_id", messageId);
+      if (savedError && !(save && savedError.code === "23505")) {
+        setSavedIds((prev) => {
+          const next = new Set(prev);
+          if (save) next.delete(messageId);
+          else next.add(messageId);
+          return next;
+        });
+        setSendError(
+          save
+            ? "Couldn't save that — give it another try."
+            : "Couldn't remove that from saved — give it another try."
+        );
+      }
+    },
+    [userId]
+  );
+
   /* ----------------------------- blocking ----------------------------- */
 
   const otherBlocked = other !== null && blocked.has(other.id);
@@ -539,12 +605,14 @@ export default function DmRoomScreen() {
         >
           <Pressable
             accessibilityHint={
-              own && !deleted && !isTemp
-                ? "Long press to edit or delete"
-                : undefined
+              deleted || isTemp
+                ? undefined
+                : own
+                  ? "Long press to save, edit, or delete"
+                  : "Long press to save this message"
             }
             onLongPress={() => {
-              if (own && !deleted && !isTemp) setActionsFor(item);
+              if (!deleted && !isTemp) setActionsFor(item);
             }}
             delayLongPress={300}
             style={[
@@ -1081,6 +1149,47 @@ export default function DmRoomScreen() {
             <View style={{ height: 1, backgroundColor: theme.border }} />
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={
+                savedIds.has(actionsFor.id)
+                  ? "Remove from saved"
+                  : "Save message"
+              }
+              onPress={() => {
+                const id = actionsFor.id;
+                const save = !savedIds.has(id);
+                setActionsFor(null);
+                void handleToggleSaved(id, save);
+              }}
+              style={({ pressed }) => ({
+                minHeight: 44,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: radius.control,
+                  backgroundColor: theme.brandSoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Feather name="bookmark" size={16} color={theme.brand} />
+              </View>
+              <AppText variant="bodyMedium">
+                {savedIds.has(actionsFor.id)
+                  ? "Remove from saved"
+                  : "Save message"}
+              </AppText>
+            </Pressable>
+            {actionsFor.author_id !== userId ? null : (
+              <>
+            <Pressable
+              accessibilityRole="button"
               accessibilityLabel="Edit message"
               onPress={() => {
                 const target = actionsFor;
@@ -1141,6 +1250,8 @@ export default function DmRoomScreen() {
                 Delete
               </AppText>
             </Pressable>
+              </>
+            )}
           </Card>
         </View>
       ) : null}

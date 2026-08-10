@@ -1,5 +1,42 @@
 # Huddl development log
 
+## Round 12 — design pass, saved messages, and event reminders
+
+Migration 0027 live, seven agents (three were interrupted mid-flight by a
+model credit cutoff and finished on the next pass):
+
+- **Home redesign**: a date eyebrow over a time-aware greeting
+  ("Morning, Alex"), a **Today strip** that appears only when today
+  actually holds something ("2 due · PHYS 9B review tonight", composed
+  from data already fetched — no new queries), normalized 24/12 section
+  rhythm, a "Calendar" action on Coming up, ghost-block loading, and one
+  calm 240 ms fade-up on first data that respects reduced motion.
+- **Course home redesign**: the stacked doorway cards collapse into a
+  2×2 tile grid (Calendar / Rooms / Flashcards / Links), each tile
+  carrying live context — the next due title, the pinned-link count.
+  Every capability survives; links moved one tap deeper.
+- **Flashcard flip**: a real 3D turn — two stacked faces on one
+  `Animated.Value`, `rotateY` 0→180 against 180→360 with `perspective`
+  and `backfaceVisibility`, 320 ms cubic easing on the native driver,
+  instant when reduced motion is on. The shell sizes to the taller face
+  so the card never reflows mid-flip.
+- **Paste-import for decks**: paste a study guide, get cards — first
+  separator of dash / em-dash / colon / tab wins, oversize and
+  unsplittable lines skipped, duplicate fronts deduped case-insensitively,
+  live "{n} cards ready · {m} lines skipped", one bulk insert.
+- **Saved messages**: private bookmarks on any channel or DM message via
+  the long-press menu, and a `/saved` shelf that reads them back with
+  author, context chip, mention highlighting, and a tap through to the
+  room. Bookmarks whose message you can no longer see — a channel you
+  left, a message its author deleted — drop out silently.
+- **Event reminders**: an hourly pg_cron sweep nudges everyone who
+  RSVP'd "going" about an hour out ("Starting soon: PHYS 9B review —
+  7:00 pm · Shields 218 — see you there."), deduped per student per
+  event, riding the normal inbox + push pipeline.
+
+Verification: mobile strict tsc + iOS Hermes export (4.2 MB); web tsc,
+ESLint, 114 Vitest tests, production build with the /saved route.
+
 ## Round 11 — the hearth round: your calendar, thanks, and the vibe audit
 
 Migration 0026 live, five agents:

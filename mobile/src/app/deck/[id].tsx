@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Field } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { tapSuccess } from "@/lib/haptics";
 import { buildQueue } from "@/lib/srs";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -46,6 +47,60 @@ type CardRow = {
 type Status = "loading" | "error" | "notFound" | "ready";
 
 const CARD_SELECT = "id, deck_id, created_by, front, back, position, created_at";
+
+/* ------------------------------ paste parser ------------------------------ */
+
+type ParsedCard = { front: string; back: string };
+
+/** Separators a pasted line can use, checked in this order. */
+const PASTE_SEPARATORS = [" - ", " — ", ": ", "\t"] as const;
+
+/**
+ * One card per line: split on the first " - ", " — ", ": ", or tab (in that
+ * priority), trim both sides, and skip anything that doesn't make a card —
+ * no separator, an empty side, an oversized side, or a front the deck (or an
+ * earlier line) already has, compared case-insensitively.
+ */
+function parsePastedCards(
+  text: string,
+  existingFronts: ReadonlySet<string>
+): { cards: ParsedCard[]; skipped: number } {
+  const cards: ParsedCard[] = [];
+  const seen = new Set(existingFronts);
+  let skipped = 0;
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (line.length === 0) continue; // blank lines aren't held against anyone
+    let front: string | null = null;
+    let back = "";
+    for (const separator of PASTE_SEPARATORS) {
+      const at = line.indexOf(separator);
+      if (at !== -1) {
+        front = line.slice(0, at).trim();
+        back = line.slice(at + separator.length).trim();
+        break;
+      }
+    }
+    if (
+      front === null ||
+      front.length === 0 ||
+      back.length === 0 ||
+      front.length > 1000 ||
+      back.length > 2000
+    ) {
+      skipped += 1;
+      continue;
+    }
+    const key = front.toLowerCase();
+    if (seen.has(key)) {
+      skipped += 1;
+      continue;
+    }
+    seen.add(key);
+    cards.push({ front, back });
+  }
+  return { cards, skipped };
+}
 
 function BackChevron({ onPress }: { onPress: () => void }) {
   const theme = useTheme();
@@ -84,12 +139,20 @@ export default function DeckHomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // The add-card form (front/back), tucked behind a button until needed.
-  const [formOpen, setFormOpen] = useState(false);
+  // The composer: closed, the single add-card form, or the paste-cards field.
+  const [composer, setComposer] = useState<"closed" | "single" | "paste">(
+    "closed"
+  );
   const [front, setFront] = useState("");
   const [back, setBack] = useState("");
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+
+  // Paste-to-import: a block of lines, parsed live into ready cards.
+  const [pasteText, setPasteText] = useState("");
+  const [bulkAdding, setBulkAdding] = useState(false);
+  const [pasteError, setPasteError] = useState<string | null>(null);
+  const [pasteSuccess, setPasteSuccess] = useState<string | null>(null);
 
   // Editing one of your own cards, inline where the row was.
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -183,10 +246,17 @@ export default function DeckHomeScreen() {
   /* ------------------------------ add a card ----------------------------- */
 
   const resetForm = useCallback(() => {
-    setFormOpen(false);
+    setComposer("closed");
     setFront("");
     setBack("");
     setAddError(null);
+  }, []);
+
+  const resetPaste = useCallback(() => {
+    setComposer("closed");
+    setPasteText("");
+    setPasteError(null);
+    setPasteSuccess(null);
   }, []);
 
   const handleAdd = useCallback(async () => {
@@ -230,6 +300,64 @@ export default function DeckHomeScreen() {
     setFront("");
     setBack("");
   }, [userId, deckId, adding, front, back, cards]);
+
+  /* ------------------------- paste a stack at once ------------------------ */
+
+  const existingFronts = useMemo(
+    () => new Set(cards.map((card) => card.front.trim().toLowerCase())),
+    [cards]
+  );
+
+  const parsed = useMemo(
+    () => parsePastedCards(pasteText, existingFronts),
+    [pasteText, existingFronts]
+  );
+
+  const handleBulkAdd = useCallback(async () => {
+    if (!userId || !deckId || bulkAdding) return;
+    const ready = parsed.cards;
+    if (ready.length === 0) {
+      setPasteError(
+        "Nothing to add yet — paste a few lines, one card per line."
+      );
+      return;
+    }
+    setPasteError(null);
+    setPasteSuccess(null);
+    setBulkAdding(true);
+    const basePosition =
+      cards.length > 0 ? Math.max(...cards.map((card) => card.position)) + 1 : 0;
+    const { data, error } = await supabase
+      .from("cards")
+      .insert(
+        ready.map((card, offset) => ({
+          deck_id: deckId,
+          created_by: userId,
+          front: card.front,
+          back: card.back,
+          position: basePosition + offset,
+        }))
+      )
+      .select(CARD_SELECT);
+    setBulkAdding(false);
+    if (error || !data) {
+      setPasteError(
+        error?.message.includes("row-level security")
+          ? "Cards are for classmates — add this course to your classes first."
+          : "Those cards didn't make it in. Give it another try."
+      );
+      return;
+    }
+    const inserted = [...(data as unknown as CardRow[])].sort(
+      (a, b) => a.position - b.position
+    );
+    setCards((prev) => [...prev, ...inserted]);
+    setPasteText("");
+    tapSuccess();
+    setPasteSuccess(
+      `${inserted.length === 1 ? "1 card" : `${inserted.length} cards`} in — the class thanks you.`
+    );
+  }, [userId, deckId, bulkAdding, parsed, cards]);
 
   /* ---------------------- edit / delete (yours only) ---------------------- */
 
@@ -414,79 +542,166 @@ export default function DeckHomeScreen() {
       ? "you"
       : deck.creator?.display_name ?? "a classmate";
 
-  const addForm = formOpen ? (
-    <Card style={{ gap: 12 }}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-        }}
-      >
-        <AppText variant="title">Add a card</AppText>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close the card form"
-          onPress={resetForm}
-          disabled={adding}
-          hitSlop={8}
-          style={({ pressed }) => ({
-            width: 44,
-            height: 44,
-            marginRight: -12,
-            marginVertical: -12,
+  const readyCount = parsed.cards.length;
+
+  const composerSection =
+    composer === "single" ? (
+      <Card style={{ gap: 12 }}>
+        <View
+          style={{
+            flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center",
-            opacity: pressed ? 0.6 : 1,
-          })}
+            justifyContent: "space-between",
+            gap: 8,
+          }}
         >
-          <Feather name="x" size={18} color={theme.muted} />
-        </Pressable>
+          <AppText variant="title">Add a card</AppText>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close the card form"
+            onPress={resetForm}
+            disabled={adding}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              marginRight: -12,
+              marginVertical: -12,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Feather name="x" size={18} color={theme.muted} />
+          </Pressable>
+        </View>
+        <Field
+          label="Front"
+          value={front}
+          onChangeText={(text) => {
+            setFront(text);
+            if (addError) setAddError(null);
+          }}
+          placeholder="What does RLS stand for?"
+          maxLength={1000}
+          editable={!adding}
+          multiline
+        />
+        <Field
+          label="Back"
+          value={back}
+          onChangeText={(text) => {
+            setBack(text);
+            if (addError) setAddError(null);
+          }}
+          placeholder="Row-level security"
+          maxLength={2000}
+          editable={!adding}
+          multiline
+          error={addError}
+        />
+        <Button
+          label="Add card"
+          size="sm"
+          pending={adding}
+          disabled={adding || front.trim().length === 0 || back.trim().length === 0}
+          icon={<Feather name="plus" size={14} color={theme.brandFg} />}
+          onPress={() => void handleAdd()}
+          style={{ alignSelf: "flex-start" }}
+        />
+      </Card>
+    ) : composer === "paste" ? (
+      <Card style={{ gap: 12 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+          }}
+        >
+          <AppText variant="title">Paste cards</AppText>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close the paste form"
+            onPress={resetPaste}
+            disabled={bulkAdding}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              marginRight: -12,
+              marginVertical: -12,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Feather name="x" size={18} color={theme.muted} />
+          </Pressable>
+        </View>
+        <Field
+          label="One card per line — front and back separated by a dash, colon, or tab"
+          value={pasteText}
+          onChangeText={(text) => {
+            setPasteText(text);
+            if (pasteError) setPasteError(null);
+            if (pasteSuccess) setPasteSuccess(null);
+          }}
+          placeholder={
+            "osmosis - water moving across a membrane\nATP: the cell's energy currency"
+          }
+          editable={!bulkAdding}
+          multiline
+          style={{ minHeight: 132, textAlignVertical: "top" }}
+          error={pasteError}
+        />
+        {pasteText.trim().length === 0 ? null : readyCount === 0 ? (
+          <AppText variant="caption" muted>
+            No cards in there yet — try lines like "osmosis - water moving
+            across a membrane", one per line.
+          </AppText>
+        ) : (
+          <AppText variant="caption" muted>
+            {readyCount === 1 ? "1 card ready" : `${readyCount} cards ready`} ·{" "}
+            {parsed.skipped === 1
+              ? "1 line skipped"
+              : `${parsed.skipped} lines skipped`}
+          </AppText>
+        )}
+        {pasteSuccess ? (
+          <AppText variant="caption" style={{ color: theme.success }}>
+            {pasteSuccess}
+          </AppText>
+        ) : null}
+        <Button
+          label={readyCount === 1 ? "Add 1 card" : `Add ${readyCount} cards`}
+          size="sm"
+          pending={bulkAdding}
+          disabled={bulkAdding || readyCount === 0}
+          icon={<Feather name="plus" size={14} color={theme.brandFg} />}
+          onPress={() => void handleBulkAdd()}
+          style={{ alignSelf: "flex-start" }}
+        />
+      </Card>
+    ) : (
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Button
+          label="Add a card"
+          variant="secondary"
+          icon={<Feather name="plus" size={16} color={theme.foreground} />}
+          onPress={() => setComposer("single")}
+          style={{ flex: 1 }}
+        />
+        <Button
+          label="Paste cards"
+          variant="secondary"
+          icon={<Feather name="clipboard" size={16} color={theme.foreground} />}
+          onPress={() => setComposer("paste")}
+          style={{ flex: 1 }}
+        />
       </View>
-      <Field
-        label="Front"
-        value={front}
-        onChangeText={(text) => {
-          setFront(text);
-          if (addError) setAddError(null);
-        }}
-        placeholder="What does RLS stand for?"
-        maxLength={1000}
-        editable={!adding}
-        multiline
-      />
-      <Field
-        label="Back"
-        value={back}
-        onChangeText={(text) => {
-          setBack(text);
-          if (addError) setAddError(null);
-        }}
-        placeholder="Row-level security"
-        maxLength={2000}
-        editable={!adding}
-        multiline
-        error={addError}
-      />
-      <Button
-        label="Add card"
-        size="sm"
-        pending={adding}
-        disabled={adding || front.trim().length === 0 || back.trim().length === 0}
-        icon={<Feather name="plus" size={14} color={theme.brandFg} />}
-        onPress={() => void handleAdd()}
-        style={{ alignSelf: "flex-start" }}
-      />
-    </Card>
-  ) : (
-    <Button
-      label="Add a card"
-      variant="secondary"
-      icon={<Feather name="plus" size={16} color={theme.foreground} />}
-      onPress={() => setFormOpen(true)}
-    />
-  );
+    );
 
   return scaffold(
     <KeyboardAvoidingView
@@ -574,7 +789,7 @@ export default function DeckHomeScreen() {
             <AppText variant="title" style={{ marginTop: 2 }}>
               Cards
             </AppText>
-            {addForm}
+            {composerSection}
             {actionError ? (
               <AppText variant="caption" style={{ color: theme.danger }}>
                 {actionError}
