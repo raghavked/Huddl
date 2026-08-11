@@ -2,42 +2,60 @@ import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
-/* Read receipts and typing indicators, as the student's own choice.
+/* Typing indicators, as the student's own choice.
  *
- * Two booleans on `profiles` (migration 0033), both `not null default true`,
- * and both RECIPROCAL by design: turning yours off stops your signal going
- * out AND stops everyone else's coming in. A one-sided view of who has read
- * what is a trap, not a feature, so every reader of this hook is expected to
- * honour both halves.
+ * One boolean on `profiles` (migration 0033), `not null default true`, and
+ * RECIPROCAL by design: turning yours off stops your signal going out AND
+ * stops everyone else's coming in. A one-sided view of who is composing is a
+ * trap, not a feature, so every reader of this hook honours both halves —
+ * `use-typing.ts` is the only one, and it does.
+ *
+ * ## Why read receipts are not in here
+ *
+ * 0033 added `profiles.share_read_receipts` beside `share_typing`, and this
+ * hook used to carry both. It shouldn't have: Huddl has no read receipt. No
+ * screen anywhere shows one person whether another has opened a message, and
+ * the only thing the column could have gated — `channel_members.last_read_at`
+ * and `dm_participants.last_read_at` — is the app's own unread cursor, the
+ * thing that decides whether YOUR rooms show a dot. Refusing to advance it
+ * would not hide a receipt nobody draws; it would light up every room the
+ * student had already read, forever, as the price of a privacy switch.
+ *
+ * So the switch was removed rather than left inert. A toggle that writes a
+ * column nothing consults, under a caption promising classmates "stop seeing
+ * when you've read a message", is a false statement about a student's own
+ * privacy — and it discredits the one beside it that genuinely works.
+ *
+ * The column stays in the database. The day Huddl actually renders a receipt,
+ * the preference comes back here, gated at the surface that draws it — not at
+ * the cursor that tracks unread.
  *
  * The answer is cached at module level and shared by every screen that asks:
- * the settings screen, the chat room's typing strip, and whatever renders a
- * receipt next. One query per sign-in, not one per surface. Any write
- * publishes to all of them at once, so the switch on the settings screen and
- * the behaviour in a room can never disagree.
+ * the settings screen and the chat room's typing strip. One query per
+ * sign-in, not one per surface. Any write publishes to all of them at once,
+ * so the switch on the settings screen and the behaviour in a room can never
+ * disagree.
  *
- * Both preferences read TRUE until the row says otherwise — while the query
- * is in flight, after a failed load, and when nobody is signed in. That is
- * both the column default and the way the app behaved before the choice
- * existed, so nothing blinks off during a first paint and then back on.
+ * The preference reads TRUE until the row says otherwise — while the query is
+ * in flight, after a failed load, and when nobody is signed in. That is both
+ * the column default and the way the app behaved before the choice existed,
+ * so nothing blinks off during a first paint and then back on.
  */
 
 /* ------------------------------ shapes ------------------------------ */
 
-/** The two choices, in the app's names rather than the column's. */
+/** The student's sharing choices, in the app's names rather than the column's. */
 export type PrivacyPrefs = {
-  /** False hides your read state from others — and theirs from you. */
-  shareReadReceipts: boolean;
   /** False stops you broadcasting "typing…" — and hides everyone else's. */
   shareTyping: boolean;
 };
 
-/** Which of the two a setter is aiming at. */
+/** Which preference a setter is aiming at. */
 export type PrivacyPrefKey = keyof PrivacyPrefs;
 
 /** What {@link usePrivacyPrefs} hands a screen. */
 export type PrivacyPrefsApi = {
-  /** Always safe to read: both true while loading, and while signed out. */
+  /** Always safe to read: true while loading, and while signed out. */
   prefs: PrivacyPrefs;
   /** True until the first answer lands for the signed-in student. */
   loading: boolean;
@@ -57,13 +75,11 @@ export type PrivacyPrefsApi = {
 
 /** The column default, and the answer anyone gets before the row arrives. */
 const DEFAULT_PREFS: PrivacyPrefs = {
-  shareReadReceipts: true,
   shareTyping: true,
 };
 
 /** App name → column name. The only place the snake_case leaks. */
 const COLUMN: Record<PrivacyPrefKey, string> = {
-  shareReadReceipts: "share_read_receipts",
   shareTyping: "share_typing",
 };
 
@@ -118,15 +134,17 @@ function snapshot(): Store {
   return store;
 }
 
-/** Set one key without letting TypeScript widen the other. */
+/** Set one key without letting TypeScript widen the rest. */
 function withPref(
   prefs: PrivacyPrefs,
   key: PrivacyPrefKey,
   value: boolean
 ): PrivacyPrefs {
-  return key === "shareReadReceipts"
-    ? { ...prefs, shareReadReceipts: value }
-    : { ...prefs, shareTyping: value };
+  // One key today; the switch is here so a second one can't be set loosely.
+  switch (key) {
+    case "shareTyping":
+      return { ...prefs, shareTyping: value };
+  }
 }
 
 /**
@@ -139,7 +157,6 @@ function prefsFromRow(raw: unknown): PrivacyPrefs {
   if (typeof raw !== "object" || raw === null) return DEFAULT_PREFS;
   const record = raw as Record<string, unknown>;
   return {
-    shareReadReceipts: record["share_read_receipts"] !== false,
     shareTyping: record["share_typing"] !== false,
   };
 }
@@ -165,7 +182,7 @@ function load(userId: string): Promise<void> {
   const run = async (): Promise<void> => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("share_read_receipts, share_typing")
+      .select("share_typing")
       .eq("id", userId)
       .maybeSingle();
     // Signed out, or a different student took over, while we were waiting.
@@ -257,11 +274,11 @@ function usePrivacyStore(): { state: Store; userId: string | null } {
 }
 
 /**
- * The signed-in student's read-receipt and typing choices, plus a setter and
- * a refresh. Backed by a module-level cache, so several screens can read it
- * without each firing a query.
+ * The signed-in student's sharing choices, plus a setter and a refresh.
+ * Backed by a module-level cache, so several screens can read it without
+ * each firing a query.
  *
- * `prefs` is always readable — both preferences are true while the row is in
+ * `prefs` is always readable — a preference is true while the row is in
  * flight and after a failed load, so a surface never flickers a signal off
  * and back on. `loading` is there for a skeleton, not for a guard.
  *
@@ -309,16 +326,4 @@ export function usePrivacyPrefs(): PrivacyPrefsApi {
  */
 export function useSharesTyping(): boolean {
   return usePrivacyStore().state.prefs.shareTyping;
-}
-
-/**
- * Does this student share read receipts? False means BOTH halves are off:
- * don't report that they've read a message, and don't show them who has read
- * theirs.
- *
- * True while the preference is still loading — see the note at the top of
- * this file. Reads the same cached row as {@link usePrivacyPrefs}.
- */
-export function useSharesReadReceipts(): boolean {
-  return usePrivacyStore().state.prefs.shareReadReceipts;
 }

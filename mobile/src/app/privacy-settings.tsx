@@ -21,15 +21,22 @@ import { radius } from "@/constants/theme";
 import { usePrivacyPrefs, type PrivacyPrefs } from "@/hooks/use-privacy-prefs";
 import { useTheme } from "@/hooks/use-theme";
 
-/* Privacy — the two reciprocal signals, and a plain account of what campus
-   can and can't see about you.
+/* Privacy — the reciprocal signal you can switch off, and a plain account of
+   what campus can and can't see about you.
 
-   This screen is meant to reassure, not to administrate. Two switches, one
-   sentence saying what they currently mean, and then prose: the things
+   This screen is meant to reassure, not to administrate. A switch, one
+   sentence saying what it currently means, and then prose: the things
    classmates can see, the things nobody can, and the two places a student
-   would go next. No counters, no percentages, no dashboard. */
+   would go next. No counters, no percentages, no dashboard.
 
-/* --------------------------- the two switches ------------------------ */
+   Every sentence on this screen is a claim about a student's safety, so it
+   has to be checkable against the code, not merely comforting. Two used not
+   to be: a Read receipts switch that wrote a column nothing consulted (see
+   `hooks/use-privacy-prefs.ts` for why it was removed rather than left
+   inert), and "turn off Public profile and you leave the people directory
+   altogether", which was never how `is_public` worked. */
+
+/* ----------------------------- the switch ---------------------------- */
 
 type PrivacyToggle = {
   key: keyof PrivacyPrefs;
@@ -41,13 +48,6 @@ type PrivacyToggle = {
 
 const TOGGLES: PrivacyToggle[] = [
   {
-    key: "shareReadReceipts",
-    icon: "check-circle",
-    label: "Read receipts",
-    caption:
-      "Turn this off and classmates stop seeing when you've read a message — and you stop seeing theirs.",
-  },
-  {
     key: "shareTyping",
     icon: "edit-3",
     label: "Typing indicators",
@@ -57,21 +57,15 @@ const TOGGLES: PrivacyToggle[] = [
 ];
 
 /**
- * What the current pair actually means, in one sentence under the card.
+ * What the current setting actually means, in one sentence under the card.
  * Pure — it takes the preferences and nothing else, so the copy can be read
  * (and changed) without chasing state around the screen.
  */
 function sharingSentence(prefs: PrivacyPrefs): string {
-  if (prefs.shareReadReceipts && prefs.shareTyping) {
-    return "Both are on, which is how Huddl starts out: classmates can tell when you're composing and when you've caught up, and you can tell the same about them.";
-  }
-  if (!prefs.shareReadReceipts && !prefs.shareTyping) {
-    return "Both are off. Nobody can tell whether you're typing or whether you've opened a message, and those signals are gone from your side of the conversation too. Your messages still send and arrive exactly the same.";
-  }
   if (prefs.shareTyping) {
-    return "Read receipts are off, so nobody can tell whether you've opened a message, and you won't see whether they have. Typing still shows both ways.";
+    return "It's on, which is how Huddl starts out: classmates can tell when you're composing a message, and you can tell the same about them.";
   }
-  return "Typing indicators are off, so nobody sees you composing, and you won't see them composing either. Read receipts still show both ways.";
+  return "It's off. Nobody sees you composing, and you won't see them composing either. Your messages still send and arrive exactly the same.";
 }
 
 /* ------------------------------- pieces ------------------------------ */
@@ -293,7 +287,7 @@ export default function PrivacySettingsScreen() {
         Privacy
       </AppText>
       <AppText variant="caption" muted style={{ marginTop: 4, marginBottom: 8 }}>
-        Two signals you can switch off, and a straight account of everything
+        One signal you can switch off, and a straight account of everything
         else.
       </AppText>
 
@@ -364,15 +358,22 @@ export default function PrivacySettingsScreen() {
         <Card style={{ gap: 12 }}>
           <Fact icon="user" tint={theme.brand}>
             Your profile: your name, handle, photo, major, year, and bio. Turn
-            off Public profile in Account and you leave the people directory
-            altogether.
+            off Public profile in Account and classmates see only your handle
+            and your photo — you stay listed in the people directory either
+            way.
+          </Fact>
+          <Fact icon="image" tint={theme.brand}>
+            Your profile photo, which is served from a public link — anyone
+            who has that link can open it without signing in. Removing it in
+            Account deletes the file.
           </Fact>
           <Fact icon="message-square" tint={theme.brand}>
             What you post in a room, to the people in that room. A course chat
             reaches classmates who added the same course, and nobody else.
           </Fact>
           <Fact icon="clock" tint={theme.brand}>
-            That you're studying, while a focus session is running. It leaves
+            That you're studying, while a focus session is running — your
+            name, your class and your note, to your whole campus. It leaves
             the list the moment you stand up.
           </Fact>
         </Card>
@@ -394,14 +395,20 @@ export default function PrivacySettingsScreen() {
             university's systems, so there's no transcript here to leak, and
             what you write for yourself stays yours.
           </Fact>
+          <Fact icon="check-circle" tint={theme.accent}>
+            Whether you've opened a message. Huddl has no read receipts —
+            there's no screen that tells anyone you've read theirs.
+          </Fact>
           <Fact icon="slash" tint={theme.accent}>
-            Who you've blocked. They were never told, and they never will be.
+            Who you've blocked. They were never told, and they never will be —
+            nothing in the app or the API will answer that question for them.
           </Fact>
         </Card>
 
         <AppText variant="caption" muted style={{ marginTop: 10 }}>
-          Nothing on Huddl is public to the wider internet, your university
-          never gets a copy, and none of it is ever sold.
+          Apart from your profile photo, nothing on Huddl is reachable from
+          the wider internet. Your university never gets a copy, and none of
+          it is ever sold.
         </AppText>
 
         <Card padded={false} style={{ marginTop: 24 }}>

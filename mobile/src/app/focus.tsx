@@ -21,6 +21,7 @@ import {
   SectionLabel,
 } from "@/components/ui";
 import { radius } from "@/constants/theme";
+import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import {
   computeFocusStreak,
@@ -259,6 +260,9 @@ export default function FocusScreen() {
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
   const textScale = clampTextScale(useDisplay().textScale);
+  /* Someone you've blocked writes a free-text line into this list like
+     everyone else, so the block list has to reach it. */
+  const { blocked, refresh: refreshBlocked } = useBlockedIds();
 
   const [mine, setMine] = useState<FocusSession | null>(null);
   const [studying, setStudying] = useState<StudyingNow[]>([]);
@@ -328,6 +332,8 @@ export default function FocusScreen() {
           .then(setCourses)
           .catch(() => undefined);
         void refreshStreak();
+        // A block made since this screen mounted should take effect here too.
+        void refreshBlocked();
       } catch (err) {
         setError(
           err instanceof FocusError
@@ -339,7 +345,7 @@ export default function FocusScreen() {
         else setRefreshing(false);
       }
     },
-    [userId, refreshStreak]
+    [userId, refreshStreak, refreshBlocked]
   );
 
   useEffect(() => {
@@ -448,6 +454,14 @@ export default function FocusScreen() {
   const minuteMark = Math.floor(now.getTime() / 60_000);
   const listNow = useMemo(() => new Date(minuteMark * 60_000), [minuteMark]);
 
+  /* Filtered here rather than in the fetch so the block list can change
+     without re-subscribing the realtime channel. Someone you've blocked
+     doesn't reach you through the note on their study session. */
+  const visible = useMemo(
+    () => studying.filter((row) => !blocked.has(row.user_id)),
+    [studying, blocked]
+  );
+
   const timer = useMemo(() => {
     if (!mine) return null;
     const left = remainingMinutes(mine, now);
@@ -533,7 +547,7 @@ export default function FocusScreen() {
     );
   }
 
-  if (error && !mine && studying.length === 0) {
+  if (error && !mine && visible.length === 0) {
     return (
       <View
         style={{
@@ -844,12 +858,18 @@ export default function FocusScreen() {
                   style={{ alignSelf: "stretch" }}
                   onPress={() => void start()}
                 />
+                {/* The note used to be the unmentioned half of this: the row
+                    below draws the course chip and this free text next to
+                    the person, campus-wide. Name it, or the box and the
+                    audience disagree. (A private profile shows its handle
+                    here rather than a name — see `toFocusPerson`.) */}
                 <AppText
                   variant="caption"
                   muted
                   style={{ textAlign: "center" }}
                 >
-                  Your name shows up below while you're sitting. That's the
+                  Your name, your class and this line show up below while
+                  you're sitting — to everyone at your university. That's the
                   whole trick.
                 </AppText>
               </View>
@@ -859,14 +879,14 @@ export default function FocusScreen() {
 
         <SectionLabel text="Studying now" />
 
-        {studying.length === 0 ? (
+        {visible.length === 0 ? (
           <EmptyState
             illustration={Lantern}
             title="Nobody's heads-down right now"
             body="Be the first. Start a session and the next person to open this sees they're not alone."
           />
         ) : (
-          studying.map((row, index) => (
+          visible.map((row, index) => (
             <StudyingRow key={row.id} row={row} index={index} now={listNow} />
           ))
         )}

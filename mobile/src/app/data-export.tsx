@@ -20,6 +20,7 @@ import {
   requestExport,
   saveAndShare,
   summarize,
+  type DataExport,
   type PreparedExport,
   type SummaryKey,
   type SummaryLine,
@@ -49,6 +50,71 @@ const ICONS: Record<SummaryKey, keyof typeof Feather.glyphMap> = {
   events_created: "calendar",
 };
 
+/** A line in "What's in it": an icon and a counted sentence. */
+type ExportLine = {
+  key: string;
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+};
+
+/**
+ * The two safety records migration 0037 added to `export_my_data()`: who
+ * you've blocked, and what you've reported. The Privacy Policy says both are
+ * kept about you, so an export that lists everything else and stays quiet
+ * about these two is the document contradicting itself.
+ *
+ * Counted here rather than in `summarize()` only because `LINE_SPECS` lives
+ * in `@/lib/data-export`, which this change didn't own. They belong there,
+ * beside the other nine — see the note in the report that came with this.
+ */
+const SAFETY_SPECS: readonly {
+  key: string;
+  field: string;
+  icon: keyof typeof Feather.glyphMap;
+  one: string;
+  many: string;
+}[] = [
+  {
+    key: "blocked",
+    field: "blocked",
+    icon: "slash",
+    one: "person you've blocked",
+    many: "people you've blocked",
+  },
+  {
+    key: "reports_filed",
+    field: "reports_filed",
+    icon: "flag",
+    one: "report you've filed",
+    many: "reports you've filed",
+  },
+];
+
+/**
+ * Every line the "What's in it" card draws: `summarize()`'s nine, then the
+ * two safety records. Empty categories are dropped on both halves, the same
+ * way `summarize()` drops them — a first-week student sees the two things
+ * they have, not eleven things they don't.
+ */
+function exportLines(lines: SummaryLine[], data: DataExport): ExportLine[] {
+  const rows: ExportLine[] = lines.map((line) => ({
+    key: line.key,
+    icon: ICONS[line.key],
+    label: line.label,
+  }));
+  for (const spec of SAFETY_SPECS) {
+    const value = data[spec.field];
+    const count = Array.isArray(value) ? value.length : 0;
+    if (count < 1) continue;
+    rows.push({
+      key: spec.key,
+      icon: spec.icon,
+      label: `${count} ${count === 1 ? spec.one : spec.many}`,
+    });
+  }
+  return rows;
+}
+
 /** "about 84 KB" — a rough, honest size for the thing they're about to take. */
 function sizeLabel(json: string): string {
   const kb = json.length / 1024;
@@ -62,7 +128,7 @@ function timeLabel(at: Date): string {
   return at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-function SummaryRow({ line, first }: { line: SummaryLine; first: boolean }) {
+function SummaryRow({ line, first }: { line: ExportLine; first: boolean }) {
   const theme = useTheme();
   return (
     <View
@@ -87,7 +153,7 @@ function SummaryRow({ line, first }: { line: SummaryLine; first: boolean }) {
           justifyContent: "center",
         }}
       >
-        <Feather name={ICONS[line.key]} size={16} color={theme.brand} />
+        <Feather name={line.icon} size={16} color={theme.brand} />
       </View>
       <AppText variant="bodySemi" style={{ flex: 1 }}>
         {line.label}
@@ -161,6 +227,7 @@ export default function DataExportScreen() {
 
   const preparedAt = prepared ? exportedAt(prepared.data) : null;
   const fileName = exportFileName(preparedAt ?? new Date());
+  const rows = prepared ? exportLines(lines, prepared.data) : [];
 
   return (
     <View
@@ -200,17 +267,19 @@ export default function DataExportScreen() {
         <AppText variant="body" muted style={{ marginTop: 6 }}>
           This is your copy of everything Huddl holds that's yours — your
           profile, your classes, the messages and notes you've written, your
-          focus sessions and your grades. Things you shared stay in the rooms
-          you shared them in, and nothing here belongs to anyone else.
+          focus sessions and grades, and the safety records: who you've
+          blocked and what you've reported. Things you shared stay in the
+          rooms you shared them in, and records that belong to someone else,
+          including anyone who has blocked or reported you, aren't in here.
         </AppText>
 
         {phase === "ready" && prepared ? (
           <>
             <SectionLabel text="What's in it" />
 
-            {lines.length > 0 ? (
+            {rows.length > 0 ? (
               <Card padded={false}>
-                {lines.map((line, index) => (
+                {rows.map((line, index) => (
                   <SummaryRow
                     key={line.key}
                     line={line}

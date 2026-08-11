@@ -216,18 +216,41 @@ export default function AccountScreen() {
     }
   }, [userId, photoBusy]);
 
-  /** Back to initials — clears the profile link, leaves the file be. */
+  /**
+   * Back to initials — the file goes, not just the link to it.
+   *
+   * The avatars bucket is public-read, so clearing `avatar_url` alone would
+   * take her face off her profile and leave it sitting at a URL that anyone
+   * who saved it can still open, with no login. The object has to go first;
+   * only then is "Remove photo" true.
+   *
+   * Deleting an object that isn't there is not an error, so a second tap
+   * after a half-failure just finishes the job.
+   */
   const handleRemovePhoto = useCallback(async () => {
     if (!userId || photoBusy) return;
     setPhotoError(null);
     setPhotoBusy("remove");
+
+    const { error: fileError } = await supabase.storage
+      .from("avatars")
+      .remove([`${userId}/avatar.jpg`]);
+    if (fileError) {
+      setPhotoBusy(null);
+      setPhotoError("Couldn't remove your photo. Give it another try.");
+      return;
+    }
+
     const { error } = await supabase
       .from("profiles")
       .update({ avatar_url: null })
       .eq("id", userId);
     setPhotoBusy(null);
     if (error) {
-      setPhotoError("Couldn't remove your photo. Give it another try.");
+      // The file is gone; the profile is the half still pointing at it.
+      setPhotoError(
+        "Your photo file is deleted, but your profile still points at it. Give Remove another tap."
+      );
       return;
     }
     setAvatarUrl(null);
@@ -281,6 +304,18 @@ export default function AccountScreen() {
   const openSuggestions = INTEREST_SUGGESTIONS.filter(
     (suggestion) => !hasInterest(interests, suggestion)
   );
+
+  /* What this switch actually does, said once and used twice — the visible
+     caption and the label the switch speaks are the same sentence.
+
+     It is NOT "appear in the people directory". The profiles SELECT policy
+     is campus-scoped and says nothing about `is_public` (0012), so a private
+     student is still listed; every surface that draws a person redacts them
+     down to a handle instead. Saying otherwise told students they'd
+     disappeared when they hadn't. */
+  const publicProfileCaption = `Classmates${
+    universityName ? ` at ${universityName}` : ""
+  } see your name, major, year, bio and interests. Turn it off and they see only your handle and your photo — either way you stay listed in the people directory.`;
 
   /** Mirrors the web account form's save: same validation, same update set. */
   const handleSave = useCallback(async () => {
@@ -531,6 +566,15 @@ export default function AccountScreen() {
                   />
                 ) : null}
               </View>
+              {/* Said here, at the moment she chooses one, because it is the
+                  one thing on Huddl that leaves the campus: the avatars
+                  bucket is public-read. Removing the photo now deletes the
+                  file, so the second sentence is a fact, not a comfort. */}
+              <AppText variant="caption" muted>
+                A photo is served from a public link, so anyone who has that
+                link can open it without signing in. Remove it and the file
+                goes too.
+              </AppText>
               {photoError ? (
                 <AppText
                   variant="caption"
@@ -810,16 +854,12 @@ export default function AccountScreen() {
               >
                 <AppText variant="title">Public profile</AppText>
                 <AppText variant="caption" muted>
-                  Appear in the people directory and let classmates
-                  {universityName ? ` at ${universityName}` : ""} view your
-                  profile.
+                  {publicProfileCaption}
                 </AppText>
               </View>
               <Switch
                 accessibilityRole="switch"
-                accessibilityLabel={`Public profile. Appear in the people directory and let classmates${
-                  universityName ? ` at ${universityName}` : ""
-                } view your profile.`}
+                accessibilityLabel={`Public profile. ${publicProfileCaption}`}
                 accessibilityState={{ checked: isPublic }}
                 value={isPublic}
                 onValueChange={setIsPublic}
