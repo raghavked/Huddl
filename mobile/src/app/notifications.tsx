@@ -11,6 +11,7 @@ import {
   type ListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Tray } from "@/components/illustrations";
 import {
   AppText,
   Button,
@@ -495,7 +496,7 @@ export default function NotificationsScreen() {
           }
           ListEmptyComponent={
             <EmptyState
-              icon="bell"
+              illustration={Tray}
               title="All quiet — you're caught up."
               body="New messages, thread replies, event updates, class calendar changes, club announcements and thanks for your notes will land here."
             />

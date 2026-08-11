@@ -316,7 +316,7 @@ export default function BrowseChannelsScreen() {
           }}
         />
       }
-      renderItem={({ item }) => {
+      renderItem={({ item, index }) => {
         const isJoined = joined.has(item.id);
         const joining = joiningId === item.id;
         const title = `#${item.slug}`;
@@ -326,6 +326,7 @@ export default function BrowseChannelsScreen() {
         const row = (
           <Card
             padded={false}
+            entrance={index}
             style={{
               flexDirection: "row",
               alignItems: "center",

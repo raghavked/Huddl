@@ -373,13 +373,14 @@ export default function CourseRoomsScreen() {
             </AppText>
           </Card>
         }
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           const isJoined = joined.has(item.id);
           const joining = joiningId === item.id;
           const title = item.is_main ? "Course chat" : item.name;
           const row = (
             <Card
               padded={false}
+              entrance={index}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
