@@ -33,6 +33,13 @@ export interface Profile {
   // row; it lives in phone_verifications (owner-only). Only the badge remains.
   phone_verified_at: string | null;
   is_public: boolean;
+  // What you're into (migration 0034) — up to eight short tags. A trigger
+  // trims, lowercases, dedupes and keeps the first eight, so clients send
+  // exactly what the student typed. Never null; the column defaults to '{}'.
+  interests: string[];
+  // One line about what you're after: a lab partner, people to run with, a
+  // sublet. Up to 140 characters, or null.
+  looking_for: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -319,15 +326,49 @@ export interface AppNotification {
   created_at: string;
 }
 
+// The campus board (migration 0034): rides home, lost and found, free stuff,
+// things for sale, asks and offers. Campus-scoped and author-owned — and
+// closable rather than deletable, so a post that got what it wanted stays
+// readable at the bottom of the board.
+export type BoardCategory =
+  | "ride"
+  | "lost"
+  | "found"
+  | "free"
+  | "sale"
+  | "ask"
+  | "offer";
+
+export interface BoardPost {
+  id: string;
+  university_id: string;
+  author_id: string;
+  category: BoardCategory;
+  title: string;
+  body: string | null;
+  // Cents, never dollars. Zero is a real value and means free — render it
+  // with priceLabel() from @/lib/board rather than dividing here.
+  price_cents: number | null;
+  // For a ride, the day it leaves as 'YYYY-MM-DD'. Null for every other
+  // category. Read it with parseBoardDay() — new Date() on a date-only
+  // string lands on UTC midnight and reads a day early west of Greenwich.
+  happens_on: string | null;
+  // Set when the author marked it sorted. A closed post stays readable.
+  closed_at: string | null;
+  created_at: string;
+}
+
 export type ReportStatus = "open" | "reviewed" | "dismissed";
 
 export interface Report {
   id: string;
   reporter_id: string;
-  // At least one of message_id / reported_user_id is always set (DB check);
-  // message_id nulls out if the message row is hard-deleted.
+  // At least one of message_id / reported_user_id / board_post_id is always
+  // set (DB check); message_id and board_post_id null out if the row they
+  // point at is hard-deleted, and the report survives them.
   message_id: string | null;
   reported_user_id: string | null;
+  board_post_id: string | null;
   reason: string;
   status: ReportStatus;
   created_at: string;

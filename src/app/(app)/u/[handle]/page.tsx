@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   BookOpen,
   ChevronLeft,
+  Compass,
   GraduationCap,
   Hash,
   Lock,
@@ -32,6 +33,16 @@ type SharedChannel = Pick<Channel, "id" | "name" | "kind">;
 
 type EnrollmentCourseRow = { course: SharedCourse | null };
 type MemberChannelRow = { channel: SharedChannel | null };
+
+/** text[] straight off the row, kept honest before it reaches the chips. */
+function interestsOf(profile: ProfileRow): string[] {
+  return Array.isArray(profile.interests)
+    ? profile.interests.filter(
+        (entry): entry is string =>
+          typeof entry === "string" && entry.trim().length > 0
+      )
+    : [];
+}
 
 export async function generateMetadata({
   params,
@@ -84,7 +95,10 @@ export default async function ProfilePage({
     </Link>
   );
 
-  // Private profile viewed by someone else: handle + avatar only.
+  /* Private profile viewed by someone else: handle + avatar only. Everything
+     else on the row — name, bio, major, grad year, interests, looking_for —
+     stays off this page. Interests and looking_for are profile columns like
+     any other, so they're hidden here too. */
   if (!profile.is_public && !isMe) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
@@ -162,6 +176,7 @@ export default async function ProfilePage({
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const firstName = profile.display_name.split(/\s+/)[0] ?? profile.handle;
+  const interests = interestsOf(profile);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
@@ -222,6 +237,19 @@ export default async function ProfilePage({
                 {profile.bio}
               </p>
             ) : null}
+            {/* The one line on this page somebody can act on, so it gets the
+                ember and sits directly above the button that answers it. */}
+            {profile.looking_for ? (
+              <div className="mt-4 rounded-xl bg-brand-soft px-4 py-3 text-left">
+                <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-ink">
+                  <Compass className="size-3.5 text-brand" aria-hidden />
+                  Looking for
+                </p>
+                <p className="mt-1 font-semibold text-brand-ink text-pretty">
+                  {profile.looking_for}
+                </p>
+              </div>
+            ) : null}
             <div className="mt-5 flex justify-center sm:justify-start">
               {isMe ? (
                 <Link
@@ -238,6 +266,60 @@ export default async function ProfilePage({
           </div>
         </div>
       </section>
+
+      {/* Interests — hidden entirely on someone else's profile when they
+          haven't added any; on your own it's an invitation. */}
+      {isMe || interests.length > 0 ? (
+        <section
+          className="mt-8"
+          aria-label={isMe ? "What you're into" : `What ${firstName}'s into`}
+        >
+          <SectionHeader
+            title={isMe ? "What you're into" : `What ${firstName}'s into`}
+          />
+          {interests.length === 0 ? (
+            <div className="mt-3 rounded-card border border-dashed border-border">
+              <EmptyState
+                className="py-10"
+                icon={Compass}
+                title="Nothing on here yet"
+                description={
+                  profile.looking_for
+                    ? "Add a few things you're into — it's how classmates spot the overlap."
+                    : "A few things you're into, plus a line on what you're looking for, is how classmates know where to start."
+                }
+                action={
+                  <Link
+                    href="/settings/account"
+                    className={buttonClasses({
+                      variant: "secondary",
+                      size: "sm",
+                    })}
+                  >
+                    Edit profile
+                  </Link>
+                }
+              />
+            </div>
+          ) : (
+            /* Each chip is a way into the directory: "she's into intramurals
+               too" is one click from the people who are. */
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {interests.map((interest) => (
+                <li key={interest}>
+                  <Link
+                    href={`/people?interest=${encodeURIComponent(interest)}`}
+                    title={`Everyone into ${interest}`}
+                    className="inline-flex min-h-11 items-center rounded-full bg-brand-soft px-3.5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand hover:text-brand-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  >
+                    {interest}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
 
       {/* Shared courses */}
       <section

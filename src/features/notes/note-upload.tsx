@@ -9,9 +9,18 @@ import {
   cardClasses,
   controlClasses,
 } from "@/components/ui";
+import { TagPicker } from "@/features/notes/tag-picker";
+import { MAX_NOTE_TAGS, toTagList } from "@/lib/notes";
 import { createClient } from "@/lib/supabase/client";
 import { formatFileSize } from "@/lib/utils";
 import type { Note } from "@/lib/types";
+
+/**
+ * A freshly shared note. `tags` comes back normalized by 0032's trigger — the
+ * words the database settled on, never the words that were sent — so the list
+ * above can render the saved truth without a refetch.
+ */
+export type UploadedNote = Note & { tags: string[] };
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
@@ -58,17 +67,27 @@ function fileExtension(name: string): string {
 export function NoteUpload({
   courseId,
   userId,
+  courseTags,
+  seedTags,
   onUploaded,
 }: {
   courseId: string;
   userId: string;
-  onUploaded: (note: Note) => void;
+  /** Words this course already files notes under, offered in the picker. */
+  courseTags?: readonly string[];
+  /**
+   * Tags to start the composer with — whatever the list is filtered by, which
+   * is almost always what this note is too. Taking them back off is one click.
+   */
+  seedTags?: readonly string[];
+  onUploaded: (note: UploadedNote) => void;
 }) {
   const formId = useId();
   const titleRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,9 +96,15 @@ export function NoteUpload({
     if (open) titleRef.current?.focus();
   }, [open]);
 
+  function openForm() {
+    setTags((seedTags ?? []).slice(0, MAX_NOTE_TAGS));
+    setOpen(true);
+  }
+
   function close() {
     setTitle("");
     setDescription("");
+    setTags([]);
     setFile(null);
     setError(null);
     setOpen(false);
@@ -149,6 +174,10 @@ export function NoteUpload({
         file_name: file.name,
         file_size: file.size,
         mime_type: file.type || null,
+        // Sent exactly as typed — 0032's trigger does the trimming,
+        // lowercasing and capping, and the row that comes back carries its
+        // answer rather than ours.
+        tags,
       })
       .select("*")
       .single();
@@ -161,7 +190,8 @@ export function NoteUpload({
       return;
     }
 
-    onUploaded(note as Note);
+    const saved = note as Note & { tags?: unknown };
+    onUploaded({ ...saved, tags: toTagList(saved.tags) });
     setPending(false);
     close();
   }
@@ -170,7 +200,7 @@ export function NoteUpload({
     return (
       <Button
         variant="secondary"
-        onClick={() => setOpen(true)}
+        onClick={openForm}
         aria-expanded={false}
         className="w-full"
       >
@@ -255,6 +285,13 @@ export function NoteUpload({
             )}
           </Hint>
         </div>
+
+        <TagPicker
+          value={tags}
+          onChange={setTags}
+          suggestions={courseTags}
+          disabled={pending}
+        />
       </div>
 
       {error ? (

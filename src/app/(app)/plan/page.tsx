@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ui";
 import { PlanSection, type PlanItemRow } from "@/features/study/plan-section";
 import { getCurrentUser } from "@/lib/auth";
+import { colorForCourse, courseTintClasses } from "@/lib/course-color";
 import { createClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Your plan" };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-type EnrollmentJoin = { course: { id: string; code: string } | null };
+type EnrollmentJoin = {
+  /** The student's own tint for this class, or null for "let the app choose". */
+  color: string | null;
+  course: { id: string; code: string } | null;
+};
 
 type ItemRow = {
   id: string;
@@ -32,12 +39,25 @@ export default async function PlanPage() {
 
   const { data: enrollRows } = await supabase
     .from("enrollments")
-    .select("course:courses(id, code)")
+    .select("color, course:courses(id, code)")
     .eq("user_id", user.userId);
 
-  const courses = ((enrollRows ?? []) as unknown as EnrollmentJoin[])
-    .map((row) => row.course)
-    .filter((c): c is { id: string; code: string } => c !== null);
+  /* Each class with the colour it wears for this student: their own pick where
+     they made one, the stable hash of the course code where they didn't. The
+     tint is personal — a classmate reading the same class may well see a
+     different one — so it never travels anywhere shared. */
+  const courses = ((enrollRows ?? []) as unknown as EnrollmentJoin[]).flatMap(
+    (row) =>
+      row.course === null
+        ? []
+        : [
+            {
+              id: row.course.id,
+              code: row.course.code,
+              tint: colorForCourse(row.color, row.course.code),
+            },
+          ]
+  );
 
   let items: PlanItemRow[] = [];
   let checkedIds: string[] = [];
@@ -79,6 +99,30 @@ export default async function PlanPage() {
         title="Your plan"
         description="Everything due across your classes, in one place — check off what you've handled."
       />
+
+      {courses.length > 0 ? (
+        /* The classes feeding this list, each wearing its own colour — the
+           same tint the course card and the semester row use, so a student
+           reads "the plum one" the same way everywhere. Wrapped rather than
+           scrolled sideways: the page is one phone-width column and stays one. */
+        <nav
+          aria-label="Your classes"
+          className="mt-5 flex animate-fade-up flex-wrap gap-2"
+        >
+          {courses.map((course) => (
+            <Link
+              key={course.id}
+              href={`/courses/${course.id}`}
+              className={cn(
+                "inline-flex h-11 shrink-0 items-center rounded-full px-4 text-xs font-semibold transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                courseTintClasses(course.tint).chip
+              )}
+            >
+              {course.code}
+            </Link>
+          ))}
+        </nav>
+      ) : null}
 
       <div className="mt-6">
         <PlanSection

@@ -7,16 +7,21 @@ import {
   Hash,
   Home,
   MessageCircle,
+  Pin,
   UsersRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/* Six primary destinations, so the dock's pills run tighter than they did at
+   five — the touch target is the whole 44px-tall link, not the pill inside
+   it, so the squeeze costs nothing to reach. */
 const TABS = [
   { href: "/home", label: "Home", icon: Home },
   { href: "/channels", label: "Channels", icon: Hash },
   { href: "/messages", label: "Messages", icon: MessageCircle },
   { href: "/clubs", label: "Clubs", icon: UsersRound },
   { href: "/events", label: "Events", icon: CalendarDays },
+  { href: "/board", label: "Board", icon: Pin },
 ] as const;
 
 /** Floating frosted tab dock — mobile only. */
@@ -37,11 +42,11 @@ export function MobileDock({ unreadDms = 0 }: { unreadDms?: number }) {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className="flex flex-col items-center gap-0.5 rounded-2xl px-2 py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                className="flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
                 <span
                   className={cn(
-                    "relative flex h-7 items-center justify-center rounded-full px-4 transition-colors",
+                    "relative flex h-7 items-center justify-center rounded-full px-2.5 transition-colors",
                     active
                       ? "bg-brand-soft text-brand-ink"
                       : "text-muted"

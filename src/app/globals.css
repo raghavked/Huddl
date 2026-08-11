@@ -33,6 +33,34 @@
   --success: #25683f;
   --danger: #b32d2d;
   --warning: #8a5c00;
+
+  /* Course tints — the six colours a student can hang on a class.
+     `soft` is the fill (a chip, a course card's icon tile, a swatch); `ink`
+     is the text and icons ON that fill, dark enough here to read as body
+     copy. There is deliberately no saturated third step: a course colour is
+     a label, not a call to action, so the ember stays the only thing in the
+     app that fills a button. Ember and fern are the brand and accent pairs
+     verbatim, so a class tinted ember wears the same clay wash as every
+     brand chip. Colour is never the only signal — the course code is always
+     rendered beside the tint. The rule for choosing one lives in
+     `@/lib/course-color`; this block only owns the paint. */
+  --course-ember-soft: #f6e3d7;
+  --course-ember-ink: #8f3a1f;
+  --course-fern-soft: #e9edd8;
+  --course-fern-ink: #56682d;
+  /* Unfired rose-brick. Sits opposite ember so the two don't blur. */
+  --course-clay-soft: #f9d9dc;
+  --course-clay-ink: #8e3f48;
+  /* Dried plum skin — the one violet, kept greyed. */
+  --course-plum-soft: #ecdcf1;
+  --course-plum-ink: #6f4482;
+  /* Faded chambray. The coolest thing we allow, and barely. */
+  --course-sky-soft: #d3e6eb;
+  --course-sky-ink: #3b5e6a;
+  /* Wheat and dry grass, one step off the cream page. */
+  --course-sand-soft: #f2e5c4;
+  --course-sand-ink: #77591f;
+
   --shadow-tint: 62 44 24;
   color-scheme: light;
 }
@@ -59,6 +87,23 @@
     --success: #4caf7d;
     --danger: #e06060;
     --warning: #d9a13a;
+
+    /* Course tints, candle-lit: the wash goes dark and the ink comes up, so
+       every pair keeps its hue within a few degrees of the light one and only
+       the lightness flips. */
+    --course-ember-soft: #40291c;
+    --course-ember-ink: #eda07b;
+    --course-fern-soft: #262e1a;
+    --course-fern-ink: #8ba852;
+    --course-clay-soft: #402326;
+    --course-clay-ink: #e79fa5;
+    --course-plum-soft: #352339;
+    --course-plum-ink: #cba3d5;
+    --course-sky-soft: #1d3035;
+    --course-sky-ink: #8fc1cb;
+    --course-sand-soft: #362d19;
+    --course-sand-ink: #dabf7c;
+
     --shadow-tint: 0 0 0;
     color-scheme: dark;
   }
@@ -84,6 +129,21 @@
   --success: #4caf7d;
   --danger: #e06060;
   --warning: #d9a13a;
+
+  /* Course tints, candle-lit — see the note in `:root`. */
+  --course-ember-soft: #40291c;
+  --course-ember-ink: #eda07b;
+  --course-fern-soft: #262e1a;
+  --course-fern-ink: #8ba852;
+  --course-clay-soft: #402326;
+  --course-clay-ink: #e79fa5;
+  --course-plum-soft: #352339;
+  --course-plum-ink: #cba3d5;
+  --course-sky-soft: #1d3035;
+  --course-sky-ink: #8fc1cb;
+  --course-sand-soft: #362d19;
+  --course-sand-ink: #dabf7c;
+
   --shadow-tint: 0 0 0;
   color-scheme: dark;
 }
@@ -108,6 +168,23 @@
   --color-success: var(--success);
   --color-danger: var(--danger);
   --color-warning: var(--warning);
+
+  /* The six course tints as utilities: `bg-course-plum-soft`,
+     `text-course-plum-ink`. Never composed at runtime — the class strings
+     live spelled out in `@/lib/course-color` so Tailwind can see them. */
+  --color-course-ember-soft: var(--course-ember-soft);
+  --color-course-ember-ink: var(--course-ember-ink);
+  --color-course-fern-soft: var(--course-fern-soft);
+  --color-course-fern-ink: var(--course-fern-ink);
+  --color-course-clay-soft: var(--course-clay-soft);
+  --color-course-clay-ink: var(--course-clay-ink);
+  --color-course-plum-soft: var(--course-plum-soft);
+  --color-course-plum-ink: var(--course-plum-ink);
+  --color-course-sky-soft: var(--course-sky-soft);
+  --color-course-sky-ink: var(--course-sky-ink);
+  --color-course-sand-soft: var(--course-sand-soft);
+  --color-course-sand-ink: var(--course-sand-ink);
+
   --font-sans: var(--font-body-var);
   --font-display: var(--font-display-var);
   --font-mono: var(--font-mono-var);
