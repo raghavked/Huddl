@@ -1,5 +1,133 @@
 # Huddl development log
 
+## Round 14 — twenty-four updates: the board, the term, and the quiet parts
+
+A planned slate of 24 updates, migrations 0032–0036 live, run as five waves of
+agents with strictly disjoint file ownership. The theme, in hindsight, is the
+app growing outward from "your classes" into "your campus and your term" —
+and then the platform work that makes living in it bearable.
+
+### The campus board
+
+- **Seven boards, one table**: rides home for break, lost, found, free, for
+  sale, asks and offers. Campus-scoped, author-owned, and **closable rather
+  than deletable** — a post that got what it wanted stays readable, greyed, at
+  the bottom, because a board nobody tidied should still read as a live board.
+  Stale posts (a ride whose day has gone, anything over 30 days) sink under
+  fresh ones without disappearing.
+- Money is whole cents everywhere and never a float: `priceCentsFrom` exists
+  because `45.50 * 100` is `4550.000000000001` in JavaScript and the column
+  has a check constraint. The date-only `happens_on` column is read with
+  `parseBoardDay` for the same reason in the other direction — `new Date` on
+  a date string lands on UTC midnight, which is the previous afternoon in
+  California, and every ride would read as leaving a day early.
+- Board posts are reportable like any other content, with `reports.board_post_id`
+  and a rewritten subject constraint behind it.
+
+### The term
+
+- **Semester overview** — the whole quarter on one screen with a GPA estimate
+  that is **honest about its own footing**: units are all-or-nothing, so if a
+  single graded class is missing them the figure is a plain average and says
+  so, naming the classes responsible. Inventing a default of 4 units would
+  produce a number that looks weighted and isn't.
+- **Weekly series** — one entry for the lab that meets every Tuesday, expanded
+  across the term and editable as a set (`course_calendar_items.series_id`).
+- **Per-item reminders** — your own lead time on any due date, 15 minutes to
+  two weeks, on an hourly sweep.
+- **Course colours** — six tints on the enrollment, carried across calendar,
+  plan and hubs, so a glance tells you which class.
+- **Note tags** — up to five per note, normalized by a trigger rather than
+  rejected by a constraint, so a student who types `"Midterm "` gets `midterm`
+  instead of an error.
+
+### Chat
+
+- **Forwarding** — pass a message into another room or a DM with the original
+  author still credited. `forwarded_author_id` and `forwarded_from` are
+  denormalized onto both message tables precisely so a channel message can
+  forward into a DM and keep its attribution.
+- **Availability polls** — propose a few times, everyone taps what works.
+  Rendered as a pinned strip above the composer rather than inline, because
+  `messages` has no poll foreign key and text-matching the announcing message
+  would graft a live poll onto anyone who happened to type the same sentence.
+- **Offline drafts and a send queue** — a draft survives leaving the room, and
+  a message sent with no signal queues and goes out when there is one.
+
+### The quiet parts
+
+- **Quiet hours** — a window per student, honoured by the push trigger, which
+  moved to BEFORE INSERT so it can defer rather than send. The in-app inbox is
+  never affected; a deferred notification arrives with the next digest.
+- **A real push digest** — a second notification inside two minutes of the
+  last one is deferred instead of buzzing again, and a five-minute sweep sends
+  **one** push describing the pile. A busy channel stops meaning twelve buzzes.
+- **Reciprocal privacy toggles** — turn off read receipts or typing indicators
+  and you stop seeing other people's too. The reciprocal version is the only
+  honest one, and it's documented on the columns.
+- **Data export** — `export_my_data()` returns everything Huddl holds that's
+  yours as one JSON document. It's the other half of the deletion promise.
+- **A moderation queue** — `/moderation`, open / reviewed / dismissed with the
+  reported content in place. `is_moderator` is enforced by a **column-scoped
+  update grant**: the `authenticated` role's grant on `profiles` simply does
+  not include the column, so no account can promote itself no matter what it
+  sends.
+- **Richer profiles** — interests you can filter the people directory by, and
+  a line about what you're looking for.
+- **Sunday recap**, deep links with real `.well-known` files, schedule paste,
+  recent searches.
+
+### Migration 0036 — what an advisor sweep found
+
+- `update_course_details` had grown a **second live signature**. 0032 added a
+  five-argument version for the new units column without dropping the
+  four-argument one, and every caller in both clients still sent four keys —
+  so the new overload had never once run and `units` had no writer at all.
+  The trap was for whoever tidied it up: the five-argument body sets
+  `units = p_units` unconditionally with `p_units` defaulting to null, so
+  dropping the *old* overload would have made a student fixing a room number
+  silently erase that course's units for the whole class, and the semester GPA
+  would have quietly stopped being weighted. Dropped the overload instead and
+  gave units their own RPC, where null clears **on purpose** rather than by
+  omission.
+- Two tables were evaluating two permissive SELECT policies on every read —
+  `reports` (0034 added the moderator policy beside the reporter one) and
+  `event_rsvps` (a FOR ALL policy answering reads alongside the visibility
+  one). Merged each into one read policy with identical visibility.
+- Thirteen foreign keys had no covering index. Four are on live read paths;
+  the rest only matter on cascade delete, which is "delete my account" — the
+  one operation that must not time out.
+
+### Every new surface gets a front door
+
+The last wave shipped a lot of screens that nothing linked to. Settings gained
+Privacy, Your data, and a Reports row that exists only for moderators —
+unknown renders nothing, so there is no flash of a row that then vanishes, and
+a failed check reads as "not a moderator" rather than as an error. The course
+hub gained Notes and Weekly pattern, rewoven to eight tiles that keep both the
+checkerboard and the meaning-driven tones. Courses gained a quiet link to the
+term overview, and Home gained a board card that swallows its own failure.
+
+`/report` finally accepts a board post. The board detail screen had been
+passing `boardPostId` since it shipped and the column had existed since 0034;
+the screen just never read either.
+
+### Craft and platform
+
+- **Forwarding de-duplicated.** The first pass wrote the same 482 lines into
+  three room screens — byte-identical, verified by diff — because the agent
+  owned only existing files and could not create a shared module. Now
+  `src/features/forwarding/` holds it once and the three rooms drop from 7,583
+  lines to 6,110. The hand-rolled search input inside the picker became the
+  `Field` primitive, shown only once a student has more rooms than fit on
+  screen.
+- **Web parity** for the whole slate — board, semester, series, reminders,
+  tags, colours, interests, moderation, quiet hours, export — plus 120 new
+  tests. The suite went 176 → 296.
+- **Docs**: the operations playbook finally documents the five `pg_cron` jobs
+  that have been running in production undocumented, and how to tell a
+  deferred notification from a broken pipeline.
+
 ## Round 13 — the big slate: the design language, groups, focus, and grades
 
 Migrations 0028–0029 live, 25 agents in three waves — schema first, then the
