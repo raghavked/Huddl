@@ -152,6 +152,58 @@ export const radius = {
   full: 999,
 } as const;
 
+/* -------------------------------- space --------------------------------- */
+
+/**
+ * The spacing ladder — the one token family the system was missing.
+ *
+ * These are not invented, and they are not derived from a formula. Four of
+ * them are structural facts already load-bearing in the app — `Card` pads by
+ * 16, `Screen` gutters by 20 and ends at 32, `SectionLabel` puts 24 above
+ * itself — and the small end is what roughly fifteen hundred hand-written
+ * paddings had already converged on: 12 and 10 carry most of the app, with
+ * 8 / 6 / 4 inside small things. The values that appeared a handful of times
+ * each — 3, 5, 7, 9, 14, 18 — are the drift this ladder exists to stop.
+ *
+ * Names describe the RELATIONSHIP, not the size, so a screen reads as an
+ * argument about hierarchy rather than a pile of numbers:
+ *
+ * - `hair` (2) — a nudge. Optical alignment, the gap under a label.
+ * - `tight` (4) — parts of one thing: an icon and its count.
+ * - `snug` (6) — a chip's inner padding, a two-line stack.
+ * - `cosy` (8) — the default gap between siblings in a row.
+ * - `room` (10) — a list row's vertical breathing.
+ * - `close` (12) — between rows in a group, between the parts of a card.
+ * - `card` (16) — `Card`'s own padding, and the gap between cards.
+ * - `gutter` (20) — the screen's left and right margin. Every screen.
+ * - `chapter` (24) — above a `SectionLabel`.
+ * - `rest` (32) — the bottom of a scroll, and the air around an empty state.
+ *
+ * **Comfort is mostly this.** The palette makes Huddl warm; the spacing makes
+ * it unhurried. When a screen feels cramped the fix is almost never a colour —
+ * it is `cosy` where the content wanted `gutter`. Reach one rung wider than
+ * feels necessary, especially around anything a student reads rather than
+ * scans.
+ *
+ * Not a hard rule for one-off optical fixes — a 3px nudge to line a glyph up
+ * with a baseline is a real thing and should stay 3, with a comment. It is a
+ * rule for anything structural.
+ */
+export const space = {
+  hair: 2,
+  tight: 4,
+  snug: 6,
+  cosy: 8,
+  room: 10,
+  close: 12,
+  card: 16,
+  gutter: 20,
+  chapter: 24,
+  rest: 32,
+} as const;
+
+export type Space = keyof typeof space;
+
 export const fonts = {
   /* Loaded in the root layout via @expo-google-fonts. */
   display: "BricolageGrotesque_700Bold",

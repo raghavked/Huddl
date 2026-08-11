@@ -148,27 +148,42 @@ group name at 12px with `letterSpacing: 1.2` — a texture, not a voice.
 
 ## 3. Space, radius, elevation, motion
 
-### Spacing
+### Spacing — `space` in `@/constants/theme`
 
-There is no spacing token object; the scale lives in the screens and it is
-short. Stay on it.
+Ten rungs. The names describe the **relationship**, not the size, so a screen
+reads as an argument about hierarchy rather than a pile of numbers.
 
-| Value | Where |
-| --- | --- |
-| 4, 6 | Inside a chip, between a label and the line under it. |
-| 8, 10 | Between chips, between an icon and its label. |
-| 12 | Between rows in a group, between the parts of a card. |
-| 16 | Card padding. The default gap between cards. |
-| 20 | **The screen gutter.** Every screen, both edges. |
-| 24 | Above a `SectionLabel`. |
-| 32 | Bottom padding under a scroll, plus safe-area inset. |
+| Token | Value | Where |
+| --- | --- | --- |
+| `hair` | 2 | A nudge. Optical alignment, the gap under a label. |
+| `tight` | 4 | Parts of one thing: an icon and its count. |
+| `snug` | 6 | Inside a chip, a two-line stack. |
+| `cosy` | 8 | Between siblings in a row. Between chips. |
+| `room` | 10 | A list row's vertical breathing. |
+| `close` | 12 | Between rows in a group, between the parts of a card. |
+| `card` | 16 | `Card`'s own padding, and the gap between cards. |
+| `gutter` | 20 | **The screen gutter.** Every screen, both edges. |
+| `chapter` | 24 | Above a `SectionLabel`. |
+| `rest` | 32 | The bottom of a scroll; the air around an empty state. |
 
-Screens start at `insets.top + 12` and end at `insets.bottom + 32`. `Screen`
-from `@/components/screen` does this for you — use it unless the screen needs a
-custom header.
+These were not invented. Four are structural facts already load-bearing —
+`Card` pads by 16, `Screen` gutters by 20 and ends at 32, `SectionLabel` puts
+24 above itself — and the small end is what the screens had already converged
+on. The values that showed up a handful of times each (3, 5, 7, 9, 14, 18) are
+the drift the ladder exists to stop.
+
+Screens start at `insets.top + 12` and end at `insets.bottom + space.rest`.
+`Screen` from `@/components/screen` does this for you — use it unless the
+screen needs a custom header.
+
+One-off optical fixes are exempt: a 3px nudge to sit a glyph on a baseline is
+a real thing, should stay 3, and should carry a comment saying why. The ladder
+is a rule for anything structural.
 
 **Generous over dense.** When a layout is ambiguous, add the air. This is a
-place people spend an evening, not a console they scan for six seconds.
+place people spend an evening, not a console they scan for six seconds. When a
+screen feels cramped the fix is almost never a colour — it is `cosy` where the
+content wanted `gutter`.
 
 ### Radius — `@/constants/theme`
 
@@ -433,7 +448,7 @@ Not preferences. The floor.
 - **44px minimum touch target.** Everything tappable. If the drawn thing is
   smaller (a chip, a small link), reach 44 with `hitSlop`.
 - **One display title per screen.**
-- **Three radii, four durations, three easings, three elevations.** If you need
+- **Three radii, ten spacing rungs, four durations, three easings, three elevations.** If you need
   one more, you're solving the wrong problem.
 - **Every animation gated on `useReducedMotion()`**, landing the final state in
   `motion.instant`. No exceptions. See §3.
