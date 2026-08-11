@@ -114,8 +114,14 @@ export const FOCUS_GOAL_MAX = 240;
 /** What we start the picker on — one pomodoro, same as the column default. */
 export const FOCUS_GOAL_DEFAULT = 25;
 
-/** Suggested goals for a picker, so every surface offers the same rungs. */
-export const FOCUS_GOAL_PRESETS: readonly number[] = [15, 25, 50, 90];
+/**
+ * The goals a picker offers, so every surface — web and native — offers the
+ * same rungs: a short one, a pomodoro, the two lengths a real study block
+ * actually runs on (a 45 and an hour), then the long one. The database accepts
+ * anything from {@link FOCUS_GOAL_MIN} to {@link FOCUS_GOAL_MAX} and
+ * {@link startFocus} clamps, so these are rungs, not rules.
+ */
+export const FOCUS_GOAL_PRESETS: readonly number[] = [15, 25, 45, 60, 90];
 
 /** Longest note the database accepts — cap your input here. */
 export const FOCUS_NOTE_MAX = 80;

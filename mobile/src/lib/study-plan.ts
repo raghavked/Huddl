@@ -8,6 +8,10 @@
  * Screens feed it rows from course_calendar_items + study_checkoffs and get
  * back time-bucketed groups plus headline stats for the progress header and
  * the home card.
+ *
+ * It also owns {@link computeDayStreak} — the one definition of what a streak
+ * is, shared by check-offs and focus sessions so the two numbers can never
+ * disagree about where a day starts.
  */
 
 /** Calendar-item kinds, mirroring the course_calendar_items check constraint. */
@@ -215,4 +219,54 @@ export function buildPlan(
       ...(nextUp ? { nextUp } : {}),
     },
   };
+}
+
+/* ------------------------------ streaks ------------------------------ */
+
+/** Local calendar-day key — streaks live in the student's timezone. */
+function localDayKey(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+/**
+ * The streak rule, written once: how many consecutive local calendar days,
+ * ending today or yesterday, have at least one of these moments in them.
+ *
+ * Yesterday still counts as alive, so an unmarked morning doesn't zero out
+ * last night's run — a streak is a gift, never a debt. Days are counted in
+ * the student's own timezone, so something that happened at 1am belongs to
+ * that new day exactly as they experienced it. Anything unparseable (or
+ * null, for work that isn't finished) is skipped rather than counted.
+ *
+ * This is the shared definition: the study plan feeds it check-off times and
+ * `@/lib/focus` feeds it session end times, so "3-day streak" means the same
+ * thing on both screens. Callers stay quiet below 2 — no guilt UI.
+ *
+ * Pure: order doesn't matter and `now` is passed in, never read from the
+ * clock, so a ticking screen and a unit test get the same answer.
+ *
+ * @param moments When the thing happened — Dates or ISO strings, mixed is
+ *   fine. Nulls and undefineds are ignored.
+ * @param now     The current moment.
+ */
+export function computeDayStreak(
+  moments: Iterable<Date | string | null | undefined>,
+  now: Date
+): number {
+  const days = new Set<string>();
+  for (const moment of moments) {
+    if (moment === null || moment === undefined) continue;
+    const at = moment instanceof Date ? moment : new Date(moment);
+    if (Number.isNaN(at.getTime())) continue;
+    days.add(localDayKey(at));
+  }
+
+  const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (!days.has(localDayKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+  let streak = 0;
+  while (days.has(localDayKey(cursor))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
 }

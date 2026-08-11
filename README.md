@@ -16,31 +16,81 @@ roster and events.
 
 ## Features
 
+### Your campus
+
 - **University-verified communities** — sign up with your school email
   (launching at UC Davis, then the UC system, then CSUs)
-- **Course homes with rooms** — every course opens a main chat plus
-  student-created rooms: lectures, discussion, study groups, notes
+- **Campus channels** — general, study-buddies, campus-events, asks-and-offers
+  on every campus, plus student-created topic channels and a browsable directory
+- **Campus search** — people, channels, courses, clubs and events in one query
+- **Profiles & people directory** — majors, grad years, shared courses, photos,
+  and an optional phone-verification trust badge
+
+### Your classes
+
+- **Course homes** — six doorways per class: calendar, rooms, flashcards,
+  pinned links, grades, and study partners
+- **Course rooms** — a main chat plus student-created rooms for lectures,
+  discussion, study groups, notes
 - **Class calendar + syllabus import** — paste a syllabus, preview the
   parsed dates on-device, and the whole class gets the calendar; new exams
   and due dates notify every classmate
+- **Course details, kept up by the class** — instructor, meeting times,
+  location, and pinned links (syllabus, textbook, office hours)
 - **Personal study plan** — private check-offs over the shared calendars,
   grouped by urgency, with recommended study blocks before every exam
+- **Archive a finished class** — shelve it without dropping it; the chat and
+  notes stay put, and the shelf groups by term
+
+### Study tools
+
+- **Shared flashcard decks** — any classmate adds cards, with a three-button
+  spaced-repetition study mode and private per-student review state
+- **Paste-import for decks** — paste a study guide, get cards
+- **Focus sessions** — set a goal, start a timer, and see who else on campus
+  is studying right now
+- **Private grade tracker** — weighted categories, a course estimate rescaled
+  by what's actually been graded, and what-if targets; visible only to you
+- **Study buddies** — opt in per course with a note, find the classmates who
+  did the same, message them in a tap
+- **Note sharing** — per-course files with uploader credit, signed downloads,
+  and a thanks the uploader actually feels
+
+### Talking
+
 - **Chat power** — image attachments, polls with live results, @mentions,
-  pinned messages, edits, threads, reactions, typing indicators
-- **Device push** — DMs, mentions, replies, and class dates reach the
-  phone via Expo push, fanned out by a database trigger
-- **Safety by default** — blocking, categorized reporting with a 24-hour
-  review promise, server-side rate limits, and in-app account deletion
-- **Campus channels** — general, study-buddies, campus-events, asks-and-offers
-  on every campus, plus student-created topic channels
+  pinned messages, edits, threads, reactions, typing indicators, in-room search
+- **Direct messages** — 1:1 threads with read state and presence
+- **Group DMs** — name a thread, add classmates, leave when you're done
+- **Saved messages** — private bookmarks on any message, with a shelf to read
+  them back
+- **Device push, on your terms** — DMs, mentions, replies, class dates and
+  events reach the phone, with per-kind toggles and a weekly digest
+
+### Clubs, events, and your week
+
 - **Clubs & organizations** — found a club, get a chat channel + roster +
   events board; open joining, officer roles
-- **Direct messages** — 1:1 threads with read state, presence, and
-  notifications
-- **Note sharing** — per-course files with uploader credit and signed downloads
-- **Study sessions & meetups** — events with RSVPs, capacity, course/club links
-- **Public profiles & people directory** — majors, grad years, shared courses,
-  optional phone-verification trust badge
+- **Club announcements** — officers post to the whole club; everyone gets told
+- **Study sessions & meetups** — events with RSVPs, capacity, course/club
+  links, reminders about an hour out, and calendar export
+- **Your calendar** — one month view merging class due dates with the events
+  you've said yes to
+
+### Made to live in
+
+- **The hearth design language** — warm cream and espresso, an ember that
+  glows rather than shouts, a candle-lit dark theme, hand-drawn marks where a
+  lesser app would put a spinner (`docs/DESIGN.md`)
+- **Display preferences** — light, dark or system, plus a text size that every
+  screen respects
+- **A real first run** — a three-panel welcome and a starter checklist that
+  ticks over as you go
+
+### Safe by default
+
+- **Safety built in** — blocking, categorized reporting with a 24-hour
+  review promise, server-side rate limits, and in-app account deletion
 - **Privacy by design** — campus-scoped visibility with RLS on every table;
   audited storage events generate user-facing notifications, enforced by
   database triggers
@@ -85,12 +135,15 @@ Play Store track) in `mobile/` — see `mobile/README.md` for running it.
 supabase/migrations/  Full schema: tables, RLS policies, triggers, RPCs
 supabase/seed.sql     Universities + default campus channels (no sample content)
 src/app/              App Router routes: (auth), (app) shell, marketing landing
-src/features/         Feature modules (auth, chat, dm, clubs, events, notes, ...)
+src/features/         Feature modules (chat, dm, clubs, events, notes,
+                      flashcards, focus, grades, study, saved, schedule, ...)
 src/lib/              Shared contracts: types, supabase clients, auth, utils
-src/components/ui/    UI v2 primitives (button, card, field, badge, headers)
-src/components/shell/ App shell: desktop sidebar, mobile top bar + dock
-src/components/       Shared UI (avatar, empty state, logo, theme toggle)
-docs/                 Brand guide, UI v2 design system, operations playbook
+src/components/ui/    Hearth primitives (button, card, field, badge, headers)
+src/components/shell/ App shell: mobile top bar + dock
+src/components/       Shared UI (avatar, empty state, illustrations, logo)
+mobile/               The native Expo app — its own toolchain, same backend
+docs/                 DESIGN.md (the design language), UI.md (its web side),
+                      brand guide, operations playbook, legal + store kits
 ```
 
 ## Operating model

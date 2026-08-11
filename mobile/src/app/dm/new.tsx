@@ -44,16 +44,26 @@ import { tapSuccess } from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
-/* Start a group: name it, pick your people, and everyone lands in the same
-   chat. The roster picker below is shared with /dm/info's "Add people" —
-   it lives here (rather than in components/) because the two screens are
-   the only callers and app/ files can't hold a non-route module. */
+/* The one composer for a new conversation. Pick a single classmate and it's
+   a 1:1 — the find-or-create create_dm_thread RPC, same as the "Message"
+   button on a profile. Pick two or more and it becomes a named group. The
+   screen says which one you're making as the selection changes, so nobody
+   has to know the rule up front.
+
+   The roster picker below is shared with /dm/info's "Add people" — it lives
+   here (rather than in components/) because the two screens are the only
+   callers and app/ files can't hold a non-route module. */
 
 const DEBOUNCE_MS = 300;
 const RESULT_LIMIT = 30;
 
 /** Shared empty set so the picker's optional props keep a stable identity. */
 const NO_IDS: ReadonlySet<string> = new Set<string>();
+
+/* Module-level so the picker's memoised renderItem keeps its identity. */
+const ADD_TO_GROUP = (name: string) => `Add ${name} to the group`;
+const ADD_TO_CONVERSATION = (name: string) =>
+  `Add ${name} to this conversation`;
 
 /* -------------------------------- escaping -------------------------------- */
 
@@ -98,12 +108,14 @@ function PickerRow({
   selected,
   pending,
   disabled,
+  addLabel,
   onPress,
 }: {
   person: Candidate;
   selected: boolean;
   pending: boolean;
   disabled: boolean;
+  addLabel: (name: string) => string;
   onPress: () => void;
 }) {
   const theme = useTheme();
@@ -113,7 +125,7 @@ function PickerRow({
       accessibilityRole="button"
       accessibilityState={{ selected, disabled: disabled || pending }}
       accessibilityLabel={
-        selected ? `Remove ${shownName}` : `Add ${shownName} to the group`
+        selected ? `Remove ${shownName}` : addLabel(shownName)
       }
       disabled={disabled || pending}
       onPress={onPress}
@@ -194,6 +206,8 @@ function PickerRow({
  *   again so the parent can toggle them back off.
  * @param onPick      Called with the tapped classmate.
  * @param pendingId   Id currently being written to the server, if any.
+ * @param addLabel    How an unselected row announces itself to a screen
+ *   reader, given the name the viewer can see. Defaults to group wording.
  * @param header      The caller's own form, drawn above the search box.
  */
 export function CampusPeoplePicker({
@@ -206,6 +220,7 @@ export function CampusPeoplePicker({
   placeholder,
   autoFocus = false,
   paddingBottom = 32,
+  addLabel = ADD_TO_GROUP,
   header,
 }: {
   excludeIds?: ReadonlySet<string>;
@@ -217,6 +232,7 @@ export function CampusPeoplePicker({
   placeholder: string;
   autoFocus?: boolean;
   paddingBottom?: number;
+  addLabel?: (name: string) => string;
   header?: ReactNode;
 }) {
   const theme = useTheme();
@@ -316,10 +332,11 @@ export function CampusPeoplePicker({
         selected={selectedIds.has(item.id)}
         pending={pendingId === item.id}
         disabled={disabled}
+        addLabel={addLabel}
         onPress={() => onPick(item)}
       />
     ),
-    [selectedIds, pendingId, disabled, onPick]
+    [selectedIds, pendingId, disabled, addLabel, onPick]
   );
 
   return (
@@ -370,7 +387,7 @@ export function CampusPeoplePicker({
             title={query.trim() ? "Nobody by that name" : "Nobody to add yet"}
             body={
               query.trim()
-                ? "Try a different name or handle — groups only hold people from your campus."
+                ? "Try a different name or handle — Huddl keeps you to your own campus."
                 : "As classmates join your campus they'll show up here."
             }
           />
@@ -382,7 +399,7 @@ export function CampusPeoplePicker({
 
 /* --------------------------------- screen --------------------------------- */
 
-export default function NewGroupScreen() {
+export default function NewMessageScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { session, ready } = useAuth();
@@ -401,10 +418,13 @@ export default function NewGroupScreen() {
     () => new Set(selected.map((person) => person.id)),
     [selected]
   );
-  // The counter always speaks in whole-group terms: you're in it too.
+  // The counter always speaks in whole-room terms: you're in it too.
   const headcount = selected.length + 1;
   const full = headcount >= GROUP_MAX_PEOPLE;
-  const shortBy = Math.max(0, GROUP_MIN_PEOPLE - headcount);
+  /* One classmate picked is a 1:1; two or more is a group. Everything the
+     screen says — and what the create button does — follows from these. */
+  const solo = selected.length === 1 ? selected[0] : null;
+  const isGroup = selected.length >= GROUP_MIN_PEOPLE - 1;
 
   const togglePerson = useCallback(
     (person: ThreadPerson) => {
@@ -423,8 +443,41 @@ export default function NewGroupScreen() {
     [selected]
   );
 
+  /**
+   * One classmate picked opens the 1:1 with them. Threads carry no INSERT
+   * policy, so it goes through the security-definer create_dm_thread RPC —
+   * find-or-create, so picking someone you already have a thread with just
+   * lands you back in it (same call as the profile's "Message" button).
+   */
+  const startDirect = useCallback(async (person: ThreadPerson) => {
+    setFormError(null);
+    setPending(true);
+    try {
+      const { data, error } = await supabase.rpc("create_dm_thread", {
+        other_user: person.id,
+      });
+      const threadId = typeof data === "string" ? data : null;
+      if (error || !threadId) throw error ?? new Error("No thread");
+      tapSuccess(); // the conversation is open — that's a completion
+      router.replace(`/dm/${threadId}`);
+    } catch {
+      setFormError(
+        "We couldn't open that conversation just now. Give it another go."
+      );
+      setPending(false);
+    }
+  }, []);
+
   const handleCreate = useCallback(async () => {
     if (pending) return;
+    if (selected.length === 0) {
+      setFormError("Pick at least one classmate to talk to.");
+      return;
+    }
+    if (solo) {
+      await startDirect(solo);
+      return;
+    }
     const trimmed = title.trim();
     if (trimmed.length < 2 || trimmed.length > GROUP_TITLE_MAX) {
       setFormError("Group names run 2 to 60 characters.");
@@ -451,23 +504,47 @@ export default function NewGroupScreen() {
       );
       setPending(false);
     }
-  }, [pending, title, selected]);
+  }, [pending, title, selected, solo, startDirect]);
 
   // Deep links land here directly — signed-out visitors get a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
 
+  const soloName = solo ? firstNameOf(solo.display_name) : null;
+
   const canCreate =
-    !pending &&
-    title.trim().length >= 2 &&
-    selected.length >= GROUP_MIN_PEOPLE - 1;
+    !pending && (solo !== null || (isGroup && title.trim().length >= 2));
+
+  const heading = soloName
+    ? `Message ${soloName}`
+    : isGroup
+      ? "Start a group"
+      : "New message";
+
+  const blurb = solo
+    ? "Just the two of you. Add anyone else and it becomes a group."
+    : isGroup
+      ? "Name it, pick your people, and everyone lands in the same chat."
+      : "Search your campus and tap whoever you want to talk to.";
+
+  const actionLabel = pending
+    ? isGroup
+      ? "Starting the group…"
+      : "Opening your conversation…"
+    : soloName
+      ? `Message ${soloName}`
+      : isGroup
+        ? "Create group"
+        : "Start a conversation";
 
   const hint = full
     ? "That's the whole group — sixteen is the cap."
-    : shortBy > 0
-      ? `Pick ${shortBy} more ${shortBy === 1 ? "person" : "people"} — groups start at three.`
-      : "Tap a classmate to add them, or tap their chip to take them back out.";
+    : solo
+      ? "Tap another classmate to turn this into a group, or tap their chip to take them back out."
+      : isGroup
+        ? "Tap a classmate to add them, or tap their chip to take them back out."
+        : "One person is a direct message; two or more starts a group.";
 
   return (
     <KeyboardAvoidingView
@@ -501,63 +578,82 @@ export default function NewGroupScreen() {
             onPick={togglePerson}
             disabled={pending}
             paddingBottom={16}
+            addLabel={ADD_TO_CONVERSATION}
             header={
               <View style={{ marginBottom: 4 }}>
                 <AppText variant="display" style={{ marginTop: 2 }}>
-                  Start a group
+                  {heading}
                 </AppText>
                 <AppText variant="caption" muted style={{ marginTop: 4 }}>
-                  Name it, pick your people, and everyone lands in the same
-                  chat.
+                  {blurb}
                 </AppText>
 
-                <View style={{ marginTop: 16 }}>
-                  <Field
-                    label="Group name"
-                    value={title}
-                    onChangeText={(next) => {
-                      setTitle(next);
-                      setFormError(null);
-                    }}
-                    placeholder="ECS 36A study crew"
-                    maxLength={GROUP_TITLE_MAX}
-                    editable={!pending}
-                  />
-                </View>
-
-                <SectionLabel text="Who's in" />
-
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
-                  contentContainerStyle={{
-                    gap: 8,
-                    alignItems: "center",
-                    paddingRight: 8,
-                  }}
-                  style={{ marginBottom: 8 }}
-                >
-                  <Chip
-                    label={`${headcount} of ${GROUP_MAX_PEOPLE}`}
-                    tone={shortBy === 0 ? "accent" : "neutral"}
-                    size="md"
-                  />
-                  {selected.map((person) => (
-                    <Chip
-                      key={person.id}
-                      label={firstNameOf(person.display_name)}
-                      tone="brand"
-                      size="md"
-                      icon="x"
-                      selected
-                      accessibilityLabel={`Remove ${person.display_name}`}
-                      onPress={() => togglePerson(person)}
+                {/* Only a group needs a name — a 1:1 is named after the
+                    person you're talking to. */}
+                {isGroup ? (
+                  <View style={{ marginTop: 16 }}>
+                    <Field
+                      label="Group name"
+                      value={title}
+                      onChangeText={(next) => {
+                        setTitle(next);
+                        setFormError(null);
+                      }}
+                      placeholder="ECS 36A study crew"
+                      maxLength={GROUP_TITLE_MAX}
+                      editable={!pending}
                     />
-                  ))}
-                </ScrollView>
+                  </View>
+                ) : null}
 
-                <AppText variant="caption" muted style={{ marginBottom: 12 }}>
+                {/* Nobody picked yet means there's nothing to label — the
+                    row arrives with its first chip. */}
+                {selected.length > 0 ? (
+                  <>
+                    <SectionLabel text="Who's in" />
+
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      keyboardShouldPersistTaps="handled"
+                      contentContainerStyle={{
+                        gap: 8,
+                        alignItems: "center",
+                        paddingRight: 8,
+                      }}
+                      style={{ marginBottom: 8 }}
+                    >
+                      {isGroup ? (
+                        <Chip
+                          label={`${headcount} of ${GROUP_MAX_PEOPLE}`}
+                          tone="accent"
+                          size="md"
+                        />
+                      ) : null}
+                      {selected.map((person) => (
+                        <Chip
+                          key={person.id}
+                          label={firstNameOf(person.display_name)}
+                          tone="brand"
+                          size="md"
+                          icon="x"
+                          selected
+                          accessibilityLabel={`Remove ${person.display_name}`}
+                          onPress={() => togglePerson(person)}
+                        />
+                      ))}
+                    </ScrollView>
+                  </>
+                ) : null}
+
+                <AppText
+                  variant="caption"
+                  muted
+                  style={{
+                    marginTop: selected.length > 0 ? 0 : 10,
+                    marginBottom: 12,
+                  }}
+                >
                   {hint}
                 </AppText>
               </View>
@@ -597,10 +693,16 @@ export default function NewGroupScreen() {
             </View>
           ) : null}
           <Button
-            label={pending ? "Starting the group…" : "Create group"}
+            label={actionLabel}
             pending={pending}
             disabled={!canCreate}
-            icon={<Feather name="users" size={16} color={theme.brandFg} />}
+            icon={
+              <Feather
+                name={isGroup ? "users" : "message-circle"}
+                size={16}
+                color={theme.brandFg}
+              />
+            }
             onPress={() => void handleCreate()}
           />
         </View>

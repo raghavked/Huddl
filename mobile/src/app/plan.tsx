@@ -25,6 +25,7 @@ import { tapLight, tapSuccess } from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
 import {
   buildPlan,
+  computeDayStreak,
   toPlanKind,
   type PlanEntry,
   type PlanGroupLabel,
@@ -54,7 +55,14 @@ type PlanData = {
   items: PlanItem[];
   /** item_id → done_at ISO — membership drives the plan, times drive the streak. */
   checkoffs: Map<string, string>;
+  /** Any ACTIVE enrolments — what the plan is actually built from. */
   hasCourses: boolean;
+  /**
+   * Any SHELVED enrolments, counted only when there are no active ones. It
+   * separates "hasn't added a class yet" from "between quarters", which want
+   * different sentences and different destinations.
+   */
+  hasArchivedCourses: boolean;
   loadedAt: Date;
 };
 
@@ -79,35 +87,45 @@ function kindLabel(kind: PlanKind): string {
   return kind.charAt(0).toUpperCase() + kind.slice(1);
 }
 
-/** Local calendar-day key — streaks live in the student's timezone. */
-function localDayKey(d: Date): string {
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-}
-
-/**
- * The study streak: consecutive local calendar days ending today-or-yesterday
- * with at least one check-off. Yesterday still counts as alive so an unmarked
- * morning doesn't zero out last night's run. Pure — feed it done_at ISO
- * strings and a "now" and it hands back the day count.
- */
-function computeStreak(doneAts: Iterable<string>, now: Date): number {
-  const days = new Set<string>();
-  for (const iso of doneAts) {
-    days.add(localDayKey(new Date(iso)));
-  }
-  const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (!days.has(localDayKey(cursor))) cursor.setDate(cursor.getDate() - 1);
-  let streak = 0;
-  while (days.has(localDayKey(cursor))) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return streak;
-}
-
 /** Exams and quizzes pop in the accent green; everything else stays quiet. */
 function kindTone(kind: PlanKind): ChipTone {
   return kind === "exam" || kind === "quiz" ? "accent" : "neutral";
+}
+
+/**
+ * There are three ways to have an empty plan, and they want three different
+ * sentences: classes but no calendar items, everything shelved between
+ * quarters, and a genuinely new student. Only the last one should be told to
+ * add courses — the one in the gap between terms already has them.
+ */
+function emptyPlanCopy(data: PlanData | null): {
+  title: string;
+  body: string;
+  actionLabel: string;
+  href: "/courses" | "/courses/add";
+} {
+  if (data?.hasCourses) {
+    return {
+      title: "Nothing on your plan yet",
+      body: "Import a syllabus from a course home — assignments and exams land here, ready to check off.",
+      actionLabel: "Open your courses",
+      href: "/courses",
+    };
+  }
+  if (data?.hasArchivedCourses) {
+    return {
+      title: "You're between quarters",
+      body: "Every class you've added is on the shelf. Bring one back from your courses when the term starts and its due dates come with it.",
+      actionLabel: "Open your shelf",
+      href: "/courses",
+    };
+  }
+  return {
+    title: "No courses yet",
+    body: "Add your classes first — then import a syllabus and your whole term plans itself.",
+    actionLabel: "Add your courses",
+    href: "/courses/add",
+  };
 }
 
 /* ---------------------------- row pieces ---------------------------- */
@@ -263,7 +281,22 @@ export default function PlanScreen() {
       .map((row) => row.course)
       .filter((c): c is { id: string; code: string } => c !== null);
     if (courses.length === 0) {
-      return { items: [], checkoffs: new Map(), hasCourses: false, loadedAt: now };
+      // Nothing active. Before saying "no courses yet", check the shelf —
+      // a student between quarters has added plenty, they're just all
+      // archived, and telling them to add courses would be wrong. One
+      // head-only count, and only on the empty path.
+      const shelvedRes = await supabase
+        .from("enrollments")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .not("archived_at", "is", null);
+      return {
+        items: [],
+        checkoffs: new Map(),
+        hasCourses: false,
+        hasArchivedCourses: (shelvedRes.count ?? 0) > 0,
+        loadedAt: now,
+      };
     }
 
     const codeById = new Map(courses.map((c) => [c.id, c.code]));
@@ -300,7 +333,13 @@ export default function PlanScreen() {
         (row) => [row.item_id, row.done_at] as const
       )
     );
-    return { items, checkoffs, hasCourses: true, loadedAt: now };
+    return {
+      items,
+      checkoffs,
+      hasCourses: true,
+      hasArchivedCourses: false,
+      loadedAt: now,
+    };
   }, [userId]);
 
   const run = useCallback(
@@ -371,7 +410,7 @@ export default function PlanScreen() {
   );
 
   const streak = useMemo(
-    () => (data ? computeStreak(data.checkoffs.values(), data.loadedAt) : 0),
+    () => (data ? computeDayStreak(data.checkoffs.values(), data.loadedAt) : 0),
     [data]
   );
 
@@ -415,6 +454,8 @@ export default function PlanScreen() {
     },
     [data, toggle]
   );
+
+  const empty = useMemo(() => emptyPlanCopy(data), [data]);
 
   const stats = plan?.stats ?? null;
   const allDone = stats !== null && stats.total > 0 && stats.handled === stats.total;
@@ -577,20 +618,11 @@ export default function PlanScreen() {
             ListEmptyComponent={
               <EmptyState
                 icon="calendar"
-                title={
-                  data?.hasCourses ? "Nothing on your plan yet" : "No courses yet"
-                }
-                body={
-                  data?.hasCourses
-                    ? "Import a syllabus from a course home — assignments and exams land here, ready to check off."
-                    : "Add your classes first — then import a syllabus and your whole term plans itself."
-                }
+                title={empty.title}
+                body={empty.body}
                 action={{
-                  label: data?.hasCourses
-                    ? "Open your courses"
-                    : "Add your courses",
-                  onPress: () =>
-                    router.push(data?.hasCourses ? "/courses" : "/courses/add"),
+                  label: empty.actionLabel,
+                  onPress: () => router.push(empty.href),
                 }}
               />
             }

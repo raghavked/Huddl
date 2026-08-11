@@ -1,5 +1,14 @@
 # Huddl UI v3 — "hearth" design system reference
 
+> **Which doc?** This one is the **web** reference: the Tailwind tokens,
+> utilities, primitives, and layout patterns that ship from
+> `src/app/globals.css` and `src/components/ui/` in the Next.js app. The design
+> language behind them — why the palette is warm, what each token means, the
+> type scale, motion and elevation rules, the copy voice, the craft floor — is
+> `docs/DESIGN.md`, which also covers the native app in `mobile/`. Read that
+> one first; read this one when you are writing web components. On a
+> disagreement, `DESIGN.md` wins.
+
 v3 "hearth" keeps the huddl brand voice (sentence case, empty states that
 recruit — see `BRAND.md`) and re-grounds the visual layer in warmth: cream
 paper and espresso ink, an ember primary with clay softs, fern for trust, a

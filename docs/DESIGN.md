@@ -2,6 +2,15 @@
 
 **Read this on day one. It is the whole system.**
 
+> **Which doc?** This one owns the design language itself — palette, type,
+> spacing, elevation, motion, copy voice, the craft floor — and the native app
+> in `mobile/` that renders it (React Native primitives from
+> `@/components/ui`, `useTheme()`, `Animated`). Its companion, `docs/UI.md`,
+> owns the **web** side: how these same decisions land as Tailwind tokens and
+> `src/components/ui/` in the Next.js app. When they disagree about a value,
+> this file is right and the other is stale. Keep them separate; a change to a
+> token or a rule belongs in both.
+
 Huddl is a campus community platform for college students, launching at UC
 Davis. Everything a student does in a semester — their classes, their clubs,
 their group chats, their study nights, their calendar — lives in one app.
@@ -254,6 +263,20 @@ already exists, and hand-rolling is how a design system dies.
 | `Avatar` (`@/components/avatar`) | The one way we draw a person: photo, or two initials on an ember-or-fern circle tinted by a stable hash of their name. Decorative — the name is always rendered beside it. |
 | `Screen` (`@/components/screen`) | Safe-area scaffold + display title + optional header action. |
 | Illustrations (`@/components/illustrations`) | `Mug`, `Doorway`, `PaperPlane`, `Pennant`, `Lantern`. Hand-drawn stroke marks, deliberately imperfect. Pass `color` and `softColor` from the theme. |
+
+### The one recorded exception
+
+`mobile/src/app/blocked.tsx` draws its own 44px circle — `surface2`, muted
+initials, no photo, no tint — instead of `Avatar`. `Avatar`'s name-hash tint is
+what makes a person recognizable at a glance, and that is precisely wrong on
+the block list: a column of ember and fern circles turns a settings chore into
+something that reads like a friends list. It is the only sanctioned copy of an
+`Avatar`, it is commented as such at the call site, and it stays a one-off. A
+second screen wanting the same quiet person-mark is the signal to give `Avatar`
+a documented variant, not to paste the circle a third time.
+
+That is the shape every exception takes: named here, commented there, and
+capped at one.
 
 ### Choosing an illustration
 

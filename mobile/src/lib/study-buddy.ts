@@ -56,6 +56,14 @@ export type StudyBuddy = {
   major: string | null;
   /** Their graduating year, e.g. 2027, or null if they haven't said. */
   grad_year: number | null;
+  /**
+   * True when this classmate keeps their profile private, so the row has
+   * already been stripped to handle and avatar — `display_name` is their
+   * handle, and `major` and `grad_year` are null no matter what they filled
+   * in. Draw the lock off this rather than inferring it from a missing name.
+   * Always false on the caller's own row: you always see yourself in full.
+   */
+  locked: boolean;
   /** True on the caller's own row — {@link fetchBuddies} sorts it to the top. */
   is_me: boolean;
 };
@@ -87,8 +95,12 @@ export const BUDDY_LIMIT = 100;
 /** Columns every opt-in query selects. Keep selects consistent. */
 export const BUDDY_SELECT = "user_id, course_id, note, created_at";
 
-/** {@link BUDDY_SELECT} plus the classmate, for the list. */
-const BUDDY_LIST_SELECT = `${BUDDY_SELECT}, profile:profiles(id, handle, display_name, avatar_url, major, grad_year)`;
+/**
+ * {@link BUDDY_SELECT} plus the classmate, for the list. `is_public` rides
+ * along because the list has to strip private profiles itself — see
+ * {@link toStudyBuddy}.
+ */
+const BUDDY_LIST_SELECT = `${BUDDY_SELECT}, profile:profiles(id, handle, display_name, avatar_url, major, grad_year, is_public)`;
 
 /* ----------------------------- failures ----------------------------- */
 
@@ -174,6 +186,14 @@ function optionalYear(raw: unknown): number | null {
  * the row is missing something a list row can't be drawn without — an id, a
  * handle, or a timestamp. Better an honest drop than a nameless avatar.
  *
+ * A classmate who set their profile private is stripped here, before anything
+ * renders: their handle stands in for their name, and their major and
+ * graduating year are dropped. Opting into a study list is a "I'm looking"
+ * signal, not consent to publish the profile they deliberately closed — the
+ * same rule the directory and the new-message picker follow. Anything other
+ * than an explicit `is_public: true` counts as private, so a select that
+ * forgets the column fails closed. Your own row is never stripped.
+ *
  * @param raw   The row as PostgREST returned it.
  * @param myId  The caller's `profiles.id`, or null when the session hasn't
  *   resolved — nothing is marked `is_me` in that case.
@@ -194,17 +214,23 @@ function toStudyBuddy(raw: unknown, myId: string | null): StudyBuddy | null {
   const handle = optionalText(profile["handle"]);
   if (handle === null) return null;
 
+  const isMe = myId !== null && userId === myId;
+  const locked = !isMe && profile["is_public"] !== true;
+
   return {
     user_id: userId,
     course_id: courseId,
     note: optionalText(record["note"]),
     created_at: createdAt,
     handle,
-    display_name: optionalText(profile["display_name"]) ?? handle,
+    display_name: locked
+      ? handle
+      : (optionalText(profile["display_name"]) ?? handle),
     avatar_url: optionalText(profile["avatar_url"]),
-    major: optionalText(profile["major"]),
-    grad_year: optionalYear(profile["grad_year"]),
-    is_me: myId !== null && userId === myId,
+    major: locked ? null : optionalText(profile["major"]),
+    grad_year: locked ? null : optionalYear(profile["grad_year"]),
+    locked,
+    is_me: isMe,
   };
 }
 

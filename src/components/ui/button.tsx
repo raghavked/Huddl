@@ -26,8 +26,10 @@ const VARIANTS: Record<ButtonVariant, string> = {
     "border border-border bg-surface text-danger hover:bg-danger/10 hover:border-danger/40 focus-visible:outline-danger",
 };
 
+/* Every size clears the 44px touch floor — "sm" stays visually secondary
+   through tighter padding and smaller type, not a shorter body. */
 const SIZES: Record<ButtonSize, string> = {
-  sm: "h-9 px-4 text-xs",
+  sm: "h-11 px-4 text-xs",
   md: "h-11 px-5 text-sm",
   lg: "h-12 px-7 text-base",
   icon: "size-11 p-0",

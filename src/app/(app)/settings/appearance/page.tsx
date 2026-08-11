@@ -210,9 +210,10 @@ export default function AppearanceSettingsPage() {
           Here&apos;s how a post reads at that size:
         </p>
         <Card className="mt-2">
-          <h2 className="font-bold tracking-tight">
+          {/* A sample, not a section — it stays out of the heading outline. */}
+          <p className="font-bold tracking-tight">
             Thursday night, Shields third floor
-          </h2>
+          </p>
           <p className="mt-1.5 text-sm leading-relaxed text-pretty">
             I&apos;m camping out with the practice midterm from 7 until they
             kick us out. Bring questions, I&apos;ll bring the coffee and the

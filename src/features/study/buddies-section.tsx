@@ -151,7 +151,7 @@ function BuddyRow({
       </div>
 
       {buddy.note ? (
-        <p className="text-sm text-pretty">{buddy.note}</p>
+        <p className="text-sm break-words text-pretty">{buddy.note}</p>
       ) : null}
       <InlineError message={errorText} />
     </li>
@@ -375,7 +375,9 @@ export function BuddiesSection({
     return (
       <div className="mt-6 flex flex-col items-center gap-2.5 px-6 py-16 text-center">
         <CloudOff className="size-7 text-muted" aria-hidden />
-        <p className="font-bold tracking-tight">Something hiccuped</p>
+        <p className="font-bold tracking-tight">
+          The study partner list didn&apos;t load
+        </p>
         <p className="max-w-xs text-sm text-muted text-pretty">
           {error} Check your connection and give it another go.
         </p>
@@ -439,7 +441,7 @@ export function BuddiesSection({
           ) : (
             <Check className="size-4" aria-hidden />
           )}
-          {mine === null ? "I am looking" : "Save note"}
+          {mine === null ? "I'm looking" : "Save note"}
         </Button>
         {mine === null ? null : (
           <Button
@@ -482,7 +484,9 @@ export function BuddiesSection({
         You&apos;re on the list
       </h2>
       {mine?.note ? (
-        <p className="mt-2 text-sm leading-relaxed text-pretty">{mine.note}</p>
+        <p className="mt-2 text-sm leading-relaxed break-words text-pretty">
+          {mine.note}
+        </p>
       ) : (
         <p className="mt-2 text-sm text-accent">
           You didn&apos;t leave a note — classmates will just see your name.
@@ -516,7 +520,7 @@ export function BuddiesSection({
           ) : (
             <X className="size-3.5" aria-hidden />
           )}
-          Never mind
+          Take my name down
         </Button>
       </div>
     </Card>
@@ -525,8 +529,22 @@ export function BuddiesSection({
   return (
     <div>
       {error ? (
-        <div className="mb-4">
-          <InlineError message={error} />
+        <div
+          role="alert"
+          className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2"
+        >
+          <p className="min-w-0 text-xs font-medium text-danger">{error}</p>
+          <Button
+            variant="soft"
+            size="sm"
+            disabled={reloading}
+            onClick={() => void reload()}
+          >
+            {reloading ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : null}
+            Try again
+          </Button>
         </div>
       ) : null}
 

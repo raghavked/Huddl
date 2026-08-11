@@ -1,5 +1,85 @@
 # Huddl development log
 
+## Round 13 — the big slate: the design language, groups, focus, and grades
+
+Migrations 0028–0029 live, 25 agents in three waves — schema first, then the
+features, then the integration pass and the web port:
+
+- **Design system v3.1**: elevation and motion token families (warm shadow
+  ink pulled from the palette; dark leans on surface contrast instead of
+  shadow) and five new primitives — **Chip**, **EmptyState**,
+  **SectionLabel**, **Sheet** (+ `Sheet.Row`), **Skeleton** — each one
+  normalizing a pattern roughly 26 screens had been hand-rolling. Button
+  gained a physical press (0.98 scale, reduced-motion aware), Card took the
+  elevation tokens, and `docs/DESIGN.md` is the language written down:
+  palette, type, spacing, elevation, motion, copy voice, craft floor. Nine
+  existing screens then moved onto the primitives — Sheet replaced four
+  hand-rolled action sheets in the chat surfaces alone (net −418 lines
+  there), Chip replaced five local pill components, EmptyState /
+  SectionLabel / Skeleton took the rest. Five cases were left alone on
+  purpose, with the reasons written down next to them.
+- **Display preferences**: theme mode (system / light / dark) and a clamped
+  text scale, persisted to AsyncStorage by a DisplayProvider mounted above
+  everything; `useTheme` and `AppText` read from it, so all ~50 screens
+  re-theme and re-scale without being touched. `/display-settings` shows
+  live theme previews and a live type sample rather than describing them.
+- **Group DMs**: start a thread with several classmates at once — a campus
+  people picker in the `/dm/new` composer, a `/dm/info` roster where anyone
+  can rename the thread, add someone, or leave. Group-aware headers and
+  author names in the room, avatar clusters on the Messages list, and a
+  `threadDisplay` rule so an untitled group still reads like its people.
+  Built on the 0028 RPCs, with `create_dm_thread` now excluding groups so
+  1:1 find-or-create can never hand one back.
+- **Focus sessions**: `/focus` — goal chips, an optional course, and a timer
+  that ticks only while the screen is focused, over a data layer whose math
+  (elapsed, remaining, progress, duration formatting, streak) is pure and
+  takes `now` as an argument. Open rows are the campus "studying now" list
+  over realtime, so nobody is grinding alone at 11pm; closed rows are the
+  quiet history behind the streak. `FocusStrip` is the embeddable version.
+- **Private grade tracker**: weighted categories off your syllabus, the
+  scores inside them, and a course estimate rescaled by the weight actually
+  graded — so an early-quarter student isn't dragged to zero by empty
+  buckets. What-if targets ("what you need on the final"), letters, and a
+  warning when the weights don't add up. The 0028 tables are self-only, and
+  the screen says so once, plainly, then gets out of the way.
+- **Club announcements**: an officer-guarded composer that explains the
+  reach before you write, an announcements section on the club home with
+  bylines that survive a deleted account, and a new `club_post` notification
+  kind with a block-aware trigger. The data layer's two pure helpers mirror
+  the RLS policies, so the button and the empty state can never disagree
+  about who may post.
+- **Study buddies**: opt in per course with a note about how you study, see
+  the classmates who did the same, message one in a tap. Opting out is a
+  delete — nothing lingers — and the screen says so.
+- **Course archiving**: long-press to shelve a finished class (its chat and
+  notes stay exactly where they are), plus an archived shelf grouped by
+  term, collapsed until asked for. Migration **0029** adds the UPDATE policy
+  0028 forgot: a column-scoped grant so a student may change `archived_at`
+  on their own enrollment and nothing else — role and source stay out of
+  reach. Without it every archive failed the RLS check; an agent caught it
+  while porting the feature to web.
+- **First run**: a three-panel welcome drawn on the hand-drawn marks — what
+  classes do, what a syllabus turns into, who's on the other side of a
+  message — then a live starter checklist that re-reads on focus, so
+  progress ticks over as it happens instead of after a reload.
+- **Integration**: the course home is a six-doorway grid now (Calendar,
+  Rooms, Flashcards, Links, Grades, Study partners) with tones assigned by
+  meaning rather than alternation — fern for the dated and filed, ember for
+  people and studying — plus a FocusStrip that stays invisible until a
+  classmate is actually studying. The shell learned Look and feel, Focus,
+  and a way back to the welcome; Home shows active courses only and carries
+  its own focus strip; the plan and calendar stopped fanning out to shelved
+  courses; and the launch gate routes first-timers through `/welcome` once.
+- **Web parity**: group DMs end to end (composer, stacked-avatar thread
+  rows, a group-aware room with a roster panel that renames, adds and
+  leaves); focus sessions, study buddies and club announcements ported with
+  their data layers; the private grade tracker with 41 new tests; course
+  shelving via server actions; and `/settings/appearance` owning both theme
+  and text size, replayed before first paint from the root layout.
+
+Verification: mobile strict tsc + iOS Hermes export (4.5 MB); web tsc,
+ESLint, 176 Vitest tests, production build with every new route.
+
 ## Round 12 — design pass, saved messages, and event reminders
 
 Migration 0027 live, seven agents (three were interrupted mid-flight by a

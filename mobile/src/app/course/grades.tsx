@@ -47,6 +47,7 @@ import {
 } from "@/lib/grades";
 import { tapSuccess } from "@/lib/haptics";
 import { useAuth } from "@/providers/auth-provider";
+import { clampTextScale, useDisplay } from "@/providers/display-provider";
 
 /* Your grades — the private one.
  *
@@ -276,6 +277,10 @@ function EstimateCard({
   );
   const warning = useMemo(() => weightWarning(categories), [categories]);
   const letter = letterFor(estimate.pct);
+  // The one number this screen exists for. Its size is set here rather than
+  // by the variant, so the text-size preference has to be multiplied through
+  // by hand — same as the timer on /focus.
+  const textScale = clampTextScale(useDisplay().textScale);
 
   if (estimate.pct === null) {
     return (
@@ -302,7 +307,13 @@ function EstimateCard({
         }`}
         style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
       >
-        <AppText variant="display" style={{ fontSize: 44, lineHeight: 50 }}>
+        <AppText
+          variant="display"
+          style={{
+            fontSize: Math.round(44 * textScale),
+            lineHeight: Math.round(50 * textScale),
+          }}
+        >
           {pctText(estimate.pct)}%
         </AppText>
         {letter ? <Chip label={letter} tone="brand" size="md" /> : null}

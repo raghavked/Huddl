@@ -91,8 +91,10 @@ function AnnouncementRow({
     <li className={first ? "px-4 py-3.5" : "border-t border-border px-4 py-3.5"}>
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-pretty">{post.title}</p>
-          <p className="mt-1 whitespace-pre-line text-sm text-muted text-pretty">
+          <p className="text-sm font-semibold break-words text-pretty">
+            {post.title}
+          </p>
+          <p className="mt-1 whitespace-pre-line break-words text-sm text-muted text-pretty">
             {post.body}
           </p>
           <p className="mt-1.5 truncate text-xs text-muted">
@@ -368,15 +370,16 @@ export function AnnouncementsSection({
       ) : initialError ? (
         <Card className="mt-3 flex flex-col items-center gap-2.5 text-center">
           <CloudOff className="size-5 text-muted" aria-hidden />
+          <p className="font-bold tracking-tight">The board didn&apos;t load</p>
           <p className="max-w-xs text-sm text-muted text-pretty">
-            {initialError}
+            {initialError} Reload the page and it should come back.
           </p>
         </Card>
       ) : (
         <div className="mt-3 rounded-card border border-dashed border-border">
           <EmptyState
             icon={Bell}
-            title={canPost ? "Nothing posted yet" : "No announcements yet"}
+            title={canPost ? "Nothing posted yet" : "The board is quiet"}
             description={
               canPost
                 ? "Tell the club what is happening — everyone gets it once, in their notifications."

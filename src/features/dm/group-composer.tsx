@@ -50,7 +50,9 @@ export function GroupComposer({ userId }: { userId: string }) {
         return;
       }
       if (selected.length + 1 >= GROUP_MAX_PEOPLE) {
-        setError("This group is full at 16.");
+        setError(
+          `That's ${GROUP_MAX_PEOPLE} — the cap for a group. Tap someone's chip to take them back out and make room.`
+        );
         return;
       }
       setError(null);
@@ -63,11 +65,15 @@ export function GroupComposer({ userId }: { userId: string }) {
     if (pending) return;
     const trimmed = title.trim();
     if (trimmed.length < 2 || trimmed.length > GROUP_TITLE_MAX) {
-      setError("Group names run 2 to 60 characters.");
+      setError(
+        `Give the group a name everyone will recognize — 2 to ${GROUP_TITLE_MAX} characters.`
+      );
       return;
     }
     if (selected.length < GROUP_MIN_PEOPLE - 1) {
-      setError("Groups hold 3 to 16 people including you.");
+      setError(
+        `Pick ${shortBy} more ${shortBy === 1 ? "person" : "people"} — a group holds ${GROUP_MIN_PEOPLE} to ${GROUP_MAX_PEOPLE}, you included.`
+      );
       return;
     }
     setError(null);
@@ -83,7 +89,7 @@ export function GroupComposer({ userId }: { userId: string }) {
       setError(
         err instanceof GroupDmError
           ? err.message
-          : "We couldn't start that group just now. Try again."
+          : "We couldn't start that group just now. Give it another go."
       );
       setPending(false);
     }
@@ -132,33 +138,39 @@ export function GroupComposer({ userId }: { userId: string }) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-semibold">Who&rsquo;s in</span>
-        <ul
-          aria-label="People in this group"
-          className="flex flex-wrap items-center gap-2"
-        >
-          <li>
-            <Badge tone={shortBy === 0 ? "accent" : "neutral"}>
-              <span aria-live="polite">
-                {headcount} of {GROUP_MAX_PEOPLE}
-              </span>
-            </Badge>
-          </li>
-          {selected.map((person) => (
-            <li key={person.id}>
-              <button
-                type="button"
-                onClick={() => togglePerson(person)}
-                disabled={pending}
-                aria-label={`Remove ${person.display_name}`}
-                className="inline-flex h-8 items-center gap-1 rounded-full bg-brand-soft px-3 text-xs font-semibold text-brand-ink transition-colors hover:bg-brand hover:text-brand-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:pointer-events-none disabled:opacity-60"
-              >
-                {firstNameOf(person.display_name)}
-                <X className="size-3.5" aria-hidden />
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-semibold">Who&rsquo;s in</span>
+          {/* A headcount, not a person — it sits beside the list rather than
+              inside it, so a screen reader counts only classmates. */}
+          <Badge tone={shortBy === 0 ? "accent" : "neutral"}>
+            <span aria-live="polite">
+              {headcount} of {GROUP_MAX_PEOPLE}
+            </span>
+          </Badge>
+        </div>
+        {selected.length > 0 ? (
+          <ul
+            aria-label="People in this group"
+            className="flex flex-wrap items-center gap-2"
+          >
+            {selected.map((person) => (
+              <li key={person.id} className="max-w-full">
+                <button
+                  type="button"
+                  onClick={() => togglePerson(person)}
+                  disabled={pending}
+                  aria-label={`Remove ${person.display_name} from the group`}
+                  className="inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-full bg-brand-soft px-4 text-xs font-semibold text-brand-ink transition-colors hover:bg-brand hover:text-brand-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:pointer-events-none disabled:opacity-60"
+                >
+                  <span className="truncate">
+                    {firstNameOf(person.display_name)}
+                  </span>
+                  <X className="size-3.5 shrink-0" aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <Hint>{hint}</Hint>
       </div>
 
@@ -185,7 +197,7 @@ export function GroupComposer({ userId }: { userId: string }) {
             Starting the group…
           </>
         ) : (
-          "Create group"
+          "Start the group"
         )}
       </Button>
     </form>

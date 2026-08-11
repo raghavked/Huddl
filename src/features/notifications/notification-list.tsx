@@ -14,6 +14,7 @@ import {
   Heart,
   Info,
   Loader2,
+  Megaphone,
   MessageCircle,
   Reply,
   ShieldCheck,
@@ -40,6 +41,7 @@ const KIND_META: Record<NotificationKind, { icon: LucideIcon; label: string }> =
     course_calendar: { icon: BookOpen, label: "Class calendar" },
     mention: { icon: AtSign, label: "Mention" },
     thanks: { icon: Heart, label: "Thanks" },
+    club_post: { icon: Megaphone, label: "Club post" },
   };
 
 /**

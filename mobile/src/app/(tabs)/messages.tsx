@@ -305,9 +305,9 @@ function EmptyThreads() {
     <EmptyState
       illustration={PaperPlane}
       title="No conversations yet"
-      body="DM classmates to trade notes, plan study sessions, or just say hi — or start a group and get everyone in one place."
+      body="Message a classmate to trade notes, plan study sessions, or just say hi — or pick a few and get everyone in one place."
       action={{
-        label: "Start a group",
+        label: "Start a conversation",
         onPress: () => router.push("/dm/new"),
       }}
     />
@@ -476,7 +476,7 @@ export default function MessagesScreen() {
       action={
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="New group"
+          accessibilityLabel="New message"
           onPress={() => router.push("/dm/new")}
           hitSlop={8}
           style={({ pressed }) => ({

@@ -19,6 +19,7 @@ import {
   Button,
   Input,
   Label,
+  SectionHeader,
   cardClasses,
 } from "@/components/ui";
 import { CampusPeoplePicker } from "@/features/dm/campus-people-picker";
@@ -152,7 +153,7 @@ export function GroupInfoPanel({
       setError(
         err instanceof GroupDmError
           ? err.message
-          : "We couldn't rename the group just now. Try again."
+          : "We couldn't rename the group just now. Give it another go."
       );
     } finally {
       setRenaming(false);
@@ -176,7 +177,7 @@ export function GroupInfoPanel({
         setError(
           err instanceof GroupDmError
             ? err.message
-            : `We couldn't add ${person.display_name} just now. Try again.`
+            : `We couldn't add ${person.display_name} just now. Give it another go.`
         );
       } finally {
         setAddingId(null);
@@ -203,7 +204,7 @@ export function GroupInfoPanel({
       setError(
         err instanceof GroupDmError
           ? err.message
-          : "We couldn't leave that group just now. Try again."
+          : "We couldn't leave that group just now. Give it another go."
       );
       setLeaving(false);
     }
@@ -217,14 +218,14 @@ export function GroupInfoPanel({
       className="flex items-center gap-2 rounded-xl bg-danger/10 px-3 py-2 text-xs text-danger"
     >
       <AlertCircle className="size-4 shrink-0" aria-hidden />
-      <span className="flex-1">{error}</span>
+      <span className="min-w-0 flex-1">{error}</span>
       <button
         type="button"
         onClick={() => setError(null)}
-        aria-label="Dismiss error"
-        className="rounded-full p-1 transition-colors hover:bg-danger/10"
+        aria-label="Dismiss this message"
+        className="-my-2 -mr-1 flex size-11 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger"
       >
-        <X className="size-3.5" aria-hidden />
+        <X className="size-4" aria-hidden />
       </button>
     </p>
   ) : null;
@@ -253,7 +254,7 @@ export function GroupInfoPanel({
                 setError(null);
               }}
               aria-label="Done adding people"
-              className="-ml-2 rounded-full p-2 text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
+              className="-my-1.5 -ml-2 flex size-11 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
             >
               <X className="size-5" aria-hidden />
             </button>
@@ -269,7 +270,7 @@ export function GroupInfoPanel({
               type="button"
               onClick={onClose}
               aria-label="Close group info"
-              className="-mr-2 rounded-full p-2 text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
+              className="-my-1.5 -mr-2 flex size-11 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
             >
               <X className="size-5" aria-hidden />
             </button>
@@ -284,15 +285,16 @@ export function GroupInfoPanel({
                 <div className="py-8 text-center">
                   <Users className="mx-auto size-6 text-muted" aria-hidden />
                   <p className="mt-2 text-sm font-semibold">
-                    This group is full at 16
+                    That&rsquo;s {GROUP_MAX_PEOPLE} — the group is full
                   </p>
                   <p className="mx-auto mt-1 max-w-xs text-xs text-muted">
                     Someone has to leave before another classmate can join.
+                    Starting a second group is the other way round it.
                   </p>
                 </div>
               ) : (
                 <>
-                  <p className="text-xs text-muted">
+                  <p className="text-xs break-words text-muted">
                     Everyone in {title} is on your campus — that&rsquo;s the
                     only rule. Pick someone to add them right away.
                   </p>
@@ -350,7 +352,9 @@ export function GroupInfoPanel({
               ) : (
                 <div className="flex items-start gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-lg font-bold text-balance">{title}</p>
+                    <p className="text-lg font-bold break-words text-balance">
+                      {title}
+                    </p>
                     <p className="mt-0.5 text-xs text-muted">
                       {people.length}{" "}
                       {people.length === 1 ? "person" : "people"} · anyone here
@@ -371,9 +375,7 @@ export function GroupInfoPanel({
               {errorNote}
 
               <div className="flex flex-col gap-2">
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">
-                  In this group
-                </h3>
+                <SectionHeader title="In this group" />
                 <ul aria-label="People in this group" className="flex flex-col gap-2">
                   {people.map((person) => (
                     <li key={person.id}>

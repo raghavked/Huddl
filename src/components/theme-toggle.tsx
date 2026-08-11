@@ -86,8 +86,12 @@ export function ThemeToggle({ className }: { className?: string }) {
               setPref(value);
               applyPref(value);
             }}
+            /* Drawn at 28px so the switch stays light in the row, tapped at
+               44px: the `before` pane reaches 8px past every edge and carries
+               the hit area without touching layout. Neighbouring panes meet
+               in the blank between chips, never over an icon. */
             className={cn(
-              "flex size-7 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+              "relative flex size-7 items-center justify-center rounded-full transition-colors before:absolute before:-inset-2 before:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
               active
                 ? "bg-surface text-foreground shadow-soft"
                 : "text-muted hover:text-foreground"
@@ -123,8 +127,9 @@ export function ThemeToggleCompact({ className }: { className?: string }) {
         setPref(next);
         applyPref(next);
       }}
+      /* Same deal as the three-way switch: 36px of ink, 44px of target. */
       className={cn(
-        "flex size-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+        "relative flex size-9 items-center justify-center rounded-full text-muted transition-colors before:absolute before:-inset-1 before:content-[''] hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
         className
       )}
     >

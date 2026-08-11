@@ -208,7 +208,10 @@ export function CampusPeoplePicker({
           // The panel opens straight into "add people" — the search box is
           // the whole point of that view, so focus belongs in it.
           autoFocus={autoFocus}
-          className="w-full rounded-full border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-foreground shadow-soft transition-colors placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-[3px] focus:ring-brand/15 disabled:cursor-not-allowed disabled:opacity-60"
+          // The pill variant of `controlClasses` — same border, caret,
+          // placeholder and focus ring, drawn round for a search box, and
+          // held at the 44px target a thumb needs.
+          className="min-h-11 w-full rounded-full border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-foreground shadow-soft transition-colors placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-[3px] focus:ring-brand/15 disabled:cursor-not-allowed disabled:opacity-60"
         />
       </div>
 
@@ -225,11 +228,17 @@ export function CampusPeoplePicker({
             Looking around campus…
           </p>
         ) : failed ? (
-          <div className="flex flex-col items-center gap-2 py-8 text-center">
+          <div
+            role="alert"
+            className="flex flex-col items-center gap-2 py-8 text-center"
+          >
             <CloudOff className="size-6 text-muted" aria-hidden />
-            <p className="text-sm font-semibold">We couldn&rsquo;t reach campus</p>
+            <p className="text-sm font-semibold">
+              The campus directory didn&rsquo;t load
+            </p>
             <p className="max-w-xs text-xs text-muted">
-              Check your connection and give it another go.
+              Check your connection and give it another go — nobody you
+              already picked has gone anywhere.
             </p>
             <Button variant="soft" size="sm" onClick={retry}>
               Try again

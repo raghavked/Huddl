@@ -1,4 +1,5 @@
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import { computeDayStreak } from "@/lib/study-plan";
 import { supabase } from "@/lib/supabase";
 
 /* Focus sessions — "studying now" — as a data layer.
@@ -88,8 +89,14 @@ export const FOCUS_GOAL_MAX = 240;
 /** What we start the picker on — one pomodoro, same as the column default. */
 export const FOCUS_GOAL_DEFAULT = 25;
 
-/** Suggested goals for a picker, so every surface offers the same rungs. */
-export const FOCUS_GOAL_PRESETS: readonly number[] = [15, 25, 50, 90];
+/**
+ * Suggested goals for a picker, so every surface offers the same rungs. Five
+ * steps: a short sit, a pomodoro, then the two class-adjacent blocks a quarter
+ * actually runs on (a 45 and an hour), then the long one. The database accepts
+ * anything from {@link FOCUS_GOAL_MIN} to {@link FOCUS_GOAL_MAX} and
+ * {@link startFocus} clamps, so these are rungs, not rules.
+ */
+export const FOCUS_GOAL_PRESETS: readonly number[] = [15, 25, 45, 60, 90];
 
 /** Longest note the database accepts — cap your TextInput here. */
 export const FOCUS_NOTE_MAX = 80;
@@ -539,27 +546,19 @@ export function formatDuration(minutes: number): string {
   return `${hours}h ${mins}m`;
 }
 
-/** Local calendar-day key — streaks live in the student's timezone. */
-function localDayKey(d: Date): string {
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-}
-
 /**
  * The focus streak: consecutive local calendar days, ending today or
- * yesterday, on which the student finished at least one session. Yesterday
- * still counts as alive so an unstudied morning doesn't zero out last night's
- * run — the same rule the study plan uses for check-offs (see `computeStreak`
- * in `mobile/src/app/plan.tsx`, alongside `@/lib/study-plan`), so the two
- * numbers never disagree about what a day is.
+ * yesterday, on which the student finished at least one session.
  *
  * Only COMPLETED sessions count, keyed by the day they ended: an open session
  * hasn't been a session yet, and a student mid-sitting shouldn't see the
- * streak flicker. Days are counted in local time, so a session that ends at
- * 1am belongs to that new day, exactly as the student experienced it.
+ * streak flicker. That's all this adds — the day arithmetic itself is
+ * {@link computeDayStreak} in `@/lib/study-plan`, which check-offs use too, so
+ * the two streaks can never disagree about what a day is or about yesterday
+ * still counting as alive.
  *
- * Pure: feed it whatever closed rows you've loaded (order doesn't matter)
- * plus a `now`, and it hands back a day count. Follow the plan screen's lead
- * and stay quiet below 2 — no guilt UI.
+ * Pure: feed it whatever rows you've loaded (order doesn't matter) plus a
+ * `now`, and it hands back a day count. Stay quiet below 2 — no guilt UI.
  *
  * @param sessions Any sessions at all; open ones are ignored.
  * @param now      The current moment — passed in, never read from the clock.
@@ -568,20 +567,7 @@ export function computeFocusStreak(
   sessions: Iterable<Pick<FocusSession, "ended_at">>,
   now: Date
 ): number {
-  const days = new Set<string>();
-  for (const session of sessions) {
-    if (session.ended_at === null) continue;
-    const ended = new Date(session.ended_at);
-    if (Number.isNaN(ended.getTime())) continue;
-    days.add(localDayKey(ended));
-  }
-
-  const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (!days.has(localDayKey(cursor))) cursor.setDate(cursor.getDate() - 1);
-  let streak = 0;
-  while (days.has(localDayKey(cursor))) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return streak;
+  const endings: (string | null)[] = [];
+  for (const session of sessions) endings.push(session.ended_at);
+  return computeDayStreak(endings, now);
 }

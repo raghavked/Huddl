@@ -29,6 +29,7 @@ import {
   fetchMyOpenSession,
   fetchStudyingNow,
   FOCUS_GOAL_DEFAULT,
+  FOCUS_GOAL_PRESETS,
   FOCUS_NOTE_MAX,
   FocusError,
   formatDuration,
@@ -54,13 +55,6 @@ import { clampTextScale, useDisplay } from "@/providers/display-provider";
  * All the time math lives in `@/lib/focus` and takes a `now` — this screen
  * only decides how often to hand it one (once a second, while a session is
  * running and the screen is actually in front of you). */
-
-/* The goals we offer. The database accepts anything from 5 to 240 and
-   `startFocus` clamps for us, so these are rungs, not rules. NOTE: this
-   ladder is the one in the screen spec; `FOCUS_GOAL_PRESETS` in
-   `@/lib/focus` currently reads [15, 25, 50, 90]. If another surface ever
-   grows a picker, hoist one of the two and delete the other. */
-const GOAL_CHOICES: readonly number[] = [15, 25, 45, 60, 90];
 
 /** How far back the streak query looks — long enough for any real run. */
 const STREAK_WINDOW_DAYS = 120;
@@ -702,7 +696,7 @@ export default function FocusScreen() {
                 <View
                   style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
                 >
-                  {GOAL_CHOICES.map((minutes) => (
+                  {FOCUS_GOAL_PRESETS.map((minutes) => (
                     <Chip
                       key={minutes}
                       label={formatDuration(minutes)}

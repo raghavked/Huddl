@@ -10,7 +10,7 @@ checklist.
 - **Subtitle** (30 chars): Your campus, in one huddle.
 - **Category**: Social Networking (secondary: Education)
 - **Keywords** (100 chars):
-  `college,campus,classes,study group,notes,chat,course,student,university,uc davis,clubs,calendar`
+  `college,campus,classes,study,flashcards,notes,grades,focus timer,student,clubs,calendar,uc davis`
 
 **Description**:
 
@@ -20,18 +20,33 @@ checklist.
 > Add your classes in seconds: type a course code and the campus catalog
 > fills in the rest, or add any class by hand. Each course opens into a
 > home of its own — a main chat, rooms for lectures and study groups, a
-> shared class calendar, and shared notes.
+> shared class calendar, flashcard decks, pinned links, and shared notes.
+> When the quarter ends, shelve the class; the chat and the notes stay
+> exactly where you left them.
 >
 > Paste your syllabus and the whole quarter lands on the class calendar:
 > assignment due dates, quizzes, midterms, finals. Your personal study
 > plan sorts everything across your classes — what's overdue, what's due
-> today, what's coming — with recommended study blocks before every exam.
+> today, what's coming — with recommended study blocks before every exam,
+> and one month view merges all of it with the events you've said yes to.
+>
+> The study tools are the part you'll actually open at 11pm. Shared
+> flashcard decks your whole class builds, with spaced repetition and a
+> paste-a-study-guide importer. A focus timer that shows who else on
+> campus is heads-down right now, so you're never grinding alone. Study
+> partners you opt into course by course. And a grade tracker that is
+> private to you — weighted categories off your syllabus, an honest
+> estimate of where you stand, and exactly what you need on the final.
 >
 > Chat is built for classmates: photos, polls, @mentions, pinned
 > messages, threads, and reactions, with typing indicators and read
-> state. DMs for the people you actually know. Clubs get their own
-> space — chat, roster, events. Study sessions and meetups take RSVPs
-> and land on your calendar.
+> state. DMs for the people you know, group DMs for the people you're
+> working with. Clubs get their own space — chat, roster, events, and
+> announcements from the officers. Study sessions and meetups take RSVPs
+> and nudge everyone about an hour out.
+>
+> It's made to be lived in: a warm light theme, a candle-lit dark one,
+> your own text size, and no ads anywhere.
 >
 > Every account is verified with a university email, so your campus is a
 > real, closed community. Blocking, reporting, and a 24-hour moderation
@@ -40,9 +55,9 @@ checklist.
 >
 > Launching at UC Davis. Your campus is next.
 
-- **Promotional text** (170 chars): Every class, club, and study session
-  on your campus — one app. Syllabus in, study plan out, and the chat is
-  actually your classmates.
+- **Promotional text** (170 chars): Every class, club, and study night on
+  your campus — one app. Syllabus in, study plan out, decks and grades in
+  your pocket, and the chat is your classmates.
 - **Support URL**: https://huddl.app (privacy: https://huddl.app/legal/privacy)
 - **Marketing URL**: https://huddl.app
 
@@ -59,15 +74,28 @@ checklist.
 - **Account deletion** (Guideline 5.1.1(v)): Settings → Delete account.
 - **Permissions**: photo library + camera strings are set in app.json
   (chat photos, profile photos). Push permission is requested in-context.
+- **Grades are private, not a record system**: the grade tracker is a
+  student's own scratch math, stored self-only (no classmate, officer, or
+  school can read a row) and never shared with an institution. Worth
+  saying in the review notes so it isn't read as an academic-records
+  integration.
+- **"Studying now" is campus-scoped**: a focus session shows only to other
+  verified students at the same university, and only while it's running.
 
 ## Screenshot plan (6.7" + 6.1", both themes)
 
-1. Home — plan card + campus channels ("Your campus, in one huddle")
-2. Add courses — catalog autocomplete ("Type it, you're in")
-3. Course home — calendar + rooms ("Every class is a home")
-4. Syllabus import preview ("Paste the syllabus, get the quarter")
-5. Study plan ("Always know what's next")
-6. Channel chat with a poll + photo ("Chat that carries the class")
+1. Home — today strip + plan card ("Your campus, in one huddle")
+2. Course home — the six-doorway grid ("Every class is a home")
+3. Syllabus import preview ("Paste the syllabus, get the quarter")
+4. Study plan ("Always know what's next")
+5. Flashcards mid-flip ("Decks your whole class builds")
+6. Focus — timer running, studying-now list ("Nobody studies alone")
+7. Grades — categories + what-if ("Private. Only you see this.")
+8. Channel chat with a poll + photo ("Chat that carries the class")
+
+Shoot the dark theme for Focus and Flashcards — the candle-lit palette is
+the most distinctive thing on the shelf, and those are the late-night
+screens anyway.
 
 ## Pre-submission checklist
 
@@ -81,5 +109,5 @@ checklist.
 - [ ] Supabase Auth: enable leaked-password protection (dashboard)
 - [ ] Supabase Auth: production SMTP + email templates branded
 - [ ] App Privacy questionnaire: collects email, name, user content
-      (messages, files), coarse identifiers (university); no tracking,
-      no ads, no data sale
+      (messages, files, flashcards, private grade entries), coarse
+      identifiers (university); no tracking, no ads, no data sale

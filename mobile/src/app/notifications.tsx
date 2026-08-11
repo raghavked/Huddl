@@ -48,6 +48,8 @@ const KIND_ICONS: Partial<Record<string, keyof typeof Feather.glyphMap>> = {
   event: "calendar",
   channel: "hash",
   course_calendar: "book-open",
+  // Feather has no megaphone; volume-2 is this app's, on campus channels too.
+  club_post: "volume-2",
   thanks: "heart",
   system: "bell",
 };
@@ -428,7 +430,7 @@ export default function NotificationsScreen() {
             <EmptyState
               icon="bell"
               title="All quiet — you're caught up."
-              body="New messages, thread replies, event updates, class calendar changes and thanks for your notes will land here."
+              body="New messages, thread replies, event updates, class calendar changes, club announcements and thanks for your notes will land here."
             />
           }
           ListFooterComponent={

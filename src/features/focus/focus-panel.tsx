@@ -25,6 +25,7 @@ import {
 } from "@/components/ui";
 import {
   FOCUS_GOAL_DEFAULT,
+  FOCUS_GOAL_PRESETS,
   FOCUS_NOTE_MAX,
   FocusError,
   computeFocusStreak,
@@ -57,13 +58,6 @@ import { cn } from "@/lib/utils";
 
 /** A course you can attach a session to. */
 export type CourseOption = { id: string; code: string };
-
-/**
- * The goals we offer. The database accepts anything from 5 to 240 and
- * `startFocus` clamps for us, so these are rungs, not rules — the same ladder
- * the native focus screen offers.
- */
-const GOAL_CHOICES: readonly number[] = [15, 25, 45, 60, 90];
 
 /** How far back the streak query looks — long enough for any real run. */
 const STREAK_WINDOW_DAYS = 120;
@@ -408,7 +402,7 @@ export function FocusPanel({
     return (
       <div className="mt-6 flex flex-col items-center gap-2.5 px-6 py-16 text-center">
         <CloudOff className="size-7 text-muted" aria-hidden />
-        <p className="font-bold tracking-tight">Something went sideways</p>
+        <p className="font-bold tracking-tight">Focus didn&apos;t load</p>
         <p className="max-w-xs text-sm text-muted text-pretty">
           {error} Check your connection and give it another go.
         </p>
@@ -441,17 +435,27 @@ export function FocusPanel({
       ) : null}
 
       {error ? (
-        <p className="mt-3 flex items-center gap-2 text-xs font-medium text-danger">
-          <CircleAlert className="size-3.5 shrink-0" aria-hidden />
-          We couldn&apos;t refresh just now.
-          <button
-            type="button"
+        <div
+          role="alert"
+          className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2"
+        >
+          <p className="flex min-w-0 items-start gap-2 text-xs font-medium text-danger">
+            <CircleAlert className="mt-px size-3.5 shrink-0" aria-hidden />
+            We couldn&apos;t refresh just now, so anything below may be a few
+            minutes old.
+          </p>
+          <Button
+            variant="soft"
+            size="sm"
+            disabled={reloading}
             onClick={() => void reload()}
-            className="font-semibold underline underline-offset-2"
           >
+            {reloading ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : null}
             Try again
-          </button>
-        </p>
+          </Button>
+        </div>
       ) : null}
 
       {mine && timer ? (
@@ -470,7 +474,9 @@ export function FocusPanel({
                 <Badge tone="brand">{timer.courseCode}</Badge>
               ) : null}
               {mine.note ? (
-                <p className="text-sm font-medium text-pretty">{mine.note}</p>
+                <p className="text-sm font-medium break-words text-pretty">
+                  {mine.note}
+                </p>
               ) : null}
             </div>
           ) : null}
@@ -544,7 +550,7 @@ export function FocusPanel({
                   aria-labelledby="focus-goal-label"
                   className="flex flex-wrap gap-2"
                 >
-                  {GOAL_CHOICES.map((minutes) => (
+                  {FOCUS_GOAL_PRESETS.map((minutes) => (
                     <ChoiceChip
                       key={minutes}
                       label={formatDuration(minutes)}

@@ -10,7 +10,9 @@ import type { Href } from "expo-router";
  */
 export function routeForLink(link: string | null): Href | null {
   if (!link) return null;
-  const match = /^\/(messages|events|courses|channels)\/([^/?#]+)/.exec(link);
+  const match = /^\/(messages|events|courses|channels|clubs)\/([^/?#]+)/.exec(
+    link
+  );
   const id = match?.[2];
   if (!match || !id) return null;
   switch (match[1]) {
@@ -22,6 +24,9 @@ export function routeForLink(link: string | null): Href | null {
       return `/course/${id}`;
     case "channels":
       return `/channel/${id}`;
+    // The web writes `/clubs/<id>`; ours is singular.
+    case "clubs":
+      return `/club/${id}`;
     default:
       return null;
   }

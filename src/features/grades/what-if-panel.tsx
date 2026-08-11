@@ -52,7 +52,7 @@ export function WhatIfPanel({
         className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
       >
         <span className="min-w-0 flex-1 font-bold tracking-tight">
-          What do I need for an A-?
+          What do I need from here?
         </span>
         <ChevronDown
           className={cn(
@@ -81,7 +81,7 @@ export function WhatIfPanel({
                   aria-label={`Aim for ${option.value} percent`}
                   onClick={() => setTarget(option.value)}
                   className={cn(
-                    "rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                    "inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                     selected
                       ? "border-brand bg-brand-soft text-brand-ink"
                       : "border-border bg-surface text-muted hover:text-foreground"

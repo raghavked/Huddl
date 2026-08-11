@@ -70,13 +70,22 @@ export type StudyBuddy = {
   created_at: string;
   /** Their handle, without the leading `@`. */
   handle: string;
-  /** Their display name, falling back to their handle if it's somehow blank. */
+  /**
+   * Their display name, falling back to their handle if it's somehow blank —
+   * and always just the handle for a classmate whose profile is private.
+   */
   display_name: string;
   /** Their avatar, or null — fall back to initials via `@/components/avatar`. */
   avatar_url: string | null;
-  /** Their major, e.g. "Computer science", or null if they haven't said. */
+  /**
+   * Their major, e.g. "Computer science", or null if they haven't said —
+   * always null for a classmate whose profile is private.
+   */
   major: string | null;
-  /** Their graduating year, e.g. 2027, or null if they haven't said. */
+  /**
+   * Their graduating year, e.g. 2027, or null if they haven't said — always
+   * null for a classmate whose profile is private.
+   */
   grad_year: number | null;
   /** True on the caller's own row — {@link fetchBuddies} sorts it to the top. */
   is_me: boolean;
@@ -109,8 +118,12 @@ export const BUDDY_LIMIT = 100;
 /** Columns every opt-in query selects. Keep selects consistent. */
 export const BUDDY_SELECT = "user_id, course_id, note, created_at";
 
-/** {@link BUDDY_SELECT} plus the classmate, for the list. */
-const BUDDY_LIST_SELECT = `${BUDDY_SELECT}, profile:profiles(id, handle, display_name, avatar_url, major, grad_year)`;
+/**
+ * {@link BUDDY_SELECT} plus the classmate, for the list. `is_public` rides
+ * along so {@link toStudyBuddy} can strip a private classmate down to their
+ * handle before the row ever reaches a screen.
+ */
+const BUDDY_LIST_SELECT = `${BUDDY_SELECT}, profile:profiles(id, handle, display_name, avatar_url, major, grad_year, is_public)`;
 
 /* ----------------------------- failures ----------------------------- */
 
@@ -213,6 +226,14 @@ function optionalYear(raw: unknown): number | null {
  * the row is missing something a list row can't be drawn without — an id, a
  * handle, or a timestamp. Better an honest drop than a nameless avatar.
  *
+ * Privacy is enforced here, not in the screen: a classmate who has turned
+ * their profile private is only ever their handle and their avatar, exactly
+ * as they are in the people directory and the group picker. Opting in to a
+ * study list is not a way to be outed to the class. Your own row is always
+ * whole — you can read your own name — and anything other than an explicit
+ * `is_public = true` is treated as private, so a select that ever loses the
+ * column fails closed.
+ *
  * @param raw   The row as PostgREST returned it.
  * @param myId  The caller's `profiles.id`, or null when the session hasn't
  *   resolved — nothing is marked `is_me` in that case.
@@ -233,17 +254,22 @@ function toStudyBuddy(raw: unknown, myId: string | null): StudyBuddy | null {
   const handle = optionalText(profile["handle"]);
   if (handle === null) return null;
 
+  const isMe = myId !== null && userId === myId;
+  const isPrivate = !isMe && profile["is_public"] !== true;
+
   return {
     user_id: userId,
     course_id: courseId,
     note: optionalText(record["note"]),
     created_at: createdAt,
     handle,
-    display_name: optionalText(profile["display_name"]) ?? handle,
+    display_name: isPrivate
+      ? handle
+      : (optionalText(profile["display_name"]) ?? handle),
     avatar_url: optionalText(profile["avatar_url"]),
-    major: optionalText(profile["major"]),
-    grad_year: optionalYear(profile["grad_year"]),
-    is_me: myId !== null && userId === myId,
+    major: isPrivate ? null : optionalText(profile["major"]),
+    grad_year: isPrivate ? null : optionalYear(profile["grad_year"]),
+    is_me: isMe,
   };
 }
 

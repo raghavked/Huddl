@@ -763,7 +763,12 @@ export default function HomeScreen() {
     // The plan card's week: class-calendar items from 7 days back (missed
     // deadlines still count) through 7 days ahead, scored against my
     // check-offs by the same pure buildPlan the full screen uses.
+    // Active classes only, exactly as /plan scopes it — a shelved course
+    // keeps its history, but last quarter's due dates have no business in
+    // this card. Counting them makes Home promise "2 due today" over a plan
+    // screen that shows nothing.
     const enrolledCourses = enrollmentRows
+      .filter((row) => row.archived_at === null)
       .map((row) => row.course)
       .filter((c): c is { id: string; code: string } => c !== null);
     let plan: PlanSummary = { total: 0, handled: 0, nextUp: null };

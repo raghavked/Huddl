@@ -14,6 +14,7 @@ import { Screen } from "@/components/screen";
 import { AppText, Button, Card } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { type ClubRole } from "@/lib/club-announcements";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -29,8 +30,6 @@ type ClubCategory =
   | "social"
   | "service"
   | "other";
-
-type ClubRole = "member" | "officer" | "owner";
 
 /** Raw select shape: `club_members(count)` comes back as [{ count }]. */
 type RawClubRow = {

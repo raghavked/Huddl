@@ -305,7 +305,8 @@ export type NotificationKind =
   | "system"
   | "course_calendar"
   | "mention"
-  | "thanks";
+  | "thanks"
+  | "club_post";
 
 export interface AppNotification {
   id: string;

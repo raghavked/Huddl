@@ -39,7 +39,7 @@ type BlockRow = {
   profile: { handle: string; display_name: string } | null;
 };
 
-/** "Ada Lovelace" -> "AL" for the avatar circle. */
+/** "Ada Lovelace" -> "AL" for the muted circle. See {@link MutedInitials}. */
 function initialsOf(name: string): string {
   return name
     .trim()
@@ -51,6 +51,41 @@ function initialsOf(name: string): string {
     .toUpperCase();
 }
 
+/**
+ * A deliberate exception to "`Avatar` is the one way we draw a person": a
+ * neutral `surface2` circle with muted initials, no photo and no tint.
+ *
+ * `Avatar` colors its initials circle by a stable hash of the name, which is
+ * exactly right everywhere you want to recognize someone at a glance — and
+ * wrong here. This list is a settings chore, not a room full of people: a
+ * column of ember and fern circles turns "who I've quietly blocked" into
+ * something that looks like a friends list, and we deliberately don't render
+ * their photo either. The row stays quiet and unremarkable on purpose.
+ *
+ * If a second screen ever needs this, that's the signal to give `Avatar` a
+ * documented quiet variant instead of copying this circle again. Recorded in
+ * `docs/DESIGN.md` §4 so it reads as a decision, not drift.
+ */
+function MutedInitials({ name }: { name: string }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: radius.full,
+        backgroundColor: theme.surface2,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <AppText variant="title" style={{ color: theme.muted, fontSize: 16 }}>
+        {initialsOf(name) || "?"}
+      </AppText>
+    </View>
+  );
+}
+
 function BlockedRowCard({
   person,
   unblocking,
@@ -60,7 +95,6 @@ function BlockedRowCard({
   unblocking: boolean;
   onUnblock: () => void;
 }) {
-  const theme = useTheme();
   return (
     <Card
       padded={false}
@@ -74,20 +108,8 @@ function BlockedRowCard({
         marginBottom: 10,
       }}
     >
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: radius.full,
-          backgroundColor: theme.surface2,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <AppText variant="title" style={{ color: theme.muted, fontSize: 16 }}>
-          {initialsOf(person.display_name) || "?"}
-        </AppText>
-      </View>
+      {/* Not `Avatar` on purpose — see MutedInitials above. */}
+      <MutedInitials name={person.display_name} />
       <View style={{ flex: 1, gap: 2 }}>
         <AppText variant="bodySemi" numberOfLines={1}>
           {person.display_name}

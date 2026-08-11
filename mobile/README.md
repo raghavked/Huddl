@@ -20,16 +20,24 @@ verifies the full Hermes bundle without a native toolchain.
 ## What's in the app
 
 The full product: signup + email verification + onboarding straight into
-adding courses; user-managed courses with campus-catalog autocomplete;
-course homes (main chat, rooms, shared class calendar, syllabus import,
-notes, classmates, study sessions); the personal study plan; channel and
-DM chat with photos, polls, @mentions, pins, edits, threads, reactions,
-typing, presence, unread dots, mute, and in-room search; global campus
+adding courses, then a three-panel welcome and a starter checklist;
+user-managed courses with campus-catalog autocomplete; course homes as a
+six-doorway grid (calendar, rooms, flashcards, pinned links, grades,
+study partners) over the main chat, notes, classmates and study
+sessions; syllabus import; shared flashcard decks with spaced repetition
+and paste-import; the personal study plan and the merged month calendar;
+focus sessions with a campus "studying now" list; a private grade
+tracker; study-buddy opt-ins; archiving a finished class to a shelf;
+channel and DM chat with photos, polls, @mentions, pins, edits, threads,
+reactions, typing, presence, unread dots, mute, saved messages and
+in-room search; group DMs (create, rename, add, leave); global campus
 search; channel browse + topic channel creation; clubs (directory, club
-homes, founding); events (create, edit, RSVP, calendar export); people
-directory + profiles with photos; notifications center + device push;
-safety (block, report, rate limits) and legal screens with in-app
-account deletion.
+homes, founding, officer announcements); events (create, edit, RSVP,
+reminders, calendar export); people directory + profiles with photos;
+notifications center + device push with per-kind toggles; display
+preferences (theme and text size) that every screen honors; safety
+(block, report, rate limits) and legal screens with in-app account
+deletion.
 
 ## Ship it to the App Store
 

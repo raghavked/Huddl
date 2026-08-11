@@ -137,6 +137,11 @@ function PrivacyLine() {
  * One classmate: who they are, how they like to study, and the way to say
  * hello. My own row carries a "You" chip instead of a button — it is there so
  * I can see exactly what my classmates see.
+ *
+ * A classmate with a private profile arrives already stripped by
+ * `@/lib/study-buddy` — handle, avatar, and their note, nothing else. Their
+ * row says so with a lock, the same as the new-message picker, so it reads as
+ * a choice they made rather than a blank they forgot to fill.
  */
 function BuddyRow({
   buddy,
@@ -155,13 +160,14 @@ function BuddyRow({
 }) {
   const theme = useTheme();
   const detail = buddyDetail(buddy);
+  const shownName = buddy.locked ? `@${buddy.handle}` : buddy.display_name;
 
   return (
     <Card padded={false} style={{ padding: 14, gap: 10, marginBottom: 10 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Open ${buddy.display_name}'s profile`}
+          accessibilityLabel={`Open ${shownName}'s profile`}
           onPress={onOpenProfile}
           style={({ pressed }) => ({
             flex: 1,
@@ -176,11 +182,20 @@ function BuddyRow({
           <Avatar url={buddy.avatar_url} name={buddy.display_name} size={44} />
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
             <AppText variant="bodySemi" numberOfLines={1}>
-              {buddy.display_name}
+              {shownName}
             </AppText>
-            <AppText variant="caption" muted numberOfLines={1}>
-              {detail ?? `@${buddy.handle}`}
-            </AppText>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+              {buddy.locked ? (
+                <Feather name="lock" size={11} color={theme.muted} />
+              ) : null}
+              <AppText variant="caption" muted numberOfLines={1}>
+                {buddy.locked
+                  ? "Private profile"
+                  : (detail ?? `@${buddy.handle}`)}
+              </AppText>
+            </View>
           </View>
         </Pressable>
 
@@ -193,7 +208,7 @@ function BuddyRow({
             size="sm"
             pending={messaging}
             disabled={disabled}
-            accessibilityLabel={`Message ${buddy.display_name}`}
+            accessibilityLabel={`Message ${shownName}`}
             onPress={onMessage}
             icon={
               <Feather name="message-circle" size={14} color={theme.brandInk} />
@@ -242,6 +257,12 @@ export default function StudyBuddiesScreen() {
   const [buddies, setBuddies] = useState<StudyBuddy[]>([]);
   const [mine, setMine] = useState<MyOptIn | null>(null);
   const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
+  /**
+   * Am I in this class? Null until the check lands, and null again if it
+   * can't be read — only a definitive `false` closes the door, so a flaky
+   * connection never locks a classmate out of their own list.
+   */
+  const [enrolled, setEnrolled] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -275,6 +296,18 @@ export default function StudyBuddiesScreen() {
       .eq("id", userId)
       .maybeSingle();
 
+    /* The gate, same as the web page's: this list is classmates only. RLS
+       already refuses the write and hands back an empty read, but an empty
+       read renders as "nobody has raised a hand yet" — which may simply be
+       untrue, above a button the server will turn down. One cheap lookup
+       buys an honest screen. */
+    const enrollmentPromise = supabase
+      .from("enrollments")
+      .select("id")
+      .eq("course_id", id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
     try {
       const [list, optin] = await Promise.all([
         fetchBuddies(id),
@@ -295,6 +328,9 @@ export default function StudyBuddiesScreen() {
     const { data } = await profilePromise;
     const row = data as unknown as MyProfile | null;
     if (row) setMyProfile(row);
+
+    const enrollmentRes = await enrollmentPromise;
+    setEnrolled(enrollmentRes.error ? null : enrollmentRes.data !== null);
   }, [userId, id]);
 
   useEffect(() => {
@@ -321,6 +357,8 @@ export default function StudyBuddiesScreen() {
         avatar_url: myProfile.avatar_url,
         major: myProfile.major,
         grad_year: myProfile.grad_year,
+        // You always see yourself in full, however your profile is set.
+        locked: false,
         is_me: true,
       };
     },
@@ -522,6 +560,32 @@ export default function StudyBuddiesScreen() {
         {[0, 1].map((index) => (
           <SkeletonRow key={index} />
         ))}
+      </ScrollView>
+    );
+  }
+
+  /* Not in the class. Say so plainly rather than showing an empty list that
+     would read as "nobody's looking" — we genuinely can't see the list, and
+     the course page is where the class gets added. */
+  if (enrolled === false) {
+    return scaffold(
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingBottom: insets.bottom + 32,
+        }}
+      >
+        {header}
+        <EmptyState
+          illustration={Doorway}
+          title="This list is for people in the class"
+          body={`Add ${courseLabel} to your courses and you'll see who's looking — and you can put your name up too.`}
+          action={{
+            label: "Open the class",
+            onPress: () => router.replace(`/course/${id}`),
+          }}
+        />
       </ScrollView>
     );
   }

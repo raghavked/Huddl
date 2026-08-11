@@ -563,7 +563,9 @@ function CategoryCard({
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="font-bold tracking-tight">{category.name}</span>
+              <span className="min-w-0 font-bold tracking-tight break-words">
+                {category.name}
+              </span>
               <Badge tone="brand">{pointsText(category.weight)}%</Badge>
             </p>
             <p className="mt-1 text-xs text-muted">
@@ -593,8 +595,13 @@ function CategoryCard({
 
         {confirmingDelete ? (
           <div className="rounded-xl border border-danger/30 bg-danger/5 p-3.5">
-            <p className="text-sm font-semibold">Delete {category.name}?</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted">
+            <p className="text-sm font-semibold break-words">
+              Delete {category.name}?
+            </p>
+            {/* Espresso, not muted: this well is a danger-tinted surface,
+                and grey text on a colored fill is the one thing §1 rule 3
+                forbids outright. */}
+            <p className="mt-1 text-xs leading-relaxed text-foreground">
               {stakes} This can&apos;t be undone.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -855,7 +862,10 @@ export function GradesSection({
         setCategories(previousCategories);
         setEntriesByCategory(previousEntries);
         setActionError(
-          messageFor(caught, "We couldn't delete that category. Try again.")
+          messageFor(
+            caught,
+            "We couldn't delete that category. Give it another go."
+          )
         );
       } finally {
         setDeletingId(null);
@@ -977,7 +987,7 @@ export function GradesSection({
         [entry.category_id]: previous,
       }));
       setActionError(
-        messageFor(caught, "We couldn't delete that score. Try again.")
+        messageFor(caught, "We couldn't delete that score. Give it another go.")
       );
     });
   }, [entriesByCategory]);
@@ -989,7 +999,7 @@ export function GradesSection({
     return (
       <div className="flex flex-col items-center gap-2.5 px-6 py-16 text-center">
         <CloudOff className="size-7 text-muted" aria-hidden />
-        <p className="font-bold tracking-tight">Something hiccuped</p>
+        <p className="font-bold tracking-tight">Your grades didn&apos;t load</p>
         <p className="max-w-xs text-sm text-muted text-pretty">
           {error} Check your connection and give it another go.
         </p>
