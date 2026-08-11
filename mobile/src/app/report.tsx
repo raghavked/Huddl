@@ -10,10 +10,15 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /* The app-wide report flow. Pushed from anywhere with
-   { messageId?, userId?, label? } — label is a short human subject
-   (a display name) for the header. Inserts into public.reports;
-   message-only reports also record the message's author so the report
-   keeps a subject if the message is later deleted. */
+   { messageId?, userId?, boardPostId?, label? } — label is a short human
+   subject (a display name, or a post's title) for the header.
+
+   Three things can be reported, and public.reports takes any one of them:
+   a message, a person, or — since migration 0034 added board_post_id and
+   rewrote the reports_have_subject check — a post on the campus board.
+   Message-only reports also record the message's author so the report keeps
+   a subject if the message is later deleted; the board pushes its post's
+   author along for the same reason. */
 
 const CATEGORIES = [
   { value: "harassment", label: "Harassment or bullying" },
@@ -80,6 +85,7 @@ export default function ReportScreen() {
   const params = useLocalSearchParams<{
     messageId?: string;
     userId?: string;
+    boardPostId?: string;
     label?: string;
   }>();
   const messageId =
@@ -88,6 +94,10 @@ export default function ReportScreen() {
       : null;
   const reportedUserParam =
     typeof params.userId === "string" && params.userId ? params.userId : null;
+  const boardPostId =
+    typeof params.boardPostId === "string" && params.boardPostId
+      ? params.boardPostId
+      : null;
   const label =
     typeof params.label === "string" && params.label.trim()
       ? params.label.trim()
@@ -116,11 +126,20 @@ export default function ReportScreen() {
     return () => clearTimeout(timer);
   }, [done]);
 
+  /* Message, then post, then person — the same precedence `reportSubject` in
+     `@/lib/moderation` reads them back with, so the sentence a student sees
+     here and the one a moderator sees later name the same thing. A board post
+     arrives with its author attached, and naming the post is what keeps this
+     from reading as a report about them. */
   const subject = messageId
     ? label
       ? `a message from ${label}`
       : "a message"
-    : (label ?? "this person");
+    : boardPostId
+      ? label
+        ? `this post — ${label}`
+        : "this post"
+      : (label ?? "this person");
 
   async function handleSubmit() {
     if (!myId || submitting) return;
@@ -158,6 +177,7 @@ export default function ReportScreen() {
       const { error } = await supabase.from("reports").insert({
         reporter_id: myId,
         message_id: messageId,
+        board_post_id: boardPostId,
         reported_user_id: reportedUserId,
         category,
         reason: trimmed,
@@ -196,7 +216,7 @@ export default function ReportScreen() {
   );
 
   /* Nothing to report — pushed without a subject. */
-  if (!messageId && !reportedUserParam) {
+  if (!messageId && !reportedUserParam && !boardPostId) {
     return (
       <View
         style={{
@@ -219,8 +239,8 @@ export default function ReportScreen() {
           <Feather name="flag" size={28} color={theme.muted} />
           <AppText variant="title">Nothing to report here</AppText>
           <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
-            Head back and try again from the message or profile you want to
-            flag.
+            Head back and try again from the message, post, or profile you want
+            to flag.
           </AppText>
           <Button label="Go back" variant="soft" size="sm" onPress={goBack} />
         </View>

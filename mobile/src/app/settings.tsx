@@ -14,6 +14,7 @@ import { AppText, Button, Card } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { resetFirstRun } from "@/lib/first-run";
+import { amIModerator } from "@/lib/moderation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -97,6 +98,10 @@ export default function SettingsScreen() {
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  /* Whether this account carries the moderator badge. `null` means we don't
+     know yet, and an unknown draws nothing — a row that appears for a beat
+     and then vanishes is worse than one that arrives a beat late. */
+  const [isModerator, setIsModerator] = useState<boolean | null>(null);
 
   const load = useCallback(async () => {
     if (!userId) {
@@ -121,6 +126,28 @@ export default function SettingsScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  /* The moderator check rides on its own, deliberately: it's a read of one
+     column on our own profile, it can't be written from the app, and nobody
+     needs to hear about it when it doesn't work. A failure is simply "no",
+     so the rest of settings never waits on it or breaks with it. */
+  useEffect(() => {
+    if (!userId) {
+      setIsModerator(false);
+      return;
+    }
+    let live = true;
+    amIModerator()
+      .then((yes) => {
+        if (live) setIsModerator(yes);
+      })
+      .catch(() => {
+        if (live) setIsModerator(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [userId]);
 
   async function handleSignOut() {
     setSignOutError(null);
@@ -343,6 +370,16 @@ export default function SettingsScreen() {
             onPress={() => router.push("/focus")}
           />
           <SettingsLink
+            icon="lock"
+            label="Privacy"
+            onPress={() => router.push("/privacy-settings")}
+          />
+          <SettingsLink
+            icon="download"
+            label="Your data"
+            onPress={() => router.push("/data-export")}
+          />
+          <SettingsLink
             icon="slash"
             label="Blocked people"
             onPress={() => router.push("/blocked")}
@@ -352,6 +389,14 @@ export default function SettingsScreen() {
             label="Community guidelines"
             onPress={() => router.push("/legal/guidelines")}
           />
+          {/* Only campus moderators have a queue to open. */}
+          {isModerator === true ? (
+            <SettingsLink
+              icon="flag"
+              label="Reports"
+              onPress={() => router.push("/moderation")}
+            />
+          ) : null}
         </Card>
 
         <View style={{ marginTop: 20, gap: 8 }}>

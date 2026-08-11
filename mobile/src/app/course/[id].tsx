@@ -316,7 +316,7 @@ function HubSkeleton() {
       <Skeleton width="76%" height={15} radius={radius.full} />
       <Skeleton height={44} radius={radius.full} style={{ marginTop: 4 }} />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-        {[0, 1, 2, 3, 4, 5].map((slot) => (
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((slot) => (
           <View key={slot} style={{ flexBasis: "47%", flexGrow: 1 }}>
             <Skeleton height={92} radius={radius.card} />
           </View>
@@ -1371,15 +1371,21 @@ export default function CourseHubScreen() {
               </AppText>
             </View>
 
-            {/* Doorways — every room of the course, six tiles in three rows.
+            {/* Doorways — every room of the course, eight tiles in four rows.
                 Each opens a screen that was built as its own feature.
 
                 Tone is meaning, not variety: fern for the dated and the
-                graded (calendar, links you've filed, grades), ember for the
-                people and the studying (rooms, flashcards, partners). Laid
-                out two-up that lands as a woven checkerboard — fern, ember /
+                graded (calendar, the weekly pattern that fills it, links
+                you've filed, grades), ember for the people and the studying
+                (rooms, notes, flashcards, partners). Laid out two-up that
+                lands as a woven checkerboard — ember, fern / fern, ember /
                 ember, fern / fern, ember — instead of the two solid color
-                columns a mechanical alternation would draw. */}
+                columns a mechanical alternation would draw.
+
+                The order is read in pairs, not columns: the calendar and the
+                pattern that fills it land back to back, and so do the notes
+                and the links, because those are the two you reach for
+                together. */}
             <View
               style={{
                 flexDirection: "row",
@@ -1388,6 +1394,18 @@ export default function CourseHubScreen() {
                 marginTop: 16,
               }}
             >
+              <DoorwayTile
+                icon="message-square"
+                title="Rooms"
+                caption="Lectures, study groups…"
+                tone="brand"
+                onPress={() =>
+                  router.push({
+                    pathname: "/course/rooms",
+                    params: { courseId, courseCode: course.code },
+                  })
+                }
+              />
               <DoorwayTile
                 icon="book-open"
                 title="Calendar"
@@ -1401,13 +1419,31 @@ export default function CourseHubScreen() {
                 }
               />
               <DoorwayTile
-                icon="message-square"
-                title="Rooms"
-                caption="Lectures, study groups…"
+                icon="repeat"
+                title="Weekly pattern"
+                caption="Set it once for the term"
+                tone="accent"
+                onPress={() =>
+                  router.push({
+                    pathname: "/course/series",
+                    params: { courseId, courseCode: course.code },
+                  })
+                }
+              />
+              <DoorwayTile
+                icon="file-text"
+                title="Notes"
+                caption={
+                  notes.length === 0
+                    ? "Share the first set"
+                    : notes.length === 1
+                      ? "1 note shared"
+                      : `${notes.length} notes shared`
+                }
                 tone="brand"
                 onPress={() =>
                   router.push({
-                    pathname: "/course/rooms",
+                    pathname: "/course/notes",
                     params: { courseId, courseCode: course.code },
                   })
                 }

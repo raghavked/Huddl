@@ -289,6 +289,57 @@ function CourseRow({
   );
 }
 
+/**
+ * The one line on this screen that isn't about a single class: the term
+ * across all of them. It sits under the intro rather than over the list,
+ * because "how is this quarter going" is the question you ask after you've
+ * seen what's in it — and it stays a quiet row, since the number on the other
+ * side is scratch math from a private gradebook, not a result.
+ */
+function SemesterLink() {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="This semester"
+      onPress={() => router.push("/semester")}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
+      <Card
+        padded={false}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          minHeight: 56,
+        }}
+      >
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: radius.control,
+            backgroundColor: theme.accentSoft,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Feather name="trending-up" size={15} color={theme.accent} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <AppText variant="bodySemi">This semester</AppText>
+          <AppText variant="caption" muted numberOfLines={1}>
+            Every class's estimate, and one number across them.
+          </AppText>
+        </View>
+        <Feather name="chevron-right" size={18} color={theme.muted} />
+      </Card>
+    </Pressable>
+  );
+}
+
 /** A shelved class: quieter than the cards above, one hairline between rows. */
 function ArchivedRow({
   course,
@@ -926,11 +977,10 @@ export default function MyCoursesScreen() {
             showsVerticalScrollIndicator={false}
             ListHeaderComponent={
               <View>
+                {/* With classes on the list the semester row below brings its
+                    own air; with none, the empty state needs it here. */}
                 <View
-                  style={{
-                    gap: 6,
-                    marginBottom: hasShelf && active.length > 0 ? 0 : 12,
-                  }}
+                  style={{ gap: 6, marginBottom: active.length > 0 ? 0 : 12 }}
                 >
                   {intro}
                   {error ? (
@@ -944,6 +994,18 @@ export default function MyCoursesScreen() {
                     </AppText>
                   ) : null}
                 </View>
+                {/* Only worth offering once there's a class to average — the
+                    term overview of nothing is just its own empty state. */}
+                {active.length > 0 ? (
+                  <View
+                    style={{
+                      marginTop: 12,
+                      marginBottom: hasShelf ? 0 : 12,
+                    }}
+                  >
+                    <SemesterLink />
+                  </View>
+                ) : null}
                 {hasShelf && active.length > 0 ? (
                   <SectionLabel text="This quarter" />
                 ) : null}

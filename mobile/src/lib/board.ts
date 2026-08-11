@@ -315,6 +315,17 @@ export type BoardFilter = {
    * student's own history.
    */
   includeClosed?: boolean;
+  /**
+   * Fewest rows that will do, for a caller that only needs a preview — the
+   * Home card shows three and has no use for the other ninety-seven, each of
+   * which carries a joined author. Clamped to {@link BOARD_LIMIT}; omit it on
+   * the board itself, which wants everything.
+   *
+   * Note this caps the rows the *database* returns, so it is applied before
+   * the open-above-closed partition below. Ask for three with
+   * `includeClosed` on and you may get three closed posts.
+   */
+  limit?: number;
 };
 
 /* ══════════════════════════════ limits ═══════════════════════════════ */
@@ -739,12 +750,13 @@ async function requireCampus(): Promise<{
  * @param filter.category      One board, or omit for all seven.
  * @param filter.includeClosed Include posts the author already closed.
  *   Default false.
- * @returns Up to 100 posts. Empty when the board is quiet.
+ * @returns Up to `limit` posts, or 100. Empty when the board is quiet.
  * @throws {BoardError} With copy that's ready to render.
  */
 export async function fetchBoard({
   category,
   includeClosed = false,
+  limit,
 }: BoardFilter = {}): Promise<BoardPost[]> {
   const myId = await currentUserId();
 
@@ -755,7 +767,11 @@ export async function fetchBoard({
 
   const { data, error } = await query
     .order("created_at", { ascending: false })
-    .limit(BOARD_LIMIT);
+    .limit(
+      typeof limit === "number" && limit > 0
+        ? Math.min(Math.floor(limit), BOARD_LIMIT)
+        : BOARD_LIMIT
+    );
   if (error) {
     throw new BoardError(
       "We couldn't load the board. Check your connection and give it another go."
