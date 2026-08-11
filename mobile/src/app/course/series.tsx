@@ -9,7 +9,15 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card, Chip, Field, SectionLabel } from "@/components/ui";
+import {
+  AppText,
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  Field,
+  SectionLabel,
+} from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapSuccess } from "@/lib/haptics";
@@ -377,17 +385,16 @@ export default function AddSeriesScreen() {
           flex: 1,
           backgroundColor: theme.background,
           paddingTop: insets.top + 8,
-          alignItems: "center",
           justifyContent: "center",
-          gap: 10,
-          padding: 28,
+          paddingHorizontal: 20,
         }}
       >
-        <AppText variant="title">Course not available</AppText>
-        <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
-          We lost track of which class this schedule belongs to.
-        </AppText>
-        <Button label="Go back" variant="soft" size="sm" onPress={goBack} />
+        <EmptyState
+          icon="calendar"
+          title="We're not sure which class this is"
+          body="A weekly pattern goes on one course's calendar, and we lost track of which one. Open this again from that course's calendar and it'll know."
+          action={{ label: "Go back", onPress: goBack }}
+        />
       </View>
     );
   }
@@ -431,9 +438,12 @@ export default function AddSeriesScreen() {
       ? null
       : `On the calendar they read as ${kindLabel(pattern.kind)}s.`;
 
+  /* The two cards arrive with the screen, a beat apart — the form first, the
+     preview under it. Frozen at mount, so a keystroke re-running the preview
+     never replays it. */
   const previewCard =
     preview.state === "ready" ? (
-      <Card style={{ gap: 10 }}>
+      <Card entrance={1} style={{ gap: 10 }}>
         <AppText variant="title">{countPhrase(preview.drafts.length)}</AppText>
         {summary ? (
           <AppText variant="caption" muted>
@@ -477,6 +487,7 @@ export default function AddSeriesScreen() {
       </Card>
     ) : (
       <Card
+        entrance={1}
         style={{
           flexDirection: "row",
           alignItems: "flex-start",
@@ -540,7 +551,7 @@ export default function AddSeriesScreen() {
             week of it lands on the class calendar.
           </AppText>
 
-          <Card style={{ gap: 16, marginTop: 16 }}>
+          <Card entrance={0} style={{ gap: 16, marginTop: 16 }}>
             <View style={{ gap: 8 }}>
               <AppText variant="label">What is it?</AppText>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>

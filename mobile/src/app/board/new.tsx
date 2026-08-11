@@ -2,7 +2,6 @@ import Feather from "@expo/vector-icons/Feather";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -10,8 +9,16 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Mug } from "@/components/illustrations";
-import { AppText, Button, Chip, EmptyState, Field } from "@/components/ui";
+import { MagnifyingGlass, Mug } from "@/components/illustrations";
+import {
+  AppText,
+  Button,
+  Chip,
+  EmptyState,
+  Field,
+  Skeleton,
+} from "@/components/ui";
+import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   BOARD_BODY_MAX,
@@ -252,20 +259,33 @@ export default function BoardComposerScreen() {
   );
 
   if (editStatus === "loading") {
+    /* The composer's shape is entirely predictable — a title, the rail of
+       category chips, then the two fields every category asks for — so the
+       form draws itself in grey and the words fill in. */
     return scaffold(
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 12,
-          paddingBottom: 60,
-        }}
-      >
-        <ActivityIndicator size="large" color={theme.brand} />
-        <AppText variant="caption" muted>
-          Opening your post…
-        </AppText>
+      <View style={{ paddingHorizontal: 20, gap: 14 }}>
+        <View style={{ gap: 8 }}>
+          <Skeleton width="64%" height={30} />
+          <Skeleton width="88%" height={11} radius={radius.full} />
+        </View>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {[66, 54, 62, 58, 74, 52].map((width) => (
+            <Skeleton
+              key={width}
+              width={width}
+              height={30}
+              radius={radius.full}
+            />
+          ))}
+        </View>
+        <View style={{ gap: 8 }}>
+          <Skeleton width={40} height={11} radius={radius.full} />
+          <Skeleton height={46} />
+        </View>
+        <View style={{ gap: 8 }}>
+          <Skeleton width={54} height={11} radius={radius.full} />
+          <Skeleton height={140} />
+        </View>
       </View>
     );
   }
@@ -306,7 +326,9 @@ export default function BoardComposerScreen() {
     return scaffold(
       <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 20 }}>
         <EmptyState
-          illustration={Mug}
+          /* A post that isn't there is a search that came back empty; a post
+             that isn't yours is nobody's problem. Two different moods. */
+          illustration={editStatus === "missing" ? MagnifyingGlass : Mug}
           title={
             editStatus === "missing"
               ? "That post isn't there"
@@ -314,7 +336,7 @@ export default function BoardComposerScreen() {
           }
           body={
             editStatus === "missing"
-              ? "It may have already come down. The board will have the rest."
+              ? "It may have already come down. The board has everything that's still up."
               : "Only the person who put a post up can change it. You can still message them from the post itself."
           }
           action={{ label: "Back to the board", onPress: goBack }}

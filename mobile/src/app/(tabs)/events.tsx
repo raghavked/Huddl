@@ -72,7 +72,9 @@ function DateTile({ iso }: { iso: string }) {
   const d = new Date(iso);
   return (
     <View
+      // The date is in the row's label in full; the tile is the picture of it.
       accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       style={{
         width: 48,
         height: 48,
@@ -108,16 +110,41 @@ function DateTile({ iso }: { iso: string }) {
   );
 }
 
-function EventRow({ event }: { event: EventItem }) {
+/**
+ * One sentence for the whole row: what it is, when and where, how full it is.
+ * "Full" is drawn in `danger` and nothing else says it, so it goes into the
+ * words too.
+ */
+function eventLabel(event: EventItem): string {
+  const headcount = `${event.goingCount} going${
+    event.capacity !== null && !event.isFull ? ` of ${event.capacity}` : ""
+  }`;
+  return [
+    `Open ${event.title}`,
+    formatEventTime(event.starts_at, event.ends_at),
+    event.location,
+    headcount,
+    event.isFull ? "full" : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function EventRow({ event, index }: { event: EventItem; index: number }) {
   const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={eventLabel(event)}
       onPress={() => router.push(`/event/${event.id}`)}
       style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
     >
       <Card
         padded={false}
+        entrance={index}
+        // A date tile, a title, a time, a headcount — one thing, not four.
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -232,9 +259,9 @@ export default function EventsScreen() {
   }, [userId, run]);
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<EventItem>) => (
+    ({ item, index }: ListRenderItemInfo<EventItem>) => (
       <View style={{ marginBottom: 10 }}>
-        <EventRow event={item} />
+        <EventRow event={item} index={index} />
       </View>
     ),
     []
@@ -308,8 +335,16 @@ export default function EventsScreen() {
             paddingBottom: 80,
           }}
         >
-          <Feather name="cloud-off" size={28} color={theme.muted} />
-          <AppText variant="bodySemi">Something went sideways</AppText>
+          <Feather
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            name="cloud-off"
+            size={28}
+            color={theme.muted}
+          />
+          <AppText variant="bodySemi" accessibilityRole="header">
+            Something went sideways
+          </AppText>
           <AppText
             variant="caption"
             muted
@@ -337,7 +372,11 @@ export default function EventsScreen() {
                 Study sessions and meetups coming up on campus.
               </AppText>
               {error ? (
-                <AppText variant="caption" style={{ color: theme.danger }}>
+                <AppText
+                  variant="caption"
+                  accessibilityLiveRegion="polite"
+                  style={{ color: theme.danger }}
+                >
                   We couldn't refresh just now — pull down to try again.
                 </AppText>
               ) : null}
@@ -353,6 +392,8 @@ export default function EventsScreen() {
               }}
             >
               <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
                 style={{
                   width: 40,
                   height: 40,
@@ -365,7 +406,9 @@ export default function EventsScreen() {
               >
                 <Feather name="calendar" size={18} color={theme.accent} />
               </View>
-              <AppText variant="bodySemi">Nothing on the calendar yet</AppText>
+              <AppText variant="bodySemi" accessibilityRole="header">
+                Nothing on the calendar yet
+              </AppText>
               <AppText
                 variant="caption"
                 muted

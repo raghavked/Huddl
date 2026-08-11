@@ -9,17 +9,29 @@ import { Card } from "./card";
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
 
-/** One 44px row inside a Sheet: soft icon tile, label, optional danger tone. */
+/**
+ * One 44px row inside a Sheet: soft icon tile, label, optional danger tone,
+ * optional `selected` check.
+ *
+ * `selected` is for the sheet that is a picker — a reminder ladder, a quiet
+ * hours time, a sort order. It draws the check on the trailing edge *and*
+ * hands the row `accessibilityState={{ selected }}`, which is the half
+ * every hand-drawn version of this row forgot: a check a screen reader
+ * cannot see is no help in a list of forty near-identical rows.
+ */
 function SheetRow({
   icon,
   label,
   danger = false,
+  selected = false,
   onPress,
 }: {
   icon: FeatherName;
   label: string;
   /** For the one destructive choice: leave, delete, report, block. */
   danger?: boolean;
+  /** The current choice in a picker sheet: trailing check + a11y state. */
+  selected?: boolean;
   onPress: () => void;
 }) {
   const theme = useTheme();
@@ -27,6 +39,7 @@ function SheetRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ selected }}
       onPress={onPress}
       style={({ pressed }) => ({
         minHeight: 44,
@@ -59,6 +72,13 @@ function SheetRow({
       >
         {label}
       </AppText>
+      {selected ? (
+        <Feather
+          name="check"
+          size={18}
+          color={danger ? theme.danger : theme.brand}
+        />
+      ) : null}
     </Pressable>
   );
 }
@@ -85,10 +105,27 @@ function SheetRow({
  * ember icon tile, one label, `danger` for the destructive choice. Close the
  * sheet in the row's own `onPress` before doing the work.
  *
+ * When the sheet is a picker rather than a menu, mark the current choice
+ * with `selected` — it draws the trailing check and, more importantly,
+ * announces the row as selected. Never spell the state into the label
+ * instead ("6:00 PM · current"); the prop says it to everyone.
+ *
  * ```tsx
  * <Sheet visible={menuOpen} onClose={close} title="This event">
  *   <Sheet.Row icon="edit-2" label="Edit event" onPress={edit} />
  *   <Sheet.Row icon="x-circle" label="Cancel event" danger onPress={cancel} />
+ * </Sheet>
+ *
+ * <Sheet visible={pickerOpen} onClose={close} title="Remind me">
+ *   {LEADS.map((lead) => (
+ *     <Sheet.Row
+ *       key={lead.minutes}
+ *       icon="clock"
+ *       label={lead.label}
+ *       selected={lead.minutes === reminder?.lead_minutes}
+ *       onPress={() => pick(lead)}
+ *     />
+ *   ))}
  * </Sheet>
  * ```
  */

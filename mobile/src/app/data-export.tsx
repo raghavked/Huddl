@@ -3,7 +3,14 @@ import { router } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card, SectionLabel } from "@/components/ui";
+import { Shoebox } from "@/components/illustrations";
+import {
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  SectionLabel,
+} from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
@@ -212,13 +219,14 @@ export default function DataExportScreen() {
                 ))}
               </Card>
             ) : (
-              <Card style={{ gap: 6 }}>
-                <AppText variant="bodySemi">Not much yet</AppText>
-                <AppText variant="caption" muted>
-                  Your profile and settings are in there, and not a lot else.
-                  The file works the same either way.
-                </AppText>
-              </Card>
+              /* A nested empty inside a screen that already has content, so
+                 it takes the small tile rather than a second illustration. */
+              <EmptyState
+                compact
+                icon="file-text"
+                title="Not much in it yet"
+                body="Your profile and settings are in there, and not a lot else. The file works the same either way."
+              />
             )}
 
             <AppText variant="caption" muted style={{ marginTop: 10 }}>
@@ -297,6 +305,16 @@ export default function DataExportScreen() {
           </Card>
         ) : (
           <View style={{ marginTop: 20, gap: 10 }}>
+            {/* The box your things keep in until you ask for them back. It
+                sits above the one button on the screen rather than inside an
+                EmptyState — this is the primary action, not a consolation. */}
+            <View style={{ alignItems: "center", paddingVertical: 8 }}>
+              <Shoebox
+                size={96}
+                color={theme.muted}
+                softColor={theme.surface2}
+              />
+            </View>
             <Button
               label={phase === "working" ? "Gathering it up" : "Prepare my data"}
               pending={phase === "working"}

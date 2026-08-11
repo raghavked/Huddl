@@ -8,6 +8,7 @@ import {
   RefreshControl,
   SectionList,
   View,
+  type AccessibilityActionEvent,
 } from "react-native";
 import { Doorway } from "@/components/illustrations";
 import { Screen } from "@/components/screen";
@@ -81,13 +82,29 @@ function channelSubtitle(channel: ChannelRow): string | null {
 }
 
 /** Muted rows get a small crossed-out speaker; unread rows get a brand dot.
-    A muted channel never shows a dot. */
+    A muted channel never shows a dot.
+
+    Both marks are shape and colour with no words in them, so both are hidden
+    from the screen reader and said instead by the row's own label — see
+    {@link stateWords}. */
 function RowIndicator({ muted, unread }: { muted: boolean; unread: boolean }) {
   const theme = useTheme();
-  if (muted) return <Feather name="volume-x" size={13} color={theme.muted} />;
+  if (muted) {
+    return (
+      <Feather
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        name="volume-x"
+        size={13}
+        color={theme.muted}
+      />
+    );
+  }
   if (!unread) return null;
   return (
     <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       style={{
         width: 8,
         height: 8,
@@ -96,6 +113,13 @@ function RowIndicator({ muted, unread }: { muted: boolean; unread: boolean }) {
       }}
     />
   );
+}
+
+/** The dot and the crossed-out speaker, in words, for a row's label. */
+function stateWords(muted: boolean, unread: boolean): string {
+  if (muted) return ", muted";
+  if (unread) return ", unread messages";
+  return "";
 }
 
 export default function ChannelsScreen() {
@@ -228,6 +252,26 @@ export default function ChannelsScreen() {
     [memberMeta, userId]
   );
 
+  /* Long-press is the only route to mute, and a long press is invisible to a
+     screen reader — so every joined row also offers it as a named action and
+     says so in its hint. */
+  const muteProps = useCallback(
+    (channel: ChannelRow, muted: boolean) => ({
+      accessibilityHint: muted
+        ? "Press and hold to unmute"
+        : "Press and hold to mute",
+      accessibilityActions: [
+        { name: "longpress", label: muted ? "Unmute" : "Mute" },
+      ],
+      onAccessibilityAction: (event: AccessibilityActionEvent) => {
+        if (event.nativeEvent.actionName === "longpress") {
+          onLongPressChannel(channel);
+        }
+      },
+    }),
+    [onLongPressChannel]
+  );
+
   // Refetch on every focus so new joins (courses, clubs) show up right away.
   useFocusEffect(
     useCallback(() => {
@@ -339,6 +383,8 @@ export default function ChannelsScreen() {
           }}
         >
           <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
             style={{
               width: 52,
               height: 52,
@@ -350,7 +396,9 @@ export default function ChannelsScreen() {
           >
             <Feather name="wifi-off" size={22} color={theme.brand} />
           </View>
-          <AppText variant="title">Something hiccuped</AppText>
+          <AppText variant="title" accessibilityRole="header">
+            Something hiccuped
+          </AppText>
           <AppText muted style={{ textAlign: "center" }}>
             {error}
           </AppText>
@@ -382,6 +430,7 @@ export default function ChannelsScreen() {
             error ? (
               <AppText
                 variant="caption"
+                accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginBottom: 8 }}
               >
                 {error}
@@ -398,12 +447,19 @@ export default function ChannelsScreen() {
                 padding: 24,
               }}
             >
-              <Doorway
-                size={96}
-                color={theme.muted}
-                softColor={theme.surface2}
-              />
-              <AppText variant="title">No channels yet</AppText>
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
+                <Doorway
+                  size={96}
+                  color={theme.muted}
+                  softColor={theme.surface2}
+                />
+              </View>
+              <AppText variant="title" accessibilityRole="header">
+                No channels yet
+              </AppText>
               <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
                 Add your courses and you'll land in a channel for each class
                 automatically — campus channels come free with your profile.
@@ -412,6 +468,9 @@ export default function ChannelsScreen() {
           }
           renderSectionHeader={({ section }) => (
             <View
+              accessible
+              accessibilityRole="header"
+              accessibilityLabel={section.title}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -420,13 +479,19 @@ export default function ChannelsScreen() {
                 marginBottom: 8,
               }}
             >
-              <Feather name={section.icon} size={13} color={theme.muted} />
+              <Feather
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                name={section.icon}
+                size={13}
+                color={theme.muted}
+              />
               <AppText variant="label" muted>
                 {section.title}
               </AppText>
             </View>
           )}
-          renderItem={({ item }) => {
+          renderItem={({ item, index }) => {
             if (item.type === "room") {
               // An indented side room under its course's main row.
               const room = item.channel;
@@ -435,7 +500,11 @@ export default function ChannelsScreen() {
               return (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Open ${room.name}`}
+                  accessibilityLabel={`Open ${room.name}${stateWords(
+                    roomMuted,
+                    roomUnread
+                  )}`}
+                  {...muteProps(room, roomMuted)}
                   onPress={() => router.push(`/channel/${room.id}`)}
                   onLongPress={() => onLongPressChannel(room)}
                   style={({ pressed }) => ({
@@ -446,6 +515,9 @@ export default function ChannelsScreen() {
                 >
                   <Card
                     padded={false}
+                    entrance={index}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
@@ -502,7 +574,8 @@ export default function ChannelsScreen() {
                       },
                     })
                   }
-                  hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+                  // The pill is 24px of ink; the slop takes the target to 44.
+                  hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
                   style={({ pressed }) => ({
                     flexDirection: "row",
                     alignItems: "center",
@@ -515,7 +588,13 @@ export default function ChannelsScreen() {
                     opacity: pressed ? 0.6 : 1,
                   })}
                 >
-                  <Feather name="plus" size={14} color={theme.brand} />
+                  <Feather
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                    name="plus"
+                    size={14}
+                    color={theme.brand}
+                  />
                   <AppText variant="label" style={{ color: theme.brand }}>
                     room
                   </AppText>
@@ -529,7 +608,10 @@ export default function ChannelsScreen() {
             return (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Open ${channelTitle(channel)}`}
+                accessibilityLabel={`Open ${channelTitle(channel)}${
+                  subtitle ? `, ${subtitle}` : ""
+                }${stateWords(channelMuted, channelUnread)}`}
+                {...muteProps(channel, channelMuted)}
                 onPress={() => router.push(`/channel/${channel.id}`)}
                 onLongPress={() => onLongPressChannel(channel)}
                 style={({ pressed }) => ({
@@ -539,6 +621,9 @@ export default function ChannelsScreen() {
               >
                 <Card
                   padded={false}
+                  entrance={index}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
                   style={{
                     flexDirection: "row",
                     alignItems: "center",

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import {
   Animated,
-  Easing,
   View,
   type DimensionValue,
   type StyleProp,
@@ -60,19 +59,22 @@ export function Skeleton({
         Animated.timing(opacity, {
           toValue: 0.5,
           duration: motion.slow,
-          easing: Easing.inOut(Easing.cubic),
+          easing: motion.easing.standard,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
           toValue: 1,
           duration: motion.slow,
-          easing: Easing.inOut(Easing.cubic),
+          easing: motion.easing.standard,
           useNativeDriver: true,
         }),
       ])
     );
     loop.start();
-    return () => loop.stop();
+    return () => {
+      loop.stop();
+      opacity.setValue(1);
+    };
   }, [pulse, reduceMotion, opacity]);
 
   return (

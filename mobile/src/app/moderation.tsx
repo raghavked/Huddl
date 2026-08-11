@@ -1,9 +1,15 @@
 import Feather from "@expo/vector-icons/Feather";
 import { Redirect, router, useFocusEffect, type Href } from "expo-router";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 import {
   Animated,
-  Easing,
   FlatList,
   Pressable,
   RefreshControl,
@@ -13,7 +19,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
-import { Mug } from "@/components/illustrations";
+import {
+  Mug,
+  Shoebox,
+  Tray,
+  type IllustrationProps,
+} from "@/components/illustrations";
 import {
   AppText,
   Button,
@@ -225,12 +236,15 @@ function subjectRoute(report: ModerationReport): Href | null {
  */
 function ReportRow({
   report,
+  index,
   now,
   settling,
   error,
   onTriage,
 }: {
   report: ModerationReport;
+  /** Position in the pile, for the staggered arrival. */
+  index: number;
   now: Date;
   settling: boolean;
   error: string | null;
@@ -245,7 +259,7 @@ function ReportRow({
       toValue: settling ? 0 : 1,
       duration: reduceMotion ? motion.instant : SETTLE_MS,
       // Reversible: a rollback comes back along the curve it left on.
-      easing: Easing.inOut(Easing.cubic),
+      easing: motion.easing.standard,
       useNativeDriver: true,
     }).start();
   }, [settling, reduceMotion, settle]);
@@ -270,7 +284,7 @@ function ReportRow({
         ],
       }}
     >
-      <Card padded={false} style={{ marginBottom: 12 }}>
+      <Card padded={false} entrance={index} style={{ marginBottom: 12 }}>
         <Pressable
           accessibilityRole={route ? "button" : "text"}
           accessibilityLabel={title}
@@ -289,9 +303,14 @@ function ReportRow({
               a category is what this is about, not a verdict on it. */}
           <Chip label={categoryLabel(report.category)} tone="brand" />
 
-          <AppText variant="bodySemi">{title}</AppText>
+          {/* `summarize` folds a board post's whole title into this line, and
+              a title can run long — the full one is quoted in the well below,
+              so the headline is safe to cap. */}
+          <AppText variant="bodySemi" numberOfLines={2}>
+            {title}
+          </AppText>
 
-          <AppText variant="caption" muted>
+          <AppText variant="caption" muted numberOfLines={1}>
             Reported by {reporter} · {filedAgo(report, now)}
           </AppText>
 
@@ -344,19 +363,34 @@ function ReportRow({
 
 /* ───────────────────────────── the screen ───────────────────────────── */
 
-/** What each pile says when there's nothing in it. */
-const EMPTIES: Record<ReportStatus, { title: string; body: string }> = {
+/**
+ * What each pile says when there's nothing in it, and the mark it says it
+ * under. The open queue gets the empty tray — everything that needed a person
+ * has had one. The other two are keeping places rather than backlogs, so they
+ * both get the box: put away, still there when you want to look back.
+ */
+const EMPTIES: Record<
+  ReportStatus,
+  {
+    title: string;
+    body: string;
+    illustration: ComponentType<IllustrationProps>;
+  }
+> = {
   open: {
+    illustration: Tray,
     title: "The queue is clear",
-    body: "Nothing's waiting on you. Either someone got here first, or campus is just having a quiet night.",
+    body: "This is the pile that needs a person, and there's nothing in it. Either someone got here first, or campus is just having a quiet night.",
   },
   reviewed: {
+    illustration: Shoebox,
     title: "Nothing reviewed yet",
-    body: "Reports you've acted on collect here, so you can look back at what you decided.",
+    body: "Reports you've acted on collect here, so you can look back at what you decided and who decided it.",
   },
   dismissed: {
+    illustration: Shoebox,
     title: "Nothing dismissed yet",
-    body: "Reports that turned out to be fine end up here. Worth a second look now and then.",
+    body: "Reports that turned out to be fine end up here rather than disappearing. Worth a second look now and then.",
   },
 };
 
@@ -489,9 +523,10 @@ export default function ModerationScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<ModerationReport>) => (
+    ({ item, index }: ListRenderItemInfo<ModerationReport>) => (
       <ReportRow
         report={item}
+        index={index}
         now={now}
         settling={settlingId === item.id}
         error={rowError?.id === item.id ? rowError.message : null}
@@ -682,19 +717,11 @@ export default function ModerationScreen() {
             ) : null
           }
           ListEmptyComponent={
-            status === "open" ? (
-              <EmptyState
-                illustration={Mug}
-                title={EMPTIES.open.title}
-                body={EMPTIES.open.body}
-              />
-            ) : (
-              <EmptyState
-                icon={status === "reviewed" ? "check-circle" : "archive"}
-                title={EMPTIES[status].title}
-                body={EMPTIES[status].body}
-              />
-            )
+            <EmptyState
+              illustration={EMPTIES[status].illustration}
+              title={EMPTIES[status].title}
+              body={EMPTIES[status].body}
+            />
           }
           refreshControl={
             <RefreshControl

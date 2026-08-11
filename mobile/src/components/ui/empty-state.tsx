@@ -20,9 +20,11 @@ type FeatherName = ComponentProps<typeof Feather>["name"];
  *
  * Pick one mark, not both:
  * - `illustration` — a hand-drawn component from `@/components/illustrations`
- *   (Mug, Doorway, PaperPlane, Pennant, Lantern). Use it on the empties a
- *   student will actually meet: the front door, an empty inbox, a first
- *   search. It gets its colors from the theme here, so just pass the
+ *   (Mug, Doorway, PaperPlane, Pennant, Lantern, PinnedNote, WallCalendar,
+ *   MagnifyingGlass, Tray, Shoebox). Use it on the empties a student will
+ *   actually meet: the front door, an empty inbox, a search that found
+ *   nothing. Pick the one whose *mood* is true — the doc comment on each
+ *   names it. It gets its colors from the theme here, so just pass the
  *   component: `illustration={Mug}`.
  * - `icon` — a Feather name in a soft ember tile. The workhorse for the
  *   dozens of smaller empties inside a room.

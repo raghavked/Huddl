@@ -2,7 +2,6 @@ import { useMemo, useRef } from "react";
 import {
   ActivityIndicator,
   Animated,
-  Easing,
   Pressable,
   type GestureResponderEvent,
   type PressableProps,
@@ -19,10 +18,14 @@ type Size = "sm" | "md" | "lg";
 const HEIGHTS: Record<Size, number> = { sm: 38, md: 46, lg: 52 };
 const PAD: Record<Size, number> = { sm: 16, md: 20, lg: 26 };
 
-/* Pressing sinks the button 2% into the page and dims it a shade — the
-   press-out retraces the same curve, because a press is reversible. Under
-   reduce motion the scale stays put and the dim lands instantly. */
-const PRESSED_SCALE = 0.98;
+/* Pressing sinks the button 3% into the page and dims it a shade. The two
+   directions are deliberately uneven: down in `quick` on the reversible
+   curve, so it answers the finger immediately, and back up in `base` on
+   the `enter` curve, so it *settles* rather than snapping. That asymmetry
+   is the whole difference between tapping glass and pressing something
+   soft. Under reduce motion the scale stays put and the dim lands in
+   `motion.instant`. */
+const PRESSED_SCALE = 0.97;
 const PRESSED_OPACITY = 0.85;
 const DISABLED_OPACITY = 0.6;
 
@@ -88,10 +91,15 @@ export function Button({
   }, [press, isDisabled, reduceMotion]);
 
   const drive = (toValue: number) => {
+    const sinking = toValue === 1;
     Animated.timing(press, {
       toValue,
-      duration: reduceMotion ? motion.instant : motion.quick,
-      easing: Easing.inOut(Easing.cubic),
+      duration: reduceMotion
+        ? motion.instant
+        : sinking
+          ? motion.quick
+          : motion.base,
+      easing: sinking ? motion.easing.standard : motion.easing.enter,
       useNativeDriver: true,
     }).start();
   };

@@ -214,14 +214,27 @@ border.
 | `base` | 240 | The default. Sheets, expanding cards, rows settling in. |
 | `slow` | 320 | Full-screen transitions, the skeleton pulse. Rare. |
 
-House easing, both from `react-native`'s `Easing`:
+House easing lives in `motion.easing`. Three curves, and a screen should never
+reach past them into `react-native`'s `Easing` to invent a fourth.
 
-- `Easing.inOut(Easing.cubic)` — **reversible** things. Press in and out, open
-  and close, select and deselect. Leaving and returning along the same curve is
-  what makes an undo feel like the same gesture backwards.
-- `Easing.out(Easing.cubic)` — **arrivals.** Something entering that will not
-  immediately leave: a newly inserted row, a first paint. Quick off the mark,
-  settles gently.
+| Token | Curve | Use |
+| --- | --- | --- |
+| `standard` | `inOut` cubic | **Reversible** things. Press in and out, open and close, select and deselect. Leaving and returning along the same curve is what makes an undo feel like the same gesture backwards. The one to pick when you are not sure. |
+| `enter` | `out` cubic | **Arrivals.** Something entering that will not immediately leave: a newly inserted row, a card on first paint, a button settling back under a lifted finger. Quick off the mark, slow into place. |
+| `exit` | `in` cubic | **Departures.** A sheet being dismissed, a row coming off a list. Slow to let go, then gone. Never on something arriving — an arrival that accelerates away from you reads as a glitch. |
+
+```tsx
+Animated.timing(enter, {
+  toValue: 1,
+  duration: reduceMotion ? motion.instant : motion.base,
+  easing: motion.easing.enter,
+  useNativeDriver: true,
+}).start();
+```
+
+Arrivals and departures are asymmetric on purpose. A thing takes its time
+settling in and leaves without lingering, which is how objects behave and
+exactly how a press should feel: quick in, slower out.
 
 **The rule: motion is for arrival and completion, never decoration.** Animate a
 thing that just appeared or a thing the user just finished. Nothing loops to be
@@ -231,8 +244,28 @@ reporting, delete it.
 
 Animation is `react-native`'s `Animated` only. No animation libraries.
 
-Every animated primitive calls `useReducedMotion()` first. Under reduce motion
-we do not skip the state change — we land it in zero milliseconds.
+**What the primitives already do.** Before you animate anything on a screen,
+check whether the primitive under it is already reporting the moment.
+
+- **`Button`** — a press sinks it 3% and dims it a shade: down in `quick` on
+  `standard`, back up in `base` on `enter`. The uneven return is the whole
+  difference between tapping glass and pressing something soft.
+- **`Card`** — `entrance={index}` opts a list into the arrival: fade plus 8px
+  of rise on `enter`, staggered 40ms a row and capped after seven so nobody
+  waits on row thirty. The index is read once, at mount, so a re-sort does not
+  replay the list. Use it where rows genuinely just landed; leave it off for a
+  filter re-render.
+- **`Chip`** — becoming selected swells the pill 5% and settles it back, so a
+  choice in a filter row is not carried by two shades of soft fill alone.
+  Deselecting is a removal and gets no flourish.
+- **`Skeleton`** — `pulse` breathes between full and half opacity at `slow` on
+  `standard`. Still off by default; see the primitive's note.
+
+**The motion contract.** Every animated primitive calls `useReducedMotion()`
+first, and reduce motion never means "skip the state change" — it means **land
+the final state in `motion.instant`**. A chip that never fills, a card that
+never appears, a button stuck at 97% is a bug, not an accommodation. A
+primitive that cannot be turned off this way is not finished.
 
 ### Haptics
 
@@ -251,18 +284,18 @@ already exists, and hand-rolling is how a design system dies.
 | Primitive | One line |
 | --- | --- |
 | `AppText` | All text. Pick a `variant`; add `muted` for secondary. |
-| `Button` | `primary` / `secondary` / `soft` / `ghost` / `danger`, in `sm` / `md` / `lg`. `pending` swaps the icon for a spinner and disables it. Presses sink 2%. |
-| `Card` | Warm surface, hairline border, `rest` elevation. `padded={false}` when you're building a row. |
+| `Button` | `primary` / `secondary` / `soft` / `ghost` / `danger`, in `sm` / `md` / `lg`. `pending` swaps the icon for a spinner and disables it. Presses sink 3% and settle back. |
+| `Card` | Warm surface, hairline border, `rest` elevation. `padded={false}` when you're building a row; `entrance={index}` for the staggered list arrival. |
 | `Field` | Labeled text input with inline error text. Ember caret and selection. |
-| `Chip` | The pill: course codes, kinds, roles, filters. `tone` = `brand` (identity) / `accent` (scheduled or graded) / `neutral` (metadata) / `danger` (notice this). Add `onPress` and it becomes a 44px-target toggle with a hairline and `accessibilityState`. |
+| `Chip` | The pill: course codes, kinds, roles, filters. `tone` = `brand` (identity) / `accent` (scheduled or graded) / `neutral` (metadata) / `danger` (notice this). Add `onPress` and it becomes a 44px-target toggle with a hairline, `accessibilityState`, and a small swell as it selects. |
 | `EmptyState` | The dashed card for an empty list. `icon` **or** `illustration`, a title, a body, and an `action` when the reader can fix it themselves. `compact` for an empty section nested in a fuller screen. |
 | `SectionLabel` | The uppercase muted group heading — 24 above, 12 below, `letterSpacing: 1.2`. Optional right-hand `action` with a chevron and a 44px hit area. |
-| `Sheet` | Bottom action sheet: candle-dark scrim, card slides up, safe-area aware, `floating` elevation. `Sheet.Row` is the 44px icon-tile row every caller needs, with a `danger` tone for the destructive choice. Two to five rows; more than that wants a screen. |
+| `Sheet` | Bottom action sheet: candle-dark scrim, card slides up, safe-area aware, `floating` elevation. `Sheet.Row` is the 44px icon-tile row every caller needs, with a `danger` tone for the destructive choice and `selected` for the current one in a picker. Two to five rows; more than that wants a screen. |
 | `Skeleton` / `SkeletonRow` | Still `surface2` ghost blocks for a first paint whose shape you can honestly predict. **No shimmer** — opt into a gentle `pulse` only for a genuinely long wait. |
 | `useReducedMotion` | Live OS reduce-motion state. Ask before you animate. |
 | `Avatar` (`@/components/avatar`) | The one way we draw a person: photo, or two initials on an ember-or-fern circle tinted by a stable hash of their name. Decorative — the name is always rendered beside it. |
 | `Screen` (`@/components/screen`) | Safe-area scaffold + display title + optional header action. |
-| Illustrations (`@/components/illustrations`) | `Mug`, `Doorway`, `PaperPlane`, `Pennant`, `Lantern`. Hand-drawn stroke marks, deliberately imperfect. Pass `color` and `softColor` from the theme. |
+| Illustrations (`@/components/illustrations`) | `Mug`, `Doorway`, `PaperPlane`, `Pennant`, `Lantern`, `PinnedNote`, `WallCalendar`, `MagnifyingGlass`, `Tray`, `Shoebox`. Hand-drawn stroke marks, deliberately imperfect. Pass `color` and `softColor` from the theme. |
 
 ### The one recorded exception
 
@@ -287,10 +320,32 @@ They are moods, not clip art. Use the one whose mood is true.
   haven't joined yet.
 - **PaperPlane** — the first message is halfway there. Empty conversations.
 - **Pennant** — somebody should start the club, and it might as well be you.
-- **Lantern** — hold the light up and look around. Search and discovery.
+- **Lantern** — hold the light up and look around. Search and discovery, *before*
+  the query: the browse screen, the first visit to a directory.
+- **PinnedNote** — the board is up and nothing is on it, so whatever goes up
+  first is what everybody reads. A board with no posts.
+- **WallCalendar** — a whole term laid flat, and you are somewhere in the middle
+  of it. The semester overview, and a week with nothing on it.
+- **MagnifyingGlass** — curious, not defeated. The query came back with nothing,
+  and looking closer is still the interesting part. Pair it with copy that
+  suggests the next thing to try, never with an apology.
+- **Tray** — relief, and the quiet after it. Everything that needed a person has
+  had one: a review queue that is caught up, a list of requests with none left.
+- **Shoebox** — put away, not thrown out; it keeps until you want it back.
+  Shelved courses, saved things, a copy of your own data.
+
+They are named for **what they depict**, never for the screen they landed on —
+`Mug` and `Shoebox`, not `EmptyChat` and `ArchiveIcon`. A mark whose name is a
+screen gets used once and then nobody dares reuse it.
 
 Marquee empties (a whole screen with nothing on it) get an illustration. The
 dozens of small empties inside a room get a Feather icon in a soft ember tile.
+
+Adding one is a real commitment: 96×96 viewBox with air on every side, 2px
+round-capped strokes, quadratic curves with a deliberate wobble, no
+geometrically perfect circles, exactly two colors (`color` for the strokes,
+`softColor` for the one soft blob), and a doc comment naming the mood and the
+moment. Ten is plenty. Reach for an existing mood before you draw an eleventh.
 
 ---
 
@@ -378,8 +433,10 @@ Not preferences. The floor.
 - **44px minimum touch target.** Everything tappable. If the drawn thing is
   smaller (a chip, a small link), reach 44 with `hitSlop`.
 - **One display title per screen.**
-- **Three radii, four durations, three elevations.** If you need a fourth,
-  you're solving the wrong problem.
+- **Three radii, four durations, three easings, three elevations.** If you need
+  one more, you're solving the wrong problem.
+- **Every animation gated on `useReducedMotion()`**, landing the final state in
+  `motion.instant`. No exceptions. See §3.
 - **Both themes, every time.**
 - **`react-native`'s `Animated` only.** No new dependencies for motion.
 - **Never describe Huddl in terms of another product.** Not in the UI, not in

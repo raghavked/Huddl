@@ -1,14 +1,16 @@
 import Feather from "@expo/vector-icons/Feather";
-import type { ComponentProps } from "react";
+import { useEffect, useRef, type ComponentProps } from "react";
 import {
+  Animated,
   Pressable,
   View,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { radius, type Palette } from "@/constants/theme";
+import { motion, radius, type Palette } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { AppText } from "./app-text";
+import { useReducedMotion } from "./use-reduced-motion";
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
 
@@ -51,6 +53,15 @@ const SIZES: Record<ChipSize, ChipMetrics> = {
   },
 };
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+/* A chosen chip swells a hair and settles back — the pill acknowledging
+   the tap in its own right, so selection is not carried by color alone.
+   Only on the way *in*: deselecting is a removal, and removals do not get
+   a flourish. */
+const SELECTED_SCALE = 1.05;
+const PRESSED_OPACITY = 0.7;
+
 function toneColors(tone: ChipTone, theme: Palette): { bg: string; fg: string } {
   switch (tone) {
     case "brand":
@@ -83,6 +94,11 @@ function toneColors(tone: ChipTone, theme: Palette): { bg: string; fg: string } 
  * `neutral` for plain metadata, `danger` for a state the reader should
  * notice (overdue, removed, blocked).
  *
+ * An interactive chip becoming `selected` swells 5% and settles back, so
+ * the choice registers as an event and not only as a color — which matters
+ * in a filter row where the difference is a soft fill two shades apart.
+ * Under reduce motion the fill simply changes.
+ *
  * ```tsx
  * <Chip label="ECS 36A" tone="brand" />
  * <Chip label="Exam" tone="accent" icon="edit-3" />
@@ -110,10 +126,53 @@ export function Chip({
   style?: StyleProp<ViewStyle>;
 }) {
   const theme = useTheme();
+  const reduceMotion = useReducedMotion();
   const colors = toneColors(tone, theme);
   const metrics = SIZES[size];
   const interactive = typeof onPress === "function";
   const isSelected = selected === true;
+
+  const press = useRef(new Animated.Value(0)).current;
+  const pop = useRef(new Animated.Value(0)).current;
+  const wasSelected = useRef(isSelected);
+
+  useEffect(() => {
+    const justSelected = isSelected && !wasSelected.current;
+    wasSelected.current = isSelected;
+    // Nothing on mount, nothing on deselect, nothing under reduce motion.
+    if (!interactive || !justSelected || reduceMotion) {
+      pop.setValue(0);
+      return;
+    }
+    const animation = Animated.sequence([
+      Animated.timing(pop, {
+        toValue: 1,
+        duration: motion.quick,
+        easing: motion.easing.enter,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pop, {
+        toValue: 0,
+        duration: motion.quick,
+        easing: motion.easing.standard,
+        useNativeDriver: true,
+      }),
+    ]);
+    animation.start();
+    return () => {
+      animation.stop();
+      pop.setValue(0);
+    };
+  }, [isSelected, interactive, reduceMotion, pop]);
+
+  const drivePress = (toValue: number) => {
+    Animated.timing(press, {
+      toValue,
+      duration: reduceMotion ? motion.instant : motion.quick,
+      easing: motion.easing.standard,
+      useNativeDriver: true,
+    }).start();
+  };
 
   const step = interactive ? 1 : 0;
   const paddingHorizontal = metrics.paddingHorizontal[step];
@@ -167,15 +226,34 @@ export function Chip({
   const slop = Math.max(6, Math.ceil((44 - drawnHeight) / 2));
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ selected: isSelected }}
       onPress={onPress}
+      onPressIn={() => drivePress(1)}
+      onPressOut={() => drivePress(0)}
       hitSlop={slop}
-      style={({ pressed }) => [base, { opacity: pressed ? 0.7 : 1 }, style]}
+      style={[
+        base,
+        {
+          opacity: press.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, PRESSED_OPACITY],
+          }),
+          transform: [
+            {
+              scale: pop.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, SELECTED_SCALE],
+              }),
+            },
+          ],
+        },
+        style,
+      ]}
     >
       {body}
-    </Pressable>
+    </AnimatedPressable>
   );
 }

@@ -90,6 +90,13 @@ type AgendaRow =
   | { type: "class"; item: ClassDate }
   | { type: "event"; item: DayEvent };
 
+/** What one day carries: the dots it draws, and the honest totals. */
+type DayMark = {
+  classTints: CourseTint[];
+  classCount: number;
+  eventCount: number;
+};
+
 const EVENT_SELECT = "id, kind, title, location, starts_at, ends_at, course_id";
 
 /* ------------------------------ date helpers ------------------------------ */
@@ -185,6 +192,9 @@ function Chip({ text, bg, fg }: { text: string; bg: string; fg: string }) {
 function Dot({ color }: { color: string }) {
   return (
     <View
+      // A dot is colour alone; every caller says the same thing in words.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       style={{
         width: 5,
         height: 5,
@@ -195,12 +205,43 @@ function Dot({ color }: { color: string }) {
   );
 }
 
+/**
+ * A cell's dots in words. Everything a day carries is drawn as colour — an
+ * ember ring for today, coloured dots for classes, a fern dot for an event —
+ * so all of it is said here too, and the counts are the real counts rather
+ * than the capped handful of dots.
+ */
+function dayCellLabel(
+  date: Date,
+  isToday: boolean,
+  classCount: number,
+  eventCount: number
+): string {
+  const parts = [
+    date.toLocaleDateString(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    }),
+    isToday ? "today" : null,
+    classCount > 0
+      ? `${classCount} class ${classCount === 1 ? "date" : "dates"}`
+      : null,
+    eventCount > 0
+      ? `${eventCount} ${eventCount === 1 ? "event" : "events"}`
+      : null,
+  ].filter(Boolean);
+  if (classCount === 0 && eventCount === 0) parts.push("nothing on this day");
+  return parts.join(", ");
+}
+
 function DayCell({
   date,
   isToday,
   isSelected,
   classTints,
-  hasEvent,
+  classCount,
+  eventCount,
   onSelect,
 }: {
   date: Date;
@@ -208,7 +249,9 @@ function DayCell({
   isSelected: boolean;
   /** One tint per course with something due that day, already capped. */
   classTints: readonly CourseTint[];
-  hasEvent: boolean;
+  /** Everything actually due that day — the dots stop at three. */
+  classCount: number;
+  eventCount: number;
   onSelect: () => void;
 }) {
   const theme = useTheme();
@@ -217,11 +260,7 @@ function DayCell({
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: isSelected }}
-      accessibilityLabel={date.toLocaleDateString(undefined, {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      })}
+      accessibilityLabel={dayCellLabel(date, isToday, classCount, eventCount)}
       onPress={onSelect}
       style={({ pressed }) => ({
         width: `${100 / 7}%`,
@@ -232,6 +271,8 @@ function DayCell({
       })}
     >
       <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
         style={{
           width: 36,
           height: 36,
@@ -265,7 +306,7 @@ function DayCell({
         {classTints.map((tint) => (
           <Dot key={tint} color={tints[tint].ink} />
         ))}
-        {hasEvent ? <Dot color={theme.accent} /> : null}
+        {eventCount > 0 ? <Dot color={theme.accent} /> : null}
       </View>
     </Pressable>
   );
@@ -273,7 +314,13 @@ function DayCell({
 
 function WeekdayHeader() {
   return (
-    <View style={{ flexDirection: "row", marginBottom: 4 }}>
+    <View
+      // Every cell says its own weekday in full, so this row is a ruler for
+      // the eye and nothing but noise to a reader.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ flexDirection: "row", marginBottom: 4 }}
+    >
       {WEEKDAYS.map((w) => (
         <View key={w} style={{ width: `${100 / 7}%`, alignItems: "center" }}>
           <AppText variant="label" muted style={{ fontSize: 11 }}>
@@ -289,7 +336,11 @@ function WeekdayHeader() {
 function GhostGrid() {
   const theme = useTheme();
   return (
-    <View>
+    <View
+      // Placeholders are furniture: 35 empty circles have nothing to say.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
       <WeekdayHeader />
       <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
         {Array.from({ length: 35 }, (_, i) => (
@@ -612,12 +663,20 @@ export default function YourCalendarScreen() {
     [tints, tintNameFor]
   );
 
+  /* Dots for the eye, counts for the reader: the dots stop at three and
+     collapse two courses sharing a colour into one, which is right on a
+     47px cell and wrong in a sentence. */
   const dayMarks = useMemo(() => {
-    const map = new Map<string, { classTints: CourseTint[]; hasEvent: boolean }>();
+    const map = new Map<string, DayMark>();
+    const blank = (): DayMark => ({
+      classTints: [],
+      classCount: 0,
+      eventCount: 0,
+    });
     if (!data) return map;
     for (const item of data.classDates) {
       const key = dayKey(item.dueAt);
-      const mark = map.get(key) ?? { classTints: [], hasEvent: false };
+      const mark = map.get(key) ?? blank();
       const tint = tintNameFor(item.courseCode);
       // One dot per colour, in due order. Two courses that share a tint
       // share a dot — a second dot in the same colour says nothing.
@@ -627,12 +686,13 @@ export default function YourCalendarScreen() {
       ) {
         mark.classTints.push(tint);
       }
+      mark.classCount += 1;
       map.set(key, mark);
     }
     for (const ev of data.events) {
       const key = dayKey(ev.startsAt);
-      const mark = map.get(key) ?? { classTints: [], hasEvent: false };
-      mark.hasEvent = true;
+      const mark = map.get(key) ?? blank();
+      mark.eventCount += 1;
       map.set(key, mark);
     }
     return map;
@@ -698,7 +758,11 @@ export default function YourCalendarScreen() {
       </View>
 
       <View style={{ flex: 1, paddingHorizontal: 20 }}>
-        <AppText variant="display" style={{ marginTop: 2, marginBottom: 14 }}>
+        <AppText
+          variant="display"
+          accessibilityRole="header"
+          style={{ marginTop: 2, marginBottom: 14 }}
+        >
           Your calendar
         </AppText>
 
@@ -712,8 +776,16 @@ export default function YourCalendarScreen() {
               paddingBottom: 80,
             }}
           >
-            <Feather name="cloud-off" size={28} color={theme.muted} />
-            <AppText variant="bodySemi">Something went sideways</AppText>
+            <Feather
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              name="cloud-off"
+              size={28}
+              color={theme.muted}
+            />
+            <AppText variant="bodySemi" accessibilityRole="header">
+              Something went sideways
+            </AppText>
             <AppText
               variant="caption"
               muted
@@ -750,7 +822,15 @@ export default function YourCalendarScreen() {
                 marginBottom: 10,
               }}
             >
-              <AppText variant="title" style={{ flex: 1 }} numberOfLines={1}>
+              {/* Paging is the one thing on this screen that changes what
+                  the whole page is about, so the new month says itself. */}
+              <AppText
+                variant="title"
+                accessibilityRole="header"
+                accessibilityLiveRegion="polite"
+                style={{ flex: 1 }}
+                numberOfLines={1}
+              >
                 {monthLabel}
               </AppText>
               {onCurrentMonth ? null : (
@@ -829,7 +909,12 @@ export default function YourCalendarScreen() {
                           classTints={
                             dayMarks.get(dayKey(date))?.classTints ?? NO_TINTS
                           }
-                          hasEvent={dayMarks.get(dayKey(date))?.hasEvent ?? false}
+                          classCount={
+                            dayMarks.get(dayKey(date))?.classCount ?? 0
+                          }
+                          eventCount={
+                            dayMarks.get(dayKey(date))?.eventCount ?? 0
+                          }
                           onSelect={() => setSelectedDay(date)}
                         />
                       )
@@ -842,6 +927,7 @@ export default function YourCalendarScreen() {
             {error && data !== null ? (
               <AppText
                 variant="caption"
+                accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginTop: 10 }}
               >
                 We couldn't refresh just now — pull down to try again.
@@ -850,12 +936,20 @@ export default function YourCalendarScreen() {
 
             {data !== null ? (
               <View style={{ marginTop: 18 }}>
-                <AppText variant="title" style={{ marginBottom: 10 }}>
+                {/* Tapping a cell changes only what is under this heading,
+                    so the heading is what confirms the tap landed. */}
+                <AppText
+                  variant="title"
+                  accessibilityRole="header"
+                  accessibilityLiveRegion="polite"
+                  style={{ marginBottom: 10 }}
+                >
                   {selectedLabel}
                 </AppText>
                 {actionError ? (
                   <AppText
                     variant="caption"
+                    accessibilityLiveRegion="polite"
                     style={{ color: theme.danger, marginBottom: 10 }}
                   >
                     {actionError}
@@ -864,6 +958,8 @@ export default function YourCalendarScreen() {
 
                 {agenda.length === 0 ? (
                   <Card
+                    accessible
+                    accessibilityLabel="Nothing on this day. Save it for something good."
                     style={{
                       alignItems: "center",
                       gap: 4,
@@ -877,16 +973,26 @@ export default function YourCalendarScreen() {
                     </AppText>
                   </Card>
                 ) : (
-                  agenda.map((row) => {
+                  agenda.map((row, index) => {
                     if (row.type === "class") {
                       const item = row.item;
                       const done = checked.has(item.id);
                       const colors = kindColors(item.kind, theme);
                       const courseTint = tintFor(item.courseCode);
+                      const summary = [
+                        item.courseCode,
+                        capitalize(kindLabel(item.kind)),
+                        item.title,
+                        classTimeLabel(item.dueAt),
+                        done ? "done" : null,
+                      ]
+                        .filter(Boolean)
+                        .join(", ");
                       return (
                         <Card
                           key={`class-${item.id}`}
                           padded={false}
+                          entrance={index}
                           style={{
                             flexDirection: "row",
                             alignItems: "center",
@@ -943,7 +1049,13 @@ export default function YourCalendarScreen() {
                               />
                             )}
                           </Pressable>
-                          <View style={{ flex: 1, gap: 4 }}>
+                          <View
+                            // Two chips, a title and a due line: one thought
+                            // about one assignment, beside the one control.
+                            accessible
+                            accessibilityLabel={summary}
+                            style={{ flex: 1, gap: 4 }}
+                          >
                             <View
                               style={{
                                 flexDirection: "row",
@@ -987,7 +1099,14 @@ export default function YourCalendarScreen() {
                       <Pressable
                         key={`event-${ev.id}`}
                         accessibilityRole="button"
-                        accessibilityLabel={`${ev.kindLabel}: ${ev.title}`}
+                        accessibilityLabel={[
+                          `Open ${ev.title}`,
+                          ev.kindLabel,
+                          ev.courseCode,
+                          eventTimeLabel(ev),
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
                         onPress={() => router.push(`/event/${ev.id}`)}
                         style={({ pressed }) => ({
                           opacity: pressed ? 0.85 : 1,
@@ -995,6 +1114,9 @@ export default function YourCalendarScreen() {
                       >
                         <Card
                           padded={false}
+                          entrance={index}
+                          accessibilityElementsHidden
+                          importantForAccessibility="no-hide-descendants"
                           style={{
                             flexDirection: "row",
                             alignItems: "center",
@@ -1048,6 +1170,8 @@ export default function YourCalendarScreen() {
                     says what it is instead of drawing a sample that would
                     only be right for one course. */}
                 <View
+                  accessible
+                  accessibilityLabel="Class dates wear their course's colour. Fern dots are your events."
                   style={{
                     flexDirection: "row",
                     flexWrap: "wrap",

@@ -3,7 +3,7 @@ import { Redirect, router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Doorway } from "@/components/illustrations";
+import { WallCalendar } from "@/components/illustrations";
 import {
   AppText,
   Card,
@@ -329,10 +329,13 @@ function RecruitCard({
 
 function CourseRow({
   course,
+  index,
   tint,
   onPress,
 }: {
   course: SemesterCourse;
+  /** Position in the list, for the staggered arrival. */
+  index: number;
   tint: CourseTintColors;
   onPress: () => void;
 }) {
@@ -349,6 +352,7 @@ function CourseRow({
     >
       <Card
         padded={false}
+        entrance={index}
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -563,9 +567,9 @@ export default function SemesterScreen() {
 
       {courses.length === 0 || summary === null ? (
         <EmptyState
-          illustration={Doorway}
-          title="No classes yet"
-          body="Add this quarter's classes and each one gets its own estimate here, with one average across all of them."
+          illustration={WallCalendar}
+          title="Your term, once it has classes in it"
+          body="This is where the whole quarter adds up: every class you're taking, what each one is running at, and one average across all of them. Add your classes and it starts filling in."
           action={{
             label: "Add your classes",
             onPress: () => router.push("/courses/add"),
@@ -585,10 +589,11 @@ export default function SemesterScreen() {
               own pick where they made one, the stable hash of the course code
               where they didn't. It is personal — the lab partner reading the
               same class may well see a different colour. */}
-          {courses.map((course) => (
+          {courses.map((course, index) => (
             <CourseRow
               key={course.enrollmentId}
               course={course}
+              index={index}
               tint={tints[course.color]}
               onPress={() => openGrades(course)}
             />

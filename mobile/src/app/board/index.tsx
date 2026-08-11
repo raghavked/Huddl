@@ -10,7 +10,7 @@ import {
   type ListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Pennant } from "@/components/illustrations";
+import { PinnedNote } from "@/components/illustrations";
 import {
   AppText,
   Button,
@@ -120,11 +120,14 @@ function timeAgo(iso: string, now: Date): string {
  */
 function BoardRow({
   post,
+  index,
   now,
   mine,
   onOpen,
 }: {
   post: BoardPost;
+  /** Position in the list, for the staggered arrival. */
+  index: number;
   now: Date;
   mine: boolean;
   onOpen: () => void;
@@ -137,10 +140,7 @@ function BoardRow({
   const author = mine ? "You" : (post.author?.display_name ?? "Someone on campus");
 
   return (
-    <Card
-      padded={false}
-      style={{ marginBottom: 10, opacity: closed ? 0.7 : 1 }}
-    >
+    <Card padded={false} entrance={index} style={{ marginBottom: 10 }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${info.label}. ${post.title}${
@@ -151,7 +151,9 @@ function BoardRow({
           gap: 8,
           padding: 14,
           minHeight: 68,
-          opacity: pressed ? 0.7 : 1,
+          /* The step-back for a sorted post lives on the contents, not on the
+             card: the card's own opacity belongs to its arrival. */
+          opacity: (closed ? 0.7 : 1) * (pressed ? 0.7 : 1),
         })}
       >
         <View
@@ -275,9 +277,10 @@ export default function CampusBoardScreen() {
   }, [posts, now]);
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<BoardPost>) => (
+    ({ item, index }: ListRenderItemInfo<BoardPost>) => (
       <BoardRow
         post={item}
+        index={index}
         now={now}
         mine={isMine(item, myId)}
         onOpen={() => router.push(`/board/${item.id}`)}
@@ -294,9 +297,9 @@ export default function CampusBoardScreen() {
   const emptyState =
     filter === null ? (
       <EmptyState
-        illustration={Pennant}
-        title="Nothing on the board"
-        body="Put the first thing up — a ride home, a couch, a question."
+        illustration={PinnedNote}
+        title="The board is up, and it's bare"
+        body="Rides home, couches that need an apartment, the water bottle somebody left in Olson — this is where campus posts them. Whatever goes up first is what everybody reads."
         action={{ label: "Post something", onPress: () => openComposer(null) }}
       />
     ) : (

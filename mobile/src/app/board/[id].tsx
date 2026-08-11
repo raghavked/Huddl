@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
-import { Mug } from "@/components/illustrations";
+import { MagnifyingGlass } from "@/components/illustrations";
 import {
   AppText,
   Button,
@@ -19,6 +19,7 @@ import {
   Chip,
   EmptyState,
   Sheet,
+  Skeleton,
 } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -329,16 +330,33 @@ export default function BoardPostScreen() {
   /* --------------------------- pre-post states --------------------------- */
 
   if (status === "loading" && !post) {
+    /* Every post on the board has the same bones — a category chip, the
+       headline, when it went up, and the card with whoever put it there — so
+       the page draws itself first and the words land into it. */
     return scaffold(
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          paddingBottom: 80,
-        }}
-      >
-        <ActivityIndicator size="large" color={theme.brand} />
+      <View style={{ paddingHorizontal: 20, paddingTop: 4, gap: 12 }}>
+        <Skeleton width={94} height={28} radius={radius.full} />
+        <Skeleton width="86%" height={30} />
+        <Skeleton width={118} height={11} radius={radius.full} />
+        <View style={{ gap: 8, marginTop: 4 }}>
+          <Skeleton width="100%" height={12} radius={radius.full} />
+          <Skeleton width="93%" height={12} radius={radius.full} />
+          <Skeleton width="56%" height={12} radius={radius.full} />
+        </View>
+        <Card
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            marginTop: 8,
+          }}
+        >
+          <Skeleton width={44} height={44} radius={radius.full} />
+          <View style={{ flex: 1, gap: 8 }}>
+            <Skeleton width="52%" height={13} radius={radius.full} />
+            <Skeleton width="38%" height={11} radius={radius.full} />
+          </View>
+        </Card>
       </View>
     );
   }
@@ -347,9 +365,9 @@ export default function BoardPostScreen() {
     return scaffold(
       <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 20 }}>
         <EmptyState
-          illustration={Mug}
+          illustration={MagnifyingGlass}
           title="That post isn't there"
-          body="It may have already come down. The board will have the rest of what's going on."
+          body="It may have already come down. The board has everything that's still up, and there's usually another ride."
           action={{ label: "Back to the board", onPress: goBack }}
         />
       </View>

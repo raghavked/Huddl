@@ -23,7 +23,11 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Pennant } from "@/components/illustrations";
+import {
+  Doorway,
+  MagnifyingGlass,
+  PinnedNote,
+} from "@/components/illustrations";
 import {
   AppText,
   Button,
@@ -32,6 +36,7 @@ import {
   EmptyState,
   Field,
   Sheet,
+  SkeletonRow,
 } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -845,20 +850,25 @@ export default function CourseNotesScreen() {
   }
 
   if (status === "loading") {
+    /* The room names itself while it fills: the title is true before the
+       query lands, and the rows underneath are the shape they'll be. */
     return scaffold(
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 12,
-          paddingBottom: 80,
-        }}
-      >
-        <ActivityIndicator size="large" color={theme.brand} />
-        <AppText variant="caption" muted>
-          Gathering the notes…
+      <View style={{ paddingHorizontal: 20 }}>
+        <AppText variant="display" style={{ marginTop: 2 }}>
+          Shared notes
         </AppText>
+        <AppText
+          variant="caption"
+          muted
+          style={{ marginTop: 6, marginBottom: 14 }}
+        >
+          {courseCode
+            ? `Put up by everyone in ${courseCode}.`
+            : "Put up by your classmates."}
+        </AppText>
+        {[0, 1, 2].map((index) => (
+          <SkeletonRow key={index} lines={2} />
+        ))}
       </View>
     );
   }
@@ -866,7 +876,7 @@ export default function CourseNotesScreen() {
   if (status === "error") {
     return scaffold(
       <CenteredState
-        icon="wifi-off"
+        icon="cloud-off"
         title="Something hiccuped"
         message="We couldn't load this course's notes. Check your connection and give it another go."
       >
@@ -1072,8 +1082,10 @@ export default function CourseNotesScreen() {
   );
 
   const emptyState = filtering ? (
+    /* A filter is a query, and a query that came back with nothing is a
+       reason to look again rather than an apology. */
     <EmptyState
-      icon="filter"
+      illustration={MagnifyingGlass}
       title={
         selected.length === 1
           ? "Nothing under that tag"
@@ -1089,9 +1101,10 @@ export default function CourseNotesScreen() {
   ) : enrolled === false ? (
     /* Not "no notes yet" — for someone outside the course there could be
        dozens, and the read policy simply doesn't show them any. Say the
-       mechanism rather than let the empty list imply an empty shelf. */
+       mechanism rather than let the empty list imply an empty shelf. The
+       door is the mark: the room is there, and adding the course opens it. */
     <EmptyState
-      illustration={Pennant}
+      illustration={Doorway}
       title="Notes stay inside the class"
       body={
         courseCode
@@ -1102,12 +1115,12 @@ export default function CourseNotesScreen() {
     />
   ) : (
     <EmptyState
-      illustration={Pennant}
-      title="No notes yet"
+      illustration={PinnedNote}
+      title="The shelf is empty"
       body={
         courseCode
-          ? `Be the first — put up your lecture notes, a study guide or the slides, and everyone in ${courseCode} has them.`
-          : "Be the first — put up your lecture notes, a study guide or the slides, and the whole class has them."
+          ? `This is where ${courseCode} keeps its lecture notes, study guides and slides for everyone taking it. Put up the first one and the whole class has it.`
+          : "This is where the class keeps its lecture notes, study guides and slides. Put up the first one and everyone taking it has them."
       }
       {...(enrolled === true
         ? { action: { label: "Share a note", onPress: () => void handlePickFile() } }
@@ -1115,7 +1128,7 @@ export default function CourseNotesScreen() {
     />
   );
 
-  const renderNote = (note: NoteRow) => {
+  const renderNote = (note: NoteRow, index: number) => {
     const mine = note.uploader_id === userId;
     const uploaderName = mine ? "You" : note.uploader?.display_name ?? "A classmate";
     const opening = openingId === note.id;
@@ -1140,6 +1153,7 @@ export default function CourseNotesScreen() {
         >
           <Card
             padded={false}
+            entrance={index}
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -1327,7 +1341,7 @@ export default function CourseNotesScreen() {
       <FlatList
         data={visible}
         keyExtractor={(note) => note.id}
-        renderItem={({ item }) => renderNote(item)}
+        renderItem={({ item, index }) => renderNote(item, index)}
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: 20,

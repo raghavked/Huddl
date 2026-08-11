@@ -2,7 +2,7 @@
    Same names, same hex values, same AA-checked pairs — one brand,
    two runtimes. Dark is the candle-lit den: warm browns, never blue. */
 
-import type { ViewStyle } from "react-native";
+import { Easing, type ViewStyle } from "react-native";
 
 export const palettes = {
   light: {
@@ -262,7 +262,8 @@ export function elevationFor(
 /* -------------------------------- motion -------------------------------- */
 
 /**
- * Durations, in milliseconds. Four of them, and that is the whole budget.
+ * Durations in milliseconds, and the three curves they travel along. Four
+ * durations and three easings — that is the whole budget.
  *
  * - `instant` (0) — the reduced-motion value. Pass it as the duration
  *   instead of branching around the animation, so state still lands.
@@ -272,23 +273,44 @@ export function elevationFor(
  *   settling in, anything that "arrives".
  * - `slow` (320) — full-screen transitions and the skeleton pulse. Rare.
  *
- * **House easing** (from `react-native`'s `Easing`):
- * - `Easing.inOut(Easing.cubic)` for anything **reversible** — press in and
- *   out, open and close, select and deselect. It leaves and returns along
- *   the same curve, so the undo feels like the same gesture backwards.
- * - `Easing.out(Easing.cubic)` for **arrivals** — something entering that
- *   will not immediately leave: a toast, a newly inserted row, a first
- *   paint. Fast off the mark, settles gently.
+ * **House easing** — `motion.easing`, so nothing has to reach for
+ * `react-native`'s `Easing` and invent a fourth curve:
+ *
+ * - `standard` (`inOut` cubic) — anything **reversible**: press in and out,
+ *   open and close, select and deselect. It leaves and returns along the
+ *   same curve, so the undo feels like the same gesture backwards. When you
+ *   are not sure, this is the one.
+ * - `enter` (`out` cubic) — **arrivals.** Something appearing that will not
+ *   immediately leave: a newly inserted row, a card landing on a first
+ *   paint, a button settling back under a lifted finger. Fast off the mark,
+ *   slow into place.
+ * - `exit` (`in` cubic) — **departures.** Something on its way out: a
+ *   dismissed sheet, a row being removed. Slow to let go, then gone. Never
+ *   use it for something arriving; an arrival that accelerates away from
+ *   you reads as a glitch.
+ *
+ * Arrivals and departures are asymmetric on purpose. A thing takes its time
+ * settling in and leaves without lingering, which is roughly how objects
+ * behave and exactly how a press should feel: quick in, slower out.
  *
  * **The rule: motion is for arrival and completion, never decoration.**
  * Animate a thing that just appeared, or a thing the user just finished.
  * Nothing loops, nothing bounces to get noticed, nothing moves because the
  * screen would otherwise be still. If you cannot name the moment the
  * animation is reporting, delete it.
+ *
+ * **And every animation is gated on `useReducedMotion()`.** Not "animate
+ * less" — land the final state in `motion.instant`. A primitive that cannot
+ * be turned off this way is not finished.
  */
 export const motion = {
   instant: 0,
   quick: 140,
   base: 240,
   slow: 320,
+  easing: {
+    standard: Easing.inOut(Easing.cubic),
+    enter: Easing.out(Easing.cubic),
+    exit: Easing.in(Easing.cubic),
+  },
 } as const;

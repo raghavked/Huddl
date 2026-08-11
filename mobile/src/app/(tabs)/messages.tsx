@@ -140,6 +140,7 @@ function GroupCluster({ people }: { people: ProfileLite[] }) {
     return (
       <View
         accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
         style={{
           width: 44,
           height: 44,
@@ -158,6 +159,7 @@ function GroupCluster({ people }: { people: ProfileLite[] }) {
     return (
       <View
         accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
         style={{
           width: 44,
           height: 44,
@@ -195,23 +197,43 @@ function GroupCluster({ people }: { people: ProfileLite[] }) {
   );
 }
 
-function ThreadRow({ item }: { item: ThreadItem }) {
+/**
+ * The whole row said in one sentence: who it's with, whether anything is
+ * waiting, the last line, and when. The unread dot and the bolder name are
+ * colour and weight only, so "unread" goes into the words.
+ */
+function threadLabel(item: ThreadItem, preview: string): string {
+  return [
+    item.isGroup
+      ? `Open group chat ${item.name}`
+      : `Open conversation with ${item.name}`,
+    item.subtitle,
+    item.unread ? "unread" : null,
+    preview,
+    item.latest ? formatMessageTime(item.latest.created_at) : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function ThreadRow({ item, index }: { item: ThreadItem; index: number }) {
   const theme = useTheme();
   const preview = previewOf(item);
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={
-        item.isGroup
-          ? `Group chat ${item.name}${item.subtitle ? `, ${item.subtitle}` : ""}`
-          : `Conversation with ${item.name}`
-      }
+      accessibilityLabel={threadLabel(item, preview)}
       onPress={() => router.push(`/dm/${item.threadId}`)}
       style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, marginBottom: 10 })}
     >
       <Card
         padded={false}
+        entrance={index}
+        // The parts of a thread row mean nothing apart: an initials circle, a
+        // name, a timestamp, a dot. The row above says all of it once.
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -286,7 +308,6 @@ function ThreadRow({ item }: { item: ThreadItem }) {
         </View>
         {item.unread ? (
           <View
-            accessibilityLabel="Unread messages"
             style={{
               width: 10,
               height: 10,
@@ -465,7 +486,9 @@ export default function MessagesScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<ThreadItem>) => <ThreadRow item={item} />,
+    ({ item, index }: ListRenderItemInfo<ThreadItem>) => (
+      <ThreadRow item={item} index={index} />
+    ),
     []
   );
 
@@ -518,8 +541,16 @@ export default function MessagesScreen() {
             paddingBottom: 80,
           }}
         >
-          <Feather name="cloud-off" size={28} color={theme.muted} />
-          <AppText variant="bodySemi">Something went sideways</AppText>
+          <Feather
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            name="cloud-off"
+            size={28}
+            color={theme.muted}
+          />
+          <AppText variant="bodySemi" accessibilityRole="header">
+            Something went sideways
+          </AppText>
           <AppText
             variant="caption"
             muted
@@ -548,7 +579,11 @@ export default function MessagesScreen() {
                 Trade notes, plan study sessions, or just say hi.
               </AppText>
               {error ? (
-                <AppText variant="caption" style={{ color: theme.danger }}>
+                <AppText
+                  variant="caption"
+                  accessibilityLiveRegion="polite"
+                  style={{ color: theme.danger }}
+                >
                   We couldn't refresh just now — pull down to try again.
                 </AppText>
               ) : null}

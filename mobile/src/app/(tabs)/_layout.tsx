@@ -38,6 +38,11 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontFamily: fonts.bodySemi, fontSize: 10 },
         tabBarIcon: ({ color, size }) => (
           <Feather
+            // The glyph is decoration. The tab button underneath already
+            // announces the destination and whether it's the one you're on,
+            // and an icon font read aloud is a private-use character.
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
             name={TAB_ICONS[route.name as keyof typeof TAB_ICONS] ?? "circle"}
             size={size - 2}
             color={color}

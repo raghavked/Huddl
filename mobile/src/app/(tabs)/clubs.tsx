@@ -59,10 +59,20 @@ function roleLabel(role: ClubRole): string {
   return "Joined";
 }
 
+/** The role pill in words, for the row's own label. */
+function roleWords(role: ClubRole): string {
+  if (role === "owner") return "you're the owner";
+  if (role === "officer") return "you're an officer";
+  return "you've joined";
+}
+
 function CategoryPill({ category }: { category: ClubCategory }) {
   const theme = useTheme();
   return (
     <View
+      // Both pills are said by the row's label; here they are only drawn.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       style={{
         paddingHorizontal: 9,
         paddingVertical: 3,
@@ -81,6 +91,8 @@ function RolePill({ role }: { role: ClubRole }) {
   const theme = useTheme();
   return (
     <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -105,6 +117,7 @@ function ClubRow({
   joining,
   joinDisabled,
   joinError,
+  index,
   onJoin,
   onOpen,
 }: {
@@ -113,20 +126,51 @@ function ClubRow({
   joining: boolean;
   joinDisabled: boolean;
   joinError: string | null;
+  index: number;
   onJoin: () => void;
   onOpen: () => void;
 }) {
   const theme = useTheme();
+  const members = `${club.memberCount} ${
+    club.memberCount === 1 ? "member" : "members"
+  }`;
+  /* Everything drawn across the card, said once. The pills, the headcount
+     and the blurb all live here so the reader meets one club, not five
+     fragments of one. */
+  const label = [
+    `Open ${club.name}`,
+    myRole ? roleWords(myRole) : null,
+    categoryLabel(club.category),
+    members,
+    club.description,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  /* The card is two tappable regions rather than one, and deliberately: a
+     single accessible wrapper around the whole thing would swallow the Join
+     button, and a button a reader cannot reach is a button that isn't
+     there. Both regions open the club; Join stands on its own. */
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Open ${club.name}`}
-      onPress={onOpen}
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-    >
-      <Card padded={false} style={{ padding: 14, gap: 10 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+    <Card padded={false} entrance={index} style={{ padding: 14, gap: 10 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          onPress={onOpen}
+          style={({ pressed }) => ({
+            flex: 1,
+            minWidth: 0,
+            minHeight: 44,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
           <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
             style={{
               width: 40,
               height: 40,
@@ -145,29 +189,38 @@ function ClubRow({
           >
             {club.name}
           </AppText>
-          {myRole ? (
-            <RolePill role={myRole} />
-          ) : (
-            <Button
-              label="Join"
-              variant="soft"
-              pending={joining}
-              disabled={joinDisabled}
-              accessibilityLabel={`Join ${club.name}`}
-              icon={
-                <Feather name="user-plus" size={15} color={theme.brandInk} />
-              }
-              onPress={onJoin}
-            />
-          )}
-        </View>
+        </Pressable>
+        {myRole ? (
+          <RolePill role={myRole} />
+        ) : (
+          <Button
+            label="Join"
+            variant="soft"
+            pending={joining}
+            disabled={joinDisabled}
+            accessibilityLabel={`Join ${club.name}`}
+            accessibilityState={{ disabled: joinDisabled, busy: joining }}
+            icon={<Feather name="user-plus" size={15} color={theme.brandInk} />}
+            onPress={onJoin}
+          />
+        )}
+      </View>
 
+      <Pressable
+        // The lower half opens the club too, and its words are already in the
+        // label above — so it stays silent rather than repeating itself.
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        onPress={onOpen}
+        style={({ pressed }) => ({ gap: 10, opacity: pressed ? 0.7 : 1 })}
+      >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <CategoryPill category={club.category} />
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
             <Feather name="user" size={12} color={theme.muted} />
             <AppText variant="caption" muted>
-              {club.memberCount} {club.memberCount === 1 ? "member" : "members"}
+              {members}
             </AppText>
           </View>
         </View>
@@ -177,14 +230,18 @@ function ClubRow({
             {club.description}
           </AppText>
         ) : null}
+      </Pressable>
 
-        {joinError ? (
-          <AppText variant="caption" style={{ color: theme.danger }}>
-            {joinError}
-          </AppText>
-        ) : null}
-      </Card>
-    </Pressable>
+      {joinError ? (
+        <AppText
+          variant="caption"
+          accessibilityLiveRegion="polite"
+          style={{ color: theme.danger }}
+        >
+          {joinError}
+        </AppText>
+      ) : null}
+    </Card>
   );
 }
 
@@ -307,10 +364,11 @@ export default function ClubsScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<ClubItem>) => (
+    ({ item, index }: ListRenderItemInfo<ClubItem>) => (
       <View style={{ marginBottom: 10 }}>
         <ClubRow
           club={item}
+          index={index}
           myRole={roles[item.id] ?? null}
           joining={joiningId === item.id}
           joinDisabled={joiningId !== null}
@@ -374,8 +432,16 @@ export default function ClubsScreen() {
             paddingBottom: 80,
           }}
         >
-          <Feather name="cloud-off" size={28} color={theme.muted} />
-          <AppText variant="bodySemi">Something went sideways</AppText>
+          <Feather
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            name="cloud-off"
+            size={28}
+            color={theme.muted}
+          />
+          <AppText variant="bodySemi" accessibilityRole="header">
+            Something went sideways
+          </AppText>
           <AppText
             variant="caption"
             muted
@@ -403,7 +469,11 @@ export default function ClubsScreen() {
                 Student orgs on your campus — find your people.
               </AppText>
               {error ? (
-                <AppText variant="caption" style={{ color: theme.danger }}>
+                <AppText
+                  variant="caption"
+                  accessibilityLiveRegion="polite"
+                  style={{ color: theme.danger }}
+                >
                   We couldn't refresh just now — pull down to try again.
                 </AppText>
               ) : null}
@@ -418,8 +488,19 @@ export default function ClubsScreen() {
                 borderStyle: "dashed",
               }}
             >
-              <Pennant size={72} color={theme.muted} softColor={theme.surface2} />
-              <AppText variant="bodySemi">No clubs yet</AppText>
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
+                <Pennant
+                  size={72}
+                  color={theme.muted}
+                  softColor={theme.surface2}
+                />
+              </View>
+              <AppText variant="bodySemi" accessibilityRole="header">
+                No clubs yet
+              </AppText>
               <AppText
                 variant="caption"
                 muted

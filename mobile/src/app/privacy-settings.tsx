@@ -1,10 +1,22 @@
 import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import type { ReactNode } from "react";
-import { Pressable, ScrollView, Switch, View } from "react-native";
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Switch,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card, SectionLabel, Skeleton } from "@/components/ui";
+import {
+  AppText,
+  Card,
+  EmptyState,
+  SectionLabel,
+  Skeleton,
+} from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { usePrivacyPrefs, type PrivacyPrefs } from "@/hooks/use-privacy-prefs";
 import { useTheme } from "@/hooks/use-theme";
@@ -237,10 +249,19 @@ export default function PrivacySettingsScreen() {
   const { prefs, loading, error, saveError, setPref, refresh } =
     usePrivacyPrefs();
 
+  const [refreshing, setRefreshing] = useState(false);
+
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace("/settings");
   }, []);
+
+  /* The switches are read from a shared cache, so a pull here is the one way
+     to make this screen ask the row again. */
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    void refresh().finally(() => setRefreshing(false));
+  }, [refresh]);
 
   return (
     <View
@@ -280,27 +301,24 @@ export default function PrivacySettingsScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.brand}
+            colors={[theme.brand]}
+          />
+        }
       >
         <SectionLabel text="What you share" first />
 
         {error ? (
-          <Card style={{ alignItems: "center", gap: 8, paddingVertical: 24 }}>
-            <Feather name="cloud-off" size={20} color={theme.muted} />
-            <AppText variant="bodySemi">We couldn't reach your settings</AppText>
-            <AppText
-              variant="caption"
-              muted
-              style={{ textAlign: "center", maxWidth: 280 }}
-            >
-              {error}
-            </AppText>
-            <Button
-              label="Try again"
-              variant="soft"
-              size="sm"
-              onPress={() => void refresh()}
-            />
-          </Card>
+          <EmptyState
+            icon="cloud-off"
+            title="We couldn't reach your settings"
+            body={error}
+            action={{ label: "Try again", onPress: () => void refresh() }}
+          />
         ) : (
           <>
             <Card padded={false}>

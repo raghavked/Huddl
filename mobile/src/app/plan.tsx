@@ -1,8 +1,9 @@
 import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   Pressable,
   RefreshControl,
@@ -17,10 +18,12 @@ import {
   Chip,
   EmptyState,
   SectionLabel,
+  useReducedMotion,
   type ChipTone,
 } from "@/components/ui";
 import {
   courseTintsFor,
+  motion,
   radius,
   type CourseTintColors,
 } from "@/constants/theme";
@@ -159,6 +162,9 @@ function emptyPlanCopy(data: PlanData | null): {
 function CourseChip({ code, tint }: { code: string; tint: CourseTintColors }) {
   return (
     <View
+      // The row's summary already names the course; this is the colour of it.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       style={{
         alignSelf: "flex-start",
         paddingHorizontal: 8,
@@ -182,19 +188,34 @@ function EntryRow({
   entry,
   tint,
   now,
+  index,
   onToggle,
 }: {
   entry: PlanEntry;
   tint: CourseTintColors;
   now: Date;
+  index: number;
   onToggle: () => void;
 }) {
   const theme = useTheme();
   const overdue = entry.dueAt.getTime() < now.getTime();
   const dueLine = `${overdue ? "Was due" : "Due"} ${formatDayTime(entry.dueAt)}`;
+  /* Two chips, a title and a due line are one thought about one assignment.
+     The strike-through and the danger-red due line are drawing alone, so
+     "done" and the overdue wording carry them into the words. */
+  const summary = [
+    entry.courseCode,
+    kindLabel(entry.kind),
+    entry.title,
+    dueLine,
+    entry.done ? "done" : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
   return (
     <Card
       padded={false}
+      entrance={index}
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -246,7 +267,7 @@ function EntryRow({
           />
         )}
       </Pressable>
-      <View style={{ flex: 1, gap: 4 }}>
+      <View accessible accessibilityLabel={summary} style={{ flex: 1, gap: 4 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <CourseChip code={entry.courseCode} tint={tint} />
           <Chip label={kindLabel(entry.kind)} tone={kindTone(entry.kind)} />
@@ -276,6 +297,8 @@ function BlockRow({ block }: { block: StudyBlock }) {
   const theme = useTheme();
   return (
     <View
+      accessible
+      accessibilityLabel={`${block.label}, ${formatDayTime(block.at)}`}
       style={{
         marginLeft: 28,
         flexDirection: "row",
@@ -287,7 +310,13 @@ function BlockRow({ block }: { block: StudyBlock }) {
         paddingVertical: 10,
       }}
     >
-      <Feather name="calendar" size={15} color={theme.accent} />
+      <Feather
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        name="calendar"
+        size={15}
+        color={theme.accent}
+      />
       <View style={{ flex: 1, gap: 1 }}>
         <AppText variant="label" numberOfLines={2}>
           {block.label}
@@ -297,6 +326,101 @@ function BlockRow({ block }: { block: StudyBlock }) {
         </AppText>
       </View>
     </View>
+  );
+}
+
+/**
+ * The one card at the top of the plan that changes while you stand there:
+ * check something off and the count, the bar and the next-up line all move.
+ * So it is a single live element — the bar slides to its new length on the
+ * arrival curve, and the reader hears the new count rather than the old one
+ * going quietly stale.
+ */
+function PlanProgress({
+  handled,
+  total,
+  allDone,
+  nextUp,
+  streak,
+}: {
+  handled: number;
+  total: number;
+  allDone: boolean;
+  nextUp: PlanEntry | undefined;
+  streak: number;
+}) {
+  const theme = useTheme();
+  const reduceMotion = useReducedMotion();
+  const pct = total > 0 ? Math.round((handled / total) * 100) : 0;
+  const fill = useRef(new Animated.Value(pct)).current;
+
+  useEffect(() => {
+    const animation = Animated.timing(fill, {
+      toValue: pct,
+      duration: reduceMotion ? motion.instant : motion.base,
+      easing: motion.easing.enter,
+      // Width is a layout property; this one can't ride the native driver.
+      useNativeDriver: false,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [pct, reduceMotion, fill]);
+
+  const label = [
+    allDone ? "All caught up" : null,
+    `${handled} of ${total} handled`,
+    !allDone && nextUp ? `next up ${nextUp.courseCode} ${nextUp.title}` : null,
+    streak >= 2 ? `${streak}-day streak` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return (
+    <Card
+      accessible
+      accessibilityLabel={label}
+      accessibilityLiveRegion="polite"
+      style={{ gap: 10 }}
+    >
+      <AppText variant="title">
+        {allDone
+          ? "All caught up. Go touch grass."
+          : `You're on top of it — ${handled} of ${total} handled`}
+      </AppText>
+      <View
+        style={{
+          height: 6,
+          borderRadius: radius.full,
+          backgroundColor: theme.surface3,
+          overflow: "hidden",
+        }}
+      >
+        <Animated.View
+          style={{
+            height: "100%",
+            width: fill.interpolate({
+              inputRange: [0, 100],
+              outputRange: ["0%", "100%"],
+            }),
+            borderRadius: radius.full,
+            backgroundColor: allDone ? theme.success : theme.brand,
+          }}
+        />
+      </View>
+      {allDone ? (
+        <AppText variant="caption" muted>
+          {handled} of {total} handled
+        </AppText>
+      ) : nextUp ? (
+        <AppText variant="caption" muted numberOfLines={1}>
+          Next up: {nextUp.courseCode} {nextUp.title}
+        </AppText>
+      ) : null}
+      {/* The streak stays quiet: nothing at 0 or 1 — no guilt UI. */}
+      {streak >= 2 ? (
+        <Chip label={`${streak}-day streak`} tone="accent" icon="zap" />
+      ) : null}
+    </Card>
   );
 }
 
@@ -509,6 +633,7 @@ export default function PlanScreen() {
                 entry={item.entry}
                 tint={tintFor(item.entry.courseCode)}
                 now={data?.loadedAt ?? new Date()}
+                index={index}
                 onToggle={() => void toggle(item.entry)}
               />
             </View>
@@ -528,10 +653,6 @@ export default function PlanScreen() {
 
   const stats = plan?.stats ?? null;
   const allDone = stats !== null && stats.total > 0 && stats.handled === stats.total;
-  const pct =
-    stats && stats.total > 0
-      ? Math.round((stats.handled / stats.total) * 100)
-      : 0;
 
   return (
     <View
@@ -563,7 +684,11 @@ export default function PlanScreen() {
       </View>
 
       <View style={{ flex: 1, paddingHorizontal: 20 }}>
-        <AppText variant="display" style={{ marginTop: 2, marginBottom: 16 }}>
+        <AppText
+          variant="display"
+          accessibilityRole="header"
+          style={{ marginTop: 2, marginBottom: 16 }}
+        >
           Your plan
         </AppText>
 
@@ -592,8 +717,16 @@ export default function PlanScreen() {
               paddingBottom: 80,
             }}
           >
-            <Feather name="cloud-off" size={28} color={theme.muted} />
-            <AppText variant="bodySemi">Something went sideways</AppText>
+            <Feather
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              name="cloud-off"
+              size={28}
+              color={theme.muted}
+            />
+            <AppText variant="bodySemi" accessibilityRole="header">
+              Something went sideways
+            </AppText>
             <AppText
               variant="caption"
               muted
@@ -630,55 +763,29 @@ export default function PlanScreen() {
             ListHeaderComponent={
               <View style={{ gap: 10, marginBottom: 6 }}>
                 {stats && stats.total > 0 ? (
-                  <Card style={{ gap: 10 }}>
-                    <AppText variant="title">
-                      {allDone
-                        ? "All caught up. Go touch grass."
-                        : `You're on top of it — ${stats.handled} of ${stats.total} handled`}
-                    </AppText>
-                    <View
-                      style={{
-                        height: 6,
-                        borderRadius: radius.full,
-                        backgroundColor: theme.surface3,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <View
-                        style={{
-                          height: "100%",
-                          width: `${pct}%`,
-                          borderRadius: radius.full,
-                          backgroundColor: allDone ? theme.success : theme.brand,
-                        }}
-                      />
-                    </View>
-                    {allDone ? (
-                      <AppText variant="caption" muted>
-                        {stats.handled} of {stats.total} handled
-                      </AppText>
-                    ) : stats.nextUp ? (
-                      <AppText variant="caption" muted numberOfLines={1}>
-                        Next up: {stats.nextUp.courseCode} {stats.nextUp.title}
-                      </AppText>
-                    ) : null}
-                    {/* The streak stays quiet: nothing at 0 or 1 — no guilt UI. */}
-                    {streak >= 2 ? (
-                      <Chip
-                        label={`${streak}-day streak`}
-                        tone="accent"
-                        icon="zap"
-                      />
-                    ) : null}
-                  </Card>
+                  <PlanProgress
+                    handled={stats.handled}
+                    total={stats.total}
+                    allDone={allDone}
+                    nextUp={stats.nextUp}
+                    streak={streak}
+                  />
                 ) : null}
                 {error ? (
-                  <AppText variant="caption" style={{ color: theme.danger }}>
+                  <AppText
+                    variant="caption"
+                    accessibilityLiveRegion="polite"
+                    style={{ color: theme.danger }}
+                  >
                     We couldn't refresh just now — pull down to try again.
                   </AppText>
                 ) : null}
                 {actionError ? (
-                  <AppText variant="caption" style={{ color: theme.danger }}>
+                  <AppText
+                    variant="caption"
+                    accessibilityLiveRegion="polite"
+                    style={{ color: theme.danger }}
+                  >
                     {actionError}
                   </AppText>
                 ) : null}
