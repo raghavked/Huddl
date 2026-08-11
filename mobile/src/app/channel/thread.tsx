@@ -4,7 +4,7 @@ import type {
   RealtimePostgresUpdatePayload,
 } from "@supabase/supabase-js";
 import { Image } from "expo-image";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -14,6 +14,7 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
   TextInput,
   View,
   type ListRenderItemInfo,
@@ -25,6 +26,31 @@ import { MentionText, useMentionSuggestions } from "@/features/mentions";
 import { PollBubble } from "@/features/polls";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
+import {
+  clearDraft,
+  DraftError,
+  dropQueued,
+  enqueue,
+  flushQueue,
+  isLikelyOffline,
+  keyFor,
+  loadDraft,
+  noteConnectivity,
+  peekQueue,
+  saveDraft,
+  type QueuedMessage,
+} from "@/lib/drafts";
+import {
+  fetchForwardTargets,
+  ForwardError,
+  forwardLabelFor,
+  forwardMessage,
+  summarizeForward,
+  targetName,
+  type ForwardSource,
+  type ForwardTarget,
+} from "@/lib/forwarding";
+import { tapSuccess } from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -48,6 +74,10 @@ type MessageRow = {
   edited_at: string | null;
   deleted_at: string | null;
   created_at: string;
+  /** Where a forwarded message came from ("#mat-21a"), null on an original. */
+  forwarded_from: string | null;
+  /** Who wrote it first, null on an original or a deleted account. */
+  forwarded_author_id: string | null;
   author: Author | null;
 };
 
@@ -63,13 +93,47 @@ type RawMessageRow = {
   edited_at: string | null;
   created_at: string;
   deleted_at: string | null;
+  forwarded_from: string | null;
+  forwarded_author_id: string | null;
 };
 
 type Status = "loading" | "error" | "ready";
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 const MESSAGE_SELECT =
-  "id, channel_id, author_id, parent_id, content, attachment_path, poll_id, edited_at, deleted_at, created_at, author:profiles(id, handle, display_name, avatar_url)";
+  "id, channel_id, author_id, parent_id, content, attachment_path, poll_id, edited_at, deleted_at, created_at, forwarded_from, forwarded_author_id, author:profiles(id, handle, display_name, avatar_url)";
+
+/** How many rooms one forward carries. Five is a handful, not a broadcast. */
+const FORWARD_MAX_TARGETS = 5;
+
+/** Quiet time in the composer before the draft is written to the device. */
+const DRAFT_SAVE_MS = 500;
+
+/** An embedded relation comes back as an object OR a one-element array
+    depending on how PostgREST resolves it. Unwrap every shape. */
+function embedded(raw: unknown): Record<string, unknown> | null {
+  const value: unknown = Array.isArray(raw) ? raw[0] : raw;
+  if (typeof value !== "object" || value === null) return null;
+  return value as Record<string, unknown>;
+}
+
+/** What the channel this thread hangs off is called — the same identity the
+    room's own header shows, so a forward's provenance line matches the place
+    a student remembers being in. Null when we couldn't read it. */
+function channelNameFrom(raw: unknown): string | null {
+  const row = embedded(raw);
+  if (!row) return null;
+  const kind = typeof row["kind"] === "string" ? row["kind"] : "";
+  const name = typeof row["name"] === "string" ? row["name"] : "";
+  const slug = typeof row["slug"] === "string" ? row["slug"] : "";
+  const course = embedded(row["course"]);
+  const code =
+    course && typeof course["code"] === "string" ? course["code"] : "";
+  if (kind === "course" && code) return code;
+  if (kind === "club" && name) return name;
+  if (slug) return slug;
+  return name.length > 0 ? name : null;
+}
 
 /** The message-body text style — MentionText needs it spelled out. */
 const BODY_TEXT = {
@@ -216,6 +280,489 @@ function AttachmentImage({
   );
 }
 
+/** A target's identity inside the picker's selection. */
+function targetKey(target: ForwardTarget): string {
+  return `${target.kind}:${target.id}`;
+}
+
+/** The quiet provenance line above a forwarded message's words. */
+function ForwardedFrom({
+  from,
+  who,
+  own,
+}: {
+  from: string;
+  who: string | null;
+  own: boolean;
+}) {
+  const theme = useTheme();
+  // Secondary text on the own-message clay takes its tint from that clay;
+  // on the neutral fill it's the usual muted.
+  const tint = own ? theme.brandInk : theme.muted;
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+      <Feather name="corner-up-right" size={11} color={tint} />
+      <AppText
+        variant="caption"
+        numberOfLines={1}
+        style={{ color: tint, flex: 1 }}
+      >
+        {who ? `Forwarded from ${from} · ${who}` : `Forwarded from ${from}`}
+      </AppText>
+    </View>
+  );
+}
+
+/** A message the send queue is holding: the words stay in the room, a quiet
+    caption says why, and a tap tries again. A stuck one also offers a way out. */
+function PendingBubble({
+  message,
+  onRetry,
+  onDiscard,
+}: {
+  message: QueuedMessage;
+  onRetry: () => void;
+  onDiscard: () => void;
+}) {
+  const theme = useTheme();
+  const content = message.payload["content"] ?? "";
+  const caption = message.stuck
+    ? (message.last_error ?? "We couldn't send this one.")
+    : "Waiting to send";
+  return (
+    <View style={{ marginTop: 10, alignItems: "flex-end" }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${caption}. Tap to try again.`}
+        onPress={onRetry}
+        hitSlop={6}
+        style={({ pressed }) => ({
+          maxWidth: "80%",
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <Card
+          padded={false}
+          style={{
+            backgroundColor: theme.surface2,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: message.stuck ? theme.danger : theme.border,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+          }}
+        >
+          <AppText style={{ color: theme.foreground }}>{content}</AppText>
+        </Card>
+      </Pressable>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          marginTop: 3,
+          paddingHorizontal: 4,
+        }}
+      >
+        <Feather
+          name={message.stuck ? "alert-circle" : "clock"}
+          size={11}
+          color={message.stuck ? theme.danger : theme.muted}
+        />
+        <AppText
+          variant="caption"
+          style={{ color: message.stuck ? theme.danger : theme.muted }}
+        >
+          {caption}
+        </AppText>
+        {message.stuck ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Discard this message"
+            onPress={onDiscard}
+            hitSlop={14}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          >
+            <AppText variant="label" style={{ color: theme.brandInk }}>
+              Discard
+            </AppText>
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * The forward target picker: every channel and conversation you're in,
+ * searchable, up to five at a time, with the message you're passing along
+ * quoted at the top.
+ *
+ * Drawn as an in-tree overlay rather than a `Sheet`, for exactly the reason
+ * the composer's action menu is: it opens in the same tick the long-press
+ * `Sheet`'s Modal is dismissing, and a Modal presented underneath another one
+ * on its way out is how you get a picker that never appears.
+ */
+function ForwardPicker({
+  visible,
+  source,
+  exclude,
+  blocked,
+  liftForKeyboard,
+  onClose,
+  onFinished,
+}: {
+  visible: boolean;
+  source: ForwardSource | null;
+  /** The room we're forwarding out of — never a place to forward to. */
+  exclude: { kind: "channel" | "dm"; id: string } | null;
+  /** Blocked classmates aren't places; same gate the messages list runs. */
+  blocked: Set<string>;
+  /** False when an ancestor already lifts for the keyboard (the DM room). */
+  liftForKeyboard: boolean;
+  onClose: () => void;
+  onFinished: (message: string) => void;
+}) {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const [status, setStatus] = useState<"loading" | "error" | "ready">(
+    "loading"
+  );
+  const [targets, setTargets] = useState<ForwardTarget[]>([]);
+  const [query, setQuery] = useState("");
+  const [picked, setPicked] = useState<ForwardTarget[]>([]);
+  const [sending, setSending] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setStatus("loading");
+    try {
+      setTargets(await fetchForwardTargets());
+      setStatus("ready");
+    } catch {
+      setStatus("error");
+    }
+  }, []);
+
+  // Each opening is a fresh decision — no leftover ticks from last time.
+  useEffect(() => {
+    if (!visible) return;
+    setQuery("");
+    setPicked([]);
+    setProblem(null);
+    void load();
+  }, [visible, load]);
+
+  const rows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return targets.filter((target) => {
+      if (exclude && target.kind === exclude.kind && target.id === exclude.id) {
+        return false;
+      }
+      if (
+        target.kind === "dm" &&
+        target.otherId !== null &&
+        blocked.has(target.otherId)
+      ) {
+        return false;
+      }
+      if (q === "") return true;
+      const second = target.kind === "channel" ? (target.courseCode ?? "") : "";
+      return (
+        targetName(target).toLowerCase().includes(q) ||
+        second.toLowerCase().includes(q)
+      );
+    });
+  }, [targets, query, exclude, blocked]);
+
+  const pickedKeys = useMemo(() => new Set(picked.map(targetKey)), [picked]);
+  const atLimit = picked.length >= FORWARD_MAX_TARGETS;
+
+  const toggle = useCallback((target: ForwardTarget) => {
+    const key = targetKey(target);
+    setProblem(null);
+    setPicked((prev) => {
+      if (prev.some((p) => targetKey(p) === key)) {
+        return prev.filter((p) => targetKey(p) !== key);
+      }
+      if (prev.length >= FORWARD_MAX_TARGETS) return prev;
+      return [...prev, target];
+    });
+  }, []);
+
+  const send = useCallback(async () => {
+    if (!source || picked.length === 0 || sending) return;
+    setSending(true);
+    setProblem(null);
+    try {
+      const outcomes = await forwardMessage({ source, targets: picked });
+      const summary = summarizeForward(outcomes);
+      if (summary.sent > 0) tapSuccess();
+      if (summary.complete) {
+        onFinished(summary.message);
+        onClose();
+        return;
+      }
+      // Partial: hold only the rooms that refused, so "Send" retries exactly
+      // those instead of doubling up on the ones that took it.
+      setPicked(outcomes.filter((o) => !o.sent).map((o) => o.target));
+      setProblem(summary.message);
+    } catch (err) {
+      setProblem(
+        err instanceof ForwardError
+          ? err.message
+          : "We couldn't pass that along. Give it another go."
+      );
+    } finally {
+      setSending(false);
+    }
+  }, [source, picked, sending, onClose, onFinished]);
+
+  if (!visible) return null;
+
+  const sendLabel =
+    picked.length === 0
+      ? "Pick somewhere first"
+      : picked.length === 1
+        ? `Send to ${targetName(picked[0])}`
+        : `Send to ${picked.length} rooms`;
+
+  const card = (
+    <Card
+      elevation="floating"
+      padded={false}
+      style={{
+        marginHorizontal: 12,
+        marginBottom: Math.max(insets.bottom, 12),
+        padding: 14,
+        gap: 10,
+        maxHeight: "85%",
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <AppText variant="title" numberOfLines={1} style={{ flex: 1 }}>
+          Pass it along
+        </AppText>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          onPress={onClose}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            marginRight: -10,
+            marginVertical: -10,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Feather name="x" size={18} color={theme.muted} />
+        </Pressable>
+      </View>
+
+      <View
+        style={{
+          padding: 10,
+          borderRadius: radius.control,
+          backgroundColor: theme.surface2,
+        }}
+      >
+        <AppText variant="caption" muted numberOfLines={3}>
+          {source?.content ?? ""}
+        </AppText>
+      </View>
+      <AppText variant="caption" muted>
+        Everyone in the rooms you pick can read it, photo included — and pass
+        it on again. There's no taking it back.
+      </AppText>
+
+      <TextInput
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search your rooms"
+        placeholderTextColor={theme.muted}
+        accessibilityLabel="Search your rooms"
+        autoCapitalize="none"
+        autoCorrect={false}
+        returnKeyType="search"
+        cursorColor={theme.brand}
+        selectionColor={theme.brandSoft}
+        style={{
+          minHeight: 44,
+          borderWidth: 1,
+          borderColor: theme.border,
+          borderRadius: radius.control,
+          backgroundColor: theme.background,
+          paddingHorizontal: 14,
+          fontFamily: fonts.body,
+          fontSize: 15,
+          color: theme.foreground,
+        }}
+      />
+
+      {status === "loading" ? (
+        <View style={{ paddingVertical: 24, alignItems: "center" }}>
+          <ActivityIndicator size="small" color={theme.brand} />
+        </View>
+      ) : status === "error" ? (
+        <View style={{ paddingVertical: 16, alignItems: "center", gap: 8 }}>
+          <Feather name="wifi-off" size={20} color={theme.brand} />
+          <AppText muted style={{ textAlign: "center", maxWidth: 260 }}>
+            We couldn't load your rooms. Give it another go.
+          </AppText>
+          <Button
+            label="Try again"
+            variant="soft"
+            size="sm"
+            onPress={() => void load()}
+          />
+        </View>
+      ) : rows.length === 0 ? (
+        <View style={{ paddingVertical: 16, alignItems: "center" }}>
+          <AppText muted style={{ textAlign: "center", maxWidth: 260 }}>
+            {query.trim() === ""
+              ? "There's nowhere else to send this yet — join a channel or start a chat."
+              : "No room by that name."}
+          </AppText>
+        </View>
+      ) : (
+        <ScrollView
+          style={{ flexGrow: 0, flexShrink: 1 }}
+          contentContainerStyle={{ paddingBottom: 4 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {rows.map((target) => {
+            const checked = pickedKeys.has(targetKey(target));
+            return (
+              <Pressable
+                key={targetKey(target)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked }}
+                accessibilityLabel={targetName(target)}
+                onPress={() => toggle(target)}
+                style={({ pressed }) => ({
+                  minHeight: 44,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                  paddingHorizontal: 4,
+                  borderRadius: radius.control,
+                  backgroundColor: pressed ? theme.surface2 : "transparent",
+                })}
+              >
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: radius.control,
+                    backgroundColor: theme.brandSoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Feather
+                    name={
+                      target.kind === "channel"
+                        ? "hash"
+                        : target.isGroup
+                          ? "users"
+                          : "user"
+                    }
+                    size={15}
+                    color={theme.brand}
+                  />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <AppText variant="bodySemi" numberOfLines={1}>
+                    {targetName(target)}
+                  </AppText>
+                  {target.kind === "channel" && target.courseCode ? (
+                    <AppText variant="caption" muted numberOfLines={1}>
+                      {target.courseCode}
+                    </AppText>
+                  ) : null}
+                </View>
+                <View
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: radius.full,
+                    borderWidth: 1,
+                    borderColor: checked ? theme.brand : theme.border,
+                    backgroundColor: checked ? theme.brand : "transparent",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {checked ? (
+                    <Feather name="check" size={13} color={theme.brandFg} />
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
+
+      {atLimit ? (
+        <AppText variant="caption" muted>
+          That's five rooms — as many as one forward carries.
+        </AppText>
+      ) : null}
+      {problem ? (
+        <AppText variant="caption" style={{ color: theme.danger }}>
+          {problem}
+        </AppText>
+      ) : null}
+      <Button
+        label={sendLabel}
+        pending={sending}
+        disabled={picked.length === 0 || sending}
+        onPress={() => void send()}
+      />
+    </Card>
+  );
+
+  return (
+    <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+        onPress={onClose}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          // The scrim stays candle-dark in both appearances.
+          backgroundColor: palettes.dark.background,
+          opacity: 0.55,
+        }}
+      />
+      {liftForKeyboard ? (
+        <KeyboardAvoidingView
+          pointerEvents="box-none"
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1, justifyContent: "flex-end" }}
+        >
+          {card}
+        </KeyboardAvoidingView>
+      ) : (
+        <View
+          pointerEvents="box-none"
+          style={{ flex: 1, justifyContent: "flex-end" }}
+        >
+          {card}
+        </View>
+      )}
+    </View>
+  );
+}
+
 export default function ThreadScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -245,6 +792,57 @@ export default function ThreadScreen() {
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
   const { blocked } = useBlockedIds();
+
+  // Drafts and the send queue. A thread is its own conversation, keyed on the
+  // parent message — leaving one mid-sentence keeps its own sentence.
+  const conversationKey = useMemo(() => keyFor("thread", messageId), [messageId]);
+  const [pending, setPending] = useState<QueuedMessage[]>([]);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const editingRef = useRef(false);
+  editingRef.current = editing !== null;
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Forwarding: the message being passed along, the sentence that says where
+  // it landed, and the channel name its provenance line will carry.
+  const [forwardFor, setForwardFor] = useState<MessageRow | null>(null);
+  const [forwardNote, setForwardNote] = useState<string | null>(null);
+  const noteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [channelName, setChannelName] = useState<string | null>(null);
+  // Display names behind forwarded_author_id, fetched in one batch per page
+  // rather than embedded — `messages` has two foreign keys into `profiles`,
+  // and a mis-hinted embed would take the whole thread's query down with it.
+  const [forwardedNames, setForwardedNames] = useState<Record<string, string>>(
+    {}
+  );
+  const forwardedNamesRef = useRef(forwardedNames);
+  forwardedNamesRef.current = forwardedNames;
+
+  /** The display names behind any forwarded_author_id on this page. One
+      batched query, and only for ids we haven't already resolved. */
+  const loadForwardedNames = useCallback(
+    async (rows: readonly { forwarded_author_id: string | null }[]) => {
+      const wanted = new Set<string>();
+      for (const row of rows) {
+        const id = row.forwarded_author_id;
+        if (id && !(id in forwardedNamesRef.current)) wanted.add(id);
+      }
+      if (wanted.size === 0) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", [...wanted]);
+      if (!data) return;
+      setForwardedNames((prev) => {
+        const next = { ...prev };
+        for (const row of data as { id: string; display_name: string }[]) {
+          next[row.id] = row.display_name;
+        }
+        return next;
+      });
+    },
+    []
+  );
 
   const listRef = useRef<FlatList<MessageRow>>(null);
   const pendingScrollRef = useRef(false);
@@ -279,7 +877,7 @@ export default function ThreadScreen() {
       setStatus("error");
       return;
     }
-    const [parentRes, repliesRes] = await Promise.all([
+    const [parentRes, repliesRes, channelRes] = await Promise.all([
       supabase
         .from("messages")
         .select(MESSAGE_SELECT)
@@ -290,20 +888,177 @@ export default function ThreadScreen() {
         .select(MESSAGE_SELECT)
         .eq("parent_id", messageId)
         .order("created_at", { ascending: true }),
+      // Only for the forward provenance line — a failure here costs a label,
+      // never the thread.
+      supabase
+        .from("channels")
+        .select("kind, name, slug, course:courses(code)")
+        .eq("id", channelId)
+        .maybeSingle(),
     ]);
     if (parentRes.error || repliesRes.error) {
       setStatus("error");
       return;
     }
-    setParent((parentRes.data as unknown as MessageRow | null) ?? null);
+    const parentRow = (parentRes.data as unknown as MessageRow | null) ?? null;
     // Deleted replies stay in the stream as tombstones, matching the web.
-    setReplies((repliesRes.data ?? []) as unknown as MessageRow[]);
+    const replyRows = (repliesRes.data ?? []) as unknown as MessageRow[];
+    setParent(parentRow);
+    setReplies(replyRows);
+    setChannelName(channelNameFrom(channelRes.data));
     setStatus("ready");
-  }, [userId, channelId, messageId]);
+    void loadForwardedNames(parentRow ? [parentRow, ...replyRows] : replyRows);
+  }, [userId, channelId, messageId, loadForwardedNames]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  /* ------------------------ drafts and the queue ----------------------- */
+
+  // Restore what was left mid-sentence, but never over something already
+  // typed — a slow read must not overwrite a fast typist.
+  useEffect(() => {
+    let cancelled = false;
+    void loadDraft(conversationKey).then((saved) => {
+      if (cancelled || !saved) return;
+      setDraft((current) => (current.length === 0 ? saved : current));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [conversationKey]);
+
+  /** Debounced, not per keystroke: AsyncStorage is a round trip to native. */
+  const noteDraft = useCallback(
+    (text: string) => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+      draftTimerRef.current = setTimeout(() => {
+        draftTimerRef.current = null;
+        // While editing, the composer holds someone's published words, not a
+        // draft — the real draft is parked in draftBeforeEditRef.
+        if (editingRef.current) return;
+        void saveDraft(conversationKey, text);
+      }, DRAFT_SAVE_MS);
+    },
+    [conversationKey]
+  );
+
+  // Leaving the thread writes the last word, debounce or no debounce.
+  useEffect(() => {
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+      void saveDraft(
+        conversationKey,
+        editingRef.current ? draftBeforeEditRef.current : draftRef.current
+      );
+    };
+  }, [conversationKey]);
+
+  useEffect(() => {
+    return () => {
+      if (noteTimerRef.current) clearTimeout(noteTimerRef.current);
+    };
+  }, []);
+
+  const refreshPending = useCallback(async () => {
+    setPending(await peekQueue(conversationKey));
+  }, [conversationKey]);
+
+  /** Pull replies the queue just landed into the thread. Our own realtime
+      echoes are skipped, so nothing else would bring them in. */
+  const adoptSent = useCallback(
+    async (ids: readonly string[]) => {
+      if (ids.length === 0) return;
+      const { data } = await supabase
+        .from("messages")
+        .select(MESSAGE_SELECT)
+        .in("id", [...ids]);
+      if (!data) return;
+      const rows = (data as unknown as MessageRow[]).filter(
+        (row) => row.parent_id === messageId
+      );
+      void loadForwardedNames(rows);
+      setReplies((prev) => {
+        const known = new Set(prev.map((m) => m.id));
+        const fresh = rows.filter((row) => !known.has(row.id));
+        if (fresh.length === 0) return prev;
+        return [...prev, ...fresh].sort((a, b) =>
+          a.created_at.localeCompare(b.created_at)
+        );
+      });
+      pendingScrollRef.current = true;
+    },
+    [messageId, loadForwardedNames]
+  );
+
+  const runFlush = useCallback(async () => {
+    let landed: string[] = [];
+    try {
+      const result = await flushQueue();
+      landed = result.sent
+        .filter((message) => message.key === conversationKey)
+        .map((message) => message.id);
+    } catch {
+      // The queue itself couldn't be read; the refresh below still tells the
+      // truth about what's waiting.
+    }
+    // Retire the pending bubbles BEFORE the real rows arrive — the other
+    // order shows both for a frame, which reads as a message sent twice.
+    await refreshPending();
+    await adoptSent(landed);
+  }, [conversationKey, adoptSent, refreshPending]);
+
+  useEffect(() => {
+    void refreshPending();
+  }, [refreshPending]);
+
+  // Arriving in the thread is when anything the queue is holding gets another
+  // go — including replies queued from a previous visit.
+  useFocusEffect(
+    useCallback(() => {
+      void runFlush();
+    }, [runFlush])
+  );
+
+  /** Tap a pending bubble. A stuck one has spent its five tries, so it goes
+      back in the queue fresh; anything else just needs another pass. */
+  const retryQueued = useCallback(
+    async (message: QueuedMessage) => {
+      if (message.stuck) {
+        await dropQueued(message.id);
+        try {
+          await enqueue({
+            key: message.key,
+            table: message.table,
+            payload: message.payload,
+          });
+        } catch {
+          // It couldn't be held again; the refresh shows it's gone.
+        }
+      }
+      await refreshPending();
+      await runFlush();
+    },
+    [refreshPending, runFlush]
+  );
+
+  const discardQueued = useCallback(
+    async (id: string) => {
+      await dropQueued(id);
+      await refreshPending();
+    },
+    [refreshPending]
+  );
+
+  const showForwardNote = useCallback((message: string) => {
+    setForwardNote(message);
+    if (noteTimerRef.current) clearTimeout(noteTimerRef.current);
+    noteTimerRef.current = setTimeout(() => {
+      noteTimerRef.current = null;
+      setForwardNote(null);
+    }, 5000);
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -367,8 +1122,15 @@ export default function ThreadScreen() {
                 edited_at: row.edited_at,
                 deleted_at: row.deleted_at,
                 created_at: row.created_at,
+                forwarded_from: row.forwarded_from,
+                forwarded_author_id: row.forwarded_author_id,
                 author: (data as unknown as Author | null) ?? null,
               });
+              if (row.forwarded_author_id) {
+                void loadForwardedNames([
+                  { forwarded_author_id: row.forwarded_author_id },
+                ]);
+              }
             });
         }
       )
@@ -394,7 +1156,15 @@ export default function ThreadScreen() {
     return () => {
       void supabase.removeChannel(room);
     };
-  }, [isReady, channelId, messageId, userId, appendReply, patchMessage]);
+  }, [
+    isReady,
+    channelId,
+    messageId,
+    userId,
+    appendReply,
+    patchMessage,
+    loadForwardedNames,
+  ]);
 
   // Composer @-autocomplete, fed from the channel's member roster.
   const mentions = useMentionSuggestions(isReady ? channelId : null);
@@ -404,6 +1174,11 @@ export default function ThreadScreen() {
     if (!content || sending || !channelId || !messageId || !userId) return;
     setSendError(null);
     setDraft("");
+    if (draftTimerRef.current) {
+      clearTimeout(draftTimerRef.current);
+      draftTimerRef.current = null;
+    }
+    void clearDraft(conversationKey);
     mentions.reset();
     const tempId = `temp-${Date.now().toString(36)}-${Math.random()
       .toString(36)
@@ -420,6 +1195,8 @@ export default function ThreadScreen() {
       edited_at: null,
       deleted_at: null,
       created_at: new Date().toISOString(),
+      forwarded_from: null,
+      forwarded_author_id: null,
       author: null,
     };
     appendReply(optimistic);
@@ -436,11 +1213,35 @@ export default function ThreadScreen() {
       .single();
     setSending(false);
     if (insertError || !data) {
+      noteConnectivity(!isLikelyOffline(insertError));
       setReplies((prev) => prev.filter((m) => m.id !== tempId));
-      setDraft(content);
-      setSendError("Couldn't send that — check your connection and try again.");
+      // Hold it rather than drop it: the optimistic bubble becomes a pending
+      // one, and the words stay in the thread where they were typed.
+      try {
+        await enqueue({
+          key: conversationKey,
+          table: "messages",
+          payload: {
+            channel_id: channelId,
+            author_id: userId,
+            content,
+            parent_id: messageId,
+          },
+        });
+        await refreshPending();
+        void runFlush();
+      } catch (queueError) {
+        // The device wouldn't hold it either — give the words back.
+        setDraft(content);
+        setSendError(
+          queueError instanceof DraftError
+            ? queueError.message
+            : "Couldn't send that — check your connection and try again."
+        );
+      }
       return;
     }
+    noteConnectivity(true);
     // Reconcile: swap the temp row for the real one (dedupe by id in case the
     // realtime echo ever lands first).
     const real = data as unknown as MessageRow;
@@ -449,19 +1250,36 @@ export default function ThreadScreen() {
       real,
     ]);
     pendingScrollRef.current = true;
-  }, [draft, sending, channelId, messageId, userId, appendReply, mentions]);
+  }, [
+    draft,
+    sending,
+    channelId,
+    messageId,
+    userId,
+    appendReply,
+    mentions,
+    conversationKey,
+    refreshPending,
+    runFlush,
+  ]);
 
   /* -------------------- edit / delete own messages -------------------- */
 
   const startEdit = useCallback(
     (target: MessageRow) => {
+      // Bank whatever was half-typed before the composer borrows itself out.
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current);
+        draftTimerRef.current = null;
+      }
+      void saveDraft(conversationKey, draft);
       draftBeforeEditRef.current = draft;
       setEditing(target);
       setDraft(target.content);
       mentions.reset();
       requestAnimationFrame(() => inputRef.current?.focus());
     },
-    [draft, mentions]
+    [draft, mentions, conversationKey]
   );
 
   const cancelEdit = useCallback(() => {
@@ -579,10 +1397,10 @@ export default function ThreadScreen() {
             ) : null}
             <Pressable
               accessibilityHint={
-                isOwn && !deleted ? "Long press to edit or delete" : undefined
+                deleted ? undefined : "Long press for message actions"
               }
               onLongPress={() => {
-                if (isOwn && !deleted && !item.id.startsWith("temp-")) {
+                if (!deleted && !item.id.startsWith("temp-")) {
                   setActionsFor(item);
                 }
               }}
@@ -608,6 +1426,17 @@ export default function ThreadScreen() {
                     gap: 6,
                   }}
                 >
+                  {item.forwarded_from ? (
+                    <ForwardedFrom
+                      from={item.forwarded_from}
+                      who={
+                        item.forwarded_author_id
+                          ? (forwardedNames[item.forwarded_author_id] ?? null)
+                          : null
+                      }
+                      own={isOwn}
+                    />
+                  ) : null}
                   {item.attachment_path ? (
                     <AttachmentImage
                       path={item.attachment_path}
@@ -647,7 +1476,28 @@ export default function ThreadScreen() {
         </View>
       );
     },
-    [visibleReplies, userId, theme, resolveAttachmentUrl]
+    [visibleReplies, userId, theme, resolveAttachmentUrl, forwardedNames]
+  );
+
+  /* ----------------------------- forwarding ---------------------------- */
+
+  /** What the picker is passing along. A forward of a forward keeps pointing
+      at whoever wrote the words, not the last person to hand them on. */
+  const forwardSource = useMemo<ForwardSource | null>(() => {
+    if (!forwardFor) return null;
+    return {
+      content: forwardFor.content,
+      attachmentPath: forwardFor.attachment_path,
+      authorId: forwardFor.forwarded_author_id ?? forwardFor.author_id,
+      fromLabel:
+        forwardFor.forwarded_from ??
+        forwardLabelFor({ kind: "channel", name: channelName ?? "" }),
+    };
+  }, [forwardFor, channelName]);
+
+  const forwardExclude = useMemo(
+    () => ({ kind: "channel" as const, id: channelId }),
+    [channelId]
   );
 
   const parentName =
@@ -736,7 +1586,7 @@ export default function ThreadScreen() {
             </>
           )}
         </View>
-      ) : !parent && replies.length === 0 ? (
+      ) : !parent && replies.length === 0 && pending.length === 0 ? (
         <View
           style={{
             flex: 1,
@@ -798,20 +1648,12 @@ export default function ThreadScreen() {
               <View style={{ paddingTop: 12 }}>
                 <Pressable
                   accessibilityHint={
-                    parentVisible &&
-                    parent &&
-                    parent.author_id === userId &&
-                    !parent.deleted_at
-                      ? "Long press to edit or delete"
+                    parentVisible && parent && !parent.deleted_at
+                      ? "Long press for message actions"
                       : undefined
                   }
                   onLongPress={() => {
-                    if (
-                      parentVisible &&
-                      parent &&
-                      parent.author_id === userId &&
-                      !parent.deleted_at
-                    ) {
+                    if (parentVisible && parent && !parent.deleted_at) {
                       setActionsFor(parent);
                     }
                   }}
@@ -851,6 +1693,18 @@ export default function ThreadScreen() {
                       <PollBubble pollId={parent.poll_id} />
                     ) : (
                       <>
+                        {parent.forwarded_from ? (
+                          <ForwardedFrom
+                            from={parent.forwarded_from}
+                            who={
+                              parent.forwarded_author_id
+                                ? (forwardedNames[parent.forwarded_author_id] ??
+                                  null)
+                                : null
+                            }
+                            own={false}
+                          />
+                        ) : null}
                         {parent.attachment_path ? (
                           <AttachmentImage
                             path={parent.attachment_path}
@@ -895,7 +1749,48 @@ export default function ThreadScreen() {
                 </AppText>
               </View>
             }
+            // Replies read top-down, so anything still waiting to send belongs
+            // at the end of them — right where it was typed.
+            ListFooterComponent={
+              pending.length > 0 ? (
+                <View>
+                  {pending.map((message) => (
+                    <PendingBubble
+                      key={message.id}
+                      message={message}
+                      onRetry={() => void retryQueued(message)}
+                      onDiscard={() => void discardQueued(message.id)}
+                    />
+                  ))}
+                </View>
+              ) : null
+            }
           />
+
+          {forwardNote ? (
+            <View
+              accessibilityLiveRegion="polite"
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                marginHorizontal: 16,
+                marginBottom: 6,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: radius.control,
+                backgroundColor: theme.accentSoft,
+              }}
+            >
+              <Feather name="corner-up-right" size={14} color={theme.accent} />
+              <AppText
+                variant="caption"
+                style={{ color: theme.accent, flex: 1 }}
+              >
+                {forwardNote}
+              </AppText>
+            </View>
+          ) : null}
 
           {sendError ? (
             <View
@@ -1035,6 +1930,7 @@ export default function ThreadScreen() {
               onChangeText={(text) => {
                 setDraft(text);
                 mentions.onDraftChange(text);
+                noteDraft(text);
               }}
               placeholder={editing ? "Edit your message" : "Reply in thread"}
               placeholderTextColor={theme.muted}
@@ -1114,13 +2010,29 @@ export default function ThreadScreen() {
         </Pressable>
       </Modal>
 
-      {/* The long-press menu on your own message. */}
+      {/* The long-press menu: forwarding is for anyone's message, editing and
+          deleting only for your own. */}
       <Sheet visible={actionsFor !== null} onClose={() => setActionsFor(null)}>
         <AppText variant="caption" muted numberOfLines={2}>
           {actionsFor?.content ?? ""}
         </AppText>
         <View style={{ height: 1, backgroundColor: theme.border }} />
+        {/* A poll carrier's words are the question, and the poll itself
+            doesn't travel — so there's nothing honest to forward. */}
         {actionsFor && !actionsFor.poll_id ? (
+          <Sheet.Row
+            icon="corner-up-right"
+            label="Forward"
+            onPress={() => {
+              const target = actionsFor;
+              setActionsFor(null);
+              setForwardFor(target);
+            }}
+          />
+        ) : null}
+        {actionsFor &&
+        actionsFor.author_id === userId &&
+        !actionsFor.poll_id ? (
           <Sheet.Row
             icon="edit-2"
             label="Edit"
@@ -1131,17 +2043,29 @@ export default function ThreadScreen() {
             }}
           />
         ) : null}
-        <Sheet.Row
-          icon="trash-2"
-          label="Delete"
-          danger
-          onPress={() => {
-            const target = actionsFor;
-            setActionsFor(null);
-            if (target) void handleDelete(target);
-          }}
-        />
+        {actionsFor && actionsFor.author_id === userId ? (
+          <Sheet.Row
+            icon="trash-2"
+            label="Delete"
+            danger
+            onPress={() => {
+              const target = actionsFor;
+              setActionsFor(null);
+              void handleDelete(target);
+            }}
+          />
+        ) : null}
       </Sheet>
+
+      <ForwardPicker
+        visible={forwardFor !== null}
+        source={forwardSource}
+        exclude={forwardExclude}
+        blocked={blocked}
+        liftForKeyboard
+        onClose={() => setForwardFor(null)}
+        onFinished={showForwardNote}
+      />
     </View>
   );
 }

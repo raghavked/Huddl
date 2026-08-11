@@ -5,7 +5,7 @@ import type {
 } from "@supabase/supabase-js";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -14,17 +14,42 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   TextInput,
   View,
   type ListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
-import { AppText, Button, Sheet } from "@/components/ui";
+import { AppText, Button, Card, Sheet } from "@/components/ui";
 import { fonts, palettes, radius } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { unblockUser } from "@/lib/blocks";
+import {
+  clearDraft,
+  DraftError,
+  dropQueued,
+  enqueue,
+  flushQueue,
+  isLikelyOffline,
+  keyFor,
+  loadDraft,
+  noteConnectivity,
+  peekQueue,
+  saveDraft,
+  type QueuedMessage,
+} from "@/lib/drafts";
+import {
+  fetchForwardTargets,
+  ForwardError,
+  forwardLabelFor,
+  forwardMessage,
+  summarizeForward,
+  targetName,
+  type ForwardSource,
+  type ForwardTarget,
+} from "@/lib/forwarding";
 import {
   fetchThread,
   fetchThreadPeople,
@@ -32,7 +57,7 @@ import {
   type GroupThreadRow,
   type ThreadPerson,
 } from "@/lib/group-dm";
-import { tapLight } from "@/lib/haptics";
+import { tapLight, tapSuccess } from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -54,12 +79,22 @@ type DmMessage = {
   edited_at: string | null;
   deleted_at: string | null;
   created_at: string;
+  /** Where a forwarded message came from ("#mat-21a"), null on an original. */
+  forwarded_from: string | null;
+  /** Who wrote it first, null on an original or a deleted account. */
+  forwarded_author_id: string | null;
 };
 
 /** DmMessage shaped for the realtime payload's Record constraint. */
 type DmMessageRow = DmMessage & Record<string, unknown>;
 
 const PAGE_SIZE = 50;
+
+/** How many rooms one forward carries. Five is a handful, not a broadcast. */
+const FORWARD_MAX_TARGETS = 5;
+
+/** Quiet time in the composer before the draft is written to the device. */
+const DRAFT_SAVE_MS = 500;
 
 /* ---- small local helpers ---- */
 
@@ -149,6 +184,489 @@ function AttachmentImage({
   );
 }
 
+/** A target's identity inside the picker's selection. */
+function targetKey(target: ForwardTarget): string {
+  return `${target.kind}:${target.id}`;
+}
+
+/** The quiet provenance line above a forwarded message's words. */
+function ForwardedFrom({
+  from,
+  who,
+  own,
+}: {
+  from: string;
+  who: string | null;
+  own: boolean;
+}) {
+  const theme = useTheme();
+  // Secondary text on the own-message clay takes its tint from that clay;
+  // on the neutral fill it's the usual muted.
+  const tint = own ? theme.brandInk : theme.muted;
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+      <Feather name="corner-up-right" size={11} color={tint} />
+      <AppText
+        variant="caption"
+        numberOfLines={1}
+        style={{ color: tint, flex: 1 }}
+      >
+        {who ? `Forwarded from ${from} · ${who}` : `Forwarded from ${from}`}
+      </AppText>
+    </View>
+  );
+}
+
+/** A message the send queue is holding: the words stay in the room, a quiet
+    caption says why, and a tap tries again. A stuck one also offers a way out. */
+function PendingBubble({
+  message,
+  onRetry,
+  onDiscard,
+}: {
+  message: QueuedMessage;
+  onRetry: () => void;
+  onDiscard: () => void;
+}) {
+  const theme = useTheme();
+  const content = message.payload["content"] ?? "";
+  const caption = message.stuck
+    ? (message.last_error ?? "We couldn't send this one.")
+    : "Waiting to send";
+  return (
+    <View style={{ marginTop: 10, alignItems: "flex-end" }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${caption}. Tap to try again.`}
+        onPress={onRetry}
+        hitSlop={6}
+        style={({ pressed }) => ({
+          maxWidth: "80%",
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <Card
+          padded={false}
+          style={{
+            backgroundColor: theme.surface2,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: message.stuck ? theme.danger : theme.border,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+          }}
+        >
+          <AppText style={{ color: theme.foreground }}>{content}</AppText>
+        </Card>
+      </Pressable>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          marginTop: 3,
+          paddingHorizontal: 4,
+        }}
+      >
+        <Feather
+          name={message.stuck ? "alert-circle" : "clock"}
+          size={11}
+          color={message.stuck ? theme.danger : theme.muted}
+        />
+        <AppText
+          variant="caption"
+          style={{ color: message.stuck ? theme.danger : theme.muted }}
+        >
+          {caption}
+        </AppText>
+        {message.stuck ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Discard this message"
+            onPress={onDiscard}
+            hitSlop={14}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          >
+            <AppText variant="label" style={{ color: theme.brandInk }}>
+              Discard
+            </AppText>
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * The forward target picker: every channel and conversation you're in,
+ * searchable, up to five at a time, with the message you're passing along
+ * quoted at the top.
+ *
+ * Drawn as an in-tree overlay rather than a `Sheet`, for exactly the reason
+ * the composer's action menu is: it opens in the same tick the long-press
+ * `Sheet`'s Modal is dismissing, and a Modal presented underneath another one
+ * on its way out is how you get a picker that never appears.
+ */
+function ForwardPicker({
+  visible,
+  source,
+  exclude,
+  blocked,
+  liftForKeyboard,
+  onClose,
+  onFinished,
+}: {
+  visible: boolean;
+  source: ForwardSource | null;
+  /** The room we're forwarding out of — never a place to forward to. */
+  exclude: { kind: "channel" | "dm"; id: string } | null;
+  /** Blocked classmates aren't places; same gate the messages list runs. */
+  blocked: Set<string>;
+  /** False when an ancestor already lifts for the keyboard (the DM room). */
+  liftForKeyboard: boolean;
+  onClose: () => void;
+  onFinished: (message: string) => void;
+}) {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const [status, setStatus] = useState<"loading" | "error" | "ready">(
+    "loading"
+  );
+  const [targets, setTargets] = useState<ForwardTarget[]>([]);
+  const [query, setQuery] = useState("");
+  const [picked, setPicked] = useState<ForwardTarget[]>([]);
+  const [sending, setSending] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setStatus("loading");
+    try {
+      setTargets(await fetchForwardTargets());
+      setStatus("ready");
+    } catch {
+      setStatus("error");
+    }
+  }, []);
+
+  // Each opening is a fresh decision — no leftover ticks from last time.
+  useEffect(() => {
+    if (!visible) return;
+    setQuery("");
+    setPicked([]);
+    setProblem(null);
+    void load();
+  }, [visible, load]);
+
+  const rows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return targets.filter((target) => {
+      if (exclude && target.kind === exclude.kind && target.id === exclude.id) {
+        return false;
+      }
+      if (
+        target.kind === "dm" &&
+        target.otherId !== null &&
+        blocked.has(target.otherId)
+      ) {
+        return false;
+      }
+      if (q === "") return true;
+      const second = target.kind === "channel" ? (target.courseCode ?? "") : "";
+      return (
+        targetName(target).toLowerCase().includes(q) ||
+        second.toLowerCase().includes(q)
+      );
+    });
+  }, [targets, query, exclude, blocked]);
+
+  const pickedKeys = useMemo(() => new Set(picked.map(targetKey)), [picked]);
+  const atLimit = picked.length >= FORWARD_MAX_TARGETS;
+
+  const toggle = useCallback((target: ForwardTarget) => {
+    const key = targetKey(target);
+    setProblem(null);
+    setPicked((prev) => {
+      if (prev.some((p) => targetKey(p) === key)) {
+        return prev.filter((p) => targetKey(p) !== key);
+      }
+      if (prev.length >= FORWARD_MAX_TARGETS) return prev;
+      return [...prev, target];
+    });
+  }, []);
+
+  const send = useCallback(async () => {
+    if (!source || picked.length === 0 || sending) return;
+    setSending(true);
+    setProblem(null);
+    try {
+      const outcomes = await forwardMessage({ source, targets: picked });
+      const summary = summarizeForward(outcomes);
+      if (summary.sent > 0) tapSuccess();
+      if (summary.complete) {
+        onFinished(summary.message);
+        onClose();
+        return;
+      }
+      // Partial: hold only the rooms that refused, so "Send" retries exactly
+      // those instead of doubling up on the ones that took it.
+      setPicked(outcomes.filter((o) => !o.sent).map((o) => o.target));
+      setProblem(summary.message);
+    } catch (err) {
+      setProblem(
+        err instanceof ForwardError
+          ? err.message
+          : "We couldn't pass that along. Give it another go."
+      );
+    } finally {
+      setSending(false);
+    }
+  }, [source, picked, sending, onClose, onFinished]);
+
+  if (!visible) return null;
+
+  const sendLabel =
+    picked.length === 0
+      ? "Pick somewhere first"
+      : picked.length === 1
+        ? `Send to ${targetName(picked[0])}`
+        : `Send to ${picked.length} rooms`;
+
+  const card = (
+    <Card
+      elevation="floating"
+      padded={false}
+      style={{
+        marginHorizontal: 12,
+        marginBottom: Math.max(insets.bottom, 12),
+        padding: 14,
+        gap: 10,
+        maxHeight: "85%",
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <AppText variant="title" numberOfLines={1} style={{ flex: 1 }}>
+          Pass it along
+        </AppText>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          onPress={onClose}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            marginRight: -10,
+            marginVertical: -10,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Feather name="x" size={18} color={theme.muted} />
+        </Pressable>
+      </View>
+
+      <View
+        style={{
+          padding: 10,
+          borderRadius: radius.control,
+          backgroundColor: theme.surface2,
+        }}
+      >
+        <AppText variant="caption" muted numberOfLines={3}>
+          {source?.content ?? ""}
+        </AppText>
+      </View>
+      <AppText variant="caption" muted>
+        Everyone in the rooms you pick can read it, photo included — and pass
+        it on again. There's no taking it back.
+      </AppText>
+
+      <TextInput
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search your rooms"
+        placeholderTextColor={theme.muted}
+        accessibilityLabel="Search your rooms"
+        autoCapitalize="none"
+        autoCorrect={false}
+        returnKeyType="search"
+        cursorColor={theme.brand}
+        selectionColor={theme.brandSoft}
+        style={{
+          minHeight: 44,
+          borderWidth: 1,
+          borderColor: theme.border,
+          borderRadius: radius.control,
+          backgroundColor: theme.background,
+          paddingHorizontal: 14,
+          fontFamily: fonts.body,
+          fontSize: 15,
+          color: theme.foreground,
+        }}
+      />
+
+      {status === "loading" ? (
+        <View style={{ paddingVertical: 24, alignItems: "center" }}>
+          <ActivityIndicator size="small" color={theme.brand} />
+        </View>
+      ) : status === "error" ? (
+        <View style={{ paddingVertical: 16, alignItems: "center", gap: 8 }}>
+          <Feather name="wifi-off" size={20} color={theme.brand} />
+          <AppText muted style={{ textAlign: "center", maxWidth: 260 }}>
+            We couldn't load your rooms. Give it another go.
+          </AppText>
+          <Button
+            label="Try again"
+            variant="soft"
+            size="sm"
+            onPress={() => void load()}
+          />
+        </View>
+      ) : rows.length === 0 ? (
+        <View style={{ paddingVertical: 16, alignItems: "center" }}>
+          <AppText muted style={{ textAlign: "center", maxWidth: 260 }}>
+            {query.trim() === ""
+              ? "There's nowhere else to send this yet — join a channel or start a chat."
+              : "No room by that name."}
+          </AppText>
+        </View>
+      ) : (
+        <ScrollView
+          style={{ flexGrow: 0, flexShrink: 1 }}
+          contentContainerStyle={{ paddingBottom: 4 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {rows.map((target) => {
+            const checked = pickedKeys.has(targetKey(target));
+            return (
+              <Pressable
+                key={targetKey(target)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked }}
+                accessibilityLabel={targetName(target)}
+                onPress={() => toggle(target)}
+                style={({ pressed }) => ({
+                  minHeight: 44,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                  paddingHorizontal: 4,
+                  borderRadius: radius.control,
+                  backgroundColor: pressed ? theme.surface2 : "transparent",
+                })}
+              >
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: radius.control,
+                    backgroundColor: theme.brandSoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Feather
+                    name={
+                      target.kind === "channel"
+                        ? "hash"
+                        : target.isGroup
+                          ? "users"
+                          : "user"
+                    }
+                    size={15}
+                    color={theme.brand}
+                  />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <AppText variant="bodySemi" numberOfLines={1}>
+                    {targetName(target)}
+                  </AppText>
+                  {target.kind === "channel" && target.courseCode ? (
+                    <AppText variant="caption" muted numberOfLines={1}>
+                      {target.courseCode}
+                    </AppText>
+                  ) : null}
+                </View>
+                <View
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: radius.full,
+                    borderWidth: 1,
+                    borderColor: checked ? theme.brand : theme.border,
+                    backgroundColor: checked ? theme.brand : "transparent",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {checked ? (
+                    <Feather name="check" size={13} color={theme.brandFg} />
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
+
+      {atLimit ? (
+        <AppText variant="caption" muted>
+          That's five rooms — as many as one forward carries.
+        </AppText>
+      ) : null}
+      {problem ? (
+        <AppText variant="caption" style={{ color: theme.danger }}>
+          {problem}
+        </AppText>
+      ) : null}
+      <Button
+        label={sendLabel}
+        pending={sending}
+        disabled={picked.length === 0 || sending}
+        onPress={() => void send()}
+      />
+    </Card>
+  );
+
+  return (
+    <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+        onPress={onClose}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          // The scrim stays candle-dark in both appearances.
+          backgroundColor: palettes.dark.background,
+          opacity: 0.55,
+        }}
+      />
+      {liftForKeyboard ? (
+        <KeyboardAvoidingView
+          pointerEvents="box-none"
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1, justifyContent: "flex-end" }}
+        >
+          {card}
+        </KeyboardAvoidingView>
+      ) : (
+        <View
+          pointerEvents="box-none"
+          style={{ flex: 1, justifyContent: "flex-end" }}
+        >
+          {card}
+        </View>
+      )}
+    </View>
+  );
+}
+
 /* ---- screen ---- */
 
 export default function DmRoomScreen() {
@@ -187,6 +705,55 @@ export default function DmRoomScreen() {
   const [unblocking, setUnblocking] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const { blocked, refresh: refreshBlocked } = useBlockedIds();
+
+  // Drafts and the send queue. One key names this conversation everywhere.
+  const conversationKey = useMemo(() => keyFor("dm", threadId), [threadId]);
+  const [pending, setPending] = useState<QueuedMessage[]>([]);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const editingRef = useRef(false);
+  editingRef.current = editing !== null;
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Forwarding: the message being passed along, and the sentence that says
+  // where it actually landed.
+  const [forwardFor, setForwardFor] = useState<DmMessage | null>(null);
+  const [forwardNote, setForwardNote] = useState<string | null>(null);
+  const noteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Display names behind forwarded_author_id, fetched in one batch per page
+  // rather than embedded — `dm_messages` has two foreign keys into `profiles`,
+  // and a mis-hinted embed would take the whole thread's query down with it.
+  const [forwardedNames, setForwardedNames] = useState<Record<string, string>>(
+    {}
+  );
+  const forwardedNamesRef = useRef(forwardedNames);
+  forwardedNamesRef.current = forwardedNames;
+
+  /** The display names behind any forwarded_author_id on this page. One
+      batched query, and only for ids we haven't already resolved. */
+  const loadForwardedNames = useCallback(
+    async (rows: readonly { forwarded_author_id: string | null }[]) => {
+      const wanted = new Set<string>();
+      for (const row of rows) {
+        const id = row.forwarded_author_id;
+        if (id && !(id in forwardedNamesRef.current)) wanted.add(id);
+      }
+      if (wanted.size === 0) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", [...wanted]);
+      if (!data) return;
+      setForwardedNames((prev) => {
+        const next = { ...prev };
+        for (const row of data as { id: string; display_name: string }[]) {
+          next[row.id] = row.display_name;
+        }
+        return next;
+      });
+    },
+    []
+  );
 
   const markRead = useCallback(() => {
     if (!userId || !threadId) return;
@@ -289,6 +856,7 @@ export default function DmRoomScreen() {
       const rows = (messagesRes.data ?? []) as DmMessage[];
       setMessages(rows);
       void loadSaved(rows.map((m) => m.id));
+      void loadForwardedNames(rows);
       // Mount: advance the read cursor once we're actually looking.
       markRead();
     } catch {
@@ -296,11 +864,156 @@ export default function DmRoomScreen() {
     } finally {
       setLoading(false);
     }
-  }, [threadId, userId, markRead, loadSaved]);
+  }, [threadId, userId, markRead, loadSaved, loadForwardedNames]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  /* ------------------------ drafts and the queue ----------------------- */
+
+  // Restore what was left mid-sentence, but never over something already
+  // typed — a slow read must not overwrite a fast typist.
+  useEffect(() => {
+    let cancelled = false;
+    void loadDraft(conversationKey).then((saved) => {
+      if (cancelled || !saved) return;
+      setDraft((current) => (current.length === 0 ? saved : current));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [conversationKey]);
+
+  /** Debounced, not per keystroke: AsyncStorage is a round trip to native. */
+  const noteDraft = useCallback(
+    (text: string) => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+      draftTimerRef.current = setTimeout(() => {
+        draftTimerRef.current = null;
+        // While editing, the composer holds someone's published words, not a
+        // draft — the real draft is parked in draftBeforeEditRef.
+        if (editingRef.current) return;
+        void saveDraft(conversationKey, text);
+      }, DRAFT_SAVE_MS);
+    },
+    [conversationKey]
+  );
+
+  // Leaving the conversation writes the last word, debounce or no debounce.
+  useEffect(() => {
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+      void saveDraft(
+        conversationKey,
+        editingRef.current ? draftBeforeEditRef.current : draftRef.current
+      );
+    };
+  }, [conversationKey]);
+
+  useEffect(() => {
+    return () => {
+      if (noteTimerRef.current) clearTimeout(noteTimerRef.current);
+    };
+  }, []);
+
+  const refreshPending = useCallback(async () => {
+    setPending(await peekQueue(conversationKey));
+  }, [conversationKey]);
+
+  /** Pull rows the queue just landed into the stream. Our own realtime echoes
+      are skipped, so nothing else would bring them in. */
+  const adoptSent = useCallback(
+    async (ids: readonly string[]) => {
+      if (ids.length === 0) return;
+      const { data } = await supabase
+        .from("dm_messages")
+        .select("*")
+        .in("id", [...ids]);
+      if (!data) return;
+      const rows = data as DmMessage[];
+      void loadForwardedNames(rows);
+      setMessages((prev) => {
+        const known = new Set(prev.map((m) => m.id));
+        const fresh = rows
+          .filter((row) => !known.has(row.id))
+          .sort((a, b) => b.created_at.localeCompare(a.created_at));
+        return fresh.length === 0 ? prev : [...fresh, ...prev];
+      });
+    },
+    [loadForwardedNames]
+  );
+
+  const runFlush = useCallback(async () => {
+    let landed: string[] = [];
+    try {
+      const result = await flushQueue();
+      landed = result.sent
+        .filter((message) => message.key === conversationKey)
+        .map((message) => message.id);
+    } catch {
+      // The queue itself couldn't be read; the refresh below still tells the
+      // truth about what's waiting.
+    }
+    // Retire the pending bubbles BEFORE the real rows arrive — the other
+    // order shows both for a frame, which reads as a message sent twice.
+    await refreshPending();
+    if (landed.length > 0) {
+      await adoptSent(landed);
+      markRead();
+    }
+  }, [conversationKey, adoptSent, markRead, refreshPending]);
+
+  useEffect(() => {
+    void refreshPending();
+  }, [refreshPending]);
+
+  // Arriving in the conversation is when anything the queue is holding gets
+  // another go.
+  useFocusEffect(
+    useCallback(() => {
+      void runFlush();
+    }, [runFlush])
+  );
+
+  /** Tap a pending bubble. A stuck one has spent its five tries, so it goes
+      back in the queue fresh; anything else just needs another pass. */
+  const retryQueued = useCallback(
+    async (message: QueuedMessage) => {
+      if (message.stuck) {
+        await dropQueued(message.id);
+        try {
+          await enqueue({
+            key: message.key,
+            table: message.table,
+            payload: message.payload,
+          });
+        } catch {
+          // It couldn't be held again; the refresh shows it's gone.
+        }
+      }
+      await refreshPending();
+      await runFlush();
+    },
+    [refreshPending, runFlush]
+  );
+
+  const discardQueued = useCallback(
+    async (id: string) => {
+      await dropQueued(id);
+      await refreshPending();
+    },
+    [refreshPending]
+  );
+
+  const showForwardNote = useCallback((message: string) => {
+    setForwardNote(message);
+    if (noteTimerRef.current) clearTimeout(noteTimerRef.current);
+    noteTimerRef.current = setTimeout(() => {
+      noteTimerRef.current = null;
+      setForwardNote(null);
+    }, 5000);
+  }, []);
 
   // Realtime INSERTs on this thread. Own rows are skipped — the optimistic
   // send path already has them. UPDATEs (their edits and deletes, or ours
@@ -384,6 +1097,11 @@ export default function DmRoomScreen() {
     if (!content || !userId || !threadId) return;
     setSendError(null);
     setDraft("");
+    if (draftTimerRef.current) {
+      clearTimeout(draftTimerRef.current);
+      draftTimerRef.current = null;
+    }
+    void clearDraft(conversationKey);
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const temp: DmMessage = {
       id: tempId,
@@ -394,6 +1112,8 @@ export default function DmRoomScreen() {
       edited_at: null,
       deleted_at: null,
       created_at: new Date().toISOString(),
+      forwarded_from: null,
+      forwarded_author_id: null,
     };
     setMessages((prev) => [temp, ...prev]);
     tapLight(); // the send lands with the optimistic bubble, not the round-trip
@@ -405,11 +1125,30 @@ export default function DmRoomScreen() {
       .single();
     setSending(false);
     if (insertError || !data) {
+      noteConnectivity(!isLikelyOffline(insertError));
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      setDraft(content);
-      setSendError("Couldn't send that. Check your connection and try again.");
+      // Hold it rather than drop it: the optimistic bubble becomes a pending
+      // one, and the words stay in the conversation where they were typed.
+      try {
+        await enqueue({
+          key: conversationKey,
+          table: "dm_messages",
+          payload: { thread_id: threadId, author_id: userId, content },
+        });
+        await refreshPending();
+        void runFlush();
+      } catch (queueError) {
+        // The device wouldn't hold it either — give the words back.
+        setDraft(content);
+        setSendError(
+          queueError instanceof DraftError
+            ? queueError.message
+            : "Couldn't send that. Check your connection and try again."
+        );
+      }
       return;
     }
+    noteConnectivity(true);
     // Reconcile: swap the temp row for the real one in place.
     const real = data as DmMessage;
     setMessages((prev) => {
@@ -466,6 +1205,7 @@ export default function DmRoomScreen() {
         .single();
       if (insertError || !data) throw insertError ?? new Error("send failed");
       setDraft("");
+      void clearDraft(conversationKey);
       const real = data as DmMessage;
       // Own realtime echoes are skipped, so append the row here.
       setMessages((prev) =>
@@ -479,18 +1219,24 @@ export default function DmRoomScreen() {
     } finally {
       setUploading(false);
     }
-  }, [threadId, userId, uploading, draft, markRead]);
+  }, [threadId, userId, uploading, draft, markRead, conversationKey]);
 
   /* -------------------- edit / delete own messages -------------------- */
 
   const startEdit = useCallback(
     (target: DmMessage) => {
+      // Bank whatever was half-typed before the composer borrows itself out.
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current);
+        draftTimerRef.current = null;
+      }
+      void saveDraft(conversationKey, draft);
       draftBeforeEditRef.current = draft;
       setEditing(target);
       setDraft(target.content);
       requestAnimationFrame(() => inputRef.current?.focus());
     },
-    [draft]
+    [draft, conversationKey]
   );
 
   const cancelEdit = useCallback(() => {
@@ -711,6 +1457,17 @@ export default function DmRoomScreen() {
               </AppText>
             ) : (
               <>
+                {item.forwarded_from ? (
+                  <ForwardedFrom
+                    from={item.forwarded_from}
+                    who={
+                      item.forwarded_author_id
+                        ? (forwardedNames[item.forwarded_author_id] ?? null)
+                        : null
+                    }
+                    own={own}
+                  />
+                ) : null}
                 {item.attachment_path ? (
                   <AttachmentImage
                     path={item.attachment_path}
@@ -744,7 +1501,36 @@ export default function DmRoomScreen() {
         </View>
       );
     },
-    [userId, theme, resolveAttachmentUrl, isGroup, peopleById, visibleMessages]
+    [
+      userId,
+      theme,
+      resolveAttachmentUrl,
+      isGroup,
+      peopleById,
+      visibleMessages,
+      forwardedNames,
+    ]
+  );
+
+  /* ----------------------------- forwarding ---------------------------- */
+
+  /** What the picker is passing along. A forward of a forward keeps pointing
+      at whoever wrote the words, not the last person to hand them on. A DM
+      never names the person or the group it came out of — the receiving room
+      is entitled to know the words were private, not who you were talking to. */
+  const forwardSource = useMemo<ForwardSource | null>(() => {
+    if (!forwardFor) return null;
+    return {
+      content: forwardFor.content,
+      attachmentPath: forwardFor.attachment_path,
+      authorId: forwardFor.forwarded_author_id ?? forwardFor.author_id,
+      fromLabel: forwardFor.forwarded_from ?? forwardLabelFor({ kind: "dm" }),
+    };
+  }, [forwardFor]);
+
+  const forwardExclude = useMemo(
+    () => ({ kind: "dm" as const, id: threadId }),
+    [threadId]
   );
 
   const canSend = draft.trim().length > 0 && !otherBlocked;
@@ -934,7 +1720,7 @@ export default function DmRoomScreen() {
         </View>
       ) : (
         <>
-          {visibleMessages.length === 0 ? (
+          {visibleMessages.length === 0 && pending.length === 0 ? (
             <View
               style={{
                 flex: 1,
@@ -995,8 +1781,50 @@ export default function DmRoomScreen() {
               }}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              // In an inverted list the header sits at the visual bottom —
+              // the right home for messages that haven't gone out yet, oldest
+              // of them first, right where they were typed.
+              ListHeaderComponent={
+                pending.length > 0 ? (
+                  <View>
+                    {pending.map((message) => (
+                      <PendingBubble
+                        key={message.id}
+                        message={message}
+                        onRetry={() => void retryQueued(message)}
+                        onDiscard={() => void discardQueued(message.id)}
+                      />
+                    ))}
+                  </View>
+                ) : null
+              }
             />
           )}
+
+          {forwardNote ? (
+            <View
+              accessibilityLiveRegion="polite"
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                marginHorizontal: 16,
+                marginBottom: 6,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: radius.control,
+                backgroundColor: theme.accentSoft,
+              }}
+            >
+              <Feather name="corner-up-right" size={14} color={theme.accent} />
+              <AppText
+                variant="caption"
+                style={{ color: theme.accent, flex: 1 }}
+              >
+                {forwardNote}
+              </AppText>
+            </View>
+          ) : null}
 
           {sendError ? (
             <View
@@ -1109,6 +1937,11 @@ export default function DmRoomScreen() {
               borderTopColor: theme.border,
             }}
           >
+            {/* A channel's composer hides photo, poll, and "when can everyone
+                meet?" behind one plus. Here there is exactly one thing to
+                add — polls and availability are channel-scoped — and a plus
+                that opens a sheet holding a single row is a tap tax, so the
+                photo stays a direct button. */}
             {!editing ? (
               <Pressable
                 accessibilityRole="button"
@@ -1146,7 +1979,10 @@ export default function DmRoomScreen() {
               multiline
               editable={!otherBlocked}
               value={draft}
-              onChangeText={setDraft}
+              onChangeText={(text) => {
+                setDraft(text);
+                noteDraft(text);
+              }}
               placeholder={
                 editing
                   ? "Edit your message"
@@ -1236,6 +2072,15 @@ export default function DmRoomScreen() {
         </AppText>
         <View style={{ height: 1, backgroundColor: theme.border }} />
         <Sheet.Row
+          icon="corner-up-right"
+          label="Forward"
+          onPress={() => {
+            const target = actionsFor;
+            setActionsFor(null);
+            if (target) setForwardFor(target);
+          }}
+        />
+        <Sheet.Row
           icon="bookmark"
           label={
             actionsFor && savedIds.has(actionsFor.id)
@@ -1274,6 +2119,19 @@ export default function DmRoomScreen() {
           </>
         ) : null}
       </Sheet>
+
+      {/* The picker draws itself, not through a Modal — see ForwardPicker.
+          `liftForKeyboard` is false because this screen's root already is a
+          KeyboardAvoidingView, and the overlay sits inside its padding box. */}
+      <ForwardPicker
+        visible={forwardFor !== null}
+        source={forwardSource}
+        exclude={forwardExclude}
+        blocked={blocked}
+        liftForKeyboard={false}
+        onClose={() => setForwardFor(null)}
+        onFinished={showForwardNote}
+      />
     </KeyboardAvoidingView>
   );
 }

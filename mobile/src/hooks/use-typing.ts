@@ -1,10 +1,14 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSharesTyping } from "@/hooks/use-privacy-prefs";
 import { supabase } from "@/lib/supabase";
 
 /* React Native port of the web app's use-typing hook. Same broadcast
    protocol — channel `typing:${channelKey}`, event "typing", payload
-   {userId, name, at} — so web and native students see each other typing. */
+   {userId, name, at} — so web and native students see each other typing.
+   The payload shape is shared with the web client; changing it would break
+   typing across runtimes, so the privacy preference below gates whether we
+   join at all rather than adding a field to the wire. */
 
 /** At most one broadcast per this window while the user keeps typing. */
 const BROADCAST_EVERY_MS = 2000;
@@ -22,6 +26,17 @@ type TypingPayload = { userId: string; name: string; at: number };
  * holds the display names of OTHER people whose latest event is fresh
  * (<4s), pruned on an interval so names fade shortly after they stop.
  * Pass an empty channelKey to keep the hook idle (no subscription).
+ *
+ * Honours `profiles.share_typing` RECIPROCALLY, via
+ * {@link useSharesTyping}: a student who turns typing indicators off stops
+ * broadcasting *and* stops seeing everyone else's. That is one condition,
+ * not two, so the hook simply never joins the channel — nothing to send on,
+ * nothing to receive from, and `typers` stays empty. Flipping the
+ * preference back subscribes again on the next render; flipping it off
+ * tears the channel down and clears the names already on screen.
+ *
+ * The preference reads as true until the profile row lands, so the common
+ * case never blinks a name off and back on.
  */
 export function useTyping(
   channelKey: string,
@@ -33,10 +48,19 @@ export function useTyping(
   const selfRef = useRef(self);
   selfRef.current = self;
 
+  const sharesTyping = useSharesTyping();
+  // Opted out reads exactly like "no room yet": idle, no subscription.
+  const liveKey = sharesTyping ? channelKey : "";
+  // noteTyping is stable across renders, so it reads the choice off a ref.
+  // Belt and braces with the empty key above: a privacy promise shouldn't
+  // rest on effect-cleanup ordering.
+  const sharesRef = useRef(sharesTyping);
+  sharesRef.current = sharesTyping;
+
   useEffect(() => {
-    if (!channelKey) return; // nothing to join yet (route still resolving)
-    // userId -> latest event; lives inside the effect so a channelKey change
-    // starts from a clean slate.
+    if (!liveKey) return; // no room yet, or typing indicators are off
+    // userId -> latest event; lives inside the effect so a room change (or a
+    // flip of the preference) starts from a clean slate.
     const active = new Map<string, { name: string; at: number }>();
 
     const sync = () => {
@@ -53,7 +77,7 @@ export function useTyping(
     };
 
     const channel = supabase
-      .channel(`typing:${channelKey}`)
+      .channel(`typing:${liveKey}`)
       .on("broadcast", { event: "typing" }, (message) => {
         const payload = message.payload as Partial<TypingPayload> | undefined;
         if (!payload?.userId || !payload.name) return;
@@ -74,9 +98,10 @@ export function useTyping(
       setTypers([]);
       void supabase.removeChannel(channel);
     };
-  }, [channelKey]);
+  }, [liveKey]);
 
   const noteTyping = useCallback(() => {
+    if (!sharesRef.current) return; // opted out — never broadcast
     const channel = channelRef.current;
     if (!channel) return;
     const now = Date.now();
