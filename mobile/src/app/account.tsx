@@ -75,6 +75,15 @@ type FieldErrors = {
   form?: string;
 };
 
+/**
+ * A field's error, said as part of the field rather than only drawn in red
+ * beside it. `Field` puts its own `label` on the input and lets a passed
+ * `accessibilityLabel` win, so this is where the two get spoken together.
+ */
+function fieldLabel(label: string, error?: string | null): string {
+  return error ? `${label}. ${error}` : label;
+}
+
 export default function AccountScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -387,10 +396,20 @@ export default function AccountScreen() {
             opacity: pressed ? 0.6 : 1,
           })}
         >
-          <Feather name="chevron-left" size={26} color={theme.foreground} />
+          <Feather
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            name="chevron-left"
+            size={26}
+            color={theme.foreground}
+          />
         </Pressable>
 
-        <AppText variant="display" style={{ marginTop: 2, marginBottom: 16 }}>
+        <AppText
+          variant="display"
+          accessibilityRole="header"
+          style={{ marginTop: 2, marginBottom: 16 }}
+        >
           Account
         </AppText>
       </View>
@@ -398,13 +417,21 @@ export default function AccountScreen() {
       {loading ? (
         <View style={{ paddingHorizontal: 20 }}>
           <Card style={{ alignItems: "center", paddingVertical: 32 }}>
-            <ActivityIndicator color={theme.brand} />
+            <ActivityIndicator
+              accessibilityLabel="Loading your profile"
+              color={theme.brand}
+            />
           </Card>
         </View>
       ) : loadError ? (
         <View style={{ paddingHorizontal: 20 }}>
-          <Card style={{ alignItems: "center", gap: 10, paddingVertical: 24 }}>
-            <AppText variant="bodySemi">Something went sideways</AppText>
+          <Card
+            accessibilityLiveRegion="polite"
+            style={{ alignItems: "center", gap: 10, paddingVertical: 24 }}
+          >
+            <AppText variant="bodySemi" accessibilityRole="header">
+              Something went sideways
+            </AppText>
             <AppText variant="caption" muted style={{ textAlign: "center" }}>
               {loadError}
             </AppText>
@@ -419,7 +446,9 @@ export default function AccountScreen() {
       ) : missing ? (
         <View style={{ paddingHorizontal: 20 }}>
           <Card style={{ alignItems: "center", gap: 6, paddingVertical: 24 }}>
-            <AppText variant="bodySemi">We couldn't find your profile</AppText>
+            <AppText variant="bodySemi" accessibilityRole="header">
+              We couldn't find your profile
+            </AppText>
             <AppText variant="caption" muted style={{ textAlign: "center" }}>
               Try signing out and back in — that usually clears it up.
             </AppText>
@@ -454,7 +483,9 @@ export default function AccountScreen() {
                   size={56}
                 />
                 <View style={{ flex: 1, gap: 4 }}>
-                  <AppText variant="title">Your photo</AppText>
+                  <AppText variant="title" accessibilityRole="header">
+                    Your photo
+                  </AppText>
                   <AppText variant="caption" muted>
                     {avatarUrl
                       ? "Classmates see this next to your name."
@@ -476,6 +507,10 @@ export default function AccountScreen() {
                   size="sm"
                   pending={photoBusy === "upload"}
                   disabled={photoBusy !== null}
+                  accessibilityState={{
+                    disabled: photoBusy !== null,
+                    busy: photoBusy === "upload",
+                  }}
                   icon={
                     <Feather name="camera" size={14} color={theme.foreground} />
                   }
@@ -488,21 +523,35 @@ export default function AccountScreen() {
                     size="sm"
                     pending={photoBusy === "remove"}
                     disabled={photoBusy !== null}
+                    accessibilityState={{
+                      disabled: photoBusy !== null,
+                      busy: photoBusy === "remove",
+                    }}
                     onPress={() => void handleRemovePhoto()}
                   />
                 ) : null}
               </View>
               {photoError ? (
-                <AppText variant="caption" style={{ color: theme.danger }}>
+                <AppText
+                  variant="caption"
+                  accessibilityLiveRegion="polite"
+                  style={{ color: theme.danger }}
+                >
                   {photoError}
                 </AppText>
               ) : null}
             </Card>
 
             <Card style={{ gap: 14 }}>
-              <AppText variant="title">About you</AppText>
+              <AppText variant="title" accessibilityRole="header">
+                About you
+              </AppText>
               <Field
                 label="Display name"
+                accessibilityLabel={fieldLabel(
+                  "Display name",
+                  errors.displayName
+                )}
                 value={displayName}
                 onChangeText={setDisplayName}
                 maxLength={60}
@@ -512,6 +561,11 @@ export default function AccountScreen() {
               <View style={{ gap: 6 }}>
                 <Field
                   label="Handle"
+                  accessibilityLabel={fieldLabel(
+                    "Handle",
+                    errors.handle ??
+                      "3 to 24 characters: lowercase letters, numbers, underscores."
+                  )}
                   value={handle}
                   onChangeText={(t) =>
                     setHandle(t.toLowerCase().replace(/\s/g, ""))
@@ -537,6 +591,10 @@ export default function AccountScreen() {
               />
               <Field
                 label="Graduation year (optional)"
+                accessibilityLabel={fieldLabel(
+                  "Graduation year, optional",
+                  errors.gradYear
+                )}
                 value={gradYear}
                 onChangeText={setGradYear}
                 keyboardType="number-pad"
@@ -554,7 +612,11 @@ export default function AccountScreen() {
                   placeholder="A line or two about you — clubs, interests, what you're studying."
                   style={{ minHeight: 88, textAlignVertical: "top" }}
                 />
-                <AppText variant="caption" muted>
+                <AppText
+                  variant="caption"
+                  muted
+                  accessibilityLabel={`${bio.length} of ${MAX_BIO_LENGTH} characters used`}
+                >
                   {bio.length}/{MAX_BIO_LENGTH}
                 </AppText>
               </View>
@@ -575,7 +637,9 @@ export default function AccountScreen() {
 
             <Card style={{ gap: 14 }}>
               <View style={{ gap: 4 }}>
-                <AppText variant="title">What you're into</AppText>
+                <AppText variant="title" accessibilityRole="header">
+                  What you're into
+                </AppText>
                 <AppText variant="caption" muted>
                   Up to eight things. They sit on your profile so classmates
                   can spot the overlap.
@@ -611,6 +675,10 @@ export default function AccountScreen() {
                 <View style={{ flex: 1 }}>
                   <Field
                     label="Add an interest"
+                    accessibilityLabel={fieldLabel(
+                      "Add an interest",
+                      interestHint
+                    )}
                     value={interestDraft}
                     onChangeText={(text) => {
                       setInterestDraft(text);
@@ -629,16 +697,30 @@ export default function AccountScreen() {
                   variant="secondary"
                   size="sm"
                   disabled={interestDraft.trim().length === 0}
+                  accessibilityLabel="Add this interest"
+                  accessibilityState={{
+                    disabled: interestDraft.trim().length === 0,
+                  }}
                   onPress={commitInterestDraft}
                 />
               </View>
 
+              {/* One line that carries both the running count and whatever
+                  went wrong, and says itself either way as chips come and go. */}
               {interestHint ? (
-                <AppText variant="caption" style={{ color: theme.warning }}>
+                <AppText
+                  variant="caption"
+                  accessibilityLiveRegion="polite"
+                  style={{ color: theme.warning }}
+                >
                   {interestHint}
                 </AppText>
               ) : (
-                <AppText variant="caption" muted>
+                <AppText
+                  variant="caption"
+                  muted
+                  accessibilityLiveRegion="polite"
+                >
                   {interests.length === 0
                     ? `Optional, and up to ${MAX_INTERESTS}.`
                     : `${interests.length} of ${MAX_INTERESTS} — tap one to take it off.`}
@@ -647,7 +729,9 @@ export default function AccountScreen() {
 
               {openSuggestions.length > 0 ? (
                 /* Faded rather than gone at the cap: the word may still be
-                   true of them, it just can't fit until something comes off. */
+                   true of them, it just can't fit until something comes off.
+                   The fade is the only thing saying so on screen, so the line
+                   above says it in words too. */
                 <View
                   style={{
                     gap: 8,
@@ -655,7 +739,9 @@ export default function AccountScreen() {
                   }}
                 >
                   <AppText variant="caption" muted>
-                    Or start from one of these
+                    {interests.length >= MAX_INTERESTS
+                      ? "Or start from one of these — take one off first"
+                      : "Or start from one of these"}
                   </AppText>
                   <View
                     style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
@@ -691,7 +777,15 @@ export default function AccountScreen() {
                   placeholder="A lab partner for BIS 2A"
                   returnKeyType="done"
                 />
-                <AppText variant="caption" muted>
+                <AppText
+                  variant="caption"
+                  muted
+                  accessibilityLabel={
+                    lookingFor.trim().length === 0
+                      ? undefined
+                      : `${lookingFor.length} of ${MAX_LOOKING_FOR_LENGTH} characters used`
+                  }
+                >
                   {lookingFor.trim().length === 0
                     ? "One line near the top of your profile — people to run with, a study group for the midterm, a ride home for break."
                     : `${lookingFor.length}/${MAX_LOOKING_FOR_LENGTH}`}
@@ -706,7 +800,14 @@ export default function AccountScreen() {
                 gap: 12,
               }}
             >
-              <View style={{ flex: 1, gap: 4 }}>
+              {/* The switch carries the whole row: hiding the words here and
+                  putting them on the control is what makes it read as one
+                  setting instead of a heading, a caption and a toggle. */}
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                style={{ flex: 1, gap: 4 }}
+              >
                 <AppText variant="title">Public profile</AppText>
                 <AppText variant="caption" muted>
                   Appear in the people directory and let classmates
@@ -715,7 +816,11 @@ export default function AccountScreen() {
                 </AppText>
               </View>
               <Switch
-                accessibilityLabel="Public profile"
+                accessibilityRole="switch"
+                accessibilityLabel={`Public profile. Appear in the people directory and let classmates${
+                  universityName ? ` at ${universityName}` : ""
+                } view your profile.`}
+                accessibilityState={{ checked: isPublic }}
                 value={isPublic}
                 onValueChange={setIsPublic}
                 trackColor={{ false: theme.surface3, true: theme.brand }}
@@ -726,6 +831,9 @@ export default function AccountScreen() {
 
             {errors.form ? (
               <View
+                accessible
+                accessibilityLiveRegion="polite"
+                accessibilityLabel={errors.form}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
@@ -736,7 +844,13 @@ export default function AccountScreen() {
                   backgroundColor: theme.surface2,
                 }}
               >
-                <Feather name="alert-circle" size={14} color={theme.danger} />
+                <Feather
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  name="alert-circle"
+                  size={14}
+                  color={theme.danger}
+                />
                 <AppText
                   variant="caption"
                   style={{ color: theme.danger, flex: 1 }}
@@ -752,17 +866,27 @@ export default function AccountScreen() {
               <Button
                 label={saving ? "Saving…" : "Save changes"}
                 pending={saving}
+                accessibilityState={{ busy: saving, disabled: saving }}
                 onPress={() => void handleSave()}
               />
               {saved ? (
                 <View
+                  accessible
+                  accessibilityLiveRegion="polite"
+                  accessibilityLabel="Saved"
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 4,
                   }}
                 >
-                  <Feather name="check" size={16} color={theme.success} />
+                  <Feather
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                    name="check"
+                    size={16}
+                    color={theme.success}
+                  />
                   <AppText
                     variant="bodySemi"
                     style={{ color: theme.success }}

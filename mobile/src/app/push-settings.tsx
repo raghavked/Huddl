@@ -182,7 +182,16 @@ const DIGEST_NOTE =
 
 /* ------------------------------- rows -------------------------------- */
 
-/** Icon tile + label + caption + whatever sits on the right, one per row. */
+/**
+ * Icon tile + label + caption + whatever sits on the right, one per row.
+ *
+ * The drawn half of the row — tile, label, caption — is hidden from the
+ * screen reader on purpose, so a setting is one item instead of three
+ * fragments and a switch. That makes the label a requirement rather than a
+ * nicety: a pressable row says everything in its `accessibilityLabel`, and a
+ * row whose `trailing` is a `Switch` says everything in the switch's own
+ * label, where the on/off state is announced with it.
+ */
 function SettingRow({
   icon,
   label,
@@ -218,28 +227,39 @@ function SettingRow({
   const content = (
     <>
       <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
         style={{
-          width: 32,
-          height: 32,
-          borderRadius: radius.control,
-          backgroundColor: disabled ? theme.surface2 : theme.brandSoft,
+          flex: 1,
+          flexDirection: "row",
           alignItems: "center",
-          justifyContent: "center",
+          gap: 12,
         }}
       >
-        <Feather
-          name={icon}
-          size={16}
-          color={disabled ? theme.muted : theme.brand}
-        />
-      </View>
-      <View style={{ flex: 1, gap: 2 }}>
-        <AppText variant="bodySemi">{label}</AppText>
-        {caption ? (
-          <AppText variant="caption" muted>
-            {caption}
-          </AppText>
-        ) : null}
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: radius.control,
+            backgroundColor: disabled ? theme.surface2 : theme.brandSoft,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Feather
+            name={icon}
+            size={16}
+            color={disabled ? theme.muted : theme.brand}
+          />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <AppText variant="bodySemi">{label}</AppText>
+          {caption ? (
+            <AppText variant="caption" muted>
+              {caption}
+            </AppText>
+          ) : null}
+        </View>
       </View>
       {trailing}
     </>
@@ -253,6 +273,7 @@ function SettingRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
@@ -295,7 +316,12 @@ function SettingRowSkeleton({ first }: { first: boolean }) {
 function TimeValue({ value }: { value: string }) {
   const theme = useTheme();
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+    <View
+      // The row it sits on already says the time it's showing.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+    >
       <Chip label={clockLabel(value)} tone="brand" size="md" />
       <Feather name="chevron-right" size={16} color={theme.muted} />
     </View>
@@ -552,10 +578,20 @@ export default function PushSettingsScreen() {
           opacity: pressed ? 0.6 : 1,
         })}
       >
-        <Feather name="chevron-left" size={26} color={theme.foreground} />
+        <Feather
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          name="chevron-left"
+          size={26}
+          color={theme.foreground}
+        />
       </Pressable>
 
-      <AppText variant="display" style={{ marginTop: 2, marginBottom: 16 }}>
+      <AppText
+        variant="display"
+        accessibilityRole="header"
+        style={{ marginTop: 2, marginBottom: 16 }}
+      >
         Push notifications
       </AppText>
 
@@ -566,8 +602,16 @@ export default function PushSettingsScreen() {
       >
         {!isDevice ? (
           <Card style={{ alignItems: "center", gap: 6, paddingVertical: 24 }}>
-            <Feather name="smartphone" size={20} color={theme.muted} />
-            <AppText variant="bodySemi">This needs a real phone</AppText>
+            <Feather
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              name="smartphone"
+              size={20}
+              color={theme.muted}
+            />
+            <AppText variant="bodySemi" accessibilityRole="header">
+              This needs a real phone
+            </AppText>
             <AppText
               variant="caption"
               muted
@@ -587,10 +631,17 @@ export default function PushSettingsScreen() {
           </Card>
         ) : (
           <Card style={{ gap: 12 }}>
+            {/* Tile, heading, status pill and the line under it are one
+                statement about this phone, so they are read as one. */}
             <View
+              accessible
+              accessibilityLiveRegion="polite"
+              accessibilityLabel={`Push on this phone: ${statusChip.label.toLowerCase()}. ${statusLine}`}
               style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
             >
               <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
                 style={{
                   width: 40,
                   height: 40,
@@ -631,6 +682,8 @@ export default function PushSettingsScreen() {
                 label="Enable push"
                 pending={enabling}
                 disabled={!userId}
+                accessibilityLabel="Enable push on this phone"
+                accessibilityState={{ busy: enabling, disabled: !userId }}
                 onPress={() => void handleEnable()}
               />
             ) : null}
@@ -638,11 +691,16 @@ export default function PushSettingsScreen() {
               <Button
                 label="Open Settings"
                 variant="soft"
+                accessibilityLabel="Open your phone's settings for Huddl"
                 onPress={() => void Linking.openSettings()}
               />
             ) : null}
             {enableError ? (
-              <AppText variant="caption" style={{ color: theme.danger }}>
+              <AppText
+                variant="caption"
+                accessibilityLiveRegion="polite"
+                style={{ color: theme.danger }}
+              >
                 {enableError}
               </AppText>
             ) : null}
@@ -658,8 +716,16 @@ export default function PushSettingsScreen() {
               paddingVertical: 24,
             }}
           >
-            <Feather name="cloud-off" size={20} color={theme.muted} />
-            <AppText variant="bodySemi">We couldn't reach your settings</AppText>
+            <Feather
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              name="cloud-off"
+              size={20}
+              color={theme.muted}
+            />
+            <AppText variant="bodySemi" accessibilityRole="header">
+              We couldn't reach your settings
+            </AppText>
             <AppText
               variant="caption"
               muted
@@ -694,7 +760,13 @@ export default function PushSettingsScreen() {
                     first
                     trailing={
                       <Switch
-                        accessibilityLabel="Quiet hours"
+                        accessibilityRole="switch"
+                        accessibilityLabel={`Quiet hours. ${
+                          quiet
+                            ? "Silent between the times below."
+                            : "Your phone can buzz at any hour."
+                        }`}
+                        accessibilityState={{ checked: quiet !== null }}
                         value={quiet !== null}
                         onValueChange={toggleQuiet}
                         trackColor={{
@@ -713,7 +785,7 @@ export default function PushSettingsScreen() {
                         label="From"
                         first={false}
                         onPress={() => openPicker("start")}
-                        accessibilityLabel={`Quiet hours start, currently ${clockLabel(
+                        accessibilityLabel={`Change when quiet hours start. Currently ${clockLabel(
                           quiet.start
                         )}`}
                         trailing={<TimeValue value={quiet.start} />}
@@ -723,7 +795,7 @@ export default function PushSettingsScreen() {
                         label="Until"
                         first={false}
                         onPress={() => openPicker("end")}
-                        accessibilityLabel={`Quiet hours end, currently ${clockLabel(
+                        accessibilityLabel={`Change when quiet hours end. Currently ${clockLabel(
                           quiet.end
                         )}`}
                         trailing={<TimeValue value={quiet.end} />}
@@ -735,13 +807,19 @@ export default function PushSettingsScreen() {
             </Card>
 
             {prefs === null ? null : (
-              <AppText variant="caption" muted style={{ marginTop: 10 }}>
+              <AppText
+                variant="caption"
+                muted
+                accessibilityLiveRegion="polite"
+                style={{ marginTop: 10 }}
+              >
                 {quietSentence(quiet)}
               </AppText>
             )}
             {quiet && quiet.start === quiet.end ? (
               <AppText
                 variant="caption"
+                accessibilityLiveRegion="polite"
                 style={{ color: theme.warning, marginTop: 6 }}
               >
                 From and until are the same time, so the window is empty and
@@ -751,6 +829,7 @@ export default function PushSettingsScreen() {
             {quiet && quiet.tz !== deviceTz ? (
               <AppText
                 variant="caption"
+                accessibilityLiveRegion="polite"
                 style={{ color: theme.warning, marginTop: 6 }}
               >
                 {`This phone is on ${zoneLabel(
@@ -767,6 +846,7 @@ export default function PushSettingsScreen() {
             {quietError ? (
               <AppText
                 variant="caption"
+                accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginTop: 6 }}
               >
                 {quietError}
@@ -790,7 +870,19 @@ export default function PushSettingsScreen() {
                       disabled={!pushReady}
                       trailing={
                         <Switch
-                          accessibilityLabel={entry.label}
+                          accessibilityRole="switch"
+                          /* The dimmed row is the only thing on screen
+                             saying these are asleep until push is on, so
+                             the switch says it in words as well. */
+                          accessibilityLabel={`${entry.label}. ${entry.caption}${
+                            pushReady
+                              ? ""
+                              : " Turn push on for this phone first."
+                          }`}
+                          accessibilityState={{
+                            checked: prefs[entry.kind] !== "off",
+                            disabled: !pushReady,
+                          }}
                           value={prefs[entry.kind] !== "off"}
                           disabled={!pushReady}
                           onValueChange={(next) =>
@@ -824,6 +916,7 @@ export default function PushSettingsScreen() {
             {toggleError ? (
               <AppText
                 variant="caption"
+                accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginTop: 6 }}
               >
                 {toggleError}
@@ -854,12 +947,10 @@ export default function PushSettingsScreen() {
           {HALF_HOURS.map((value) => {
             const chosen = value === pickerValue;
             return (
-              // The chosen half hour sits in a shallow well and swaps its
-              // clock tile for a check — the same "this is the current one"
-              // language as the reminder ladder on a course calendar. Its
-              // label carries the word too: Sheet.Row has no selected state
-              // to hand a screen reader, and a check it can't see is no help
-              // in a list of forty-eight near-identical rows.
+              // The chosen half hour sits in a shallow well, and Sheet.Row's
+              // own `selected` draws the trailing check and announces the row
+              // as selected — which is the half that matters in a list of
+              // forty-eight near-identical times.
               <View
                 key={value}
                 style={{
@@ -870,12 +961,9 @@ export default function PushSettingsScreen() {
                 }}
               >
                 <Sheet.Row
-                  icon={chosen ? "check" : "clock"}
-                  label={
-                    chosen
-                      ? `${clockLabel(value)} · current`
-                      : clockLabel(value)
-                  }
+                  icon="clock"
+                  label={clockLabel(value)}
+                  selected={chosen}
                   onPress={() => pickTime(value)}
                 />
               </View>

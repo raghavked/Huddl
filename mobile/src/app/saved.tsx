@@ -135,13 +135,33 @@ function timeAgo(iso: string): string {
 
 /* --------------------------------- row ---------------------------------- */
 
+/**
+ * The whole shelf row in one sentence: who wrote it, where it's from, what
+ * it says, and when. The ember-or-fern chip is the only thing on screen
+ * saying which side of the app it came from, so the word goes in here.
+ */
+function savedLabel(item: SavedItem): string {
+  return [
+    `Open ${item.authorName}'s message in ${
+      item.kind === "channel" ? item.context : "your DMs"
+    }`,
+    item.attachmentOnly ? "a photo" : item.content,
+    timeAgo(item.sentAt),
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
 function SavedRow({
   item,
+  index,
   removing,
   onOpen,
   onRemove,
 }: {
   item: SavedItem;
+  /** Position on the shelf, for the staggered arrival. */
+  index: number;
   removing: boolean;
   onOpen: () => void;
   onRemove: () => void;
@@ -151,6 +171,7 @@ function SavedRow({
   return (
     <Card
       padded={false}
+      entrance={index}
       style={{
         flexDirection: "row",
         alignItems: "flex-start",
@@ -160,9 +181,7 @@ function SavedRow({
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Open ${item.authorName}'s message in ${
-          item.kind === "channel" ? item.context : "your DMs"
-        }`}
+        accessibilityLabel={savedLabel(item)}
         onPress={onOpen}
         style={({ pressed }) => ({
           flex: 1,
@@ -214,6 +233,7 @@ function SavedRow({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Remove ${item.authorName}'s message from saved`}
+        accessibilityState={{ disabled: removing, busy: removing }}
         disabled={removing}
         onPress={onRemove}
         hitSlop={4}
@@ -230,7 +250,13 @@ function SavedRow({
         {removing ? (
           <ActivityIndicator size="small" color={theme.muted} />
         ) : (
-          <Feather name="x" size={18} color={theme.muted} />
+          <Feather
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            name="x"
+            size={18}
+            color={theme.muted}
+          />
         )}
       </Pressable>
     </Card>
@@ -352,9 +378,10 @@ export default function SavedMessagesScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<SavedItem>) => (
+    ({ item, index }: ListRenderItemInfo<SavedItem>) => (
       <SavedRow
         item={item}
+        index={index}
         removing={removingKey === item.key}
         onOpen={() => handleOpen(item)}
         onRemove={() => void handleRemove(item)}
@@ -393,13 +420,29 @@ export default function SavedMessagesScreen() {
           opacity: pressed ? 0.6 : 1,
         })}
       >
-        <Feather name="chevron-left" size={26} color={theme.foreground} />
+        <Feather
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          name="chevron-left"
+          size={26}
+          color={theme.foreground}
+        />
       </Pressable>
 
-      <AppText variant="display" style={{ marginTop: 2 }}>
+      <AppText
+        variant="display"
+        accessibilityRole="header"
+        style={{ marginTop: 2 }}
+      >
         Saved messages
       </AppText>
-      <AppText variant="caption" muted style={{ marginTop: 4, marginBottom: 16 }}>
+      {/* The count drops by one every time a row is unsaved, so it says so. */}
+      <AppText
+        variant="caption"
+        muted
+        accessibilityLiveRegion="polite"
+        style={{ marginTop: 4, marginBottom: 16 }}
+      >
         {count === 0
           ? "Your private shelf — only you can see what's here."
           : `${count} kept, newest save first. Only you can see this.`}
@@ -415,8 +458,13 @@ export default function SavedMessagesScreen() {
             paddingBottom: 80,
           }}
         >
-          <ActivityIndicator size="large" color={theme.brand} />
-          <AppText variant="caption" muted>
+          <ActivityIndicator
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            size="large"
+            color={theme.brand}
+          />
+          <AppText variant="caption" muted accessibilityLiveRegion="polite">
             Pulling things off the shelf…
           </AppText>
         </View>
@@ -430,8 +478,16 @@ export default function SavedMessagesScreen() {
             paddingBottom: 80,
           }}
         >
-          <Feather name="cloud-off" size={28} color={theme.muted} />
-          <AppText variant="bodySemi">Something went sideways</AppText>
+          <Feather
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            name="cloud-off"
+            size={28}
+            color={theme.muted}
+          />
+          <AppText variant="bodySemi" accessibilityRole="header">
+            Something went sideways
+          </AppText>
           <AppText
             variant="caption"
             muted
@@ -461,6 +517,7 @@ export default function SavedMessagesScreen() {
             rowError || error ? (
               <AppText
                 variant="caption"
+                accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginBottom: 10 }}
               >
                 {rowError ??

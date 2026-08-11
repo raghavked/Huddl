@@ -70,6 +70,9 @@ function MutedInitials({ name }: { name: string }) {
   const theme = useTheme();
   return (
     <View
+      // Two letters standing in for a face; the name is right beside it.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       style={{
         width: 44,
         height: 44,
@@ -88,16 +91,20 @@ function MutedInitials({ name }: { name: string }) {
 
 function BlockedRowCard({
   person,
+  index,
   unblocking,
   onUnblock,
 }: {
   person: BlockedProfile;
+  /** Position in the list, for the staggered arrival. */
+  index: number;
   unblocking: boolean;
   onUnblock: () => void;
 }) {
   return (
     <Card
       padded={false}
+      entrance={index}
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -110,7 +117,12 @@ function BlockedRowCard({
     >
       {/* Not `Avatar` on purpose — see MutedInitials above. */}
       <MutedInitials name={person.display_name} />
-      <View style={{ flex: 1, gap: 2 }}>
+      {/* One person, said once — the button beside it stays its own target. */}
+      <View
+        accessible
+        accessibilityLabel={`${person.display_name}, @${person.handle}`}
+        style={{ flex: 1, gap: 2 }}
+      >
         <AppText variant="bodySemi" numberOfLines={1}>
           {person.display_name}
         </AppText>
@@ -123,6 +135,8 @@ function BlockedRowCard({
         variant="secondary"
         size="sm"
         pending={unblocking}
+        accessibilityLabel={`Unblock ${person.display_name}`}
+        accessibilityState={{ busy: unblocking, disabled: unblocking }}
         onPress={onUnblock}
       />
     </Card>
@@ -215,9 +229,10 @@ export default function BlockedPeopleScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<BlockedProfile>) => (
+    ({ item, index }: ListRenderItemInfo<BlockedProfile>) => (
       <BlockedRowCard
         person={item}
+        index={index}
         unblocking={unblockingId === item.id}
         onUnblock={() => void handleUnblock(item)}
       />
@@ -248,10 +263,20 @@ export default function BlockedPeopleScreen() {
           opacity: pressed ? 0.6 : 1,
         })}
       >
-        <Feather name="chevron-left" size={26} color={theme.foreground} />
+        <Feather
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          name="chevron-left"
+          size={26}
+          color={theme.foreground}
+        />
       </Pressable>
 
-      <AppText variant="display" style={{ marginTop: 2 }}>
+      <AppText
+        variant="display"
+        accessibilityRole="header"
+        style={{ marginTop: 2 }}
+      >
         Blocked people
       </AppText>
       <AppText variant="caption" muted style={{ marginTop: 4, marginBottom: 16 }}>
@@ -276,8 +301,16 @@ export default function BlockedPeopleScreen() {
             paddingBottom: 80,
           }}
         >
-          <Feather name="cloud-off" size={28} color={theme.muted} />
-          <AppText variant="bodySemi">Something went sideways</AppText>
+          <Feather
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            name="cloud-off"
+            size={28}
+            color={theme.muted}
+          />
+          <AppText variant="bodySemi" accessibilityRole="header">
+            Something went sideways
+          </AppText>
           <AppText
             variant="caption"
             muted
@@ -304,6 +337,7 @@ export default function BlockedPeopleScreen() {
             rowError || error ? (
               <AppText
                 variant="caption"
+                accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginBottom: 10 }}
               >
                 {rowError ?? "We couldn't refresh just now — pull down to try again."}

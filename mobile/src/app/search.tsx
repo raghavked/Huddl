@@ -239,6 +239,11 @@ function CenteredState({
   const theme = useTheme();
   return (
     <View
+      /* Each of these replaces the whole results area the moment the screen
+         changes state — nothing matched, the network dropped, the box is
+         empty again — so it announces itself instead of waiting to be
+         found. The count line above stays quiet in those states. */
+      accessibilityLiveRegion="polite"
       style={{
         flex: 1,
         alignItems: "center",
@@ -248,21 +253,29 @@ function CenteredState({
         paddingBottom: 96,
       }}
     >
-      {art ?? (
-        <View
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 16,
-            backgroundColor: theme.brandSoft,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Feather name={icon} size={22} color={theme.brand} />
-        </View>
-      )}
-      <AppText variant="title">{title}</AppText>
+      {/* The mark is the mood, and the words underneath already carry it. */}
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        {art ?? (
+          <View
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: 16,
+              backgroundColor: theme.brandSoft,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Feather name={icon} size={22} color={theme.brand} />
+          </View>
+        )}
+      </View>
+      <AppText variant="title" accessibilityRole="header">
+        {title}
+      </AppText>
       <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
         {message}
       </AppText>
@@ -311,7 +324,13 @@ function RecentRow({
           opacity: pressed ? 0.7 : 1,
         })}
       >
-        <Feather name="clock" size={15} color={theme.muted} />
+        <Feather
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          name="clock"
+          size={15}
+          color={theme.muted}
+        />
         <AppText variant="bodyMedium" numberOfLines={1} style={{ flex: 1 }}>
           {query}
         </AppText>
@@ -329,25 +348,42 @@ function RecentRow({
           opacity: pressed ? 0.6 : 1,
         })}
       >
-        <Feather name="x" size={16} color={theme.muted} />
+        <Feather
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          name="x"
+          size={16}
+          color={theme.muted}
+        />
       </Pressable>
     </View>
   );
 }
 
-function HitRow({ hit }: { hit: Hit }) {
+/**
+ * The whole row in one sentence: what it is, then the line under it. The
+ * lock is drawn and nothing else says it, so the caption ("Private profile")
+ * is what carries it into the words.
+ */
+function hitLabel(hit: Hit): string {
+  return [`Open ${hit.title}`, hit.caption].filter(Boolean).join(", ");
+}
+
+function HitRow({ hit, index }: { hit: Hit; index: number }) {
   const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={
-        hit.locked ? `${hit.title}, private profile` : `Open ${hit.title}`
-      }
+      accessibilityLabel={hitLabel(hit)}
       onPress={() => router.push(hit.href)}
       style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, marginBottom: 8 })}
     >
       <Card
         padded={false}
+        entrance={index}
+        // An icon tile, a title, a caption and a chevron are one result.
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -633,6 +669,23 @@ export default function SearchScreen() {
 
   const active = SOURCES.find((source) => source.key === filter) ?? null;
 
+  /* Results appear, change and vanish under the cursor without the page
+     moving, so the count is said out loud rather than left to the eye. The
+     line holds its height whether or not it has words in it, and stays quiet
+     when nothing matched — the empty state below says that itself. */
+  const found =
+    sections?.reduce((total, section) => total + section.data.length, 0) ?? 0;
+  const status =
+    query.trim().length < MIN_QUERY_LENGTH
+      ? ""
+      : searching
+        ? "Searching…"
+        : failed || sections === null || found === 0
+          ? ""
+          : `${found} ${found === 1 ? "result" : "results"}${
+              active ? ` in ${active.label.toLowerCase()}` : ""
+            }`;
+
   return (
     <View
       style={{
@@ -656,10 +709,20 @@ export default function SearchScreen() {
           opacity: pressed ? 0.6 : 1,
         })}
       >
-        <Feather name="chevron-left" size={26} color={theme.foreground} />
+        <Feather
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          name="chevron-left"
+          size={26}
+          color={theme.foreground}
+        />
       </Pressable>
 
-      <AppText variant="display" style={{ marginTop: 2, marginBottom: 12 }}>
+      <AppText
+        variant="display"
+        accessibilityRole="header"
+        style={{ marginTop: 2, marginBottom: 12 }}
+      >
         Search
       </AppText>
 
@@ -711,6 +774,15 @@ export default function SearchScreen() {
         ))}
       </ScrollView>
 
+      <AppText
+        variant="caption"
+        muted
+        accessibilityLiveRegion="polite"
+        style={{ minHeight: 16, marginTop: 8, marginBottom: 4 }}
+      >
+        {status}
+      </AppText>
+
       {searching ? (
         <View
           style={{
@@ -721,7 +793,13 @@ export default function SearchScreen() {
             paddingBottom: 96,
           }}
         >
-          <ActivityIndicator size="large" color={theme.brand} />
+          {/* The status line above already said "Searching…". */}
+          <ActivityIndicator
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            size="large"
+            color={theme.brand}
+          />
         </View>
       ) : failed ? (
         <CenteredState
@@ -757,12 +835,19 @@ export default function SearchScreen() {
                 paddingHorizontal: 8,
               }}
             >
-              <Lantern
-                size={84}
-                color={theme.muted}
-                softColor={theme.surface2}
-              />
-              <AppText variant="title">Find your people and places</AppText>
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
+                <Lantern
+                  size={84}
+                  color={theme.muted}
+                  softColor={theme.surface2}
+                />
+              </View>
+              <AppText variant="title" accessibilityRole="header">
+                Find your people and places
+              </AppText>
               <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
                 Search your campus — people, channels, courses, clubs, events
               </AppText>
@@ -804,7 +889,7 @@ export default function SearchScreen() {
         <SectionList
           sections={sections}
           keyExtractor={(item) => item.key}
-          renderItem={({ item }) => <HitRow hit={item} />}
+          renderItem={({ item, index }) => <HitRow hit={item} index={index} />}
           /* With a filter on, the chip above already names the section — a
              header would just repeat it over a single list. */
           renderSectionHeader={({ section }) =>
@@ -812,6 +897,7 @@ export default function SearchScreen() {
               <AppText
                 variant="label"
                 muted
+                accessibilityRole="header"
                 style={{ marginTop: 16, marginBottom: 8 }}
               >
                 {section.title}

@@ -84,6 +84,7 @@ function Initials({ name, size = 44 }: { name: string; size?: number }) {
   return (
     <View
       accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       style={{
         width: size,
         height: size,
@@ -116,6 +117,10 @@ function Pill({
 }) {
   return (
     <View
+      // "You" and "Private" are both in the row's own label; here they are
+      // only drawn.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -134,12 +139,36 @@ function Pill({
   );
 }
 
+/**
+ * One classmate said in one sentence. The lock glyph, the "You" pill and the
+ * "Private" pill are all drawing, so each of them is spelled out here.
+ */
+function personLabel(person: DirectoryPerson, isMe: boolean): string {
+  if (person.display_name === null) {
+    return `Open @${person.handle}, private profile`;
+  }
+  return [
+    isMe
+      ? `Open your profile, ${person.display_name}`
+      : `Open ${person.display_name}`,
+    isMe && !person.is_public ? "private profile" : null,
+    `@${person.handle}`,
+    person.major,
+    person.grad_year ? `Class of ${person.grad_year}` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
 function PersonRow({
   person,
   isMe,
+  entrance,
 }: {
   person: DirectoryPerson;
   isMe: boolean;
+  /** Row index for the staggered arrival; omitted when nothing arrived. */
+  entrance?: number;
 }) {
   const theme = useTheme();
   const limited = person.display_name === null;
@@ -148,14 +177,16 @@ function PersonRow({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={
-        limited ? `@${person.handle}, private profile` : name
-      }
+      accessibilityLabel={personLabel(person, isMe)}
       onPress={() => router.push(`/u/${person.handle}`)}
       style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, marginBottom: 10 })}
     >
       <Card
         padded={false}
+        entrance={entrance}
+        // Initials, a name, two pills and a chevron are one classmate.
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -345,10 +376,17 @@ export default function PeopleScreen() {
   const count = people === null ? 0 : visiblePeople.length;
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<DirectoryPerson>) => (
-      <PersonRow person={item} isMe={item.id === userId} />
+    ({ item, index }: ListRenderItemInfo<DirectoryPerson>) => (
+      <PersonRow
+        person={item}
+        isMe={item.id === userId}
+        /* The directory arrives once and is filtered in the hand after
+           that, so the stagger belongs to that first paint — not to every
+           keystroke that drops rows out and puts them back. */
+        entrance={searching ? undefined : index}
+      />
     ),
-    [userId]
+    [userId, searching]
   );
 
   return (
@@ -374,10 +412,20 @@ export default function PeopleScreen() {
           opacity: pressed ? 0.6 : 1,
         })}
       >
-        <Feather name="chevron-left" size={26} color={theme.foreground} />
+        <Feather
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          name="chevron-left"
+          size={26}
+          color={theme.foreground}
+        />
       </Pressable>
 
-      <AppText variant="display" style={{ marginTop: 2 }}>
+      <AppText
+        variant="display"
+        accessibilityRole="header"
+        style={{ marginTop: 2 }}
+      >
         People
       </AppText>
       <AppText variant="caption" muted style={{ marginTop: 4, marginBottom: 12 }}>
@@ -388,6 +436,8 @@ export default function PeopleScreen() {
 
       <View style={{ justifyContent: "center" }}>
         <Feather
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
           name="search"
           size={16}
           color={theme.muted}
@@ -431,14 +481,23 @@ export default function PeopleScreen() {
               opacity: pressed ? 0.6 : 1,
             })}
           >
-            <Feather name="x" size={16} color={theme.muted} />
+            <Feather
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              name="x"
+              size={16}
+              color={theme.muted}
+            />
           </Pressable>
         ) : null}
       </View>
 
+      {/* The list narrows under the cursor with nothing else moving, so the
+          count says itself as it changes. */}
       <AppText
         variant="caption"
         muted
+        accessibilityLiveRegion="polite"
         style={{ minHeight: 16, marginTop: 8, marginBottom: 8 }}
       >
         {searching
@@ -456,8 +515,13 @@ export default function PeopleScreen() {
             paddingBottom: 80,
           }}
         >
-          <ActivityIndicator size="large" color={theme.brand} />
-          <AppText variant="caption" muted>
+          <ActivityIndicator
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            size="large"
+            color={theme.brand}
+          />
+          <AppText variant="caption" muted accessibilityLiveRegion="polite">
             Finding your classmates…
           </AppText>
         </View>
@@ -471,8 +535,16 @@ export default function PeopleScreen() {
             paddingBottom: 80,
           }}
         >
-          <Feather name="cloud-off" size={28} color={theme.muted} />
-          <AppText variant="bodySemi">Something went sideways</AppText>
+          <Feather
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            name="cloud-off"
+            size={28}
+            color={theme.muted}
+          />
+          <AppText variant="bodySemi" accessibilityRole="header">
+            Something went sideways
+          </AppText>
           <AppText
             variant="caption"
             muted
@@ -501,6 +573,7 @@ export default function PeopleScreen() {
             error ? (
               <AppText
                 variant="caption"
+                accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginBottom: 10 }}
               >
                 We couldn't refresh just now — pull down to try again.
@@ -518,6 +591,8 @@ export default function PeopleScreen() {
                 }}
               >
                 <View
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
                   style={{
                     width: 44,
                     height: 44,
@@ -530,7 +605,9 @@ export default function PeopleScreen() {
                 >
                   <Feather name="users" size={20} color={theme.brand} />
                 </View>
-                <AppText variant="bodySemi">No one here yet</AppText>
+                <AppText variant="bodySemi" accessibilityRole="header">
+                  No one here yet
+                </AppText>
                 <AppText
                   variant="caption"
                   muted
@@ -550,6 +627,8 @@ export default function PeopleScreen() {
                 }}
               >
                 <View
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
                   style={{
                     width: 44,
                     height: 44,
@@ -562,7 +641,9 @@ export default function PeopleScreen() {
                 >
                   <Feather name="search" size={20} color={theme.brand} />
                 </View>
-                <AppText variant="bodySemi">No matches</AppText>
+                <AppText variant="bodySemi" accessibilityRole="header">
+                  No matches
+                </AppText>
                 <AppText
                   variant="caption"
                   muted

@@ -71,11 +71,30 @@ function timeAgo(iso: string): string {
 
 /* ---- row ---- */
 
+/**
+ * The whole row said once: what happened, the line under it, whether it's
+ * still waiting on you, and when. Unread is a clay tile and a small ember
+ * dot and nothing else, so the word goes in here.
+ */
+function notificationLabel(item: AppNotification, inert: boolean): string {
+  return [
+    inert ? item.title : `Open ${item.title}`,
+    item.body,
+    item.read_at ? null : "unread",
+    timeAgo(item.created_at),
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
 function NotificationItem({
   item,
+  index,
   onPress,
 }: {
   item: AppNotification;
+  /** Position in the list, for the staggered arrival. */
+  index: number;
   onPress: (item: AppNotification) => void;
 }) {
   const theme = useTheme();
@@ -86,8 +105,9 @@ function NotificationItem({
 
   return (
     <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={unread ? `${item.title}, unread` : item.title}
+      accessibilityRole={inert ? "text" : "button"}
+      accessibilityLabel={notificationLabel(item, inert)}
+      accessibilityState={{ disabled: inert }}
       disabled={inert}
       onPress={() => onPress(item)}
       style={({ pressed }) => ({
@@ -97,6 +117,11 @@ function NotificationItem({
     >
       <Card
         padded={false}
+        entrance={index}
+        // A kind tile, a title, a body, a timestamp and a dot are one
+        // notification — the row above says all of it in one go.
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
         style={{
           flexDirection: "row",
           alignItems: "flex-start",
@@ -139,6 +164,7 @@ function NotificationItem({
         {unread ? (
           <View
             accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
             style={{
               width: 8,
               height: 8,
@@ -277,8 +303,8 @@ export default function NotificationsScreen() {
   const canMarkAll = unreadCount > 0 && !markingAll;
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<AppNotification>) => (
-      <NotificationItem item={item} onPress={handlePress} />
+    ({ item, index }: ListRenderItemInfo<AppNotification>) => (
+      <NotificationItem item={item} index={index} onPress={handlePress} />
     ),
     [handlePress]
   );
@@ -314,11 +340,22 @@ export default function NotificationsScreen() {
             opacity: pressed ? 0.6 : 1,
           })}
         >
-          <Feather name="chevron-left" size={26} color={theme.foreground} />
+          <Feather
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            name="chevron-left"
+            size={26}
+            color={theme.foreground}
+          />
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Mark all notifications read"
+          accessibilityLabel={
+            unreadCount > 0
+              ? `Mark all ${unreadCount} unread notifications read`
+              : "Mark all notifications read"
+          }
+          accessibilityState={{ disabled: !canMarkAll, busy: markingAll }}
           disabled={!canMarkAll}
           onPress={() => void markAllRead()}
           hitSlop={8}
@@ -335,6 +372,8 @@ export default function NotificationsScreen() {
             <ActivityIndicator size="small" color={theme.brand} />
           ) : (
             <Feather
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
               name="check-circle"
               size={14}
               color={canMarkAll ? theme.brand : theme.muted}
@@ -349,12 +388,19 @@ export default function NotificationsScreen() {
         </Pressable>
       </View>
 
-      <AppText variant="display" style={{ marginTop: 2 }}>
+      <AppText
+        variant="display"
+        accessibilityRole="header"
+        style={{ marginTop: 2 }}
+      >
         Notifications
       </AppText>
+      {/* The count moves as rows are read and as new ones land, so it says
+          itself rather than waiting to be found again. */}
       <AppText
         variant="caption"
         muted
+        accessibilityLiveRegion="polite"
         style={{ minHeight: 16, marginTop: 4, marginBottom: 12 }}
       >
         {items === null
@@ -366,6 +412,7 @@ export default function NotificationsScreen() {
       {markAllError ? (
         <AppText
           variant="caption"
+          accessibilityLiveRegion="polite"
           style={{ color: theme.danger, marginBottom: 10 }}
         >
           {markAllError}
@@ -389,8 +436,16 @@ export default function NotificationsScreen() {
             paddingBottom: 80,
           }}
         >
-          <Feather name="cloud-off" size={28} color={theme.muted} />
-          <AppText variant="bodySemi">Something went sideways</AppText>
+          <Feather
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            name="cloud-off"
+            size={28}
+            color={theme.muted}
+          />
+          <AppText variant="bodySemi" accessibilityRole="header">
+            Something went sideways
+          </AppText>
           <AppText
             variant="caption"
             muted
@@ -420,6 +475,7 @@ export default function NotificationsScreen() {
             error ? (
               <AppText
                 variant="caption"
+                accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginBottom: 10 }}
               >
                 We couldn't refresh just now — pull down to try again.

@@ -1,13 +1,7 @@
 import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
-import {
-  Animated,
-  Easing,
-  Pressable,
-  ScrollView,
-  View,
-} from "react-native";
+import { Animated, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Lantern } from "@/components/illustrations";
 import {
@@ -124,13 +118,13 @@ function ModeCard({
   const reduceMotion = useReducedMotion();
 
   /* The check reports a completed choice, so it earns its 140ms — in and
-     out along the same curve, because choosing is reversible. */
+     out along the house `standard` curve, because choosing is reversible. */
   const check = useRef(new Animated.Value(selected ? 1 : 0)).current;
   useEffect(() => {
     Animated.timing(check, {
       toValue: selected ? 1 : 0,
       duration: reduceMotion ? motion.instant : motion.quick,
-      easing: Easing.inOut(Easing.cubic),
+      easing: motion.easing.standard,
       useNativeDriver: true,
     }).start();
   }, [selected, reduceMotion, check]);
@@ -324,10 +318,20 @@ export default function DisplaySettingsScreen() {
           opacity: pressed ? 0.6 : 1,
         })}
       >
-        <Feather name="chevron-left" size={26} color={theme.foreground} />
+        <Feather
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          name="chevron-left"
+          size={26}
+          color={theme.foreground}
+        />
       </Pressable>
 
-      <AppText variant="display" style={{ marginTop: 2 }}>
+      <AppText
+        variant="display"
+        accessibilityRole="header"
+        style={{ marginTop: 2 }}
+      >
         Look and feel
       </AppText>
       <AppText variant="caption" muted style={{ marginTop: 4 }}>
@@ -397,12 +401,26 @@ export default function DisplaySettingsScreen() {
             marginTop: 10,
           }}
         >
-          <Chip label={nameForScale(textScale)} tone="brand" size="md" icon="type" />
+          {/* The one thing on the screen that reports the choice you just
+              made, so it says the new name rather than going quietly stale. */}
+          <View
+            accessible
+            accessibilityLiveRegion="polite"
+            accessibilityLabel={`${nameForScale(textScale)} text size`}
+          >
+            <Chip
+              label={nameForScale(textScale)}
+              tone="brand"
+              size="md"
+              icon="type"
+            />
+          </View>
           {isDefaultScale ? null : (
             <Button
               label="Reset to default"
               variant="ghost"
               size="sm"
+              accessibilityLabel="Reset the text size to default"
               onPress={() => chooseScale(TEXT_SCALE_DEFAULT)}
               style={{ marginRight: -16 }}
             />
@@ -425,7 +443,12 @@ export default function DisplaySettingsScreen() {
         </Card>
 
         <View style={{ alignItems: "center", gap: 8, marginTop: 32 }}>
-          <Lantern size={56} color={theme.muted} softColor={theme.surface2} />
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            <Lantern size={56} color={theme.muted} softColor={theme.surface2} />
+          </View>
           <AppText
             variant="caption"
             muted

@@ -82,7 +82,7 @@ function LinkPill({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={`Open ${label}`}
       onPress={onPress}
       style={({ pressed }) => ({
         minHeight: 44,
@@ -95,7 +95,13 @@ function LinkPill({
         opacity: pressed ? 0.8 : 1,
       })}
     >
-      <Feather name={icon} size={14} color={fg} />
+      <Feather
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        name={icon}
+        size={14}
+        color={fg}
+      />
       <AppText variant="bodySemi" style={{ color: fg, fontSize: 14 }}>
         {label}
       </AppText>
@@ -135,7 +141,13 @@ function MenuItem({
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Feather name={icon} size={16} color={color} />
+      <Feather
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        name={icon}
+        size={16}
+        color={color}
+      />
       <AppText variant="bodySemi" style={{ color }}>
         {label}
       </AppText>
@@ -167,6 +179,8 @@ function EmptySection({
       }}
     >
       <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
         style={{
           width: 40,
           height: 40,
@@ -179,7 +193,9 @@ function EmptySection({
       >
         <Feather name={icon} size={18} color={theme.brand} />
       </View>
-      <AppText variant="bodySemi">{title}</AppText>
+      <AppText variant="bodySemi" accessibilityRole="header">
+        {title}
+      </AppText>
       <AppText
         variant="caption"
         muted
@@ -459,7 +475,13 @@ export default function ProfileScreen() {
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <Feather name="chevron-left" size={26} color={theme.foreground} />
+      <Feather
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        name="chevron-left"
+        size={26}
+        color={theme.foreground}
+      />
     </Pressable>
   );
 
@@ -469,6 +491,7 @@ export default function ProfileScreen() {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="More options"
+      accessibilityState={{ expanded: menuOpen }}
       onPress={() => setMenuOpen((open) => !open)}
       hitSlop={8}
       style={({ pressed }) => ({
@@ -480,7 +503,13 @@ export default function ProfileScreen() {
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <Feather name="more-horizontal" size={22} color={theme.foreground} />
+      <Feather
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        name="more-horizontal"
+        size={22}
+        color={theme.foreground}
+      />
     </Pressable>
   ) : null;
 
@@ -489,6 +518,7 @@ export default function ProfileScreen() {
     menuOpen && isOtherPerson ? (
       <>
         <Pressable
+          accessibilityRole="button"
           accessibilityLabel="Close menu"
           onPress={() => setMenuOpen(false)}
           style={{
@@ -502,6 +532,9 @@ export default function ProfileScreen() {
         />
         <Card
           padded={false}
+          // While the menu is up it is the only thing on screen worth
+          // reaching — the page behind it stays out of the reader's way.
+          accessibilityViewIsModal
           style={{
             position: "absolute",
             top: insets.top + 56,
@@ -535,6 +568,8 @@ export default function ProfileScreen() {
   const blockedActions = (
     <View style={{ alignItems: "center", gap: 10 }}>
       <View
+        accessible
+        accessibilityLabel="You've blocked them"
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -545,7 +580,13 @@ export default function ProfileScreen() {
           backgroundColor: theme.surface2,
         }}
       >
-        <Feather name="slash" size={12} color={theme.muted} />
+        <Feather
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          name="slash"
+          size={12}
+          color={theme.muted}
+        />
         <AppText variant="label" style={{ color: theme.muted }}>
           Blocked
         </AppText>
@@ -555,6 +596,8 @@ export default function ProfileScreen() {
         variant="secondary"
         size="sm"
         pending={unblocking}
+        accessibilityLabel={visibleName ? `Unblock ${visibleName}` : "Unblock"}
+        accessibilityState={{ busy: unblocking, disabled: unblocking }}
         onPress={() => void doUnblock()}
       />
     </View>
@@ -583,10 +626,16 @@ export default function ProfileScreen() {
           }}
         >
           {status === "loading" ? (
-            <ActivityIndicator size="large" color={theme.brand} />
+            <ActivityIndicator
+              accessibilityLabel="Loading this profile"
+              size="large"
+              color={theme.brand}
+            />
           ) : status === "notFound" ? (
             <>
               <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
                 style={{
                   width: 52,
                   height: 52,
@@ -598,7 +647,9 @@ export default function ProfileScreen() {
               >
                 <Feather name="user-x" size={22} color={theme.brand} />
               </View>
-              <AppText variant="title">Nobody's here</AppText>
+              <AppText variant="title" accessibilityRole="header">
+                Nobody's here
+              </AppText>
               <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
                 There's nobody at @{handle || "that handle"} — maybe they
                 changed their handle.
@@ -613,6 +664,8 @@ export default function ProfileScreen() {
           ) : (
             <>
               <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
                 style={{
                   width: 52,
                   height: 52,
@@ -624,7 +677,9 @@ export default function ProfileScreen() {
               >
                 <Feather name="wifi-off" size={22} color={theme.brand} />
               </View>
-              <AppText variant="title">Something hiccuped</AppText>
+              <AppText variant="title" accessibilityRole="header">
+                Something hiccuped
+              </AppText>
               <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
                 We couldn't load this profile. Give it another try.
               </AppText>
@@ -659,6 +714,8 @@ export default function ProfileScreen() {
       <Button
         label="Message"
         pending={messaging}
+        accessibilityLabel={visibleName ? `Message ${visibleName}` : "Message"}
+        accessibilityState={{ busy: messaging, disabled: messaging }}
         onPress={() => void handleMessage()}
         icon={
           <Feather name="message-circle" size={16} color={theme.brandFg} />
@@ -667,6 +724,7 @@ export default function ProfileScreen() {
       {messageError ? (
         <AppText
           variant="caption"
+          accessibilityLiveRegion="polite"
           style={{ color: theme.danger, textAlign: "center" }}
         >
           {messageError}
@@ -704,11 +762,25 @@ export default function ProfileScreen() {
         >
           {/* Initials from the handle — no photo, same as the directory. */}
           <Avatar name={profile.handle} size={72} />
-          <AppText variant="display" style={{ fontSize: 22, lineHeight: 28 }}>
+          <AppText
+            variant="display"
+            accessibilityRole="header"
+            style={{ fontSize: 22, lineHeight: 28 }}
+          >
             @{profile.handle}
           </AppText>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <Feather name="lock" size={14} color={theme.muted} />
+          <View
+            accessible
+            accessibilityLabel="This profile is private"
+            style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+          >
+            <Feather
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              name="lock"
+              size={14}
+              color={theme.muted}
+            />
             <AppText variant="bodyMedium" muted>
               This profile is private
             </AppText>
@@ -775,7 +847,11 @@ export default function ProfileScreen() {
               size={80}
             />
             <View style={{ flex: 1, gap: 4 }}>
-              <AppText variant="display" style={{ fontSize: 24, lineHeight: 30 }}>
+              <AppText
+                variant="display"
+                accessibilityRole="header"
+                style={{ fontSize: 24, lineHeight: 30 }}
+              >
                 {profile.display_name}
               </AppText>
               <AppText variant="caption" muted>
@@ -830,6 +906,8 @@ export default function ProfileScreen() {
               ember and sits directly above the button that answers it. */}
           {profile.looking_for ? (
             <View
+              accessible
+              accessibilityLabel={`Looking for: ${profile.looking_for}`}
               style={{
                 gap: 6,
                 padding: 14,
@@ -840,7 +918,13 @@ export default function ProfileScreen() {
               <View
                 style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
               >
-                <Feather name="compass" size={13} color={theme.brand} />
+                <Feather
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  name="compass"
+                  size={13}
+                  color={theme.brand}
+                />
                 <AppText variant="label" style={{ color: theme.brandInk }}>
                   Looking for
                 </AppText>
@@ -869,7 +953,11 @@ export default function ProfileScreen() {
             haven't added any; on your own it's an invitation. */}
         {isMe || interests.length > 0 ? (
           <>
-            <AppText variant="title" style={{ marginTop: 24, marginBottom: 10 }}>
+            <AppText
+              variant="title"
+              accessibilityRole="header"
+              style={{ marginTop: 24, marginBottom: 10 }}
+            >
               {isMe ? "What you're into" : `What ${firstName}'s into`}
             </AppText>
             {interests.length === 0 ? (
@@ -902,6 +990,7 @@ export default function ProfileScreen() {
         {sectionsError ? (
           <AppText
             variant="caption"
+            accessibilityLiveRegion="polite"
             style={{ color: theme.danger, marginTop: 24 }}
           >
             We couldn't load courses and channels just now — pull down to try
@@ -910,7 +999,11 @@ export default function ProfileScreen() {
         ) : null}
 
         {/* Shared courses */}
-        <AppText variant="title" style={{ marginTop: 24, marginBottom: 10 }}>
+        <AppText
+          variant="title"
+          accessibilityRole="header"
+          style={{ marginTop: 24, marginBottom: 10 }}
+        >
           {isMe ? "Your courses" : "Courses together"}
         </AppText>
         {sharedCourses.length === 0 ? (
@@ -940,7 +1033,11 @@ export default function ProfileScreen() {
         )}
 
         {/* Campus channels in common */}
-        <AppText variant="title" style={{ marginTop: 24, marginBottom: 10 }}>
+        <AppText
+          variant="title"
+          accessibilityRole="header"
+          style={{ marginTop: 24, marginBottom: 10 }}
+        >
           {isMe ? "Your campus channels" : "Campus channels in common"}
         </AppText>
         {sharedChannels.length === 0 ? (

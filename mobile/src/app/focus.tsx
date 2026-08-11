@@ -130,6 +130,7 @@ function FormLabel({ text }: { text: string }) {
     <AppText
       variant="label"
       muted
+      accessibilityRole="header"
       style={{ textTransform: "uppercase", letterSpacing: 1.2 }}
     >
       {text}
@@ -147,9 +148,12 @@ function FormLabel({ text }: { text: string }) {
  */
 const StudyingRow = memo(function StudyingRow({
   row,
+  index,
   now,
 }: {
   row: StudyingNow;
+  /** Position in the list, for the arrival of someone sitting down. */
+  index: number;
   now: Date;
 }) {
   const theme = useTheme();
@@ -159,12 +163,23 @@ const StudyingRow = memo(function StudyingRow({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${row.person.display_name}, ${sinceLabel(minutes)}. Open profile.`}
+      accessibilityLabel={[
+        `Open ${row.person.display_name}'s profile`,
+        row.course_code,
+        sinceLabel(minutes),
+        detail,
+      ]
+        .filter(Boolean)
+        .join(", ")}
       onPress={() => router.push(`/u/${row.person.handle}`)}
       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, marginBottom: 10 })}
     >
       <Card
         padded={false}
+        entrance={index}
+        // A face, a name, a course chip and a line of time are one person.
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -204,13 +219,17 @@ const StudyingRow = memo(function StudyingRow({
   );
 });
 
-/** The slim bar under the readout: brand fill on surface2, no animation. */
+/* The slim bar under the readout: brand fill on surface2, and deliberately
+   still. It creeps forward by a third of a percent a second, so animating it
+   would be a loop reporting nothing — the readout above is what a student
+   watches, and the bar is the shape of it. */
 function ProgressBar({ value }: { value: number }) {
   const theme = useTheme();
   const pct = Math.round(Math.min(Math.max(value, 0), 1) * 100);
   return (
     <View
       accessibilityRole="progressbar"
+      accessibilityLabel="Progress towards your goal"
       accessibilityValue={{ min: 0, max: 100, now: pct }}
       style={{
         height: 8,
@@ -440,6 +459,13 @@ export default function FocusScreen() {
       caption: past
         ? `${goalText} goal reached — stand up whenever you like`
         : `left of your ${goalText} goal`,
+      /* The readout on its own is a number with no noun. This is the same
+         two lines as one sentence, for the reader. It is deliberately not a
+         live region: it changes every second, and a clock that interrupts
+         you once a second is the opposite of a focus screen. */
+      spoken: past
+        ? `${formatDuration(done)} in. ${goalText} goal reached — stand up whenever you like.`
+        : `${formatDuration(left)} left of your ${goalText} goal.`,
       value: progress(mine, now),
       courseCode:
         courses.find((course) => course.id === mine.course_id)?.code ?? null,
@@ -463,7 +489,13 @@ export default function FocusScreen() {
           opacity: pressed ? 0.6 : 1,
         })}
       >
-        <Feather name="chevron-left" size={26} color={theme.foreground} />
+        <Feather
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          name="chevron-left"
+          size={26}
+          color={theme.foreground}
+        />
       </Pressable>
     </View>
   );
@@ -487,8 +519,13 @@ export default function FocusScreen() {
             paddingBottom: 80,
           }}
         >
-          <ActivityIndicator size="large" color={theme.brand} />
-          <AppText variant="caption" muted>
+          <ActivityIndicator
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            size="large"
+            color={theme.brand}
+          />
+          <AppText variant="caption" muted accessibilityLiveRegion="polite">
             Finding a quiet corner…
           </AppText>
         </View>
@@ -516,8 +553,16 @@ export default function FocusScreen() {
             paddingBottom: 80,
           }}
         >
-          <Feather name="cloud-off" size={28} color={theme.muted} />
-          <AppText variant="bodySemi">Something went sideways</AppText>
+          <Feather
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            name="cloud-off"
+            size={28}
+            color={theme.muted}
+          />
+          <AppText variant="bodySemi" accessibilityRole="header">
+            Something went sideways
+          </AppText>
           <AppText
             variant="caption"
             muted
@@ -572,7 +617,9 @@ export default function FocusScreen() {
             marginTop: 2,
           }}
         >
-          <AppText variant="display">Focus</AppText>
+          <AppText variant="display" accessibilityRole="header">
+            Focus
+          </AppText>
           {/* Quiet below 2 — a streak is a gift, never a debt. */}
           {streak >= 2 ? (
             <Chip label={`${streak}-day streak`} tone="accent" icon="zap" />
@@ -582,6 +629,7 @@ export default function FocusScreen() {
         {error ? (
           <AppText
             variant="caption"
+            accessibilityLiveRegion="polite"
             style={{ color: theme.danger, marginTop: 8 }}
           >
             We couldn't refresh just now — pull down to try again.
@@ -590,11 +638,17 @@ export default function FocusScreen() {
 
         {mine && timer ? (
           /* ------------------------- running ------------------------- */
-          <Card style={{ marginTop: 16, gap: 14, alignItems: "center" }}>
+          /* `entrance` is this card's own arrival: it lands when you press
+             Start, which is exactly the moment worth reporting. */
+          <Card
+            entrance={0}
+            style={{ marginTop: 16, gap: 14, alignItems: "center" }}
+          >
             <AppText
               variant="display"
               numberOfLines={1}
               adjustsFontSizeToFit
+              accessibilityLabel={timer.spoken}
               style={{
                 fontSize: Math.round(54 * textScale),
                 lineHeight: Math.round(62 * textScale),
@@ -603,7 +657,14 @@ export default function FocusScreen() {
             >
               {timer.readout}
             </AppText>
-            <AppText variant="caption" muted style={{ textAlign: "center" }}>
+            {/* Said already, as part of the readout above. */}
+            <AppText
+              variant="caption"
+              muted
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={{ textAlign: "center" }}
+            >
               {timer.caption}
             </AppText>
 
@@ -629,6 +690,7 @@ export default function FocusScreen() {
             {endError ? (
               <AppText
                 variant="caption"
+                accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, textAlign: "center" }}
               >
                 {endError}
@@ -639,6 +701,8 @@ export default function FocusScreen() {
               label="Done"
               size="lg"
               pending={ending}
+              accessibilityLabel="Done, end this session"
+              accessibilityState={{ busy: ending, disabled: ending }}
               style={{ alignSelf: "stretch", marginTop: 2 }}
               onPress={() => void finish("done")}
             />
@@ -647,13 +711,22 @@ export default function FocusScreen() {
               variant="ghost"
               size="sm"
               disabled={ending}
+              accessibilityState={{ disabled: ending }}
               onPress={() => void finish("quit")}
             />
           </Card>
         ) : finished ? (
           /* ------------------------ just finished -------------------- */
-          <Card style={{ marginTop: 16, gap: 10, alignItems: "center" }}>
+          /* Completion, so it both arrives and says itself: the card that
+             replaces the timer is the whole report of what just happened. */
+          <Card
+            entrance={0}
+            accessibilityLiveRegion="polite"
+            style={{ marginTop: 16, gap: 10, alignItems: "center" }}
+          >
             <View
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
               style={{
                 width: 44,
                 height: 44,
@@ -665,7 +738,11 @@ export default function FocusScreen() {
             >
               <Feather name="check" size={20} color={theme.accent} />
             </View>
-            <AppText variant="title" style={{ textAlign: "center" }}>
+            <AppText
+              variant="title"
+              accessibilityRole="header"
+              style={{ textAlign: "center" }}
+            >
               {completionLine(finished.minutes)}
             </AppText>
             <AppText
@@ -720,6 +797,7 @@ export default function FocusScreen() {
                     size="md"
                     tone="brand"
                     selected={courseId === null}
+                    accessibilityLabel="Just studying, no class"
                     onPress={() => setCourseId(null)}
                   />
                   {courses.map((course) => (
@@ -729,6 +807,7 @@ export default function FocusScreen() {
                       size="md"
                       tone="brand"
                       selected={courseId === course.id}
+                      accessibilityLabel={`Studying ${course.code}`}
                       onPress={() => setCourseId(course.id)}
                     />
                   ))}
@@ -746,7 +825,11 @@ export default function FocusScreen() {
               />
 
               {formError ? (
-                <AppText variant="caption" style={{ color: theme.danger }}>
+                <AppText
+                  variant="caption"
+                  accessibilityLiveRegion="polite"
+                  style={{ color: theme.danger }}
+                >
                   {formError}
                 </AppText>
               ) : null}
@@ -756,6 +839,8 @@ export default function FocusScreen() {
                   label="Start"
                   size="lg"
                   pending={starting}
+                  accessibilityLabel={`Start a ${formatDuration(goal)} session`}
+                  accessibilityState={{ busy: starting, disabled: starting }}
                   style={{ alignSelf: "stretch" }}
                   onPress={() => void start()}
                 />
@@ -781,8 +866,8 @@ export default function FocusScreen() {
             body="Be the first. Start a session and the next person to open this sees they're not alone."
           />
         ) : (
-          studying.map((row) => (
-            <StudyingRow key={row.id} row={row} now={listNow} />
+          studying.map((row, index) => (
+            <StudyingRow key={row.id} row={row} index={index} now={listNow} />
           ))
         )}
       </ScrollView>
