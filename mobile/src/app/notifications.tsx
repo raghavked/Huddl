@@ -75,12 +75,22 @@ function timeAgo(iso: string): string {
  * The whole row said once: what happened, the line under it, whether it's
  * still waiting on you, and when. Unread is a clay tile and a small ember
  * dot and nothing else, so the word goes in here.
+ *
+ * The opening verb has to match what the tap actually does. A row with a
+ * screen behind it opens; a row with nowhere to go can only be cleared, and
+ * it says that instead of promising a trip it can't make.
  */
-function notificationLabel(item: AppNotification, inert: boolean): string {
+function notificationLabel(item: AppNotification, canOpen: boolean): string {
+  const unread = !item.read_at;
+  const lead = canOpen
+    ? `Open ${item.title}`
+    : unread
+      ? `Mark ${item.title} read`
+      : item.title;
   return [
-    inert ? item.title : `Open ${item.title}`,
+    lead,
     item.body,
-    item.read_at ? null : "unread",
+    unread && canOpen ? "unread" : null,
     timeAgo(item.created_at),
   ]
     .filter(Boolean)
@@ -100,13 +110,14 @@ function NotificationItem({
   const theme = useTheme();
   const unread = !item.read_at;
   const icon = KIND_ICONS[item.kind] ?? "bell";
+  const canOpen = routeForLink(item.link) !== null;
   // Read rows with nowhere to go are inert — nothing left to do with them.
-  const inert = !unread && routeForLink(item.link) === null;
+  const inert = !unread && !canOpen;
 
   return (
     <Pressable
       accessibilityRole={inert ? "text" : "button"}
-      accessibilityLabel={notificationLabel(item, inert)}
+      accessibilityLabel={notificationLabel(item, canOpen)}
       accessibilityState={{ disabled: inert }}
       disabled={inert}
       onPress={() => onPress(item)}

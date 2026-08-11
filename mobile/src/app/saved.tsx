@@ -341,9 +341,13 @@ export default function SavedMessagesScreen() {
     void run("initial");
   }, [userId, run]);
 
+  /** The shelf points at a message, not a room — so the message id rides
+      along and the room lands on it rather than at the bottom. */
   const handleOpen = useCallback((item: SavedItem) => {
-    if (item.kind === "channel") router.push(`/channel/${item.roomId}`);
-    else router.push(`/dm/${item.roomId}`);
+    router.push({
+      pathname: item.kind === "channel" ? "/channel/[id]" : "/dm/[id]",
+      params: { id: item.roomId, messageId: item.messageId },
+    });
   }, []);
 
   /** Unsaving is optimistic — the row leaves at once and comes back, with a

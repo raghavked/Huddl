@@ -13,6 +13,7 @@ import {
   useRef,
   useState,
   type ComponentProps,
+  type ReactNode,
 } from "react";
 import {
   ActivityIndicator,
@@ -25,8 +26,11 @@ import {
   TextInput,
   View,
   type ListRenderItemInfo,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Avatar } from "@/components/avatar";
 import { AppText, Button, Card, Sheet } from "@/components/ui";
 import { fonts, palettes, radius } from "@/constants/theme";
 import { AvailabilityBubble, AvailabilityComposer } from "@/features/availability";
@@ -36,10 +40,12 @@ import {
   PendingBubble,
 } from "@/features/forwarding";
 import { MentionText, useMentionSuggestions } from "@/features/mentions";
+import { MessageBubble } from "@/features/messages";
 import { PollBubble, PollComposer } from "@/features/polls";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { typingLabel, useTyping } from "@/hooks/use-typing";
+import { blockUser } from "@/lib/blocks";
 import {
   clearDraft,
   DraftError,
@@ -144,6 +150,9 @@ const MESSAGE_SELECT =
 /** Quiet time in the composer before the draft is written to the device. */
 const DRAFT_SAVE_MS = 500;
 
+/** Least time between two sweeps of this room's unread notifications. */
+const NOTIFICATION_SWEEP_MS = 5000;
+
 /** The opening words `create_availability_poll` posts to announce a poll.
     Used ONLY as a hint that a poll may have just appeared and the strip is
     worth refetching — never to bind a poll to a message. See the strip. */
@@ -242,42 +251,44 @@ function relativeTime(iso: string): string {
   });
 }
 
-/** Tiny avatar stand-in: two initials on a warm circle, tinted by name hash. */
-function Initials({ name, size = 28 }: { name: string; size?: number }) {
-  const theme = useTheme();
-  let hash = 0;
-  for (let i = 0; i < name.length; i += 1) {
-    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  }
-  const pair =
-    hash % 2 === 0
-      ? { bg: theme.brandSoft, fg: theme.brandInk }
-      : { bg: theme.accentSoft, fg: theme.accent };
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const first = parts[0] ?? "";
-  const last = parts.length > 1 ? parts[parts.length - 1] ?? "" : "";
-  const initials =
-    `${first.charAt(0)}${last ? last.charAt(0) : first.charAt(1)}`.toUpperCase() ||
-    "?";
+/** How long a jumped-to message keeps its ring before settling back in. */
+const HIGHLIGHT_MS = 2600;
+
+/** Who else is in a room nobody has spoken in yet. */
+function membersLine(count: number): string {
+  const others = count - 1;
+  if (others <= 0) return "You're the first one in here.";
+  if (others === 1) return "You and one other person are in here.";
+  return `You and ${others} others are in here.`;
+}
+
+/** Avatar and name are the way out of a message to the person who sent it —
+    the route that makes reporting and blocking reachable from a bad message
+    instead of from the directory. Falls back to a plain view when the row
+    arrived without a handle (an optimistic send, a deleted account). */
+function AuthorLink({
+  handle,
+  name,
+  style,
+  children,
+}: {
+  handle: string | null | undefined;
+  name: string;
+  style?: StyleProp<ViewStyle>;
+  children: ReactNode;
+}) {
+  const router = useRouter();
+  if (!handle) return <View style={style}>{children}</View>;
   return (
-    <View
-      accessibilityElementsHidden
-      style={{
-        width: size,
-        height: size,
-        borderRadius: radius.full,
-        backgroundColor: pair.bg,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={`${name}'s profile`}
+      onPress={() => router.push(`/u/${handle}`)}
+      hitSlop={10}
+      style={({ pressed }) => [style, { opacity: pressed ? 0.6 : 1 }]}
     >
-      <AppText
-        variant="label"
-        style={{ color: pair.fg, fontSize: size * 0.36, lineHeight: size * 0.5 }}
-      >
-        {initials}
-      </AppText>
-    </View>
+      {children}
+    </Pressable>
   );
 }
 
@@ -387,8 +398,14 @@ export default function ChannelRoomScreen() {
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
   const userId = session?.user.id;
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const channelId = id ?? "";
+  const params = useLocalSearchParams<{ id: string; messageId?: string }>();
+  const channelId = typeof params.id === "string" ? params.id : "";
+  /* Saved messages and notification links can name a single message. The
+     room opens at the bottom either way; this is the id it then jumps to. */
+  const focusParam =
+    typeof params.messageId === "string" && params.messageId
+      ? params.messageId
+      : null;
 
   const [status, setStatus] = useState<Status>("loading");
   const [channel, setChannel] = useState<ChannelRow | null>(null);
@@ -409,6 +426,10 @@ export default function ChannelRoomScreen() {
   const countedRepliesRef = useRef(new Set<string>());
   const [actionsFor, setActionsFor] = useState<MessageRow | null>(null);
   const [selfName, setSelfName] = useState<string | null>(null);
+  // Safety, one long-press away: the message being blocked out of, and the
+  // confirmation that names what blocking actually does.
+  const [blockFor, setBlockFor] = useState<MessageRow | null>(null);
+  const [blocking, setBlocking] = useState(false);
 
   // Saved messages: my private bookmarks among the loaded rows, so the
   // long-press menu can tell "Save message" from "Remove from saved".
@@ -426,7 +447,22 @@ export default function ChannelRoomScreen() {
   const [composerMenuOpen, setComposerMenuOpen] = useState(false);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
-  const { blocked } = useBlockedIds();
+  const { blocked, refresh: refreshBlocked } = useBlockedIds();
+
+  // Notifications for this room, and whether it's muted — both read off
+  // channel_members alongside the read cursor.
+  const [muted, setMuted] = useState(false);
+  const [roomMenuOpen, setRoomMenuOpen] = useState(false);
+  // How many people are actually in here — only asked for, and only shown,
+  // when the room has nothing in it yet.
+  const [memberCount, setMemberCount] = useState<number | null>(null);
+
+  // Jumping to one message: the list, the id still waiting for a scroll, and
+  // the ring that says "this is the one you came for".
+  const listRef = useRef<FlatList<MessageRow>>(null);
+  const pendingFocusRef = useRef<string | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Drafts and the send queue. One key names this conversation everywhere.
   const conversationKey = useMemo(() => keyFor("channel", channelId), [channelId]);
@@ -471,6 +507,16 @@ export default function ChannelRoomScreen() {
     else router.replace("/(tabs)/channels");
   }, [router]);
 
+  /* Reading the room has to be what makes the bell go dark. `last_read_at`
+     only clears the dot on the lists, so the notifications this room wrote
+     get cleared here too — the ones whose link points straight at it, which
+     is every mention. A thread reply's link carries `?thread=…` and is
+     deliberately left alone: the room doesn't show the reply, so reading the
+     room is no reason to say she's seen it.
+
+     markRead runs on every arriving message, and the sweep is worth one
+     round trip every few seconds rather than one per message. */
+  const notifSweptAtRef = useRef(0);
   const markRead = useCallback(() => {
     if (!channelId || !userId) return;
     // PostgrestBuilder only runs once awaited/then'd — fire and forget.
@@ -480,7 +526,35 @@ export default function ChannelRoomScreen() {
       .eq("channel_id", channelId)
       .eq("user_id", userId)
       .then(() => undefined);
+    const now = Date.now();
+    if (now - notifSweptAtRef.current < NOTIFICATION_SWEEP_MS) return;
+    notifSweptAtRef.current = now;
+    void supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("link", `/channels/${channelId}`)
+      .is("read_at", null)
+      .then(() => undefined);
   }, [channelId, userId]);
+
+  /** Jump the stream to one message and ring it. The scroll itself waits for
+      the list to exist — a tap out of search remounts it. */
+  const focusMessage = useCallback((messageId: string) => {
+    pendingFocusRef.current = messageId;
+    setHighlightId(messageId);
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = setTimeout(() => {
+      highlightTimerRef.current = null;
+      setHighlightId(null);
+    }, HIGHLIGHT_MS);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    };
+  }, []);
 
   /** Signed URLs for chat images, cached per path for the screen's lifetime
       (they outlive the hour only across remounts, which refetch anyway). */
@@ -689,7 +763,7 @@ export default function ChannelRoomScreen() {
         .maybeSingle(),
       supabase
         .from("channel_members")
-        .select("channel_id, last_read_at")
+        .select("channel_id, last_read_at, muted")
         .eq("channel_id", channelId)
         .eq("user_id", userId)
         .maybeSingle(),
@@ -716,6 +790,7 @@ export default function ChannelRoomScreen() {
       setStatus("notMember");
       return;
     }
+    setMuted((memberRes.data as { muted?: boolean | null }).muted === true);
     if (messagesRes.error) {
       setStatus("error");
       return;
@@ -749,6 +824,68 @@ export default function ChannelRoomScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  /* Being first into a room says nothing about how many people will read it.
+     `channel_member_counts()` is security definer precisely so a screen can
+     count past RLS — asked for only when the room turns out to be empty,
+     which is the only place the number is shown. */
+  const roomEmpty = status === "ready" && messages.length === 0;
+  useEffect(() => {
+    if (!roomEmpty || !channelId || memberCount !== null) return;
+    let cancelled = false;
+    void supabase.rpc("channel_member_counts").then(({ data }) => {
+      if (cancelled || !data) return;
+      const rows = data as { channel_id: string; member_count: number }[];
+      const row = rows.find((r) => r.channel_id === channelId);
+      if (row) setMemberCount(Number(row.member_count));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [roomEmpty, channelId, memberCount]);
+
+  /** Mute or unmute this room, optimistically — the same `channel_members`
+      flag the lists read when they decide whether to draw a dot. */
+  const handleToggleMute = useCallback(async () => {
+    if (!channelId || !userId) return;
+    const next = !muted;
+    setMuted(next);
+    const { error: muteError } = await supabase
+      .from("channel_members")
+      .update({ muted: next })
+      .eq("channel_id", channelId)
+      .eq("user_id", userId);
+    if (muteError) {
+      setMuted(!next);
+      setSendError(
+        next
+          ? "Couldn't mute this room — give it another try."
+          : "Couldn't unmute this room — give it another try."
+      );
+    }
+  }, [channelId, userId, muted]);
+
+  /** Block the person who sent a message. One-way and private: they're never
+      told, and their messages leave the room the moment the set refreshes. */
+  const handleBlockAuthor = useCallback(
+    async (target: MessageRow) => {
+      if (!userId || blocking) return;
+      setBlocking(true);
+      try {
+        await blockUser(userId, target.author_id);
+        await refreshBlocked();
+        setBlockFor(null);
+        setActionsFor(null);
+      } catch {
+        setBlockFor(null);
+        setActionsFor(null);
+        setSendError("Couldn't block them just now — give it another try.");
+      } finally {
+        setBlocking(false);
+      }
+    },
+    [userId, blocking, refreshBlocked]
+  );
 
   /* ------------------------ drafts and the queue ----------------------- */
 
@@ -1524,6 +1661,8 @@ export default function ChannelRoomScreen() {
       const authorName = item.author?.display_name ?? "A classmate";
       const pills = groupReactions(reactionsByMessage[item.id], userId);
       const replyCount = replyCounts[item.id] ?? 0;
+      // Arrived here from saved messages, a notification, or search.
+      const highlighted = item.id === highlightId;
       return (
         <View>
           {newDay ? <DaySeparator label={dayLabel(item.created_at)} /> : null}
@@ -1540,7 +1679,13 @@ export default function ChannelRoomScreen() {
               grouped ? (
                 <View style={{ width: 28 }} />
               ) : (
-                <Initials name={authorName} size={28} />
+                <AuthorLink handle={item.author?.handle} name={authorName}>
+                  <Avatar
+                    url={item.author?.avatar_url}
+                    name={authorName}
+                    size={28}
+                  />
+                </AuthorLink>
               )
             ) : null}
             <View
@@ -1550,7 +1695,9 @@ export default function ChannelRoomScreen() {
               }}
             >
               {!isOwn && !grouped ? (
-                <View
+                <AuthorLink
+                  handle={item.author?.handle}
+                  name={authorName}
                   style={{
                     flexDirection: "row",
                     alignItems: "baseline",
@@ -1568,7 +1715,7 @@ export default function ChannelRoomScreen() {
                   {item.pinned_at ? (
                     <Feather name="bookmark" size={10} color={theme.brand} />
                   ) : null}
-                </View>
+                </AuthorLink>
               ) : null}
               <Pressable
                 accessibilityHint="Long press for message actions"
@@ -1581,26 +1728,17 @@ export default function ChannelRoomScreen() {
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
                 {deleted ? (
-                  <View style={{ paddingHorizontal: 4, paddingVertical: 6 }}>
+                  <MessageBubble own={isOwn} deleted>
                     <AppText muted style={{ fontStyle: "italic" }}>
                       Message deleted
                     </AppText>
-                  </View>
+                  </MessageBubble>
                 ) : item.poll_id ? (
                   // The message is a poll carrier — render the live poll in
                   // place of the text (content duplicates the question).
                   <PollBubble pollId={item.poll_id} />
                 ) : (
-                  <Card
-                    padded={false}
-                    style={{
-                      backgroundColor: isOwn ? theme.brandSoft : theme.surface2,
-                      borderRadius: 16,
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
-                      gap: 6,
-                    }}
-                  >
+                  <MessageBubble own={isOwn} highlighted={highlighted}>
                     {item.forwarded_from ? (
                       <ForwardedFrom
                         from={item.forwarded_from}
@@ -1636,7 +1774,7 @@ export default function ChannelRoomScreen() {
                         (edited)
                       </AppText>
                     ) : null}
-                  </Card>
+                  </MessageBubble>
                 )}
               </Pressable>
               {isOwn && !grouped ? (
@@ -1739,7 +1877,48 @@ export default function ChannelRoomScreen() {
       openThread,
       resolveAttachmentUrl,
       forwardedNames,
+      highlightId,
     ]
+  );
+
+  /** Scroll to whatever `focusMessage` parked, once the list can be asked.
+      Called on the list's layout and on every content-size change, so it
+      fires whether the room just mounted or the rows just arrived. */
+  const drainFocus = useCallback(() => {
+    const wanted = pendingFocusRef.current;
+    if (!wanted) return;
+    const index = visibleMessages.findIndex((m) => m.id === wanted);
+    if (index < 0) return;
+    pendingFocusRef.current = null;
+    listRef.current?.scrollToIndex({
+      index,
+      animated: true,
+      viewPosition: 0.5,
+    });
+  }, [visibleMessages]);
+
+  // A messageId in the route — saved messages, a deep link — is a request to
+  // open at that message rather than at the bottom. Once per arrival.
+  const focusHandledRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusParam || status !== "ready") return;
+    if (focusHandledRef.current === focusParam) return;
+    if (!visibleMessages.some((m) => m.id === focusParam)) return;
+    focusHandledRef.current = focusParam;
+    focusMessage(focusParam);
+  }, [focusParam, status, visibleMessages, focusMessage]);
+
+  /** A search hit is a place in the conversation, not a printout. Jump to it
+      when it's still in the loaded stream; otherwise open it in its own
+      thread view, which loads any message by id. */
+  const openSearchResult = useCallback(
+    (hit: MessageRow) => {
+      const inStream = visibleMessages.some((m) => m.id === hit.id);
+      closeSearch();
+      if (inStream) focusMessage(hit.id);
+      else openThread(hit.parent_id ?? hit.id);
+    },
+    [visibleMessages, closeSearch, focusMessage, openThread]
   );
 
   const title = channel ? channelTitle(channel) : "";
@@ -1912,6 +2091,14 @@ export default function ChannelRoomScreen() {
   const subtitle = channelSubtitle(channel);
   const canSend = draft.trim().length > 0 && !sending;
   const searchActive = searchOpen && searchQuery.trim() !== "";
+  // A course chat is not a one-way door: its own hub — rooms, calendar,
+  // notes, flashcards, grades — is one tap off the header.
+  const courseId =
+    channel.kind === "course" ? (channel.course?.id ?? null) : null;
+  const courseCode = channel.course?.code ?? null;
+  const blockName =
+    blockFor?.author?.display_name ??
+    (blockFor?.author?.handle ? `@${blockFor.author.handle}` : "this person");
   // Blocked students stay hidden in search too — same gate as the stream.
   const visibleResults = searchResults.filter((m) => !blocked.has(m.author_id));
   // The long-press sheet reads the live row, so pin state stays fresh.
@@ -1947,16 +2134,51 @@ export default function ChannelRoomScreen() {
         >
           <Feather name={KIND_ICONS[channel.kind]} size={18} color={theme.brand} />
         </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <AppText variant="title" numberOfLines={1}>
-            {title}
-          </AppText>
-          {subtitle ? (
-            <AppText variant="caption" muted numberOfLines={1}>
-              {subtitle}
+        {courseId ? (
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={`${courseCode ?? title} course hub`}
+            accessibilityHint="Opens the calendar, notes, flashcards and grades for this course"
+            onPress={() => router.push(`/course/${courseId}`)}
+            style={({ pressed }) => ({
+              flex: 1,
+              minWidth: 0,
+              minHeight: 44,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <AppText variant="title" numberOfLines={1}>
+                {title}
+              </AppText>
+              {subtitle ? (
+                <AppText variant="caption" muted numberOfLines={1}>
+                  {subtitle}
+                </AppText>
+              ) : null}
+            </View>
+            <Feather name="chevron-right" size={16} color={theme.muted} />
+          </Pressable>
+        ) : (
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <AppText variant="title" numberOfLines={1}>
+              {title}
             </AppText>
-          ) : null}
-        </View>
+            {subtitle ? (
+              <AppText variant="caption" muted numberOfLines={1}>
+                {subtitle}
+              </AppText>
+            ) : null}
+          </View>
+        )}
+        {muted ? (
+          <View accessible accessibilityLabel="This room is muted">
+            <Feather name="bell-off" size={14} color={theme.muted} />
+          </View>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={
@@ -1977,6 +2199,26 @@ export default function ChannelRoomScreen() {
             size={20}
             color={searchOpen ? theme.brand : theme.foreground}
           />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Room options"
+          accessibilityHint={
+            courseId
+              ? "Opens muting and the course hub"
+              : "Opens muting for this room"
+          }
+          onPress={() => setRoomMenuOpen(true)}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Feather name="more-vertical" size={20} color={theme.foreground} />
         </Pressable>
       </View>
 
@@ -2111,15 +2353,25 @@ export default function ChannelRoomScreen() {
               keyboardDismissMode="on-drag"
               keyboardShouldPersistTaps="handled"
             >
+              {/* A hit is a place in the conversation: tapping one goes
+                  there. A photo shows the photo, not the word "Photo" —
+                  tapping the thumbnail opens it full screen. */}
               {visibleResults.map((m, i) => (
-                <View
+                <Pressable
                   key={m.id}
-                  style={{
+                  accessibilityRole="button"
+                  accessibilityLabel={`Go to ${
+                    m.author?.display_name ?? "a classmate"
+                  }'s message`}
+                  onPress={() => openSearchResult(m)}
+                  style={({ pressed }) => ({
+                    minHeight: 44,
                     paddingVertical: 10,
-                    gap: 4,
+                    gap: 6,
                     borderTopWidth: i === 0 ? 0 : 1,
                     borderTopColor: theme.border,
-                  }}
+                    opacity: pressed ? 0.6 : 1,
+                  })}
                 >
                   <View
                     style={{
@@ -2131,22 +2383,30 @@ export default function ChannelRoomScreen() {
                     <AppText variant="label" numberOfLines={1}>
                       {m.author?.display_name ?? "A classmate"}
                     </AppText>
-                    <AppText variant="caption" muted>
+                    <AppText variant="caption" muted style={{ flex: 1 }}>
                       {relativeTime(m.created_at)}
                     </AppText>
+                    <Feather
+                      name="chevron-right"
+                      size={16}
+                      color={theme.muted}
+                    />
                   </View>
-                  {m.attachment_path && m.content === "Photo" ? (
-                    <AppText muted style={{ fontStyle: "italic" }}>
-                      Photo
-                    </AppText>
-                  ) : (
+                  {m.attachment_path ? (
+                    <AttachmentImage
+                      path={m.attachment_path}
+                      resolve={resolveAttachmentUrl}
+                      onOpen={setViewerUrl}
+                    />
+                  ) : null}
+                  {m.attachment_path && m.content === "Photo" ? null : (
                     <MentionText
                       text={m.content}
                       baseStyle={{ ...BODY_TEXT, color: theme.foreground }}
                       highlightColor={theme.brand}
                     />
                   )}
-                </View>
+                </Pressable>
               ))}
             </ScrollView>
           )
@@ -2176,9 +2436,20 @@ export default function ChannelRoomScreen() {
             <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
               Nobody's said anything yet — be the first to say hi.
             </AppText>
+            {/* Going first is easier when you know who'll read it. */}
+            {memberCount !== null ? (
+              <AppText
+                variant="caption"
+                muted
+                style={{ textAlign: "center", maxWidth: 280 }}
+              >
+                {membersLine(memberCount)}
+              </AppText>
+            ) : null}
           </View>
         ) : (
           <FlatList
+            ref={listRef}
             data={visibleMessages}
             inverted
             keyExtractor={(m) => m.id}
@@ -2190,6 +2461,23 @@ export default function ChannelRoomScreen() {
             }}
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
+            onLayout={drainFocus}
+            onContentSizeChange={drainFocus}
+            // Rows are variable height, so an offscreen target can miss on
+            // the first pass — settle where we can and try once more.
+            onScrollToIndexFailed={({ index, averageItemLength }) => {
+              listRef.current?.scrollToOffset({
+                offset: index * Math.max(averageItemLength, 1),
+                animated: true,
+              });
+              setTimeout(() => {
+                listRef.current?.scrollToIndex({
+                  index,
+                  animated: true,
+                  viewPosition: 0.5,
+                });
+              }, 120);
+            }}
             // In an inverted list the header sits at the visual bottom — the
             // right home for messages that haven't gone out yet, oldest of
             // them first, right where they were typed.
@@ -2748,124 +3036,220 @@ export default function ChannelRoomScreen() {
         </View>
       ) : null}
 
-      {/* The long-press menu: quick reactions on top, then the actions. */}
+      {/* The long-press menu: quick reactions on top, then the actions.
+          Blocking asks its question inside the same sheet rather than
+          opening a second one — a Modal dismissing while another presents
+          is how you get a sheet that never appears. */}
       <Sheet
         visible={actionsMessage !== null}
-        onClose={() => setActionsFor(null)}
+        onClose={() => {
+          setBlockFor(null);
+          setActionsFor(null);
+        }}
+        title={blockFor ? `Block ${blockName}?` : undefined}
       >
-        <View style={{ gap: 12 }}>
-          <AppText variant="caption" muted numberOfLines={2}>
-            {actionsMessage?.content ?? ""}
-          </AppText>
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            {REACTION_EMOJI.map((emoji) => {
-              const mine = (
-                (actionsMessage ? reactionsByMessage[actionsMessage.id] : []) ??
-                []
-              ).some((r) => r.user_id === userId && r.emoji === emoji);
-              return (
-                <Pressable
-                  key={emoji}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    mine
-                      ? `Remove your ${emoji} reaction`
-                      : `React with ${emoji}`
-                  }
-                  onPress={() => {
-                    const id = actionsMessage?.id;
-                    setActionsFor(null);
-                    if (id) void toggleReaction(id, emoji);
-                  }}
-                  style={({ pressed }) => ({
-                    width: 48,
-                    height: 48,
-                    borderRadius: radius.control,
-                    borderWidth: 1,
-                    borderColor: mine ? theme.brand : theme.border,
-                    backgroundColor: mine ? theme.brandSoft : theme.surface2,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                >
-                  <AppText style={{ fontSize: 22, lineHeight: 28 }}>
-                    {emoji}
-                  </AppText>
-                </Pressable>
-              );
-            })}
+        {blockFor ? (
+          <>
+            <AppText muted style={{ marginBottom: 8 }}>
+              They won't be able to DM you, their messages leave this room,
+              and you won't see their posts. They're never told.
+            </AppText>
+            <Sheet.Row
+              icon="slash"
+              label={blocking ? "Blocking…" : "Block them"}
+              danger
+              onPress={() => {
+                const target = blockFor;
+                if (target) void handleBlockAuthor(target);
+              }}
+            />
+            <Sheet.Row
+              icon="x"
+              label="Keep seeing their messages"
+              onPress={() => setBlockFor(null)}
+            />
+          </>
+        ) : (
+          <>
+          <View style={{ gap: 12 }}>
+            <AppText variant="caption" muted numberOfLines={2}>
+              {actionsMessage?.content ?? ""}
+            </AppText>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              {REACTION_EMOJI.map((emoji) => {
+                const mine = (
+                  (actionsMessage ? reactionsByMessage[actionsMessage.id] : []) ??
+                  []
+                ).some((r) => r.user_id === userId && r.emoji === emoji);
+                return (
+                  <Pressable
+                    key={emoji}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      mine
+                        ? `Remove your ${emoji} reaction`
+                        : `React with ${emoji}`
+                    }
+                    onPress={() => {
+                      const id = actionsMessage?.id;
+                      setActionsFor(null);
+                      if (id) void toggleReaction(id, emoji);
+                    }}
+                    style={({ pressed }) => ({
+                      width: 48,
+                      height: 48,
+                      borderRadius: radius.control,
+                      borderWidth: 1,
+                      borderColor: mine ? theme.brand : theme.border,
+                      backgroundColor: mine ? theme.brandSoft : theme.surface2,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: pressed ? 0.7 : 1,
+                    })}
+                  >
+                    <AppText style={{ fontSize: 22, lineHeight: 28 }}>
+                      {emoji}
+                    </AppText>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <View style={{ height: 1, backgroundColor: theme.border }} />
           </View>
-          <View style={{ height: 1, backgroundColor: theme.border }} />
-        </View>
-        <Sheet.Row
-          icon="corner-down-right"
-          label="Reply in thread"
-          onPress={() => {
-            const id = actionsMessage?.id;
-            setActionsFor(null);
-            if (id) openThread(id);
-          }}
-        />
-        {/* A poll carrier's words are the question, and the poll itself
-            doesn't travel — so there's nothing honest to forward. */}
-        {actionsMessage && !actionsMessage.poll_id ? (
           <Sheet.Row
-            icon="corner-up-right"
-            label="Forward"
+            icon="corner-down-right"
+            label="Reply in thread"
             onPress={() => {
-              const target = actionsMessage;
+              const id = actionsMessage?.id;
               setActionsFor(null);
-              setForwardFor(target);
+              if (id) openThread(id);
             }}
           />
-        ) : null}
-        <Sheet.Row
-          icon="bookmark"
-          label={actionsMessage?.pinned_at ? "Unpin" : "Pin message"}
-          onPress={() => {
-            const target = actionsMessage;
-            setActionsFor(null);
-            if (target) void handleTogglePin(target, !target.pinned_at);
-          }}
-        />
-        <Sheet.Row
-          icon="star"
-          label={
-            actionsMessage && savedIds.has(actionsMessage.id)
-              ? "Remove from saved"
-              : "Save message"
-          }
-          onPress={() => {
-            const id = actionsMessage?.id;
-            if (!id) return;
-            const save = !savedIds.has(id);
-            setActionsFor(null);
-            void handleToggleSaved(id, save);
-          }}
-        />
-        {actionsMessage &&
-        actionsMessage.author_id === userId &&
-        !actionsMessage.poll_id ? (
+          {/* A poll carrier's words are the question, and the poll itself
+              doesn't travel — so there's nothing honest to forward. */}
+          {actionsMessage && !actionsMessage.poll_id ? (
+            <Sheet.Row
+              icon="corner-up-right"
+              label="Forward"
+              onPress={() => {
+                const target = actionsMessage;
+                setActionsFor(null);
+                setForwardFor(target);
+              }}
+            />
+          ) : null}
           <Sheet.Row
-            icon="edit-2"
-            label="Edit"
+            icon="bookmark"
+            label={actionsMessage?.pinned_at ? "Unpin" : "Pin message"}
             onPress={() => {
               const target = actionsMessage;
               setActionsFor(null);
-              startEdit(target);
+              if (target) void handleTogglePin(target, !target.pinned_at);
             }}
           />
-        ) : null}
-        {actionsMessage && actionsMessage.author_id === userId ? (
           <Sheet.Row
-            icon="trash-2"
-            label="Delete"
-            danger
+            icon="star"
+            label={
+              actionsMessage && savedIds.has(actionsMessage.id)
+                ? "Remove from saved"
+                : "Save message"
+            }
             onPress={() => {
-              const target = actionsMessage;
+              const id = actionsMessage?.id;
+              if (!id) return;
+              const save = !savedIds.has(id);
               setActionsFor(null);
-              void handleDelete(target);
+              void handleToggleSaved(id, save);
+            }}
+          />
+          {actionsMessage &&
+          actionsMessage.author_id === userId &&
+          !actionsMessage.poll_id ? (
+            <Sheet.Row
+              icon="edit-2"
+              label="Edit"
+              onPress={() => {
+                const target = actionsMessage;
+                setActionsFor(null);
+                startEdit(target);
+              }}
+            />
+          ) : null}
+          {actionsMessage && actionsMessage.author_id === userId ? (
+            <Sheet.Row
+              icon="trash-2"
+              label="Delete"
+              danger
+              onPress={() => {
+                const target = actionsMessage;
+                setActionsFor(null);
+                void handleDelete(target);
+              }}
+            />
+          ) : null}
+          {/* Reporting and blocking, one long-press away, exactly as the app
+              has been telling students all along. Kept under a rule so they
+              read as a different kind of choice from pin and forward. */}
+          {actionsMessage && actionsMessage.author_id !== userId ? (
+            <>
+              <View
+                style={{
+                  height: 1,
+                  backgroundColor: theme.border,
+                  marginVertical: 4,
+                }}
+              />
+              <Sheet.Row
+                icon="flag"
+                label="Report message"
+                onPress={() => {
+                  const target = actionsMessage;
+                  setActionsFor(null);
+                  router.push({
+                    pathname: "/report",
+                    params: {
+                      messageId: target.id,
+                      label: target.author?.display_name ?? "a classmate",
+                      context: target.content,
+                    },
+                  });
+                }}
+              />
+              <Sheet.Row
+                icon="slash"
+                label={`Block ${
+                  actionsMessage.author?.display_name ?? "this person"
+                }`}
+                danger
+                onPress={() => setBlockFor(actionsMessage)}
+              />
+            </>
+          ) : null}
+          </>
+        )}
+      </Sheet>
+
+      {/* The room's own menu: muting, and the way out to the course. */}
+      <Sheet
+        visible={roomMenuOpen}
+        onClose={() => setRoomMenuOpen(false)}
+        title={title}
+      >
+        <Sheet.Row
+          icon={muted ? "bell" : "bell-off"}
+          label={muted ? "Unmute this room" : "Mute this room"}
+          onPress={() => {
+            setRoomMenuOpen(false);
+            void handleToggleMute();
+          }}
+        />
+        {courseId ? (
+          <Sheet.Row
+            icon="book-open"
+            label={`Open ${courseCode ?? "the course"}`}
+            onPress={() => {
+              setRoomMenuOpen(false);
+              router.push(`/course/${courseId}`);
             }}
           />
         ) : null}

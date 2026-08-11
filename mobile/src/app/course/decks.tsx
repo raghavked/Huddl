@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card, Field } from "@/components/ui";
+import { AppText, Button, Card, Field, Sheet } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { buildQueue } from "@/lib/srs";
@@ -172,7 +172,16 @@ export default function CourseDecksScreen() {
         due: buildQueue(deckCards, reviews, now, deckCards.length).length,
       });
     }
-    setDecks(deckRows);
+    // The shelf sorts by what's waiting for YOU, biggest pile first, and
+    // falls back to the order the decks were started. Oldest-first put week
+    // 1 vocab at the top of every visit while the deck a classmate filled
+    // yesterday sat at the bottom — the "40 due" badge sorted nothing.
+    const shelved = [...deckRows].sort(
+      (a, b) =>
+        (nextMeta.get(b.id)?.due ?? 0) - (nextMeta.get(a.id)?.due ?? 0) ||
+        a.created_at.localeCompare(b.created_at)
+    );
+    setDecks(shelved);
     setMeta(nextMeta);
     setStatus("ready");
   }, [userId, id]);
@@ -243,20 +252,48 @@ export default function CourseDecksScreen() {
     [decks]
   );
 
+  const confirmDelete = useCallback(
+    (deck: DeckRow) => {
+      Alert.alert(
+        `Delete “${deck.title}”?`,
+        "It goes for the whole class, cards and all.",
+        [
+          { text: "Keep it", style: "cancel" },
+          {
+            text: "Delete deck",
+            style: "destructive",
+            onPress: () => void deleteDeck(deck),
+          },
+        ]
+      );
+    },
+    [deleteDeck]
+  );
+
+  /* The owner menu, as the same warm sheet every other long-press in the app
+     opens. Hold onto the deck while the card slides away so its title doesn't
+     blank out mid-dismissal. */
+  const [menu, setMenu] = useState<DeckRow | null>(null);
+  const lastMenu = useRef<DeckRow | null>(null);
+  if (menu !== null) lastMenu.current = menu;
+  const menuDeck = menu ?? lastMenu.current;
+
   const handleLongPress = useCallback(
     (deck: DeckRow) => {
       if (deck.created_by !== userId) return; // only your own decks
-      Alert.alert(deck.title, "Your deck — rename it, or take it down for everyone.", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Rename", onPress: () => startRename(deck) },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => void deleteDeck(deck),
-        },
-      ]);
+      setMenu(deck);
     },
-    [userId, startRename, deleteDeck]
+    [userId]
+  );
+
+  /** Close the sheet first, then act — the row is about to change under it. */
+  const runFromMenu = useCallback(
+    (action: (deck: DeckRow) => void) => () => {
+      const deck = menu;
+      setMenu(null);
+      if (deck) action(deck);
+    },
+    [menu]
   );
 
   /* ------------------------------ new deck ------------------------------ */
@@ -391,6 +428,29 @@ export default function CourseDecksScreen() {
   }
 
   /* ------------------------------ the shelf ------------------------------ */
+
+  const ownerSheet = (
+    <Sheet
+      visible={menu !== null}
+      onClose={() => setMenu(null)}
+      title={menuDeck?.title ?? "Your deck"}
+    >
+      <Sheet.Row
+        icon="edit-2"
+        label="Rename deck"
+        onPress={runFromMenu(startRename)}
+      />
+      <Sheet.Row
+        icon="trash-2"
+        label="Delete deck"
+        danger
+        onPress={runFromMenu(confirmDelete)}
+      />
+      <AppText variant="caption" muted style={{ marginLeft: 46, marginTop: 2 }}>
+        Deleting takes it down for everyone in the class.
+      </AppText>
+    </Sheet>
+  );
 
   return scaffold(
     <KeyboardAvoidingView
@@ -608,6 +668,7 @@ export default function CourseDecksScreen() {
           </Card>
         }
       />
+      {ownerSheet}
     </KeyboardAvoidingView>
   );
 }

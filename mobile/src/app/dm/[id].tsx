@@ -27,9 +27,10 @@ import {
   ForwardPicker,
   PendingBubble,
 } from "@/features/forwarding";
+import { MessageBubble } from "@/features/messages";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
-import { unblockUser } from "@/lib/blocks";
+import { blockUser, unblockUser } from "@/lib/blocks";
 import {
   clearDraft,
   DraftError,
@@ -88,6 +89,12 @@ const PAGE_SIZE = 50;
 /** Quiet time in the composer before the draft is written to the device. */
 const DRAFT_SAVE_MS = 500;
 
+/** Least time between two sweeps of this conversation's notifications. */
+const NOTIFICATION_SWEEP_MS = 5000;
+
+/** How long a jumped-to message keeps its ring before settling back in. */
+const HIGHLIGHT_MS = 2600;
+
 /* ---- small local helpers ---- */
 
 function formatMessageTime(iso: string): string {
@@ -105,18 +112,6 @@ function formatMessageTime(iso: string): string {
     });
   }
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
-}
-
-/** "Ada Lovelace" -> "AL" for the avatar circle. */
-function initialsOf(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((word) => word[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 }
 
 /** A chat image at thumb size — resolves its signed URL through the screen's
@@ -183,8 +178,25 @@ export default function DmRoomScreen() {
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
-  const params = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{
+    id: string;
+    messageId?: string;
+    opener?: string;
+  }>();
   const threadId = typeof params.id === "string" ? params.id : "";
+  /* Saved messages and notification links can name a single message. The
+     conversation opens at the bottom either way; this is what it jumps to. */
+  const focusParam =
+    typeof params.messageId === "string" && params.messageId
+      ? params.messageId
+      : null;
+  /* Why this conversation is open. Whoever sent her here — a ride post, a
+     shared class, a study-buddy card — passes the sentence along, so the
+     first thing she types isn't "hi, this is about…". */
+  const opener =
+    typeof params.opener === "string" && params.opener.trim()
+      ? params.opener.trim()
+      : null;
 
   // The thread row carries is_group/title; `people` is everyone in it,
   // which a group needs for author names and the "N people" subtitle.
@@ -214,6 +226,20 @@ export default function DmRoomScreen() {
   const [unblocking, setUnblocking] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const { blocked, refresh: refreshBlocked } = useBlockedIds();
+
+  // Safety, one long-press away: the message being blocked out of.
+  const [blockFor, setBlockFor] = useState<DmMessage | null>(null);
+  const [blocking, setBlocking] = useState(false);
+
+  // The opener line stays until she's read it or dismissed it.
+  const [openerShown, setOpenerShown] = useState(true);
+
+  // Jumping to one message: the list, the id still waiting for a scroll, and
+  // the ring that says "this is the one you came for".
+  const listRef = useRef<FlatList<DmMessage>>(null);
+  const pendingFocusRef = useRef<string | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Drafts and the send queue. One key names this conversation everywhere.
   const conversationKey = useMemo(() => keyFor("dm", threadId), [threadId]);
@@ -264,6 +290,11 @@ export default function DmRoomScreen() {
     []
   );
 
+  /* Reading the conversation has to be what makes the bell go dark. The read
+     cursor only clears the dot on the Messages list, so the notifications
+     this thread wrote get cleared here too. markRead runs on every arriving
+     message, so the sweep is throttled to one round trip every few seconds. */
+  const notifSweptAtRef = useRef(0);
   const markRead = useCallback(() => {
     if (!userId || !threadId) return;
     void supabase
@@ -272,7 +303,35 @@ export default function DmRoomScreen() {
       .eq("thread_id", threadId)
       .eq("user_id", userId)
       .then(() => undefined);
+    const now = Date.now();
+    if (now - notifSweptAtRef.current < NOTIFICATION_SWEEP_MS) return;
+    notifSweptAtRef.current = now;
+    void supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("link", `/messages/${threadId}`)
+      .is("read_at", null)
+      .then(() => undefined);
   }, [threadId, userId]);
+
+  /** Jump the stream to one message and ring it. The scroll itself waits for
+      the list to be there to ask. */
+  const focusMessage = useCallback((messageId: string) => {
+    pendingFocusRef.current = messageId;
+    setHighlightId(messageId);
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = setTimeout(() => {
+      highlightTimerRef.current = null;
+      setHighlightId(null);
+    }, HIGHLIGHT_MS);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    };
+  }, []);
 
   /** Signed URLs for chat images, cached per path for the screen's lifetime. */
   const signedUrlsRef = useRef(new Map<string, Promise<string | null>>());
@@ -881,6 +940,29 @@ export default function DmRoomScreen() {
     }
   }, [userId, other, unblocking, refreshBlocked]);
 
+  /** Block whoever sent a message. One-way and private: they're never told.
+      In a group their messages leave the thread; in a 1:1 the composer
+      closes and the banner above it says so. */
+  const handleBlockAuthor = useCallback(
+    async (target: DmMessage) => {
+      if (!userId || blocking) return;
+      setBlocking(true);
+      try {
+        await blockUser(userId, target.author_id);
+        await refreshBlocked();
+        setBlockFor(null);
+        setActionsFor(null);
+      } catch {
+        setBlockFor(null);
+        setActionsFor(null);
+        setSendError("Couldn't block them just now. Give it another try.");
+      } finally {
+        setBlocking(false);
+      }
+    },
+    [userId, blocking, refreshBlocked]
+  );
+
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<DmMessage>) => {
       const own = item.author_id === userId;
@@ -894,6 +976,8 @@ export default function DmRoomScreen() {
         isGroup &&
         !own &&
         visibleMessages[index + 1]?.author_id !== item.author_id;
+      // Arrived here from saved messages or a notification.
+      const highlighted = item.id === highlightId;
       return (
         <View
           style={{
@@ -902,15 +986,25 @@ export default function DmRoomScreen() {
           }}
         >
           {showAuthor ? (
-            <View
-              style={{
+            // In a group, the name over a bubble is the route to the person
+            // — and from there to reporting and blocking.
+            <Pressable
+              accessibilityRole={author ? "link" : "none"}
+              accessibilityLabel={author ? `${authorName}'s profile` : undefined}
+              disabled={!author}
+              onPress={() => {
+                if (author) router.push(`/u/${author.handle}`);
+              }}
+              hitSlop={10}
+              style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 6,
                 marginBottom: 4,
                 marginLeft: 2,
                 maxWidth: "80%",
-              }}
+                opacity: pressed && author ? 0.6 : 1,
+              })}
             >
               <Avatar
                 url={author?.avatar_url ?? null}
@@ -920,7 +1014,7 @@ export default function DmRoomScreen() {
               <AppText variant="label" muted numberOfLines={1}>
                 {authorName}
               </AppText>
-            </View>
+            </Pressable>
           ) : null}
           <Pressable
             accessibilityHint={
@@ -928,77 +1022,60 @@ export default function DmRoomScreen() {
                 ? undefined
                 : own
                   ? "Long press to save, edit, or delete"
-                  : "Long press to save this message"
+                  : "Long press to save, report, or block"
             }
             onLongPress={() => {
               if (!deleted && !isTemp) setActionsFor(item);
             }}
             delayLongPress={300}
-            style={[
-              {
-                maxWidth: "80%",
-                borderRadius: 18,
-                paddingHorizontal: 14,
-                paddingVertical: 9,
-                opacity: isTemp ? 0.7 : 1,
-                gap: 6,
-              },
-              deleted
-                ? {
-                    borderWidth: 1,
-                    borderStyle: "dashed",
-                    borderColor: theme.border,
-                  }
-                : own
-                  ? {
-                      backgroundColor: theme.brandSoft,
-                      borderBottomRightRadius: 6,
-                    }
-                  : {
-                      backgroundColor: theme.surface2,
-                      borderBottomLeftRadius: 6,
-                    },
-            ]}
+            style={{ maxWidth: "80%", opacity: isTemp ? 0.7 : 1 }}
           >
-            {deleted ? (
-              <AppText muted style={{ fontStyle: "italic" }}>
-                Message deleted
-              </AppText>
-            ) : (
-              <>
-                {item.forwarded_from ? (
-                  <ForwardedFrom
-                    from={item.forwarded_from}
-                    who={
-                      item.forwarded_author_id
-                        ? (forwardedNames[item.forwarded_author_id] ?? null)
-                        : null
-                    }
-                    own={own}
-                  />
-                ) : null}
-                {item.attachment_path ? (
-                  <AttachmentImage
-                    path={item.attachment_path}
-                    resolve={resolveAttachmentUrl}
-                    onOpen={setViewerUrl}
-                  />
-                ) : null}
-                {/* "Photo" is the placeholder content for caption-less sends. */}
-                {item.attachment_path && item.content === "Photo" ? null : (
-                  <AppText>{item.content}</AppText>
-                )}
-                {item.edited_at ? (
-                  <AppText
-                    variant="caption"
-                    muted
-                    style={{ fontSize: 10, lineHeight: 12 }}
-                  >
-                    (edited)
-                  </AppText>
-                ) : null}
-              </>
-            )}
+            <MessageBubble
+              own={own}
+              deleted={deleted}
+              highlighted={highlighted}
+            >
+              {deleted ? (
+                <AppText muted style={{ fontStyle: "italic" }}>
+                  Message deleted
+                </AppText>
+              ) : (
+                <>
+                  {item.forwarded_from ? (
+                    <ForwardedFrom
+                      from={item.forwarded_from}
+                      who={
+                        item.forwarded_author_id
+                          ? (forwardedNames[item.forwarded_author_id] ?? null)
+                          : null
+                      }
+                      own={own}
+                    />
+                  ) : null}
+                  {item.attachment_path ? (
+                    <AttachmentImage
+                      path={item.attachment_path}
+                      resolve={resolveAttachmentUrl}
+                      onOpen={setViewerUrl}
+                    />
+                  ) : null}
+                  {/* "Photo" is the placeholder content for caption-less
+                      sends. */}
+                  {item.attachment_path && item.content === "Photo" ? null : (
+                    <AppText>{item.content}</AppText>
+                  )}
+                  {item.edited_at ? (
+                    <AppText
+                      variant="caption"
+                      muted
+                      style={{ fontSize: 10, lineHeight: 12 }}
+                    >
+                      (edited)
+                    </AppText>
+                  ) : null}
+                </>
+              )}
+            </MessageBubble>
           </Pressable>
           <AppText
             variant="caption"
@@ -1012,14 +1089,39 @@ export default function DmRoomScreen() {
     },
     [
       userId,
-      theme,
       resolveAttachmentUrl,
       isGroup,
       peopleById,
       visibleMessages,
       forwardedNames,
+      highlightId,
     ]
   );
+
+  /** Scroll to whatever `focusMessage` parked, once the list can be asked. */
+  const drainFocus = useCallback(() => {
+    const wanted = pendingFocusRef.current;
+    if (!wanted) return;
+    const index = visibleMessages.findIndex((m) => m.id === wanted);
+    if (index < 0) return;
+    pendingFocusRef.current = null;
+    listRef.current?.scrollToIndex({
+      index,
+      animated: true,
+      viewPosition: 0.5,
+    });
+  }, [visibleMessages]);
+
+  // A messageId in the route — saved messages, a deep link — is a request to
+  // open at that message rather than at the bottom. Once per arrival.
+  const focusHandledRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusParam || loading) return;
+    if (focusHandledRef.current === focusParam) return;
+    if (!visibleMessages.some((m) => m.id === focusParam)) return;
+    focusHandledRef.current = focusParam;
+    focusMessage(focusParam);
+  }, [focusParam, loading, visibleMessages, focusMessage]);
 
   /* ----------------------------- forwarding ---------------------------- */
 
@@ -1043,6 +1145,9 @@ export default function DmRoomScreen() {
   );
 
   const canSend = draft.trim().length > 0 && !otherBlocked;
+  const blockName = blockFor
+    ? (peopleById.get(blockFor.author_id)?.display_name ?? "this person")
+    : "this person";
   const otherFirstName = other
     ? other.display_name.trim().split(/\s+/)[0] || other.handle
     : null;
@@ -1126,26 +1231,24 @@ export default function DmRoomScreen() {
             <Feather name="chevron-right" size={18} color={theme.muted} />
           </Pressable>
         ) : other ? (
-          <View
-            style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}
+          // The whole header is the way to the person — the same gesture the
+          // group header uses for its info page, and the route that puts
+          // reporting and blocking one tap from the conversation.
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={`${other.display_name}'s profile`}
+            accessibilityHint="Opens their profile, where you can report or block them"
+            onPress={() => router.push(`/u/${other.handle}`)}
+            style={({ pressed }) => ({
+              flex: 1,
+              minHeight: 44,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              opacity: pressed ? 0.7 : 1,
+            })}
           >
-            <View
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: radius.full,
-                backgroundColor: theme.brandSoft,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <AppText
-                variant="title"
-                style={{ color: theme.brandInk, fontSize: 15 }}
-              >
-                {initialsOf(other.display_name) || "?"}
-              </AppText>
-            </View>
+            <Avatar url={other.avatar_url} name={other.display_name} size={38} />
             <View style={{ flex: 1 }}>
               <AppText variant="title" numberOfLines={1}>
                 {other.display_name}
@@ -1154,7 +1257,8 @@ export default function DmRoomScreen() {
                 @{other.handle}
               </AppText>
             </View>
-          </View>
+            <Feather name="chevron-right" size={18} color={theme.muted} />
+          </Pressable>
         ) : (
           <View style={{ flex: 1 }} />
         )}
@@ -1239,27 +1343,26 @@ export default function DmRoomScreen() {
                 padding: 24,
               }}
             >
-              <View
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: radius.full,
-                  backgroundColor: theme.brandSoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {isGroup ? (
+              {isGroup || !other ? (
+                <View
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: radius.full,
+                    backgroundColor: theme.brandSoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
                   <Feather name="users" size={22} color={theme.brandInk} />
-                ) : (
-                  <AppText
-                    variant="title"
-                    style={{ color: theme.brandInk, fontSize: 20 }}
-                  >
-                    {other ? initialsOf(other.display_name) || "?" : "?"}
-                  </AppText>
-                )}
-              </View>
+                </View>
+              ) : (
+                <Avatar
+                  url={other.avatar_url}
+                  name={other.display_name}
+                  size={56}
+                />
+              )}
               <AppText variant="bodySemi">
                 {isGroup
                   ? (display?.title ?? "Group chat")
@@ -1274,11 +1377,12 @@ export default function DmRoomScreen() {
                   ? "This is the start of the group. Say hi to everyone."
                   : `This is the start of your conversation${
                       otherFirstName ? ` with ${otherFirstName}` : ""
-                    }. Say hi!`}
+                    }. Say hi.`}
               </AppText>
             </View>
           ) : (
             <FlatList
+              ref={listRef}
               inverted
               data={visibleMessages}
               keyExtractor={(item) => item.id}
@@ -1290,6 +1394,23 @@ export default function DmRoomScreen() {
               }}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              onLayout={drainFocus}
+              onContentSizeChange={drainFocus}
+              // Bubbles are variable height, so an offscreen target can miss
+              // on the first pass — settle where we can and try once more.
+              onScrollToIndexFailed={({ index, averageItemLength }) => {
+                listRef.current?.scrollToOffset({
+                  offset: index * Math.max(averageItemLength, 1),
+                  animated: true,
+                });
+                setTimeout(() => {
+                  listRef.current?.scrollToIndex({
+                    index,
+                    animated: true,
+                    viewPosition: 0.5,
+                  });
+                }, 120);
+              }}
               // In an inverted list the header sits at the visual bottom —
               // the right home for messages that haven't gone out yet, oldest
               // of them first, right where they were typed.
@@ -1392,6 +1513,48 @@ export default function DmRoomScreen() {
                 pending={unblocking}
                 onPress={() => void handleUnblock()}
               />
+            </View>
+          ) : null}
+
+          {/* Why this conversation is open, carried over from wherever she
+              tapped Message. It sits above the composer until she's used it
+              or waved it away — never in the box, which is hers. */}
+          {opener && openerShown && !editing ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                marginHorizontal: 16,
+                marginBottom: 6,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: radius.control,
+                backgroundColor: theme.brandSoft,
+              }}
+            >
+              <Feather name="corner-up-right" size={14} color={theme.brandInk} />
+              <AppText
+                variant="caption"
+                style={{ color: theme.brandInk, flex: 1 }}
+                numberOfLines={2}
+              >
+                {opener}
+              </AppText>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Hide this note"
+                onPress={() => setOpenerShown(false)}
+                hitSlop={14}
+                style={{
+                  width: 24,
+                  height: 24,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Feather name="x" size={14} color={theme.brandInk} />
+              </Pressable>
             </View>
           ) : null}
 
@@ -1574,59 +1737,139 @@ export default function DmRoomScreen() {
       </Modal>
 
       {/* The long-press menu on a message: saving is for anyone's, editing
-          and deleting only for your own. */}
-      <Sheet visible={actionsFor !== null} onClose={() => setActionsFor(null)}>
-        <AppText variant="caption" muted numberOfLines={2}>
-          {actionsFor?.content ?? ""}
-        </AppText>
-        <View style={{ height: 1, backgroundColor: theme.border }} />
-        <Sheet.Row
-          icon="corner-up-right"
-          label="Forward"
-          onPress={() => {
-            const target = actionsFor;
-            setActionsFor(null);
-            if (target) setForwardFor(target);
-          }}
-        />
-        <Sheet.Row
-          icon="bookmark"
-          label={
-            actionsFor && savedIds.has(actionsFor.id)
-              ? "Remove from saved"
-              : "Save message"
-          }
-          onPress={() => {
-            const id = actionsFor?.id;
-            if (!id) return;
-            const save = !savedIds.has(id);
-            setActionsFor(null);
-            void handleToggleSaved(id, save);
-          }}
-        />
-        {actionsFor && actionsFor.author_id === userId ? (
+          and deleting only for your own. Blocking asks its question inside
+          the same sheet rather than opening a second one — a Modal
+          dismissing while another presents is how you get a sheet that
+          never appears. */}
+      <Sheet
+        visible={actionsFor !== null}
+        onClose={() => {
+          setBlockFor(null);
+          setActionsFor(null);
+        }}
+        title={blockFor ? `Block ${blockName}?` : undefined}
+      >
+        {blockFor ? (
           <>
+            <AppText muted style={{ marginBottom: 8 }}>
+              {isGroup
+                ? "They won't be able to DM you, their messages leave this group, and you won't see their posts. They're never told."
+                : "They won't be able to message you, and you won't see their posts. This conversation stays where it is. They're never told."}
+            </AppText>
             <Sheet.Row
-              icon="edit-2"
-              label="Edit"
-              onPress={() => {
-                const target = actionsFor;
-                setActionsFor(null);
-                startEdit(target);
-              }}
-            />
-            <Sheet.Row
-              icon="trash-2"
-              label="Delete"
+              icon="slash"
+              label={blocking ? "Blocking…" : "Block them"}
               danger
               onPress={() => {
-                const target = actionsFor;
-                setActionsFor(null);
-                void handleDelete(target);
+                const target = blockFor;
+                if (target) void handleBlockAuthor(target);
               }}
             />
+            <Sheet.Row
+              icon="x"
+              label="Keep things as they are"
+              onPress={() => setBlockFor(null)}
+            />
           </>
-        ) : null}
+        ) : (
+          <>
+          <AppText variant="caption" muted numberOfLines={2}>
+            {actionsFor?.content ?? ""}
+          </AppText>
+          <View style={{ height: 1, backgroundColor: theme.border }} />
+          <Sheet.Row
+            icon="corner-up-right"
+            label="Forward"
+            onPress={() => {
+              const target = actionsFor;
+              setActionsFor(null);
+              if (target) setForwardFor(target);
+            }}
+          />
+          <Sheet.Row
+            icon="bookmark"
+            label={
+              actionsFor && savedIds.has(actionsFor.id)
+                ? "Remove from saved"
+                : "Save message"
+            }
+            onPress={() => {
+              const id = actionsFor?.id;
+              if (!id) return;
+              const save = !savedIds.has(id);
+              setActionsFor(null);
+              void handleToggleSaved(id, save);
+            }}
+          />
+          {actionsFor && actionsFor.author_id === userId ? (
+            <>
+              <Sheet.Row
+                icon="edit-2"
+                label="Edit"
+                onPress={() => {
+                  const target = actionsFor;
+                  setActionsFor(null);
+                  startEdit(target);
+                }}
+              />
+              <Sheet.Row
+                icon="trash-2"
+                label="Delete"
+                danger
+                onPress={() => {
+                  const target = actionsFor;
+                  setActionsFor(null);
+                  void handleDelete(target);
+                }}
+              />
+            </>
+          ) : null}
+          {/* Reporting and blocking, one long-press away. A DM can't be
+              attached to a report — reports.message_id points at channel
+              messages — so the report names the sender and quotes the words
+              back on the report screen, which says so plainly. */}
+          {actionsFor && actionsFor.author_id !== userId ? (
+            <>
+              <View
+                style={{
+                  height: 1,
+                  backgroundColor: theme.border,
+                  marginVertical: 4,
+                }}
+              />
+              <Sheet.Row
+                icon="flag"
+                label="Report message"
+                onPress={() => {
+                  const target = actionsFor;
+                  setActionsFor(null);
+                  router.push({
+                    pathname: "/report",
+                    params: {
+                      userId: target.author_id,
+                      label:
+                        peopleById.get(target.author_id)?.display_name ??
+                        "a classmate",
+                      context: target.content,
+                    },
+                  });
+                }}
+              />
+              {!blocked.has(actionsFor.author_id) ? (
+                <Sheet.Row
+                  icon="slash"
+                  label={`Block ${
+                    peopleById.get(actionsFor.author_id)?.display_name ??
+                    "this person"
+                  }`}
+                  danger
+                  onPress={() => setBlockFor(actionsFor)}
+                />
+              ) : null}
+            </>
+          ) : null}
+          </>
+        )}
       </Sheet>
 
       {/* The picker draws itself, not through a Modal — see ForwardPicker.

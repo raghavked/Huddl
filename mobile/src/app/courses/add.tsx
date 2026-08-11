@@ -116,14 +116,20 @@ function pasteReport(
   return `${landed.length} added — ${tail.join(". ")}.`;
 }
 
+/** What a banner can offer besides the news: one door, named. */
+type BannerAction = { label: string; onPress: () => void };
+
 function InlineBanner({
   tone,
   icon,
   text,
+  action,
 }: {
   tone: "warm" | "danger";
   icon: React.ComponentProps<typeof Feather>["name"];
   text: string;
+  /** The next move, when there is one — a class you just added, say. */
+  action?: BannerAction;
 }) {
   const theme = useTheme();
   const bg = tone === "warm" ? theme.brandSoft : theme.surface2;
@@ -131,20 +137,48 @@ function InlineBanner({
   return (
     <View
       style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
+        gap: 2,
         backgroundColor: bg,
         borderRadius: radius.control,
         paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingVertical: action ? 6 : 10,
         marginBottom: 10,
       }}
     >
-      <Feather name={icon} size={16} color={fg} />
-      <AppText variant="caption" style={{ color: fg, flex: 1 }}>
-        {text}
-      </AppText>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          ...(action ? { paddingVertical: 4 } : null),
+        }}
+      >
+        <Feather name={icon} size={16} color={fg} />
+        <AppText variant="caption" style={{ color: fg, flex: 1 }}>
+          {text}
+        </AppText>
+      </View>
+      {/* On a tinted fill the link takes the fill's ink, never grey. */}
+      {action ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={action.label}
+          onPress={action.onPress}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            minHeight: 44,
+            marginLeft: 24,
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <AppText variant="label" style={{ color: fg }}>
+            {action.label}
+          </AppText>
+          <Feather name="arrow-right" size={14} color={fg} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -189,61 +223,62 @@ function ResultRow({
           </AppText>
         ) : null}
       </View>
+      {/* The term line is information, never a gate. `offered_now` is false
+          for every catalog row whenever no term spans today — which is
+          exactly move-in week, when a student most needs to add classes —
+          and the backend has allowed the add since migration 0017: "the
+          catalog is a typeahead convenience, never a gate." So the caption
+          says what the catalog knows and the button stays live either way. */}
       <View style={{ alignItems: "flex-end", gap: 6 }}>
         {item.offered_now ? (
-          <>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-              <View
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: radius.full,
-                  backgroundColor: theme.success,
-                }}
-              />
-              <AppText variant="caption" muted>
-                Offered now
-              </AppText>
-            </View>
-            {added ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 5,
-                  height: 38,
-                  paddingHorizontal: 8,
-                }}
-                accessibilityLabel={`${item.code} added`}
-              >
-                <Feather name="check-circle" size={15} color={theme.success} />
-                <AppText variant="label" style={{ color: theme.success }}>
-                  Added
-                </AppText>
-              </View>
-            ) : (
-              <Button
-                label="Add"
-                variant="soft"
-                size="sm"
-                pending={pending}
-                disabled={busy}
-                accessibilityLabel={`Add ${item.code}`}
-                onPress={onAdd}
-              />
-            )}
-          </>
-        ) : (
-          <>
-            <AppText
-              variant="caption"
-              muted
-              style={{ textAlign: "right", maxWidth: 130 }}
-            >
-              Not offered this session
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+            <View
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: radius.full,
+                backgroundColor: theme.success,
+              }}
+            />
+            <AppText variant="caption" muted>
+              Offered now
             </AppText>
-            <Button label="Add" variant="soft" size="sm" disabled />
-          </>
+          </View>
+        ) : (
+          <AppText
+            variant="caption"
+            muted
+            style={{ textAlign: "right", maxWidth: 130 }}
+          >
+            Not offered this session
+          </AppText>
+        )}
+        {added ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 5,
+              height: 38,
+              paddingHorizontal: 8,
+            }}
+            accessibilityLabel={`${item.code} added`}
+          >
+            <Feather name="check-circle" size={15} color={theme.success} />
+            <AppText variant="label" style={{ color: theme.success }}>
+              Added
+            </AppText>
+          </View>
+        ) : (
+          <Button
+            label="Add"
+            variant="soft"
+            size="sm"
+            pending={pending}
+            disabled={busy}
+            accessibilityLabel={`Add ${item.code}`}
+            onPress={onAdd}
+          />
         )}
       </View>
     </Card>
@@ -375,17 +410,35 @@ export default function AddCoursesScreen() {
 
   const [added, setAdded] = useState<Set<string>>(new Set());
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  /* The banner after an add. It carries a door where there is one to carry:
+     "You're in" with no way through to the class is where this screen used
+     to leave a first-year on move-in day. */
+  const [toast, setToast] = useState<{
+    text: string;
+    action?: BannerAction;
+  } | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
   /* Every course code you're already in, normalized. The paste sheet skips
      these rather than erroring on them. */
   const [enrolledCodes, setEnrolledCodes] = useState<Set<string>>(new Set());
 
+  /** The banner a landed class deserves: what happened, and the way in. */
+  const openCourse = useCallback(
+    (code: string, courseId: string): BannerAction => ({
+      label: `Open ${code}`,
+      onPress: () =>
+        router.push({ pathname: "/course/[id]", params: { id: courseId } }),
+    }),
+    []
+  );
+
   const enroll = useCallback(
     async (row: SearchRow) => {
       setAddError(null);
       setPendingId(row.id);
-      const { error } = await supabase.rpc("enroll_from_catalog", {
+      // Returns the course id — the hub, where the chat, the calendar and
+      // the classmates all are.
+      const { data, error } = await supabase.rpc("enroll_from_catalog", {
         p_catalog_course_id: row.id,
       });
       setPendingId(null);
@@ -398,9 +451,13 @@ export default function AddCoursesScreen() {
       }
       setAdded((prev) => new Set(prev).add(row.id));
       setEnrolledCodes((prev) => new Set(prev).add(codeKey(row.code)));
-      setToast("You're in — the course chat is ready.");
+      const courseId = typeof data === "string" ? data : null;
+      setToast({
+        text: `${row.code} added — its chat is open.`,
+        action: courseId ? openCourse(row.code, courseId) : undefined,
+      });
     },
-    []
+    [openCourse]
   );
 
   /* ------------------- context for the free-text path ------------------- */
@@ -471,15 +528,21 @@ export default function AddCoursesScreen() {
   const [fbTitle, setFbTitle] = useState("");
   const [fbPending, setFbPending] = useState(false);
   const [fbError, setFbError] = useState<string | null>(null);
-  const [fbDone, setFbDone] = useState<string | null>(null);
+  const [fbDone, setFbDone] = useState<{
+    text: string;
+    action?: BannerAction;
+  } | null>(null);
 
   /* The one write path for a self-input class: create-or-find the course row
      for a code, then upsert the caller's enrollment. Both the hand-add card
      and the paste sheet go through here, so a pasted class lands exactly the
-     way a typed one does — same row, same chat, same 'manual' source. */
+     way a typed one does — same row, same chat, same 'manual' source.
+
+     Hands back the course id on success (null on failure), so whatever
+     called it can offer the door into the class it just made. */
   const enrollByCode = useCallback(
-    async (code: string, title: string): Promise<boolean> => {
-      if (!userId || !ctx) return false;
+    async (code: string, title: string): Promise<string | null> => {
+      if (!userId || !ctx) return null;
       try {
         // Mirror the web manual-picker: insert the course row; if that trips
         // (a classmate beat us to it), find the existing one by code instead.
@@ -507,7 +570,7 @@ export default function AddCoursesScreen() {
         } else {
           courseId = (inserted as { id: string }).id;
         }
-        if (!courseId) return false;
+        if (!courseId) return null;
         // Hand-added enrollment: source 'manual', no catalog_course_id. The
         // enrollment trigger opens the course chat and joins you to it, and
         // the upsert makes a class you're already in a no-op, not an error.
@@ -516,9 +579,9 @@ export default function AddCoursesScreen() {
           { onConflict: "user_id,course_id", ignoreDuplicates: true }
         );
         if (enrollError) throw enrollError;
-        return true;
+        return courseId;
       } catch {
-        return false;
+        return null;
       }
     },
     [userId, ctx]
@@ -530,17 +593,20 @@ export default function AddCoursesScreen() {
     setFbPending(true);
     setFbError(null);
     setFbDone(null);
-    const ok = await enrollByCode(code, fbTitle.trim() || code);
+    const courseId = await enrollByCode(code, fbTitle.trim() || code);
     setFbPending(false);
-    if (!ok) {
+    if (courseId === null) {
       setFbError("We couldn't add that course. Give it another try.");
       return;
     }
     setEnrolledCodes((prev) => new Set(prev).add(codeKey(code)));
-    setFbDone(`${code} added — you're in its chat.`);
+    setFbDone({
+      text: `${code} added — you're in its chat.`,
+      action: openCourse(code, courseId),
+    });
     setFbCode("");
     setFbTitle("");
-  }, [userId, ctx, fbCode, fbTitle, enrollByCode]);
+  }, [userId, ctx, fbCode, fbTitle, enrollByCode, openCourse]);
 
   /* -------------------------- paste a schedule -------------------------- */
 
@@ -683,15 +749,23 @@ export default function AddCoursesScreen() {
     const landed: string[] = [];
     const already: string[] = [];
     const missed: string[] = [];
+    // Only useful when exactly one class landed — with six, there is no
+    // single door to offer, and the list they came from is the right one.
+    let lastCourseId: string | null = null;
     for (const row of drafts) {
       if (enrolledCodes.has(row.code)) {
         already.push(row.code);
         continue;
       }
       const title = row.title.trim();
-      const ok = await enrollByCode(row.code, title === "" ? row.code : title);
-      if (ok) landed.push(row.code);
-      else missed.push(row.code);
+      const courseId = await enrollByCode(
+        row.code,
+        title === "" ? row.code : title
+      );
+      if (courseId !== null) {
+        landed.push(row.code);
+        lastCourseId = courseId;
+      } else missed.push(row.code);
     }
     setPasteBusy(false);
 
@@ -715,7 +789,14 @@ export default function AddCoursesScreen() {
       dismissedRef.current.clear();
       setPasteText("");
       setAddError(null);
-      setToast(message);
+      const only = landed.length === 1 ? landed[0] : undefined;
+      setToast({
+        text: message,
+        action:
+          only !== undefined && lastCourseId !== null
+            ? openCourse(only, lastCourseId)
+            : undefined,
+      });
       closePaste();
       return;
     }
@@ -728,6 +809,7 @@ export default function AddCoursesScreen() {
     enrolledCodes,
     enrollByCode,
     closePaste,
+    openCourse,
   ]);
 
   /* ------------------------------ render ------------------------------ */
@@ -843,7 +925,12 @@ export default function AddCoursesScreen() {
             ListHeaderComponent={
               <View>
                 {toast ? (
-                  <InlineBanner tone="warm" icon="check-circle" text={toast} />
+                  <InlineBanner
+                    tone="warm"
+                    icon="check-circle"
+                    text={toast.text}
+                    action={toast.action}
+                  />
                 ) : null}
                 {addError ? (
                   <InlineBanner tone="danger" icon="alert-circle" text={addError} />
@@ -986,20 +1073,49 @@ export default function AddCoursesScreen() {
                     </AppText>
                   ) : null}
                   {fbDone ? (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      <Feather name="check" size={14} color={theme.success} />
-                      <AppText
-                        variant="caption"
-                        style={{ color: theme.success, flex: 1 }}
+                    <View style={{ gap: 2 }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
                       >
-                        {fbDone}
-                      </AppText>
+                        <Feather name="check" size={14} color={theme.success} />
+                        <AppText
+                          variant="caption"
+                          style={{ color: theme.success, flex: 1 }}
+                        >
+                          {fbDone.text}
+                        </AppText>
+                      </View>
+                      {fbDone.action ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={fbDone.action.label}
+                          onPress={fbDone.action.onPress}
+                          style={({ pressed }) => ({
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 6,
+                            minHeight: 44,
+                            marginLeft: 20,
+                            opacity: pressed ? 0.6 : 1,
+                          })}
+                        >
+                          <AppText
+                            variant="label"
+                            style={{ color: theme.brandInk }}
+                          >
+                            {fbDone.action.label}
+                          </AppText>
+                          <Feather
+                            name="arrow-right"
+                            size={14}
+                            color={theme.brandInk}
+                          />
+                        </Pressable>
+                      ) : null}
                     </View>
                   ) : null}
                   <Button

@@ -189,25 +189,34 @@ async function fetchEnrollmentMarks(userId: string): Promise<EnrollmentMarks> {
 
 /* --------------------------------- rows --------------------------------- */
 
-/** A class this quarter. Tap the "…" or long-press the row for the menu. */
+/** A class this quarter. Tap it for the course hub; the "…" or a long-press
+    opens the menu. */
 function CourseRow({
   course,
   tint,
   fromCatalog,
   busy,
+  onOpen,
   onMenu,
 }: {
   course: MyCourse;
   tint: CourseTintColors;
   fromCatalog: boolean;
   busy: boolean;
+  onOpen: () => void;
   onMenu: () => void;
 }) {
   const theme = useTheme();
   return (
-    // Not accessible itself: long-press is the sighted shortcut, and the "…"
-    // button below stays individually reachable for a screen reader.
-    <Pressable accessible={false} onLongPress={busy ? undefined : onMenu}>
+    // Not accessible itself: the whole card is the open target for a thumb,
+    // and the two buttons inside stay individually reachable for a screen
+    // reader. Same scaffold as the item rows in course/calendar.
+    <Pressable
+      accessible={false}
+      onPress={onOpen}
+      onLongPress={busy ? undefined : onMenu}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
       <Card
         padded={false}
         style={{
@@ -235,7 +244,25 @@ function CourseRow({
             backgroundColor: tint.ink,
           }}
         />
-        <View style={{ flex: 1, gap: 3, marginLeft: 2 }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            course.title ? `${course.code}, ${course.title}` : course.code
+          }
+          accessibilityHint="Opens this course"
+          onPress={onOpen}
+          // The long-press shortcut has to live on the inner target too —
+          // otherwise holding the title would just open the course.
+          onLongPress={busy ? undefined : onMenu}
+          style={({ pressed }) => ({
+            flex: 1,
+            gap: 3,
+            marginLeft: 2,
+            minHeight: 44,
+            justifyContent: "center",
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
           <View
             style={{
               flexDirection: "row",
@@ -263,7 +290,7 @@ function CourseRow({
               {course.term}
             </AppText>
           ) : null}
-        </View>
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Options for ${course.code}`}
@@ -340,19 +367,28 @@ function SemesterLink() {
   );
 }
 
-/** A shelved class: quieter than the cards above, one hairline between rows. */
+/** A shelved class: quieter than the cards above, one hairline between rows.
+    Still opens — shelving keeps the chat and the notes, so the door has to
+    stay on the row that says so. */
 function ArchivedRow({
   course,
   last,
+  onOpen,
   onMenu,
 }: {
   course: MyCourse;
   last: boolean;
+  onOpen: () => void;
   onMenu: () => void;
 }) {
   const theme = useTheme();
   return (
-    <Pressable accessible={false} onLongPress={onMenu}>
+    <Pressable
+      accessible={false}
+      onPress={onOpen}
+      onLongPress={onMenu}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
       <View
         style={{
           flexDirection: "row",
@@ -366,7 +402,24 @@ function ArchivedRow({
           borderBottomColor: theme.border,
         }}
       >
-        <View style={{ flex: 1, gap: 2 }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            course.title
+              ? `${course.code}, ${course.title}, shelved`
+              : `${course.code}, shelved`
+          }
+          accessibilityHint="Opens this course"
+          onPress={onOpen}
+          onLongPress={onMenu}
+          style={({ pressed }) => ({
+            flex: 1,
+            gap: 2,
+            minHeight: 44,
+            justifyContent: "center",
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
           <AppText variant="bodyMedium" muted numberOfLines={1}>
             {course.code}
           </AppText>
@@ -375,7 +428,7 @@ function ArchivedRow({
               {course.title}
             </AppText>
           ) : null}
-        </View>
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Options for ${course.code}, shelved`}
@@ -467,12 +520,14 @@ function ArchivedShelf({
   open,
   error,
   onToggle,
+  onOpenCourse,
   onMenu,
 }: {
   courses: MyCourse[];
   open: boolean;
   error: string | null;
   onToggle: () => void;
+  onOpenCourse: (course: MyCourse) => void;
   onMenu: (course: MyCourse) => void;
 }) {
   const theme = useTheme();
@@ -568,6 +623,7 @@ function ArchivedShelf({
                     key={course.enrollment_id}
                     course={course}
                     last={position === group.courses.length - 1}
+                    onOpen={() => onOpenCourse(course)}
                     onMenu={() => onMenu(course)}
                   />
                 ))}
@@ -764,18 +820,17 @@ export default function MyCoursesScreen() {
    * The colour is private: it goes on the student's own `enrollments` row,
    * scoped by `user_id` as well as `id`, and no classmate ever sees it.
    *
-   * BACKEND GAP — READ BEFORE DEBUGGING A COLOUR THAT WON'T STICK.
-   * Migration 0029 revoked blanket UPDATE on `enrollments` and granted it
-   * back one column at a time; 0032 added `color` without extending that
-   * grant. Until it does, every write here fails with a permission error and
-   * the swatch snaps back with the apology below — which is the honest
-   * behaviour, not a bug in this screen. The fix is one line:
+   * The write reaches exactly two columns and no more. Migration 0029
+   * revoked blanket UPDATE on `enrollments` and granted back `archived_at`
+   * alone; 0037 widened that to `grant update (archived_at, color)`, so a
+   * student can recolour and shelve their own row and touch nothing else —
+   * not `role`, not `source`, not `course_id`. The row policy from 0029
+   * ("students shelve their own enrollments") scopes UPDATE to
+   * `user_id = auth.uid()`, so no classmate's tint is writable either.
    *
-   *   grant update (color) on public.enrollments to authenticated;
-   *
-   * The row policy from 0029 ("students shelve their own enrollments")
-   * already scopes UPDATE to `user_id = auth.uid()`, so nothing else is
-   * needed and no classmate's tint becomes writable.
+   * The "no row back" check below is still load-bearing: a refused update
+   * returns zero rows and no error, and a silent no-op rendered as success
+   * is the one outcome worse than a failure.
    */
   const recolor = useCallback(
     async (course: MyCourse, next: CourseTint) => {
@@ -805,6 +860,12 @@ export default function MyCoursesScreen() {
     },
     [userId, marks.colors, paint]
   );
+
+  /** The front door this screen was missing: the course hub, where the rooms,
+      the calendar, the notes, the decks and the grades all are. */
+  const openCourse = useCallback((course: MyCourse) => {
+    router.push({ pathname: "/course/[id]", params: { id: course.course_id } });
+  }, []);
 
   const openMenu = useCallback((course: MyCourse) => {
     setSheetView("menu");
@@ -868,6 +929,7 @@ export default function MyCoursesScreen() {
       open={shelfOpen}
       error={shelfError}
       onToggle={() => setShelfOpen((current) => !current)}
+      onOpenCourse={openCourse}
       onMenu={openMenu}
     />
   ) : null;
@@ -1036,6 +1098,7 @@ export default function MyCoursesScreen() {
                   tint={tintFor(item)}
                   fromCatalog={marks.catalogIds.has(item.enrollment_id)}
                   busy={busyId === item.enrollment_id}
+                  onOpen={() => openCourse(item)}
                   onMenu={() => openMenu(item)}
                 />
               </View>

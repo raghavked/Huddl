@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -23,6 +23,7 @@ import {
   EmptyState,
   Field,
   Sheet,
+  useReducedMotion,
   type ChipTone,
 } from "@/components/ui";
 import { radius } from "@/constants/theme";
@@ -157,6 +158,40 @@ function groupByMonth(items: CalendarItemRow[]): Section[] {
 
 function daysInMonth(month: number, year: number): number {
   return new Date(year, month, 0).getDate();
+}
+
+/** Midnight this morning, as a timestamp — the line between behind and ahead. */
+function startOfDay(now: Date): number {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+}
+
+/**
+ * Where today sits in the month sections: the first item due today or later,
+ * and how many dates are stacked behind it.
+ *
+ * A term's worth of syllabus imports opens on week one, and in week seven
+ * that is forty rows above the thing you came to look at. This is what the
+ * list scrolls to on arrival and what the "Jump to today" pill aims at.
+ *
+ * Null when every date is behind you — then the bottom of the list already
+ * is the interesting end, and there is nothing to jump to.
+ */
+function findToday(
+  sections: Section[],
+  dayStart: number
+): { sectionIndex: number; itemIndex: number; behind: number } | null {
+  let behind = 0;
+  for (let s = 0; s < sections.length; s += 1) {
+    const data = sections[s]?.data ?? [];
+    for (let i = 0; i < data.length; i += 1) {
+      const row = data[i];
+      if (row && new Date(row.due_at).getTime() >= dayStart) {
+        return { sectionIndex: s, itemIndex: i, behind };
+      }
+      behind += 1;
+    }
+  }
+  return null;
 }
 
 export default function ClassCalendarScreen() {
@@ -535,6 +570,64 @@ export default function ClassCalendarScreen() {
       params: courseCode ? { courseId, courseCode } : { courseId },
     });
   }, [router, courseId, courseCode]);
+
+  /* --------------------------- landing on today ----------------------- */
+
+  const listRef = useRef<SectionList<CalendarItemRow, Section>>(null);
+  const reduceMotion = useReducedMotion();
+  /** One automatic landing per visit — a return from the syllabus importer
+      shouldn't yank the list out from under a reader who scrolled. */
+  const landedRef = useRef(false);
+  /** Scroll retries after an unmeasured row, capped so this can't spin. */
+  const retriesRef = useRef(0);
+
+  const sections = useMemo(() => groupByMonth(items), [items]);
+  // A day stamp rather than a clock read, so the memo below settles.
+  const dayStart = startOfDay(new Date());
+  const todayAt = useMemo(
+    () => findToday(sections, dayStart),
+    [sections, dayStart]
+  );
+
+  const scrollToToday = useCallback(
+    (animated: boolean) => {
+      const target = todayAt;
+      if (target === null) return;
+      listRef.current?.scrollToLocation({
+        sectionIndex: target.sectionIndex,
+        // Within a section, index 0 is the month heading and the first date
+        // under it is 1. Landing on the heading when today opens a month
+        // keeps "November 2026" on screen above the row.
+        itemIndex: target.itemIndex === 0 ? 0 : target.itemIndex + 1,
+        viewPosition: 0,
+        animated,
+      });
+    },
+    [todayAt]
+  );
+
+  /** The row isn't measured yet — let the window fill and try once more. */
+  const handleScrollFailed = useCallback(() => {
+    if (retriesRef.current >= 2) return;
+    retriesRef.current += 1;
+    setTimeout(() => scrollToToday(false), 160);
+  }, [scrollToToday]);
+
+  const jumpToToday = useCallback(() => {
+    retriesRef.current = 0;
+    scrollToToday(!reduceMotion);
+  }, [scrollToToday, reduceMotion]);
+
+  // Open where the class actually is. Nothing to do when today is already
+  // the first row — then the list starts in the right place on its own.
+  useEffect(() => {
+    if (landedRef.current) return;
+    if (status !== "ready" || todayAt === null || todayAt.behind === 0) return;
+    landedRef.current = true;
+    retriesRef.current = 0;
+    const timer = setTimeout(() => scrollToToday(false), 50);
+    return () => clearTimeout(timer);
+  }, [status, todayAt, scrollToToday]);
 
   /* ------------------------------ rows -------------------------------- */
 
@@ -987,6 +1080,22 @@ export default function ClassCalendarScreen() {
             the class — check off what you've handled.
           </AppText>
 
+          {/* Stays put above the list rather than riding in the header, so
+              the way back to today is one tap from anywhere in the term. */}
+          {status === "ready" && todayAt !== null && todayAt.behind > 0 ? (
+            <View style={{ flexDirection: "row", marginBottom: 12 }}>
+              <Chip
+                label="Jump to today"
+                icon="arrow-down"
+                size="md"
+                accessibilityLabel={`Jump to today, past ${
+                  todayAt.behind === 1 ? "1 earlier date" : `${todayAt.behind} earlier dates`
+                }`}
+                onPress={jumpToToday}
+              />
+            </View>
+          ) : null}
+
           {status === "loading" ? (
             <View
               style={{
@@ -1034,10 +1143,12 @@ export default function ClassCalendarScreen() {
             </View>
           ) : (
             <SectionList<CalendarItemRow, Section>
-              sections={groupByMonth(items)}
+              ref={listRef}
+              sections={sections}
               keyExtractor={(item) => item.id}
               renderItem={renderItem}
               renderSectionHeader={renderSectionHeader}
+              onScrollToIndexFailed={handleScrollFailed}
               stickySectionHeadersEnabled={false}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"

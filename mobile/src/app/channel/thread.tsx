@@ -5,7 +5,14 @@ import type {
 } from "@supabase/supabase-js";
 import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -17,8 +24,11 @@ import {
   TextInput,
   View,
   type ListRenderItemInfo,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Avatar } from "@/components/avatar";
 import { AppText, Button, Card, Sheet } from "@/components/ui";
 import { fonts, palettes, radius } from "@/constants/theme";
 import {
@@ -27,9 +37,11 @@ import {
   PendingBubble,
 } from "@/features/forwarding";
 import { MentionText, useMentionSuggestions } from "@/features/mentions";
+import { MessageBubble } from "@/features/messages";
 import { PollBubble } from "@/features/polls";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
+import { blockUser } from "@/lib/blocks";
 import {
   clearDraft,
   DraftError,
@@ -154,42 +166,32 @@ function dayLabel(iso: string): string {
   });
 }
 
-/** Tiny avatar stand-in: two initials on a warm circle, tinted by name hash. */
-function Initials({ name, size = 28 }: { name: string; size?: number }) {
-  const theme = useTheme();
-  let hash = 0;
-  for (let i = 0; i < name.length; i += 1) {
-    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  }
-  const pair =
-    hash % 2 === 0
-      ? { bg: theme.brandSoft, fg: theme.brandInk }
-      : { bg: theme.accentSoft, fg: theme.accent };
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const first = parts[0] ?? "";
-  const last = parts.length > 1 ? parts[parts.length - 1] ?? "" : "";
-  const initials =
-    `${first.charAt(0)}${last ? last.charAt(0) : first.charAt(1)}`.toUpperCase() ||
-    "?";
+/** Avatar and name are the way out of a message to the person who sent it.
+    Falls back to a plain view when the row arrived without a handle (an
+    optimistic reply, a deleted account). */
+function AuthorLink({
+  handle,
+  name,
+  style,
+  children,
+}: {
+  handle: string | null | undefined;
+  name: string;
+  style?: StyleProp<ViewStyle>;
+  children: ReactNode;
+}) {
+  const router = useRouter();
+  if (!handle) return <View style={style}>{children}</View>;
   return (
-    <View
-      accessibilityElementsHidden
-      style={{
-        width: size,
-        height: size,
-        borderRadius: radius.full,
-        backgroundColor: pair.bg,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={`${name}'s profile`}
+      onPress={() => router.push(`/u/${handle}`)}
+      hitSlop={10}
+      style={({ pressed }) => [style, { opacity: pressed ? 0.6 : 1 }]}
     >
-      <AppText
-        variant="label"
-        style={{ color: pair.fg, fontSize: size * 0.36, lineHeight: size * 0.5 }}
-      >
-        {initials}
-      </AppText>
-    </View>
+      {children}
+    </Pressable>
   );
 }
 
@@ -299,7 +301,10 @@ export default function ThreadScreen() {
   const [actionsFor, setActionsFor] = useState<MessageRow | null>(null);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
-  const { blocked } = useBlockedIds();
+  const { blocked, refresh: refreshBlocked } = useBlockedIds();
+  // Safety, one long-press away: the message being blocked out of.
+  const [blockFor, setBlockFor] = useState<MessageRow | null>(null);
+  const [blocking, setBlocking] = useState(false);
 
   // Drafts and the send queue. A thread is its own conversation, keyed on the
   // parent message — leaving one mid-sentence keeps its own sentence.
@@ -842,6 +847,28 @@ export default function ThreadScreen() {
     [userId, patchMessage]
   );
 
+  /** Block the person who sent a message. One-way and private: they're never
+      told, and their replies leave the thread as soon as the set refreshes. */
+  const handleBlockAuthor = useCallback(
+    async (target: MessageRow) => {
+      if (!userId || blocking) return;
+      setBlocking(true);
+      try {
+        await blockUser(userId, target.author_id);
+        await refreshBlocked();
+        setBlockFor(null);
+        setActionsFor(null);
+      } catch {
+        setBlockFor(null);
+        setActionsFor(null);
+        setSendError("Couldn't block them just now — give it another try.");
+      } finally {
+        setBlocking(false);
+      }
+    },
+    [userId, blocking, refreshBlocked]
+  );
+
   // Blocked students' replies never render; a blocked parent hides the card.
   const visibleReplies = useMemo(
     () => replies.filter((m) => !blocked.has(m.author_id)),
@@ -876,7 +903,13 @@ export default function ThreadScreen() {
             grouped ? (
               <View style={{ width: 28 }} />
             ) : (
-              <Initials name={authorName} size={28} />
+              <AuthorLink handle={item.author?.handle} name={authorName}>
+                <Avatar
+                  url={item.author?.avatar_url}
+                  name={authorName}
+                  size={28}
+                />
+              </AuthorLink>
             )
           ) : null}
           <View
@@ -886,7 +919,9 @@ export default function ThreadScreen() {
             }}
           >
             {!isOwn && !grouped ? (
-              <View
+              <AuthorLink
+                handle={item.author?.handle}
+                name={authorName}
                 style={{
                   flexDirection: "row",
                   alignItems: "baseline",
@@ -901,7 +936,7 @@ export default function ThreadScreen() {
                 <AppText variant="caption" muted>
                   {timeLabel(item.created_at)}
                 </AppText>
-              </View>
+              </AuthorLink>
             ) : null}
             <Pressable
               accessibilityHint={
@@ -916,24 +951,15 @@ export default function ThreadScreen() {
               style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
             >
               {deleted ? (
-                <View style={{ paddingHorizontal: 4, paddingVertical: 6 }}>
+                <MessageBubble own={isOwn} deleted>
                   <AppText muted style={{ fontStyle: "italic" }}>
                     Message deleted
                   </AppText>
-                </View>
+                </MessageBubble>
               ) : item.poll_id ? (
                 <PollBubble pollId={item.poll_id} />
               ) : (
-                <Card
-                  padded={false}
-                  style={{
-                    backgroundColor: isOwn ? theme.brandSoft : theme.surface2,
-                    borderRadius: 16,
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    gap: 6,
-                  }}
-                >
+                <MessageBubble own={isOwn}>
                   {item.forwarded_from ? (
                     <ForwardedFrom
                       from={item.forwarded_from}
@@ -968,7 +994,7 @@ export default function ThreadScreen() {
                       (edited)
                     </AppText>
                   ) : null}
-                </Card>
+                </MessageBubble>
               )}
             </Pressable>
             {isOwn && !grouped ? (
@@ -1013,6 +1039,9 @@ export default function ThreadScreen() {
   const replyCountLabel =
     visibleReplies.length === 1 ? "1 reply" : `${visibleReplies.length} replies`;
   const canSend = draft.trim().length > 0 && !sending;
+  const blockName =
+    blockFor?.author?.display_name ??
+    (blockFor?.author?.handle ? `@${blockFor.author.handle}` : "this person");
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -1168,14 +1197,22 @@ export default function ThreadScreen() {
                   delayLongPress={300}
                 >
                   <Card style={{ padding: 12, gap: 8 }}>
-                    <View
+                    <AuthorLink
+                      handle={
+                        parentVisible ? parent?.author?.handle : undefined
+                      }
+                      name={parentName}
                       style={{
                         flexDirection: "row",
                         alignItems: "center",
                         gap: 8,
                       }}
                     >
-                      <Initials name={parentName} size={28} />
+                      <Avatar
+                        url={parentVisible ? parent?.author?.avatar_url : null}
+                        name={parentName}
+                        size={28}
+                      />
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <AppText variant="label" numberOfLines={1}>
                           {parentName}
@@ -1188,7 +1225,7 @@ export default function ThreadScreen() {
                           </AppText>
                         ) : null}
                       </View>
-                    </View>
+                    </AuthorLink>
                     {!parentVisible || !parent ? (
                       <AppText muted>
                         This message is no longer available.
@@ -1519,50 +1556,121 @@ export default function ThreadScreen() {
       </Modal>
 
       {/* The long-press menu: forwarding is for anyone's message, editing and
-          deleting only for your own. */}
-      <Sheet visible={actionsFor !== null} onClose={() => setActionsFor(null)}>
-        <AppText variant="caption" muted numberOfLines={2}>
-          {actionsFor?.content ?? ""}
-        </AppText>
-        <View style={{ height: 1, backgroundColor: theme.border }} />
-        {/* A poll carrier's words are the question, and the poll itself
-            doesn't travel — so there's nothing honest to forward. */}
-        {actionsFor && !actionsFor.poll_id ? (
-          <Sheet.Row
-            icon="corner-up-right"
-            label="Forward"
-            onPress={() => {
-              const target = actionsFor;
-              setActionsFor(null);
-              setForwardFor(target);
-            }}
-          />
-        ) : null}
-        {actionsFor &&
-        actionsFor.author_id === userId &&
-        !actionsFor.poll_id ? (
-          <Sheet.Row
-            icon="edit-2"
-            label="Edit"
-            onPress={() => {
-              const target = actionsFor;
-              setActionsFor(null);
-              startEdit(target);
-            }}
-          />
-        ) : null}
-        {actionsFor && actionsFor.author_id === userId ? (
-          <Sheet.Row
-            icon="trash-2"
-            label="Delete"
-            danger
-            onPress={() => {
-              const target = actionsFor;
-              setActionsFor(null);
-              void handleDelete(target);
-            }}
-          />
-        ) : null}
+          deleting only for your own. Blocking asks its question inside the
+          same sheet rather than opening a second one — a Modal dismissing
+          while another presents is how you get a sheet that never appears. */}
+      <Sheet
+        visible={actionsFor !== null}
+        onClose={() => {
+          setBlockFor(null);
+          setActionsFor(null);
+        }}
+        title={blockFor ? `Block ${blockName}?` : undefined}
+      >
+        {blockFor ? (
+          <>
+            <AppText muted style={{ marginBottom: 8 }}>
+              They won't be able to DM you, their messages leave this thread,
+              and you won't see their posts. They're never told.
+            </AppText>
+            <Sheet.Row
+              icon="slash"
+              label={blocking ? "Blocking…" : "Block them"}
+              danger
+              onPress={() => {
+                const target = blockFor;
+                if (target) void handleBlockAuthor(target);
+              }}
+            />
+            <Sheet.Row
+              icon="x"
+              label="Keep seeing their messages"
+              onPress={() => setBlockFor(null)}
+            />
+          </>
+        ) : (
+          <>
+          <AppText variant="caption" muted numberOfLines={2}>
+            {actionsFor?.content ?? ""}
+          </AppText>
+          <View style={{ height: 1, backgroundColor: theme.border }} />
+          {/* A poll carrier's words are the question, and the poll itself
+              doesn't travel — so there's nothing honest to forward. */}
+          {actionsFor && !actionsFor.poll_id ? (
+            <Sheet.Row
+              icon="corner-up-right"
+              label="Forward"
+              onPress={() => {
+                const target = actionsFor;
+                setActionsFor(null);
+                setForwardFor(target);
+              }}
+            />
+          ) : null}
+          {actionsFor &&
+          actionsFor.author_id === userId &&
+          !actionsFor.poll_id ? (
+            <Sheet.Row
+              icon="edit-2"
+              label="Edit"
+              onPress={() => {
+                const target = actionsFor;
+                setActionsFor(null);
+                startEdit(target);
+              }}
+            />
+          ) : null}
+          {actionsFor && actionsFor.author_id === userId ? (
+            <Sheet.Row
+              icon="trash-2"
+              label="Delete"
+              danger
+              onPress={() => {
+                const target = actionsFor;
+                setActionsFor(null);
+                void handleDelete(target);
+              }}
+            />
+          ) : null}
+          {/* Reporting and blocking, one long-press away — the same two rows
+              the room offers, because a thread is where a reply lands. */}
+          {actionsFor && actionsFor.author_id !== userId ? (
+            <>
+              <View
+                style={{
+                  height: 1,
+                  backgroundColor: theme.border,
+                  marginVertical: 4,
+                }}
+              />
+              <Sheet.Row
+                icon="flag"
+                label="Report message"
+                onPress={() => {
+                  const target = actionsFor;
+                  setActionsFor(null);
+                  router.push({
+                    pathname: "/report",
+                    params: {
+                      messageId: target.id,
+                      label: target.author?.display_name ?? "a classmate",
+                      context: target.content,
+                    },
+                  });
+                }}
+              />
+              <Sheet.Row
+                icon="slash"
+                label={`Block ${
+                  actionsFor.author?.display_name ?? "this person"
+                }`}
+                danger
+                onPress={() => setBlockFor(actionsFor)}
+              />
+            </>
+          ) : null}
+          </>
+        )}
       </Sheet>
 
       <ForwardPicker

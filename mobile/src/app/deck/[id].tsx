@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card, Field } from "@/components/ui";
+import { AppText, Button, Card, Field, Sheet } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapSuccess } from "@/lib/haptics";
@@ -421,24 +421,48 @@ export default function DeckHomeScreen() {
     [cards]
   );
 
-  const handleLongPress = useCallback(
+  const confirmDelete = useCallback(
     (card: CardRow) => {
-      if (card.created_by !== userId) return; // only your own cards
       Alert.alert(
-        "Your card",
-        card.front.length > 80 ? `${card.front.slice(0, 80)}…` : card.front,
+        "Remove this card?",
+        "It comes out of the deck for the whole class.",
         [
-          { text: "Cancel", style: "cancel" },
-          { text: "Edit", onPress: () => startEdit(card) },
+          { text: "Keep it", style: "cancel" },
           {
-            text: "Delete",
+            text: "Remove",
             style: "destructive",
             onPress: () => void deleteCard(card),
           },
         ]
       );
     },
-    [userId, startEdit, deleteCard]
+    [deleteCard]
+  );
+
+  /* The author menu, as the same warm sheet every other long-press in the
+     app opens. The card is held while the sheet slides away, so its front
+     doesn't blank out of the title mid-dismissal. */
+  const [menu, setMenu] = useState<CardRow | null>(null);
+  const lastMenu = useRef<CardRow | null>(null);
+  if (menu !== null) lastMenu.current = menu;
+  const menuCard = menu ?? lastMenu.current;
+
+  const handleLongPress = useCallback(
+    (card: CardRow) => {
+      if (card.created_by !== userId) return; // only your own cards
+      setMenu(card);
+    },
+    [userId]
+  );
+
+  /** Close the sheet first, then act — the row is about to change under it. */
+  const runFromMenu = useCallback(
+    (action: (card: CardRow) => void) => () => {
+      const card = menu;
+      setMenu(null);
+      if (card) action(card);
+    },
+    [menu]
   );
 
   // Deep links land here directly — a signed-out visitor gets a proper door.
@@ -536,6 +560,8 @@ export default function DeckHomeScreen() {
 
   // New cards count as due, so the queue length IS the honest due count.
   const due = buildQueue(cards, reviews, new Date(), cards.length).length;
+  /** Nothing owed, but there is a deck to run — the night-before lap. */
+  const cram = due === 0 && cards.length > 0;
   const cardsLabel = cards.length === 1 ? "1 card" : `${cards.length} cards`;
   const creatorName =
     deck.created_by === userId
@@ -760,28 +786,43 @@ export default function DeckHomeScreen() {
               </View>
             </View>
 
+            {/* A deck with cards in it is always studyable. The schedule is
+                a suggestion, not a lock: grade a deck "good" three days out
+                and the old button went dark on the one night you needed it.
+                With nothing due, the door opens a cram lap — the whole deck,
+                no grading, no `card_reviews` written — so a panic run the
+                night before an exam can't wreck the real spacing. */}
             <View style={{ gap: 6 }}>
               <Button
-                label="Study"
+                label={cram ? "Study anyway" : "Study"}
                 size="lg"
-                disabled={due === 0}
+                disabled={cards.length === 0}
                 icon={<Feather name="play" size={18} color={theme.brandFg} />}
                 onPress={() =>
                   router.push({
                     pathname: "/deck/study",
-                    params: { deckId: deck.id },
+                    params: cram
+                      ? { deckId: deck.id, cram: "1" }
+                      : { deckId: deck.id },
                   })
                 }
               />
-              {due === 0 ? (
+              {cards.length === 0 ? (
                 <AppText
                   variant="caption"
                   muted
                   style={{ textAlign: "center" }}
                 >
-                  {cards.length === 0
-                    ? "Add the first card and the studying can start."
-                    : "Nothing due — check back tomorrow."}
+                  Add the first card and the studying can start.
+                </AppText>
+              ) : cram ? (
+                <AppText
+                  variant="caption"
+                  muted
+                  style={{ textAlign: "center" }}
+                >
+                  Nothing's due. A lap through the whole deck won't change
+                  when these come back around.
                 </AppText>
               ) : null}
             </View>
@@ -921,6 +962,29 @@ export default function DeckHomeScreen() {
           );
         }}
       />
+      <Sheet
+        visible={menu !== null}
+        onClose={() => setMenu(null)}
+        title={
+          menuCard === null
+            ? "Your card"
+            : menuCard.front.length > 60
+              ? `${menuCard.front.slice(0, 60)}…`
+              : menuCard.front
+        }
+      >
+        <Sheet.Row
+          icon="edit-2"
+          label="Edit card"
+          onPress={runFromMenu(startEdit)}
+        />
+        <Sheet.Row
+          icon="trash-2"
+          label="Remove card"
+          danger
+          onPress={runFromMenu(confirmDelete)}
+        />
+      </Sheet>
     </KeyboardAvoidingView>
   );
 }

@@ -5,20 +5,31 @@ import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Field } from "@/components/ui";
 import { radius } from "@/constants/theme";
+import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
+import { blockUser } from "@/lib/blocks";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /* The app-wide report flow. Pushed from anywhere with
-   { messageId?, userId?, boardPostId?, label? } — label is a short human
-   subject (a display name, or a post's title) for the header.
+   { messageId?, userId?, boardPostId?, label?, context? } — label is a short
+   human subject (a display name, or a post's title) for the header, and
+   context is the reported words themselves, quoted back so she can see
+   exactly which message she's flagging.
 
    Three things can be reported, and public.reports takes any one of them:
    a message, a person, or — since migration 0034 added board_post_id and
    rewrote the reports_have_subject check — a post on the campus board.
    Message-only reports also record the message's author so the report keeps
    a subject if the message is later deleted; the board pushes its post's
-   author along for the same reason. */
+   author along for the same reason.
+
+   `reports.message_id` points at public.messages, so a DM can't be attached
+   as a row: a reported DM arrives as { userId, context } instead, and the
+   screen says plainly that the message itself isn't travelling with it. */
+
+/** Longest quoted excerpt we show back — enough to recognise the message. */
+const CONTEXT_MAX = 240;
 
 const CATEGORIES = [
   { value: "harassment", label: "Harassment or bullying" },
@@ -87,6 +98,7 @@ export default function ReportScreen() {
     userId?: string;
     boardPostId?: string;
     label?: string;
+    context?: string;
   }>();
   const messageId =
     typeof params.messageId === "string" && params.messageId
@@ -102,6 +114,10 @@ export default function ReportScreen() {
     typeof params.label === "string" && params.label.trim()
       ? params.label.trim()
       : null;
+  const context =
+    typeof params.context === "string" && params.context.trim()
+      ? params.context.trim().slice(0, CONTEXT_MAX)
+      : null;
 
   const [category, setCategory] = useState<Category | null>(null);
   const [categoryError, setCategoryError] = useState(false);
@@ -111,27 +127,55 @@ export default function ReportScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
+  // Blocking, offered on the way out. Reporting and blocking are one intent,
+  // and the person who just filed a report is exactly who shouldn't have to
+  // go find the profile screen to finish the job.
+  const { blocked, refresh: refreshBlocked } = useBlockedIds();
+  const [blockTarget, setBlockTarget] = useState<string | null>(null);
+  const [blocking, setBlocking] = useState(false);
+  const [blockError, setBlockError] = useState<string | null>(null);
+  const canOfferBlock =
+    blockTarget !== null && blockTarget !== myId && !blocked.has(blockTarget);
+
   const goBack = () => {
     if (router.canGoBack()) router.back();
     else router.replace("/(tabs)/home");
   };
 
-  // Confirmation lingers just long enough to read, then steps back out.
+  // Confirmation lingers just long enough to read, then steps back out — but
+  // only when there's nothing left to decide. Offering to block and then
+  // yanking the screen away mid-thought is worse than no offer at all.
   useEffect(() => {
-    if (!done) return;
+    if (!done || canOfferBlock) return;
     const timer = setTimeout(() => {
       if (router.canGoBack()) router.back();
       else router.replace("/(tabs)/home");
     }, 2200);
     return () => clearTimeout(timer);
-  }, [done]);
+  }, [done, canOfferBlock]);
+
+  async function handleBlock() {
+    if (!myId || !blockTarget || blocking) return;
+    setBlocking(true);
+    setBlockError(null);
+    try {
+      await blockUser(myId, blockTarget);
+      await refreshBlocked();
+    } catch {
+      setBlockError("We couldn't block them just now. Give it another try.");
+    } finally {
+      setBlocking(false);
+    }
+  }
 
   /* Message, then post, then person — the same precedence `reportSubject` in
      `@/lib/moderation` reads them back with, so the sentence a student sees
      here and the one a moderator sees later name the same thing. A board post
      arrives with its author attached, and naming the post is what keeps this
-     from reading as a report about them. */
-  const subject = messageId
+     from reading as a report about them. A quoted DM has no message row to
+     attach, but it is still a report about a message — say so. */
+  const aboutAMessage = Boolean(messageId) || (Boolean(context) && !boardPostId);
+  const subject = aboutAMessage
     ? label
       ? `a message from ${label}`
       : "a message"
@@ -140,6 +184,9 @@ export default function ReportScreen() {
         ? `this post — ${label}`
         : "this post"
       : (label ?? "this person");
+  /* True only for the DM case: we're quoting words that the report row itself
+     can't carry, so the reason field has to do that work. */
+  const wordsDontTravel = Boolean(context) && !messageId && !boardPostId;
 
   async function handleSubmit() {
     if (!myId || submitting) return;
@@ -183,6 +230,8 @@ export default function ReportScreen() {
         reason: trimmed,
       });
       if (error) throw error;
+      // Whoever the report names is who the confirmation can offer to block.
+      setBlockTarget(reportedUserId);
       setDone(true);
     } catch (err) {
       const message = (err as { message?: string } | null)?.message ?? "";
@@ -284,6 +333,49 @@ export default function ReportScreen() {
           <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
             Thanks for looking out — we review reports within 24 hours.
           </AppText>
+          {/* Reporting and blocking are one intent. The report is filed
+              either way; this is the half that changes her day today. */}
+          {canOfferBlock ? (
+            <View style={{ alignItems: "center", gap: 10, marginTop: 6 }}>
+              <AppText
+                variant="caption"
+                muted
+                style={{ textAlign: "center", maxWidth: 280 }}
+              >
+                {label
+                  ? `Want to block ${label} while we look at it?`
+                  : "Want to block them while we look at it?"}
+              </AppText>
+              <Button
+                label="Block them too"
+                variant="soft"
+                pending={blocking}
+                onPress={() => void handleBlock()}
+                icon={<Feather name="slash" size={15} color={theme.brandInk} />}
+              />
+              {blockError ? (
+                <AppText
+                  variant="caption"
+                  style={{ color: theme.danger, textAlign: "center" }}
+                >
+                  {blockError}
+                </AppText>
+              ) : null}
+              <Button label="No thanks" variant="ghost" onPress={goBack} />
+            </View>
+          ) : blockTarget !== null && blocked.has(blockTarget) ? (
+            <View style={{ alignItems: "center", gap: 10, marginTop: 6 }}>
+              <AppText
+                variant="caption"
+                muted
+                style={{ textAlign: "center", maxWidth: 300 }}
+              >
+                They can't message you, and their posts stay out of sight.
+                They weren't told.
+              </AppText>
+              <Button label="Done" variant="soft" onPress={goBack} />
+            </View>
+          ) : null}
         </View>
       </View>
     );
@@ -314,6 +406,30 @@ export default function ReportScreen() {
           You're reporting {subject}. Reports are private — they won't know it
           was you.
         </AppText>
+
+        {/* The words themselves, quoted back, so there's no doubt which
+            message this is about. */}
+        {context ? (
+          <View
+            style={{
+              marginTop: 12,
+              paddingLeft: 12,
+              paddingVertical: 2,
+              borderLeftWidth: 2,
+              borderLeftColor: theme.border,
+            }}
+          >
+            <AppText muted numberOfLines={4}>
+              {context}
+            </AppText>
+          </View>
+        ) : null}
+        {wordsDontTravel ? (
+          <AppText variant="caption" muted style={{ marginTop: 8 }}>
+            A direct message can't be attached to a report, so tell us below
+            what was said.
+          </AppText>
+        ) : null}
 
         <AppText variant="label" style={{ marginTop: 20, marginBottom: 10 }}>
           What's going on?

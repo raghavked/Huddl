@@ -26,11 +26,18 @@ SplashScreen.preventAutoHideAsync();
 // the handler exists before any notification can arrive.
 configureNotificationHandler();
 
-/** Follow a tapped push to its screen, if the payload's link maps to one. */
+/**
+ * Follow a tapped push to its screen, if the payload's link maps to one.
+ *
+ * The response is cleared once it has been handled: the OS keeps handing the
+ * most recent tap back to `getLastNotificationResponseAsync`, so without this
+ * every remount of the shell — signing out and back in, most reliably —
+ * re-navigates to the last notification the student ever tapped.
+ */
 function openNotificationResponse(response: Notifications.NotificationResponse) {
   const link = response.notification.request.content.data?.link;
-  if (typeof link !== "string") return;
-  const route = routeForLink(link);
+  const route = typeof link === "string" ? routeForLink(link) : null;
+  Notifications.clearLastNotificationResponse();
   if (route) router.push(route);
 }
 
