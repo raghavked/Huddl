@@ -63,9 +63,9 @@ const TOGGLES: PrivacyToggle[] = [
  */
 function sharingSentence(prefs: PrivacyPrefs): string {
   if (prefs.shareTyping) {
-    return "It's on, which is how Huddl starts out: classmates can tell when you're composing a message, and you can tell the same about them.";
+    return "It's on, which is how Huddl starts out. Switching it off changes that one line and nothing else — your messages still send, arrive and notify exactly the same.";
   }
-  return "It's off. Nobody sees you composing, and you won't see them composing either. Your messages still send and arrive exactly the same.";
+  return "It's off. Nobody sees you composing, and you won't see them composing either. Your messages still send, arrive and notify exactly the same.";
 }
 
 /* ------------------------------- pieces ------------------------------ */
@@ -396,12 +396,12 @@ export default function PrivacySettingsScreen() {
             what you write for yourself stays yours.
           </Fact>
           <Fact icon="check-circle" tint={theme.accent}>
-            Whether you've opened a message. Huddl has no read receipts —
-            there's no screen that tells anyone you've read theirs.
+            Whether you've read a message. Huddl has no read receipts: no
+            screen tells anyone you've opened theirs.
           </Fact>
           <Fact icon="slash" tint={theme.accent}>
-            Who you've blocked. They were never told, and they never will be —
-            nothing in the app or the API will answer that question for them.
+            Who you've blocked. They were never told, they never will be, and
+            there's no way for anyone to ask.
           </Fact>
         </Card>
 

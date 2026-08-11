@@ -63,9 +63,10 @@ type ExportLine = {
  * kept about you, so an export that lists everything else and stays quiet
  * about these two is the document contradicting itself.
  *
- * Counted here rather than in `summarize()` only because `LINE_SPECS` lives
- * in `@/lib/data-export`, which this change didn't own. They belong there,
- * beside the other nine — see the note in the report that came with this.
+ * These two really belong in `LINE_SPECS` in `@/lib/data-export`, beside the
+ * other nine, so the web export screen picks them up for free. They sit here
+ * because the change that added them couldn't touch that file; fold them in
+ * whenever you're next in there, and delete this block.
  */
 const SAFETY_SPECS: readonly {
   key: string;

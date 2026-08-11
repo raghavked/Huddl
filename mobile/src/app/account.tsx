@@ -219,10 +219,10 @@ export default function AccountScreen() {
   /**
    * Back to initials — the file goes, not just the link to it.
    *
-   * The avatars bucket is public-read, so clearing `avatar_url` alone would
-   * take her face off her profile and leave it sitting at a URL that anyone
-   * who saved it can still open, with no login. The object has to go first;
-   * only then is "Remove photo" true.
+   * The avatars bucket is public-read (migration 0008), so clearing
+   * `avatar_url` alone would take the photo off the profile and leave the
+   * file sitting at a URL anyone who saved it can still open, with no login.
+   * The object has to go first; only then is "Remove photo" true.
    *
    * Deleting an object that isn't there is not an error, so a second tap
    * after a half-failure just finishes the job.
