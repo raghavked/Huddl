@@ -22,6 +22,7 @@ import {
   Skeleton,
 } from "@/components/ui";
 import { radius } from "@/constants/theme";
+import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import {
   BoardError,
@@ -124,6 +125,11 @@ export default function BoardPostScreen() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [messaging, setMessaging] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
+
+  /* Filtering the board list isn't enough on its own: a link, a share, or a
+     back-button can still land on one post. The block list says "their posts
+     stay out of sight", and this is the other half of keeping that. */
+  const { blocked } = useBlockedIds();
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -243,8 +249,12 @@ export default function BoardPostScreen() {
   /**
    * Open the 1:1 thread with whoever put this up. `create_dm_thread` is
    * find-or-create on the server, so one call covers both "we've talked
-   * before" and "we haven't" — and it refuses across a block, which is the
-   * one failure worth naming out loud.
+   * before" and "we haven't".
+   *
+   * Every failure reads the same on purpose. The server also refuses across a
+   * block, and a block is one-way and private — a message that said "you two
+   * can't message each other" would only ever be read by the person who got
+   * blocked, which tells them exactly what they were never meant to learn.
    */
   const handleMessage = useCallback(async () => {
     if (!post || messaging) return;
@@ -257,13 +267,8 @@ export default function BoardPostScreen() {
       const threadId = typeof data === "string" ? data : null;
       if (error || !threadId) throw error ?? new Error("No thread");
       router.push(`/dm/${threadId}`);
-    } catch (caught) {
-      const raw = (caught as { message?: string } | null)?.message ?? "";
-      setMessageError(
-        raw.includes("message this person")
-          ? "You two can't message each other."
-          : "We couldn't open that conversation. Give it another go."
-      );
+    } catch {
+      setMessageError("We couldn't open that conversation. Give it another go.");
     } finally {
       setMessaging(false);
     }
@@ -404,6 +409,19 @@ export default function BoardPostScreen() {
             setStatus("loading");
             void load();
           }}
+        />
+      </View>
+    );
+  }
+
+  if (blocked.has(post.author_id)) {
+    return scaffold(
+      <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 20 }}>
+        <EmptyState
+          icon="slash"
+          title="This one's from someone you blocked"
+          body="Their posts stay out of sight while they're on your list. Blocked people, in Settings, is where that comes undone."
+          action={{ label: "Back to the board", onPress: goBack }}
         />
       </View>
     );

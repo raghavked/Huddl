@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
-import { AppText, Button, Card, Chip } from "@/components/ui";
+import { AppText, Button, Card, Chip, Sheet } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
@@ -38,16 +38,31 @@ type ProfileRow = {
   university: { short_name: string } | null;
 };
 
+/** A private classmate's whole card: a handle and a face. */
+type LimitedProfileRow = {
+  id: string;
+  handle: string;
+  avatar_url: string | null;
+};
+
 type SharedCourse = { id: string; code: string; title: string };
-type SharedChannel = { id: string; name: string; kind: string };
+type SharedChannel = {
+  id: string;
+  name: string;
+  kind: string;
+  club_id: string | null;
+};
 
 type EnrollmentCourseRow = { course: SharedCourse | null };
 type MemberChannelRow = { channel: SharedChannel | null };
 
 type Status = "loading" | "error" | "notFound" | "ready";
 
-const PROFILE_SELECT =
+const OPEN_PROFILE_SELECT =
   "id, handle, display_name, avatar_url, bio, major, grad_year, interests, looking_for, phone_verified_at, is_public, university:universities(short_name)";
+
+/** Handle and avatar, and not one column more. */
+const LIMITED_PROFILE_SELECT = "id, handle, avatar_url";
 
 /** text[] from PostgREST, kept honest before it reaches the chips. */
 function interestsOf(row: ProfileRow): string[] {
@@ -60,20 +75,26 @@ function interestsOf(row: ProfileRow): string[] {
 }
 
 /**
- * The navigational pill: a shared course or a channel in common, tapped to
- * go there. Deliberately not the `Chip` primitive — these are destinations
- * rather than filters, so they carry a real 44px drawn height and body-sized
- * text instead of a hairline and `accessibilityState.selected`.
+ * The navigational pill: a shared course, a club in common, a channel you're
+ * both in, or a thing you're both into — tapped to go there. Deliberately
+ * not the `Chip` primitive: these are destinations rather than filters, so
+ * they carry a real 44px drawn height and body-sized text instead of a
+ * hairline and `accessibilityState.selected`.
+ *
+ * The icon is optional. An interest is only a word, and a glyph in front of
+ * "rock climbing" would be inventing a category for it.
  */
 function LinkPill({
   icon,
   label,
   tint,
+  accessibilityLabel,
   onPress,
 }: {
-  icon: FeatherName;
+  icon?: FeatherName;
   label: string;
   tint: "brand" | "accent";
+  accessibilityLabel?: string;
   onPress: () => void;
 }) {
   const theme = useTheme();
@@ -82,73 +103,29 @@ function LinkPill({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Open ${label}`}
+      accessibilityLabel={accessibilityLabel ?? `Open ${label}`}
       onPress={onPress}
       style={({ pressed }) => ({
         minHeight: 44,
         flexDirection: "row",
         alignItems: "center",
-        gap: 6,
+        gap: icon ? 6 : 0,
         paddingHorizontal: 14,
         borderRadius: radius.full,
         backgroundColor: bg,
         opacity: pressed ? 0.8 : 1,
       })}
     >
-      <Feather
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        name={icon}
-        size={14}
-        color={fg}
-      />
+      {icon ? (
+        <Feather
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          name={icon}
+          size={14}
+          color={fg}
+        />
+      ) : null}
       <AppText variant="bodySemi" style={{ color: fg, fontSize: 14 }}>
-        {label}
-      </AppText>
-    </Pressable>
-  );
-}
-
-/** One row of the profile overflow menu — 44px tall, icon + label. */
-function MenuItem({
-  icon,
-  label,
-  first = false,
-  danger = false,
-  onPress,
-}: {
-  icon: FeatherName;
-  label: string;
-  first?: boolean;
-  danger?: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const color = danger ? theme.danger : theme.foreground;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        minHeight: 44,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-        paddingHorizontal: 16,
-        borderTopWidth: first ? 0 : 1,
-        borderTopColor: theme.border,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      <Feather
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        name={icon}
-        size={16}
-        color={color}
-      />
-      <AppText variant="bodySemi" style={{ color }}>
         {label}
       </AppText>
     </Pressable>
@@ -248,11 +225,16 @@ export default function ProfileScreen() {
       setStatus("notFound");
       return;
     }
-    // handle is citext in the database, so .eq() is already case-insensitive.
+    /* handle is citext in the database, so .eq() is already case-insensitive.
+       The `or` runs in the database on purpose: a private classmate's bio,
+       major, year, interests and looking-for line are never asked for, so
+       they never leave the server. A miss here means either "no such handle"
+       or "private", and the narrow follow-up below tells them apart. */
     const { data, error } = await supabase
       .from("profiles")
-      .select(PROFILE_SELECT)
+      .select(OPEN_PROFILE_SELECT)
       .eq("handle", handle)
+      .or(`is_public.eq.true,id.eq.${userId}`)
       .maybeSingle();
     if (error) {
       setStatus("error");
@@ -260,20 +242,42 @@ export default function ProfileScreen() {
     }
     const row = data as unknown as ProfileRow | null;
     if (!row) {
-      setStatus("notFound");
-      return;
-    }
-    setProfile(row);
-
-    const isMe = row.id === userId;
-    // Private profile viewed by someone else: handle + avatar only — don't
-    // even fetch the shared sections.
-    if (!row.is_public && !isMe) {
+      const limited = await supabase
+        .from("profiles")
+        .select(LIMITED_PROFILE_SELECT)
+        .eq("handle", handle)
+        .maybeSingle();
+      if (limited.error) {
+        setStatus("error");
+        return;
+      }
+      const quiet = limited.data as unknown as LimitedProfileRow | null;
+      if (!quiet) {
+        setStatus("notFound");
+        return;
+      }
+      // Private profile viewed by someone else: handle + avatar only. Their
+      // handle stands in for a name we were never given.
+      setProfile({
+        id: quiet.id,
+        handle: quiet.handle,
+        display_name: quiet.handle,
+        avatar_url: quiet.avatar_url,
+        bio: null,
+        major: null,
+        grad_year: null,
+        interests: null,
+        looking_for: null,
+        phone_verified_at: null,
+        is_public: false,
+        university: null,
+      });
       setSharedCourses([]);
       setSharedChannels([]);
       setStatus("ready");
       return;
     }
+    setProfile(row);
 
     // Shared courses fall out of RLS (classmate enrollments are only visible
     // for courses I'm enrolled in), but we still intersect with my own rows
@@ -288,7 +292,7 @@ export default function ProfileScreen() {
         supabase.from("enrollments").select("course_id").eq("user_id", userId),
         supabase
           .from("channel_members")
-          .select("channel:channels(id, name, kind)")
+          .select("channel:channels(id, name, kind, club_id)")
           .eq("user_id", row.id),
         supabase
           .from("channel_members")
@@ -322,12 +326,17 @@ export default function ProfileScreen() {
         .filter((c): c is SharedCourse => c !== null && myCourseIds.has(c.id))
         .sort((a, b) => a.code.localeCompare(b.code))
     );
+    /* Every kind of room you're both in, not just the campus-wide ones —
+       "you're both in the Hiking Club" is the whole point, and "#general,
+       which everyone is auto-joined to" was the only thing surviving the old
+       filter. Course chats are the exception: the courses section above
+       already names them, so listing them here would say it twice. */
     setSharedChannels(
       ((theirChannelsRes.data ?? []) as unknown as MemberChannelRow[])
         .map((r) => r.channel)
         .filter(
           (c): c is SharedChannel =>
-            c !== null && c.kind === "campus" && myChannelIds.has(c.id)
+            c !== null && c.kind !== "course" && myChannelIds.has(c.id)
         )
         .sort((a, b) => a.name.localeCompare(b.name))
     );
@@ -513,56 +522,26 @@ export default function ProfileScreen() {
     </Pressable>
   ) : null;
 
-  /* Overflow dropdown + a full-screen backdrop that dismisses it. */
-  const menuOverlay =
-    menuOpen && isOtherPerson ? (
-      <>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close menu"
-          onPress={() => setMenuOpen(false)}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 10,
-          }}
+  /* The same two choices every other overflow in the app offers, in the same
+     bottom sheet — this screen used to be the one anchored dropdown. */
+  const menuOverlay = isOtherPerson ? (
+    <Sheet
+      visible={menuOpen}
+      onClose={() => setMenuOpen(false)}
+      title={visibleName || "This person"}
+    >
+      <Sheet.Row icon="flag" label="Report" onPress={openReport} />
+      {isBlocked ? (
+        <Sheet.Row
+          icon="rotate-ccw"
+          label="Unblock"
+          onPress={() => void doUnblock()}
         />
-        <Card
-          padded={false}
-          // While the menu is up it is the only thing on screen worth
-          // reaching — the page behind it stays out of the reader's way.
-          accessibilityViewIsModal
-          style={{
-            position: "absolute",
-            top: insets.top + 56,
-            right: 20,
-            zIndex: 11,
-            minWidth: 180,
-            elevation: 6,
-            shadowOpacity: 0.14,
-          }}
-        >
-          <MenuItem icon="flag" label="Report" first onPress={openReport} />
-          {isBlocked ? (
-            <MenuItem
-              icon="rotate-ccw"
-              label="Unblock"
-              onPress={() => void doUnblock()}
-            />
-          ) : (
-            <MenuItem
-              icon="slash"
-              label="Block"
-              danger
-              onPress={confirmBlock}
-            />
-          )}
-        </Card>
-      </>
-    ) : null;
+      ) : (
+        <Sheet.Row icon="slash" label="Block" danger onPress={confirmBlock} />
+      )}
+    </Sheet>
+  ) : null;
 
   /* Quiet blocked chip + the way back, shown in place of the Message button. */
   const blockedActions = (
@@ -706,6 +685,9 @@ export default function ProfileScreen() {
   const universityName = profile.university?.short_name ?? null;
   const firstName = profile.display_name.split(/\s+/)[0] ?? profile.handle;
   const interests = interestsOf(profile);
+  // The rooms you share, split the way a person would describe them.
+  const sharedClubs = sharedChannels.filter((c) => c.kind === "club");
+  const sharedRooms = sharedChannels.filter((c) => c.kind !== "club");
 
   /* No `alignItems` on purpose: this hugs inside the centered private card
      and stretches to full width under the hero, where it's the main move. */
@@ -760,8 +742,10 @@ export default function ProfileScreen() {
         <Card
           style={{ alignItems: "center", gap: 12, paddingVertical: 32 }}
         >
-          {/* Initials from the handle — no photo, same as the directory. */}
-          <Avatar name={profile.handle} size={72} />
+          {/* Their photo if they've set one, initials from the handle if
+              not — the card below says "handle and avatar", so it draws the
+              avatar. Same as the directory. */}
+          <Avatar url={profile.avatar_url} name={profile.handle} size={72} />
           <AppText
             variant="display"
             accessibilityRole="header"
@@ -973,13 +957,23 @@ export default function ProfileScreen() {
                 onAction={() => router.push("/account")}
               />
             ) : (
+              /* Each one opens the directory filtered to the classmates who
+                 put the same thing on their profile — an interest nobody can
+                 tap is a fact about one person instead of a way to meet the
+                 next one. */
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 {interests.map((interest) => (
-                  <Chip
+                  <LinkPill
                     key={interest}
                     label={interest}
-                    tone="brand"
-                    size="md"
+                    tint="brand"
+                    accessibilityLabel={`Find classmates into ${interest}`}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/people",
+                        params: { interest },
+                      })
+                    }
                   />
                 ))}
               </View>
@@ -1032,29 +1026,70 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Campus channels in common */}
+        {/* Clubs in common — a club's chat is mirrored into channel_members
+            by a trigger, so membership is already in hand. */}
         <AppText
           variant="title"
           accessibilityRole="header"
           style={{ marginTop: 24, marginBottom: 10 }}
         >
-          {isMe ? "Your campus channels" : "Campus channels in common"}
+          {isMe ? "Your clubs" : "Clubs together"}
         </AppText>
-        {sharedChannels.length === 0 ? (
+        {sharedClubs.length === 0 ? (
           <EmptySection
-            icon="hash"
-            title={isMe ? "No campus channels yet" : "No channels in common"}
+            icon="users"
+            title={isMe ? "No clubs yet" : "No clubs together"}
             description={
               isMe
-                ? "Browse the campus channels and join the conversations you care about."
-                : `No campus channels in common with ${firstName} yet.`
+                ? "Join a club and its chat opens up with everyone else in it."
+                : `You and ${firstName} aren't in any clubs together.`
+            }
+            actionLabel={isMe ? "Browse clubs" : undefined}
+            onAction={isMe ? () => router.push("/(tabs)/clubs") : undefined}
+          />
+        ) : (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {sharedClubs.map((channel) => (
+              <LinkPill
+                key={channel.id}
+                icon="users"
+                label={channel.name}
+                tint="brand"
+                onPress={() =>
+                  router.push(
+                    channel.club_id
+                      ? `/club/${channel.club_id}`
+                      : `/channel/${channel.id}`
+                  )
+                }
+              />
+            ))}
+          </View>
+        )}
+
+        {/* Channels in common — campus-wide rooms and student-made topics. */}
+        <AppText
+          variant="title"
+          accessibilityRole="header"
+          style={{ marginTop: 24, marginBottom: 10 }}
+        >
+          {isMe ? "Your channels" : "Channels in common"}
+        </AppText>
+        {sharedRooms.length === 0 ? (
+          <EmptySection
+            icon="hash"
+            title={isMe ? "No channels yet" : "No channels in common"}
+            description={
+              isMe
+                ? "Browse the channels and join the conversations you care about."
+                : `No channels in common with ${firstName} yet.`
             }
             actionLabel={isMe ? "Browse channels" : undefined}
             onAction={isMe ? () => router.push("/(tabs)/channels") : undefined}
           />
         ) : (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {sharedChannels.map((channel) => (
+            {sharedRooms.map((channel) => (
               <LinkPill
                 key={channel.id}
                 icon="hash"

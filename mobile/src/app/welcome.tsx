@@ -44,10 +44,16 @@ import { useAuth } from "@/providers/auth-provider";
 
 /* The first thing a new student sees after their profile is saved.
  *
- * Three panels they swipe through — what classes do, what a syllabus turns
- * into, who is on the other side of a message — and then the checklist,
+ * Three panels they swipe through — what a class brings with it, what else is
+ * on campus, who is on the other side of a message — and then the checklist,
  * which is the only page that touches the network. The panels are the
  * promise; the checklist is the first hour of keeping it.
+ *
+ * The checklist does not open with a score. On the first pass every step is
+ * unticked, and "0 of 5 done" is a scoreboard reading nothing — so the tally
+ * appears only once there is something to count, and until then the footer
+ * offers the first step itself instead. Come back with a class added and the
+ * count is there, honest and earned.
  *
  * One horizontal paged ScrollView holds all four pages, so the swipe never
  * changes character halfway through and the dots can count the whole thing.
@@ -59,7 +65,16 @@ import { useAuth } from "@/providers/auth-provider";
  * one-time thing whether you read it or not.
  */
 
-/** The three tour panels, in order. Copy lives here, not in the render. */
+/**
+ * The three tour panels, in order. Copy lives here, not in the render.
+ *
+ * One panel each for the three reasons someone opens Huddl: the classes
+ * they're taking, the people they haven't met yet, and whether this is a
+ * place they can be honest in. Coursework gets one panel, not two — a
+ * transfer student who knows nobody is not helped by hearing about syllabi
+ * twice, and the calendar belongs in the same breath as the class it came
+ * from.
+ */
 const PANELS: {
   key: string;
   illustration: ComponentType<IllustrationProps>;
@@ -70,19 +85,19 @@ const PANELS: {
     key: "classes",
     illustration: Doorway,
     title: "Your classes, your call",
-    body: "You add the courses you're taking, and each one opens a chat with the rest of your section. Drop a class and it leaves your shelf the same day.",
-  },
-  {
-    key: "quarter",
-    illustration: Mug,
-    title: "The whole quarter, in one place",
-    body: "Paste a syllabus and the readings, midterms, and due dates land on a calendar the whole class shares. What's yours this week shows up in your plan.",
+    body: "Add the courses you're taking and each one opens a chat with the rest of your section, plus a calendar the whole class shares. Paste a syllabus and the dates fill themselves in.",
   },
   {
     key: "campus",
     illustration: Pennant,
-    title: "Campus, not the internet",
-    body: "Every account here is a verified school email, so you're talking to classmates. Blocking and reporting are one long-press away, and they're never told.",
+    title: "The rest of campus",
+    body: "Clubs, events, and a board for rides, textbooks and lost keys. You can look classmates up by name, major or year — you don't have to already know someone to say hello.",
+  },
+  {
+    key: "verified",
+    illustration: Mug,
+    title: "Everyone here goes to your school",
+    body: "Every account is a verified school email, so you're talking to classmates. Blocking and reporting are one long-press away, and they're never told.",
   },
 ];
 
@@ -349,6 +364,9 @@ export default function WelcomeScreen() {
   const onChecklist = page === CHECKLIST_INDEX;
   const steps = starter ? starterSteps(starter) : [];
   const progress = starter ? starterProgress(starter) : null;
+  // Nothing ticked yet: the footer hands over the first step rather than a
+  // score. While the state is still loading we keep the plain "Take me in".
+  const nothingDone = progress !== null && progress.done === 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -430,7 +448,7 @@ export default function WelcomeScreen() {
               your account.
             </AppText>
 
-            {progress ? (
+            {progress && progress.done > 0 ? (
               <Chip
                 label={`${progress.done} of ${progress.total} done`}
                 tone={progress.done === progress.total ? "accent" : "neutral"}
@@ -446,6 +464,7 @@ export default function WelcomeScreen() {
 
             {loading && starter === null ? (
               <>
+                <SkeletonRow />
                 <SkeletonRow />
                 <SkeletonRow />
                 <SkeletonRow />
@@ -517,11 +536,26 @@ export default function WelcomeScreen() {
           ))}
         </View>
 
-        <Button
-          label={onChecklist ? "Take me in" : "Next"}
-          size="lg"
-          onPress={() => (onChecklist ? leave(true) : goTo(page + 1))}
-        />
+        {onChecklist && nothingDone ? (
+          <View style={{ gap: 8 }}>
+            <Button
+              label="Add my classes"
+              size="lg"
+              onPress={() => router.push("/courses/add")}
+            />
+            <Button
+              label="Take me in"
+              variant="ghost"
+              onPress={() => leave(true)}
+            />
+          </View>
+        ) : (
+          <Button
+            label={onChecklist ? "Take me in" : "Next"}
+            size="lg"
+            onPress={() => (onChecklist ? leave(true) : goTo(page + 1))}
+          />
+        )}
       </View>
     </View>
   );

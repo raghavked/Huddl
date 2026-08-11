@@ -42,22 +42,29 @@ export default function LoginScreen() {
       return;
     }
 
-    // First login? Send new students through onboarding when their profile
-    // is missing or has no display name yet.
+    // First login? `accepted_terms_at` is null until a student comes out the
+    // far side of onboarding — the signup trigger writes a name and a handle
+    // for everyone, so neither of those can tell a new account from an old
+    // one. A profile we can't read is treated as finished: a login that can't
+    // answer the question opens the app rather than blocking on it.
     const userId = data.user?.id;
     if (userId) {
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("display_name")
+        .select("accepted_terms_at")
         .eq("id", userId)
         .maybeSingle();
-      const row = (profile as { display_name: string | null } | null) ?? null;
-      if (!profileError && (!row || !row.display_name?.trim())) {
+      const row =
+        (profile as { accepted_terms_at: string | null } | null) ?? null;
+      if (!profileError && (!row || !row.accepted_terms_at)) {
         router.replace("/onboarding");
         return;
       }
     }
-    router.replace("/(tabs)/home");
+    // Everyone else goes back through the launch gate rather than straight to
+    // the tabs, so a student who has finished onboarding but hasn't seen the
+    // welcome on this device still gets it — on this launch, not the next one.
+    router.replace("/");
   }
 
   return (

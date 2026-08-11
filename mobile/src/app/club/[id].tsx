@@ -70,6 +70,7 @@ type MemberProfile = {
   display_name: string;
   avatar_url: string | null;
   major: string | null;
+  is_public: boolean;
 };
 
 type MemberRow = {
@@ -319,7 +320,7 @@ export default function ClubHomeScreen() {
           supabase
             .from("club_members")
             .select(
-              "user_id, role, joined_at, profile:profiles(id, handle, display_name, avatar_url, major)"
+              "user_id, role, joined_at, profile:profiles(id, handle, display_name, avatar_url, major, is_public)"
             )
             .eq("club_id", clubId),
           supabase
@@ -338,7 +339,7 @@ export default function ClubHomeScreen() {
           // optimistically without a refetch.
           supabase
             .from("profiles")
-            .select("id, handle, display_name, avatar_url, major")
+            .select("id, handle, display_name, avatar_url, major, is_public")
             .eq("id", userId)
             .maybeSingle(),
         ]);
@@ -531,10 +532,20 @@ export default function ClubHomeScreen() {
 
   const renderMember = useCallback(
     ({ item }: ListRenderItemInfo<MemberRow>) => {
-      const name = item.profile?.display_name ?? "A student";
       const isMe = item.user_id === userId;
+      /* A private classmate is a handle and a face here too. The roster was
+         the one list in the app that drew their real name and their major
+         whatever they'd set — being in a club isn't consent to that. */
+      const locked = item.profile !== null && !item.profile.is_public && !isMe;
+      const name = item.profile
+        ? locked
+          ? `@${item.profile.handle}`
+          : item.profile.display_name
+        : "A student";
       const caption = item.profile
-        ? `@${item.profile.handle}${item.profile.major ? ` · ${item.profile.major}` : ""}`
+        ? locked
+          ? "Private profile"
+          : `@${item.profile.handle}${item.profile.major ? ` · ${item.profile.major}` : ""}`
         : null;
       const row = (
         <Card
@@ -573,9 +584,16 @@ export default function ClubHomeScreen() {
               ) : null}
             </View>
             {caption ? (
-              <AppText variant="caption" muted numberOfLines={1}>
-                {caption}
-              </AppText>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+              >
+                {locked ? (
+                  <Feather name="lock" size={11} color={theme.muted} />
+                ) : null}
+                <AppText variant="caption" muted numberOfLines={1}>
+                  {caption}
+                </AppText>
+              </View>
             ) : null}
           </View>
         </Card>
@@ -593,7 +611,7 @@ export default function ClubHomeScreen() {
         </Pressable>
       );
     },
-    [userId, router]
+    [userId, router, theme]
   );
 
   // Deep links land here directly — signed-out visitors get a proper door.

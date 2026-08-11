@@ -19,6 +19,7 @@ import { Avatar } from "@/components/avatar";
 import { Lantern } from "@/components/illustrations";
 import { AppText, Button, Card, Chip, Field, SectionLabel } from "@/components/ui";
 import { radius } from "@/constants/theme";
+import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import {
   clearRecents,
@@ -446,6 +447,16 @@ export default function SearchScreen() {
   const [recents, setRecents] = useState<string[]>([]);
   const requestRef = useRef(0);
 
+  /* Somebody you blocked shouldn't come back up in a search for a name.
+     Mirrored into a ref so the in-flight query reads the current set without
+     `runSearch` changing identity — and re-running — every time the block
+     list refreshes. */
+  const { blocked } = useBlockedIds();
+  const blockedRef = useRef(blocked);
+  useEffect(() => {
+    blockedRef.current = blocked;
+  }, [blocked]);
+
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace("/(tabs)/home");
@@ -552,8 +563,9 @@ export default function SearchScreen() {
       }
       setFailed(false);
 
-      const people = ((peopleRes?.data ?? []) as unknown as PersonRow[]).map(
-        (p): Hit => {
+      const people = ((peopleRes?.data ?? []) as unknown as PersonRow[])
+        .filter((p) => p.id === userId || !blockedRef.current.has(p.id))
+        .map((p): Hit => {
           // Private profiles show up as a handle behind a lock — nothing more.
           const open = p.is_public || p.id === userId;
           const line = personLine(p.major, p.grad_year);
@@ -573,8 +585,7 @@ export default function SearchScreen() {
             locked: !open,
             href: `/u/${p.handle}`,
           };
-        }
-      );
+        });
       const channels = (
         (channelsRes?.data ?? []) as unknown as ChannelRow[]
       ).map(

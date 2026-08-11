@@ -19,6 +19,7 @@ import {
   EmptyState,
   SkeletonRow,
 } from "@/components/ui";
+import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import {
   BoardError,
@@ -231,13 +232,20 @@ export default function CampusBoardScreen() {
     }
   }, [filter]);
 
+  /* Somebody you blocked doesn't get to post at you. The block list promises
+     "their posts stay out of sight" and the board is the loudest place that
+     was untrue. Refreshed alongside the list so a block made from a profile
+     takes hold the moment you come back here. */
+  const { blocked, refresh: refreshBlocked } = useBlockedIds();
+
   // The only loader: it runs on first focus, again whenever the filter
   // changes `load`'s identity, and again on every return to the screen — so a
   // post you just put up is already there when you step back.
   useFocusEffect(
     useCallback(() => {
+      void refreshBlocked();
       void load().finally(() => setLoading(false));
-    }, [load])
+    }, [load, refreshBlocked])
   );
 
   const onRefresh = useCallback(() => {
@@ -273,8 +281,10 @@ export default function CampusBoardScreen() {
     if (!posts) return [];
     const rank = (post: BoardPost): number =>
       post.closed_at !== null ? 2 : isStale(post, now) ? 1 : 0;
-    return [...posts].sort((a, b) => rank(a) - rank(b));
-  }, [posts, now]);
+    return posts
+      .filter((post) => !blocked.has(post.author_id))
+      .sort((a, b) => rank(a) - rank(b));
+  }, [posts, now, blocked]);
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<BoardPost>) => (

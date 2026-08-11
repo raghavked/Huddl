@@ -1,18 +1,25 @@
 import Feather from "@expo/vector-icons/Feather";
-import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
+  TextInput,
   View,
   type ListRenderItemInfo,
 } from "react-native";
-import { Pennant } from "@/components/illustrations";
+import { MagnifyingGlass, Pennant } from "@/components/illustrations";
 import { Screen } from "@/components/screen";
-import { AppText, Button, Card } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import {
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  SectionLabel,
+} from "@/components/ui";
+import { fonts, radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { type ClubRole } from "@/lib/club-announcements";
 import { supabase } from "@/lib/supabase";
@@ -48,9 +55,27 @@ type ClubItem = {
   memberCount: number;
 };
 
+/** One row of the list: a group heading, or a club. */
+type ListRow =
+  | { type: "label"; key: string; text: string }
+  | { type: "club"; key: string; club: ClubItem };
+
 /** "academic" -> "Academic" — every category is a single word. */
 function categoryLabel(category: ClubCategory): string {
   return category.charAt(0).toUpperCase() + category.slice(1);
+}
+
+/**
+ * Does this club answer what was typed? Name, category and blurb, all
+ * case-insensitively — "photo" should find the photography club whether the
+ * word is in its name or its one-line description.
+ */
+function matches(club: ClubItem, query: string): boolean {
+  const needle = query.trim().toLowerCase();
+  if (needle.length === 0) return true;
+  return [club.name, categoryLabel(club.category), club.description ?? ""].some(
+    (field) => field.toLowerCase().includes(needle)
+  );
 }
 
 function roleLabel(role: ClubRole): string {
@@ -260,6 +285,7 @@ export default function ClubsScreen() {
     clubId: string;
     message: string;
   } | null>(null);
+  const [query, setQuery] = useState("");
 
   const fetchClubs = useCallback(async () => {
     if (!userId) throw new Error("Not signed in");
@@ -312,9 +338,9 @@ export default function ClubsScreen() {
   }, [userId]);
 
   const run = useCallback(
-    async (mode: "initial" | "refresh") => {
+    async (mode: "initial" | "refresh" | "silent") => {
       if (mode === "initial") setLoading(true);
-      else setRefreshing(true);
+      if (mode === "refresh") setRefreshing(true);
       try {
         const result = await fetchClubs();
         setClubs(result.clubs);
@@ -324,16 +350,27 @@ export default function ClubsScreen() {
         setError("We couldn't load the clubs right now.");
       } finally {
         if (mode === "initial") setLoading(false);
-        else setRefreshing(false);
+        if (mode === "refresh") setRefreshing(false);
       }
     },
     [fetchClubs]
   );
 
-  useEffect(() => {
-    if (!userId) return;
-    void run("initial");
-  }, [userId, run]);
+  /* Tabs stay mounted, so a fetch on mount is a fetch once a session: start a
+     club, tap back, and it wasn't in the list. First focus loads with a
+     spinner; every focus after it refetches quietly. */
+  const loadedRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+      if (loadedRef.current) {
+        void run("silent");
+      } else {
+        loadedRef.current = true;
+        void run("initial");
+      }
+    }, [userId, run])
+  );
 
   const handleJoin = useCallback(
     async (clubId: string) => {
@@ -363,23 +400,55 @@ export default function ClubsScreen() {
     [userId, joiningId]
   );
 
+  /**
+   * The clubs you're already in, lifted to the top under their own heading,
+   * then everything else. An alphabetical wall buries the three clubs a
+   * student actually opens somewhere between Anime and Ultimate. With no
+   * memberships there is nothing to separate, so the list stays unlabelled.
+   */
+  const rows = useMemo<ListRow[]>(() => {
+    const visible = clubs.filter((club) => matches(club, query));
+    const mine = visible.filter((club) => roles[club.id] !== undefined);
+    const rest = visible.filter((club) => roles[club.id] === undefined);
+    const out: ListRow[] = [];
+    if (mine.length === 0) {
+      for (const club of rest) out.push({ type: "club", key: club.id, club });
+      return out;
+    }
+    out.push({ type: "label", key: "label-mine", text: "Your clubs" });
+    for (const club of mine) out.push({ type: "club", key: club.id, club });
+    if (rest.length > 0) {
+      out.push({ type: "label", key: "label-rest", text: "More on campus" });
+      for (const club of rest) out.push({ type: "club", key: club.id, club });
+    }
+    return out;
+  }, [clubs, roles, query]);
+
   const renderItem = useCallback(
-    ({ item, index }: ListRenderItemInfo<ClubItem>) => (
-      <View style={{ marginBottom: 10 }}>
-        <ClubRow
-          club={item}
-          index={index}
-          myRole={roles[item.id] ?? null}
-          joining={joiningId === item.id}
-          joinDisabled={joiningId !== null}
-          joinError={
-            joinError && joinError.clubId === item.id ? joinError.message : null
-          }
-          onJoin={() => void handleJoin(item.id)}
-          onOpen={() => router.push(`/club/${item.id}`)}
-        />
-      </View>
-    ),
+    ({ item, index }: ListRenderItemInfo<ListRow>) => {
+      if (item.type === "label") {
+        return <SectionLabel text={item.text} first={index === 0} />;
+      }
+      const club = item.club;
+      return (
+        <View style={{ marginBottom: 10 }}>
+          <ClubRow
+            club={club}
+            index={index}
+            myRole={roles[club.id] ?? null}
+            joining={joiningId === club.id}
+            joinDisabled={joiningId !== null}
+            joinError={
+              joinError && joinError.clubId === club.id
+                ? joinError.message
+                : null
+            }
+            onJoin={() => void handleJoin(club.id)}
+            onOpen={() => router.push(`/club/${club.id}`)}
+          />
+        </View>
+      );
+    },
     [roles, joiningId, joinError, handleJoin]
   );
 
@@ -457,17 +526,76 @@ export default function ClubsScreen() {
         </View>
       ) : (
         <FlatList
-          data={clubs}
-          keyExtractor={(club) => club.id}
+          data={rows}
+          keyExtractor={(row) => row.key}
           renderItem={renderItem}
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           ListHeaderComponent={
-            <View style={{ gap: 6, marginBottom: 14 }}>
+            <View style={{ gap: 10, marginBottom: 14 }}>
               <AppText muted>
                 Student orgs on your campus — find your people.
               </AppText>
+              <View style={{ justifyContent: "center" }}>
+                <Feather
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  name="search"
+                  size={16}
+                  color={theme.muted}
+                  style={{ position: "absolute", left: 14, zIndex: 1 }}
+                />
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder="Search clubs"
+                  placeholderTextColor={theme.muted + "b3"}
+                  accessibilityLabel="Search clubs by name, category or description"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  cursorColor={theme.brand}
+                  selectionColor={theme.brandSoft}
+                  style={{
+                    height: 44,
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                    borderRadius: radius.full,
+                    backgroundColor: theme.surface,
+                    paddingLeft: 40,
+                    paddingRight: 44,
+                    fontFamily: fonts.body,
+                    fontSize: 15,
+                    color: theme.foreground,
+                  }}
+                />
+                {query.length > 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Clear search"
+                    onPress={() => setQuery("")}
+                    style={({ pressed }) => ({
+                      position: "absolute",
+                      right: 0,
+                      width: 44,
+                      height: 44,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: pressed ? 0.6 : 1,
+                    })}
+                  >
+                    <Feather
+                      accessibilityElementsHidden
+                      importantForAccessibility="no-hide-descendants"
+                      name="x"
+                      size={16}
+                      color={theme.muted}
+                    />
+                  </Pressable>
+                ) : null}
+              </View>
               {error ? (
                 <AppText
                   variant="caption"
@@ -480,44 +608,27 @@ export default function ClubsScreen() {
             </View>
           }
           ListEmptyComponent={
-            <Card
-              style={{
-                alignItems: "center",
-                gap: 6,
-                paddingVertical: 28,
-                borderStyle: "dashed",
-              }}
-            >
-              <View
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-              >
-                <Pennant
-                  size={72}
-                  color={theme.muted}
-                  softColor={theme.surface2}
-                />
-              </View>
-              <AppText variant="bodySemi" accessibilityRole="header">
-                No clubs yet
-              </AppText>
-              <AppText
-                variant="caption"
-                muted
-                style={{ textAlign: "center", maxWidth: 260 }}
-              >
-                Nobody's founded a club at your school yet — yours could be
-                the first.
-              </AppText>
-              <Button
-                label="Start a club"
-                variant="soft"
-                size="sm"
-                icon={<Feather name="plus" size={14} color={theme.brandInk} />}
-                onPress={() => router.push("/club/new")}
-                style={{ marginTop: 4 }}
+            query.trim().length > 0 ? (
+              <EmptyState
+                illustration={MagnifyingGlass}
+                title="Nothing matched that"
+                body={`No club here answers to "${query.trim()}". Try a shorter word, or start the one that's missing.`}
+                action={{
+                  label: "Start a club",
+                  onPress: () => router.push("/club/new"),
+                }}
               />
-            </Card>
+            ) : (
+              <EmptyState
+                illustration={Pennant}
+                title="No clubs yet"
+                body="Nobody's founded a club at your school yet — yours could be the first."
+                action={{
+                  label: "Start a club",
+                  onPress: () => router.push("/club/new"),
+                }}
+              />
+            )
           }
           refreshControl={
             <RefreshControl

@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Avatar } from "@/components/avatar";
 import {
   AppText,
   Button,
@@ -29,6 +30,19 @@ type FeatherName = ComponentProps<typeof Feather>["name"];
 
 type RsvpStatus = "going" | "maybe" | "declined";
 
+/**
+ * Just enough of a classmate to draw them and reach them. `is_public` is
+ * here because a private profile is a handle and a face and nothing else,
+ * on this screen the same as everywhere else.
+ */
+type EventPerson = {
+  id: string;
+  handle: string;
+  display_name: string;
+  avatar_url: string | null;
+  is_public: boolean;
+};
+
 type EventDetail = {
   id: string;
   kind: "study_session" | "meetup";
@@ -39,12 +53,24 @@ type EventDetail = {
   ends_at: string | null;
   capacity: number | null;
   creator_id: string;
-  creator: { display_name: string } | null;
+  creator: EventPerson | null;
 };
 
-type RsvpRow = { user_id: string; status: RsvpStatus };
+type RsvpRow = {
+  user_id: string;
+  status: RsvpStatus;
+  profile: EventPerson | null;
+};
 
 type Status = "loading" | "error" | "notFound" | "ready";
+
+/** Rows drawn before the list turns into a wall; the rest become a count. */
+const ATTENDEES_SHOWN = 12;
+
+/** What the viewer is allowed to call them. */
+function shownName(person: EventPerson): string {
+  return person.is_public ? person.display_name : `@${person.handle}`;
+}
 
 const RSVP_OPTIONS: readonly {
   value: RsvpStatus;
@@ -164,6 +190,84 @@ function MetaRow({
   );
 }
 
+/**
+ * One person who said they're coming. A count tells you how full the room
+ * is; a name tells you whether you know anyone in it — which is the actual
+ * question somebody asks before walking into a meetup alone.
+ *
+ * A private classmate shows as their handle behind a lock, same as the
+ * directory. A row whose profile didn't come back is drawn quietly and isn't
+ * tappable, rather than dropped — the headcount has to stay honest.
+ */
+function AttendeeRow({
+  person,
+  first,
+  isMe,
+}: {
+  person: EventPerson | null;
+  first: boolean;
+  isMe: boolean;
+}) {
+  const theme = useTheme();
+  const router = useRouter();
+  const name = person ? shownName(person) : "A classmate";
+  const locked = person !== null && !person.is_public;
+
+  const body = (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        minHeight: 52,
+        borderTopWidth: first ? 0 : 1,
+        borderTopColor: theme.border,
+      }}
+    >
+      <Avatar url={person?.avatar_url} name={name} size={36} />
+      <AppText variant="bodyMedium" numberOfLines={1} style={{ flex: 1 }}>
+        {name}
+      </AppText>
+      {locked ? (
+        <Feather
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          name="lock"
+          size={12}
+          color={theme.muted}
+        />
+      ) : null}
+      {isMe ? <Chip label="You" tone="brand" /> : null}
+      {person ? (
+        <Feather
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          name="chevron-right"
+          size={16}
+          color={theme.muted}
+        />
+      ) : null}
+    </View>
+  );
+
+  if (!person) return body;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={
+        isMe ? "Open your profile" : `Open ${name}'s profile`
+      }
+      onPress={() => router.push(`/u/${person.handle}`)}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
+      {body}
+    </Pressable>
+  );
+}
+
 function BackChevron({ onPress }: { onPress: () => void }) {
   const theme = useTheme();
   return (
@@ -217,13 +321,18 @@ export default function EventDetailScreen() {
       supabase
         .from("events")
         .select(
-          "id, kind, title, description, location, starts_at, ends_at, capacity, creator_id, creator:profiles(display_name)"
+          "id, kind, title, description, location, starts_at, ends_at, capacity, creator_id, " +
+            "creator:profiles(id, handle, display_name, avatar_url, is_public)"
         )
         .eq("id", eventId)
         .maybeSingle(),
+      // The people, not just the tally. `event_rsvps` and `profiles` are both
+      // readable campus-wide, so the names were always there for the asking.
       supabase
         .from("event_rsvps")
-        .select("user_id, status")
+        .select(
+          "user_id, status, profile:profiles(id, handle, display_name, avatar_url, is_public)"
+        )
         .eq("event_id", eventId),
     ]);
     if (eventRes.error) {
@@ -338,12 +447,16 @@ export default function EventDetailScreen() {
         setRsvpError("Couldn't save your RSVP. Give it another try.");
         return;
       }
+      // The chip moves immediately; the row in "who's going" needs a profile
+      // we may not be holding yet, so the reload behind it fills that in.
+      const myProfile = rsvps.find((r) => r.user_id === userId)?.profile ?? null;
       setRsvps((prev) => [
         ...prev.filter((r) => r.user_id !== userId),
-        { user_id: userId, status: next },
+        { user_id: userId, status: next, profile: myProfile },
       ]);
+      if (!myProfile) void load();
     },
-    [userId, event, rsvps, pendingStatus]
+    [userId, event, rsvps, pendingStatus, load]
   );
 
   /* ------------------------- pre-detail states ------------------------- */
@@ -431,8 +544,16 @@ export default function EventDetailScreen() {
 
   /* ----------------------------- the detail ---------------------------- */
 
-  const hostName = event.creator?.display_name ?? "A classmate";
+  const host = event.creator;
+  const hostName = host ? shownName(host) : "A classmate";
   const isCreator = userId !== null && event.creator_id === userId;
+
+  /* Who said yes, in the order the RSVPs came in, drawn as far as
+     ATTENDEES_SHOWN and counted after that. Maybe and can't stay as numbers:
+     "going" is a thing people announce, the other two aren't. */
+  const going = rsvps.filter((r) => r.status === "going");
+  const shownGoing = going.slice(0, ATTENDEES_SHOWN);
+  const hiddenGoing = going.length - shownGoing.length;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -491,12 +612,43 @@ export default function EventDetailScreen() {
         }
       >
         <AppText variant="display">{event.title}</AppText>
-        <AppText variant="caption" muted style={{ marginTop: 6 }}>
-          Hosted by{" "}
-          <AppText variant="label" muted>
-            {hostName}
+        {host ? (
+          /* The host has a name and now a way to reach them — before this,
+             "Hosted by Maya Chen" was a dead end. */
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${hostName}'s profile`}
+            onPress={() => router.push(`/u/${host.handle}`)}
+            hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+              alignSelf: "flex-start",
+              marginTop: 6,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <AppText variant="caption" muted>
+              Hosted by
+            </AppText>
+            <AppText variant="label">{hostName}</AppText>
+            <Feather
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              name="chevron-right"
+              size={13}
+              color={theme.muted}
+            />
+          </Pressable>
+        ) : (
+          <AppText variant="caption" muted style={{ marginTop: 6 }}>
+            Hosted by{" "}
+            <AppText variant="label" muted>
+              {hostName}
+            </AppText>
           </AppText>
-        </AppText>
+        )}
 
         <Card style={{ marginTop: 16, gap: 14 }}>
           <View style={{ flexDirection: "row", gap: 14 }}>
@@ -609,25 +761,46 @@ export default function EventDetailScreen() {
           </>
         )}
 
+        <SectionLabel text="Who's going" />
+
+        {going.length === 0 ? (
+          <Card
+            padded={false}
+            style={{ paddingHorizontal: 14, paddingVertical: 12 }}
+          >
+            <AppText variant="caption" muted>
+              {isPast
+                ? "Nobody marked themselves going."
+                : "Nobody's said yes yet. Be the first and your name goes here."}
+            </AppText>
+          </Card>
+        ) : (
+          <Card padded={false}>
+            {shownGoing.map((row, index) => (
+              <AttendeeRow
+                key={row.user_id}
+                person={row.profile}
+                first={index === 0}
+                isMe={row.user_id === userId}
+              />
+            ))}
+          </Card>
+        )}
+
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             gap: 6,
-            marginTop: 14,
+            marginTop: 10,
           }}
         >
           <Feather name="user" size={13} color={theme.muted} />
-          {rsvps.length === 0 ? (
-            <AppText variant="caption" muted>
-              No RSVPs yet — be the first to tap one above.
-            </AppText>
-          ) : (
-            <AppText variant="caption" muted>
-              {goingCount} going · {maybeCount} maybe · {declinedCount} can't
-              go
-            </AppText>
-          )}
+          <AppText variant="caption" muted>
+            {hiddenGoing > 0
+              ? `${hiddenGoing} more going · ${maybeCount} maybe · ${declinedCount} can't go`
+              : `${goingCount} going · ${maybeCount} maybe · ${declinedCount} can't go`}
+          </AppText>
         </View>
       </ScrollView>
 

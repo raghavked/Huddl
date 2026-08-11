@@ -1,9 +1,15 @@
 import Feather from "@expo/vector-icons/Feather";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useState, type ComponentProps } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentProps,
+} from "react";
 import {
   ActivityIndicator,
-  Alert,
+  AppState,
   Pressable,
   RefreshControl,
   SectionList,
@@ -12,7 +18,7 @@ import {
 } from "react-native";
 import { Doorway } from "@/components/illustrations";
 import { Screen } from "@/components/screen";
-import { AppText, Button, Card } from "@/components/ui";
+import { AppText, Button, Card, Sheet } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
@@ -134,6 +140,8 @@ export default function ChannelsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** The channel whose long-press menu is open, or null. */
+  const [menu, setMenu] = useState<ChannelRow | null>(null);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -160,40 +168,43 @@ export default function ChannelsScreen() {
     setChannels(rows);
     setMemberMeta(meta);
 
-    // Latest message per joined channel in ONE query: pull the newest ~300
-    // messages across all my channels and reduce client-side to the newest
-    // per channel. Cheap and index-friendly (channel_id, created_at desc),
-    // with one tradeoff: a few very busy channels can push a quiet channel's
-    // newest message past the window, so its dot can read stale until the
-    // next fetch. Fine for a hint-level indicator.
-    const ids = rows.map((c) => c.id);
-    if (ids.length === 0) {
+    // Newest message per joined channel: one tiny indexed lookup each
+    // ((channel_id, created_at desc)), all in flight together.
+    //
+    // This used to be a single windowed query — the newest 300 messages
+    // across every channel, reduced client-side. Cheaper, and wrong in the
+    // direction that costs the most: a chatty #general fills the window, a
+    // quiet course room falls out of it entirely, and a room with no entry
+    // reads as "nothing new". The dot went dark on exactly the rooms where
+    // one message a week is the message you were waiting for.
+    if (rows.length === 0) {
       setLatest({});
       return;
     }
-    const { data: messageData, error: messagesError } = await supabase
-      .from("messages")
-      .select("channel_id, created_at, author_id")
-      .in("channel_id", ids)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(300);
-    // On failure the dots just keep their last state — not worth an error UI.
-    if (messagesError) return;
     const newest: Record<string, LatestMessage> = {};
-    for (const message of (messageData ?? []) as unknown as {
-      channel_id: string;
-      created_at: string;
-      author_id: string;
-    }[]) {
-      // Rows arrive newest-first, so the first row seen per channel is its max.
-      if (!newest[message.channel_id]) {
-        newest[message.channel_id] = {
-          createdAt: message.created_at,
-          authorId: message.author_id,
+    await Promise.all(
+      rows.map(async (channel) => {
+        // A lookup that fails just leaves the channel out — its dot goes
+        // quiet for a beat rather than the screen growing an error state.
+        const { data: message } = await supabase
+          .from("messages")
+          .select("created_at, author_id")
+          .eq("channel_id", channel.id)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!message) return;
+        const row = message as unknown as {
+          created_at: string;
+          author_id: string;
         };
-      }
-    }
+        newest[channel.id] = {
+          createdAt: row.created_at,
+          authorId: row.author_id,
+        };
+      })
+    );
     setLatest(newest);
   }, [userId]);
 
@@ -214,43 +225,34 @@ export default function ChannelsScreen() {
     [memberMeta, latest, userId]
   );
 
-  // Long-press a joined row → mute or unmute it, optimistically.
-  const onLongPressChannel = useCallback(
-    (channel: ChannelRow) => {
-      if (!userId) return;
-      const wasMuted = memberMeta[channel.id]?.muted ?? false;
-      const applyMuted = (muted: boolean) =>
-        setMemberMeta((prev) => {
-          const current = prev[channel.id];
-          return current
-            ? { ...prev, [channel.id]: { ...current, muted } }
-            : prev;
-        });
-      const title =
-        channel.kind === "course" && !channel.is_main
-          ? channel.name
-          : channelTitle(channel);
-      Alert.alert(title, undefined, [
-        {
-          text: wasMuted ? "Unmute channel" : "Mute channel",
-          onPress: () => {
-            applyMuted(!wasMuted);
-            void supabase
-              .from("channel_members")
-              .update({ muted: !wasMuted })
-              .eq("channel_id", channel.id)
-              .eq("user_id", userId)
-              .then(({ error: muteError }) => {
-                // Roll the optimistic flip back if the write didn't land.
-                if (muteError) applyMuted(wasMuted);
-              });
-          },
-        },
-        { text: "Cancel", style: "cancel" },
-      ]);
-    },
-    [memberMeta, userId]
-  );
+  // Long-press a joined row → the mute sheet. Every other long-press in the
+  // app opens a warm Sheet; this one used to open a grey OS alert.
+  const onLongPressChannel = useCallback((channel: ChannelRow) => {
+    setMenu(channel);
+  }, []);
+
+  const closeMenu = useCallback(() => setMenu(null), []);
+
+  /** Flip mute on the open channel, optimistically, and roll back on failure. */
+  const toggleMuted = useCallback(async () => {
+    if (!userId || !menu) return;
+    const channelId = menu.id;
+    const wasMuted = memberMeta[channelId]?.muted ?? false;
+    const applyMuted = (muted: boolean) =>
+      setMemberMeta((prev) => {
+        const current = prev[channelId];
+        return current ? { ...prev, [channelId]: { ...current, muted } } : prev;
+      });
+    closeMenu();
+    applyMuted(!wasMuted);
+    const { error: muteError } = await supabase
+      .from("channel_members")
+      .update({ muted: !wasMuted })
+      .eq("channel_id", channelId)
+      .eq("user_id", userId);
+    // Roll the optimistic flip back if the write didn't land.
+    if (muteError) applyMuted(wasMuted);
+  }, [menu, memberMeta, userId, closeMenu]);
 
   /* Long-press is the only route to mute, and a long press is invisible to a
      screen reader — so every joined row also offers it as a named action and
@@ -279,6 +281,24 @@ export default function ChannelsScreen() {
       void load().finally(() => setLoading(false));
     }, [userId, load])
   );
+
+  /* Focus is not foreground: a phone locked on this tab never blurs it, so
+     the dots would sit exactly as they were until something else took the
+     screen. Coming back from the background re-pulls them, quietly. */
+  useEffect(() => {
+    if (!userId) return;
+    let away = false;
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") {
+        away = true;
+        return;
+      }
+      if (!away) return;
+      away = false;
+      void load();
+    });
+    return () => sub.remove();
+  }, [userId, load]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -330,6 +350,32 @@ export default function ChannelsScreen() {
               .map<Row>((c) => ({ key: c.id, type: "channel", channel: c })),
     })).filter((section) => section.data.length > 0);
   }, [channels]);
+
+  const menuMuted = menu ? (memberMeta[menu.id]?.muted ?? false) : false;
+  const muteSheet = (
+    <Sheet
+      visible={menu !== null}
+      onClose={closeMenu}
+      title={
+        menu
+          ? menu.kind === "course" && !menu.is_main
+            ? menu.name
+            : channelTitle(menu)
+          : undefined
+      }
+    >
+      <Sheet.Row
+        icon={menuMuted ? "volume-2" : "volume-x"}
+        label={menuMuted ? "Turn notifications back on" : "Mute this channel"}
+        onPress={() => void toggleMuted()}
+      />
+      <AppText variant="caption" muted style={{ marginTop: 4 }}>
+        {menuMuted
+          ? "You'll hear about new messages here again."
+          : "It stays in your list — you just won't be notified about it."}
+      </AppText>
+    </Sheet>
+  );
 
   return (
     <Screen
@@ -685,6 +731,7 @@ export default function ChannelsScreen() {
           }}
         />
       )}
+      {muteSheet}
     </Screen>
   );
 }

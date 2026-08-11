@@ -72,6 +72,11 @@ function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
 }
 
+/** The plain-filter form: safe to hand straight to `.ilike(column, …)`. */
+function likePattern(raw: string): string {
+  return `%${escapeLike(raw)}%`;
+}
+
 /**
  * An `or=` filter matching any of `columns`. The pattern rides inside a
  * double-quoted PostgREST string (backslashes and quotes escaped) so
@@ -92,16 +97,55 @@ function firstNameOf(name: string): string {
 
 /* --------------------------- the campus picker ---------------------------- */
 
-type CandidateRow = {
+/** A public classmate: enough to tell two people with the same name apart. */
+type OpenCandidateRow = {
   id: string;
   handle: string;
   display_name: string;
   avatar_url: string | null;
-  is_public: boolean;
+  major: string | null;
+  grad_year: number | null;
 };
 
+/** A private classmate, exactly as much of them as the row draws. */
+type LimitedCandidateRow = {
+  id: string;
+  handle: string;
+  avatar_url: string | null;
+};
+
+const OPEN_CANDIDATE_SELECT =
+  "id, handle, display_name, avatar_url, major, grad_year";
+
+/** Handle and avatar, and not one column more. */
+const LIMITED_CANDIDATE_SELECT = "id, handle, avatar_url";
+
 /** A classmate as the picker shows them — private profiles keep their name back. */
-type Candidate = ThreadPerson & { locked: boolean };
+type Candidate = ThreadPerson & {
+  locked: boolean;
+  /** "Computer science" or "Class of 2027" — null when they've said neither. */
+  detail: string | null;
+};
+
+/**
+ * The one extra thing worth knowing about a classmate in a list of names:
+ * their major, or their year if they haven't filled a major in. A nonsense
+ * `grad_year` (a stray 0, a typo'd 20255) is dropped rather than drawn.
+ * Same rule as the campus search screen.
+ */
+function detailOf(major: string | null, gradYear: number | null): string | null {
+  const written = (major ?? "").trim();
+  if (written.length > 0) return written;
+  if (
+    typeof gradYear === "number" &&
+    Number.isInteger(gradYear) &&
+    gradYear >= 1900 &&
+    gradYear <= 2100
+  ) {
+    return `Class of ${gradYear}`;
+  }
+  return null;
+}
 
 function PickerRow({
   person,
@@ -159,7 +203,11 @@ function PickerRow({
               <Feather name="lock" size={11} color={theme.muted} />
             ) : null}
             <AppText variant="caption" muted numberOfLines={1}>
-              {person.locked ? "Private profile" : `@${person.handle}`}
+              {person.locked
+                ? "Private profile"
+                : person.detail
+                  ? `@${person.handle} · ${person.detail}`
+                  : `@${person.handle}`}
             </AppText>
           </View>
         </View>
@@ -269,31 +317,62 @@ export function CampusPeoplePicker({
           universityRef.current = university;
         }
 
-        const base = supabase
+        /* Two questions, not one. A public classmate's major and year are
+           worth a line under their name; a private classmate's are theirs,
+           so they're never asked for and never leave the server. It also
+           means a private profile is findable by handle only — typing
+           somebody's real name can't confirm which handle is theirs. */
+        const open = supabase
           .from("profiles")
-          .select("id, handle, display_name, avatar_url, is_public")
+          .select(OPEN_CANDIDATE_SELECT)
           .eq("university_id", university)
-          .neq("id", userId);
-        const filtered =
-          q.length > 0 ? base.or(orIlike(["display_name", "handle"], q)) : base;
-        const { data, error } = await filtered
-          .order("display_name", { ascending: true })
-          .limit(RESULT_LIMIT);
-        if (error) throw error;
+          .neq("id", userId)
+          .eq("is_public", true);
+        const limited = supabase
+          .from("profiles")
+          .select(LIMITED_CANDIDATE_SELECT)
+          .eq("university_id", university)
+          .neq("id", userId)
+          .eq("is_public", false);
+
+        const [openRes, limitedRes] = await Promise.all([
+          (q.length > 0 ? open.or(orIlike(["display_name", "handle"], q)) : open)
+            .order("display_name", { ascending: true })
+            .limit(RESULT_LIMIT),
+          (q.length > 0 ? limited.ilike("handle", likePattern(q)) : limited)
+            .order("handle", { ascending: true })
+            .limit(RESULT_LIMIT),
+        ]);
+        if (openRes.error) throw openRes.error;
+        if (limitedRes.error) throw limitedRes.error;
         if (ticket !== requestRef.current) return; // a newer keystroke won
 
-        setResults(
-          ((data ?? []) as unknown as CandidateRow[]).map((row) => ({
-            id: row.id,
-            handle: row.handle,
-            // A private classmate is only ever their handle to us.
-            display_name: row.is_public
-              ? row.display_name || row.handle
-              : row.handle,
-            avatar_url: row.avatar_url,
-            locked: !row.is_public,
-          }))
-        );
+        const candidates: Candidate[] = [
+          ...((openRes.data ?? []) as unknown as OpenCandidateRow[]).map(
+            (row) => ({
+              id: row.id,
+              handle: row.handle,
+              display_name: row.display_name || row.handle,
+              avatar_url: row.avatar_url,
+              locked: false,
+              detail: detailOf(row.major, row.grad_year),
+            })
+          ),
+          // A private classmate is only ever their handle to us.
+          ...((limitedRes.data ?? []) as unknown as LimitedCandidateRow[]).map(
+            (row) => ({
+              id: row.id,
+              handle: row.handle,
+              display_name: row.handle,
+              avatar_url: row.avatar_url,
+              locked: true,
+              detail: null,
+            })
+          ),
+        ];
+        // Named classmates first, then the quiet ones, and only ever
+        // RESULT_LIMIT rows however the two queries split.
+        setResults(candidates.slice(0, RESULT_LIMIT));
         setFailed(false);
       } catch {
         if (ticket !== requestRef.current) return;

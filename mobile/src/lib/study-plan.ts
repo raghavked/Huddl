@@ -84,14 +84,31 @@ export type PlanGroupLabel =
 export type PlanGroup = { label: PlanGroupLabel; entries: PlanEntry[] };
 
 export type PlanStats = {
-  /** Items the student has checked off. */
+  /** Items the student has checked off, across the whole plan window. */
   handled: number;
-  /** Every item in the plan window. */
+  /** Every item in the plan window, however far out. */
   total: number;
   /**
-   * The earliest-due item still unhandled — overdue items included, since
-   * catching up on a missed deadline IS the next thing to do. Absent when
-   * everything is handled (or the plan is empty).
+   * Checked off among {@link weekTotal} — the numerator a screen prints.
+   */
+  weekHandled: number;
+  /**
+   * Items due between a week ago and the end of this week: everything except
+   * the "Later" bucket. This is the honest denominator for "how am I doing",
+   * and the reason both the home card and the plan screen print the same
+   * number. Scoring the rest of the term instead turns a good week into "6 of
+   * 74 handled", which says nothing about today.
+   */
+  weekTotal: number;
+  /**
+   * The next thing to actually do: the earliest-due unhandled item that isn't
+   * a lecture, falling back to the earliest unhandled item of any kind.
+   * Overdue items count — catching up on a missed deadline IS the next thing
+   * to do. Absent when everything is handled (or the plan is empty).
+   *
+   * Lectures step aside because a weekly pattern expands into dozens of them
+   * and nobody checks a lecture off, so the earliest unhandled item on a real
+   * term is almost always a class that already met.
    */
   nextUp?: PlanEntry;
 };
@@ -106,8 +123,15 @@ const STUDY_OFFSET_DAYS: readonly number[] = [7, 3, 1];
 /** Only exams/quizzes due within this many days earn study blocks. */
 const STUDY_WINDOW_DAYS = 14;
 
-/** Groups always render in this order; empty groups are dropped. */
-const GROUP_ORDER: readonly PlanGroupLabel[] = [
+/**
+ * Groups always render in this order; empty groups are dropped.
+ *
+ * Exported because a screen that files derived {@link StudyBlock}s by their
+ * own moment can end up with a bucket {@link buildPlan} never made a group
+ * for — a study block this week for an exam that's still "Later". Walk this
+ * rather than the returned groups and the headings stay in time order.
+ */
+export const PLAN_GROUP_ORDER: readonly PlanGroupLabel[] = [
   "Overdue",
   "Today",
   "Tomorrow",
@@ -132,11 +156,17 @@ function calendarDaysUntil(now: Date, due: Date): number {
   );
 }
 
-/** Which bucket an item belongs to, relative to `now`. */
-function groupLabelFor(dueAt: Date, now: Date): PlanGroupLabel {
+/**
+ * Which bucket a moment belongs to, relative to `now`.
+ *
+ * Exported because a derived {@link StudyBlock} is filed by when you should
+ * sit down, not by when its exam is: a block for tomorrow belongs under
+ * "Tomorrow" even though the midterm it prepares for is three weeks out.
+ */
+export function groupLabelFor(at: Date, now: Date): PlanGroupLabel {
   // Anything whose moment has passed is overdue — including earlier today.
-  if (dueAt.getTime() < now.getTime()) return "Overdue";
-  const days = calendarDaysUntil(now, dueAt);
+  if (at.getTime() < now.getTime()) return "Overdue";
+  const days = calendarDaysUntil(now, at);
   if (days <= 0) return "Today";
   if (days === 1) return "Tomorrow";
   if (days < 7) return "This week";
@@ -203,19 +233,41 @@ export function buildPlan(
     if (bucket) bucket.push(entry);
     else buckets.set(label, [entry]);
   }
-  const groups: PlanGroup[] = GROUP_ORDER.flatMap((label) => {
+  const groups: PlanGroup[] = PLAN_GROUP_ORDER.flatMap((label) => {
     const bucket = buckets.get(label);
     return bucket ? [{ label, entries: bucket }] : [];
   });
 
   const handled = entries.reduce((sum, e) => (e.done ? sum + 1 : sum), 0);
-  const nextUp = entries.find((e) => !e.done);
+
+  // "This week" is Overdue through This week — the rest of the term is a
+  // denominator nobody can move today, and folding it in makes a good week
+  // read as 8%.
+  let weekTotal = 0;
+  let weekHandled = 0;
+  for (const [label, bucket] of buckets) {
+    if (label === "Later") continue;
+    for (const entry of bucket) {
+      weekTotal += 1;
+      if (entry.done) weekHandled += 1;
+    }
+  }
+
+  // A lecture is never checked off and a weekly pattern expands into dozens
+  // of them, so the plain "earliest unhandled" rule points at a class that
+  // already met. Prefer something the student can actually handle; fall back
+  // to the plain rule for a plan that is nothing but lectures.
+  const nextUp =
+    entries.find((e) => !e.done && e.kind !== "lecture") ??
+    entries.find((e) => !e.done);
 
   return {
     groups,
     stats: {
       handled,
       total: entries.length,
+      weekHandled,
+      weekTotal,
       ...(nextUp ? { nextUp } : {}),
     },
   };

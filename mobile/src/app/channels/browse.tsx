@@ -9,7 +9,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card } from "@/components/ui";
+import { Pennant } from "@/components/illustrations";
+import { AppText, Button, Card, EmptyState } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
@@ -17,7 +18,14 @@ import { useAuth } from "@/providers/auth-provider";
 
 /* The campus channel directory: every campus and topic channel at your
    school, A to Z, with one-tap joining. Course chats live with your
-   classes, so they stay out of this list. */
+   classes, so they stay out of this list.
+
+   A new campus starts with four channels and every student is auto-joined to
+   all four, so on move-in week this screen is a full list with nothing to do
+   on it — the empty state that recruits the first channel never gets a turn,
+   because the list isn't empty. So the recruit sits *above* the list whenever
+   there's nothing left here to join, and the empty state stays for the case
+   it was written for. Move-in week is the normal case, not the edge case. */
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
 
@@ -156,6 +164,10 @@ export default function BrowseChannelsScreen() {
     return <Redirect href="/(auth)/login" />;
   }
 
+  /** Nothing left to join: every channel the directory lists is already hers. */
+  const allJoined =
+    channels.length > 0 && channels.every((channel) => joined.has(channel.id));
+
   const scaffold = (children: React.ReactNode) => (
     <View
       style={{
@@ -279,47 +291,30 @@ export default function BrowseChannelsScreen() {
               {joinError}
             </AppText>
           ) : null}
+          {allJoined ? (
+            <EmptyState
+              illustration={Pennant}
+              title="You're in every channel here"
+              body="That's the whole directory for now. Start one for anything else your campus should have — a class you're taking, a team you follow, a thing you can't stop talking about."
+              action={{
+                label: "Start a channel",
+                onPress: () => router.push("/channels/new"),
+              }}
+              style={{ marginTop: 8 }}
+            />
+          ) : null}
         </View>
       }
       ListEmptyComponent={
-        <Card
-          style={{
-            alignItems: "center",
-            gap: 6,
-            paddingVertical: 28,
-            borderStyle: "dashed",
+        <EmptyState
+          illustration={Pennant}
+          title="Nothing to browse yet"
+          body="Be the first — start a channel for anything your campus cares about."
+          action={{
+            label: "Start a channel",
+            onPress: () => router.push("/channels/new"),
           }}
-        >
-          <View
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: radius.full,
-              backgroundColor: theme.brandSoft,
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 2,
-            }}
-          >
-            <Feather name="hash" size={20} color={theme.brand} />
-          </View>
-          <AppText variant="bodySemi">Nothing to browse yet</AppText>
-          <AppText
-            variant="caption"
-            muted
-            style={{ textAlign: "center", maxWidth: 280 }}
-          >
-            Be the first — start a channel for anything your campus cares
-            about.
-          </AppText>
-          <Button
-            label="Start a channel"
-            variant="soft"
-            size="sm"
-            onPress={() => router.push("/channels/new")}
-            style={{ marginTop: 6 }}
-          />
-        </Card>
+        />
       }
       renderItem={({ item }) => {
         const isJoined = joined.has(item.id);

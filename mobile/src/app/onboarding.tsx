@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Field } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { fonts, radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -62,6 +62,7 @@ export default function OnboardingScreen() {
 
   const [handleStatus, setHandleStatus] = useState<HandleStatus>("idle");
   const [saving, setSaving] = useState(false);
+  const [skipping, setSkipping] = useState(false);
   const [errors, setErrors] = useState<{
     displayName?: string;
     handle?: string;
@@ -146,8 +147,37 @@ export default function OnboardingScreen() {
     };
   }, [handle, savedHandle, userId]);
 
+  /**
+   * "Skip for now" — leave the form as it stands and go on in.
+   *
+   * It still stamps `accepted_terms_at`, and that is not a shortcut: signup
+   * told them creating an account is agreeing to the Terms, so the agreement
+   * already happened and this only records when. It is also the column the
+   * launch gate reads. Leaving it null would hand this same screen back on
+   * every cold launch, which is not a skip — it is a loop.
+   *
+   * A failed write costs one more pass through this screen next launch, so it
+   * never blocks the exit. The no-row recovery case has nothing to stamp; the
+   * gate will rightly ask again, because there is genuinely no profile yet.
+   */
+  async function handleSkip() {
+    if (saving || skipping || !userId) return;
+    setSkipping(true);
+    try {
+      if (hasRow) {
+        await supabase
+          .from("profiles")
+          .update({ accepted_terms_at: new Date().toISOString() })
+          .eq("id", userId);
+      }
+    } catch {
+      // Offline, most likely. The exit still happens; the gate asks again.
+    }
+    router.replace("/welcome");
+  }
+
   async function handleSave() {
-    if (saving || !userId) return;
+    if (saving || skipping || !userId) return;
     const next: typeof errors = {};
 
     const name = displayName.trim();
@@ -182,8 +212,9 @@ export default function OnboardingScreen() {
       major: major.trim() || null,
       grad_year: year,
       bio: bio.trim() || null,
-      // Signup told them creating an account is agreeing to the terms;
-      // this records when that agreement was made.
+      // Signup told them creating an account is agreeing to the terms; this
+      // records when that agreement was made. It doubles as the first-run
+      // gate — see the launch gate in app/index.tsx.
       accepted_terms_at: new Date().toISOString(),
     };
 
@@ -257,6 +288,13 @@ export default function OnboardingScreen() {
 
   const firstName = displayName.trim().split(/\s+/)[0] || null;
 
+  // The signup trigger builds the handle out of the email local-part, and one
+  // campus means one domain — so a handle still in its original shape is the
+  // student's email address in public. Say so while it's still true.
+  const handleIsFromEmail =
+    handle.trim().length > 0 &&
+    handle.trim().toLowerCase() === handleFromEmail(userEmail);
+
   const handleFieldError =
     errors.handle ??
     (handleStatus === "taken"
@@ -279,7 +317,7 @@ export default function OnboardingScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <AppText variant="display" style={{ marginBottom: 6 }}>
-          {firstName ? `Welcome to Huddl, ${firstName}!` : "Welcome to Huddl!"}
+          {firstName ? `Welcome to Huddl, ${firstName}` : "Welcome to Huddl"}
         </AppText>
         <AppText muted style={{ marginBottom: 8 }}>
           Tell your classmates a little about yourself — you can change any of
@@ -408,6 +446,12 @@ export default function OnboardingScreen() {
                   {HANDLE_HINT}
                 </AppText>
               )}
+              {handleIsFromEmail ? (
+                <AppText variant="caption" muted>
+                  This came from your email address, and it's public. Change it
+                  if you'd rather.
+                </AppText>
+              ) : null}
             </View>
 
             <Field
@@ -453,15 +497,32 @@ export default function OnboardingScreen() {
               label={saving ? "Saving…" : "Save and continue"}
               size="lg"
               pending={saving}
-              disabled={saving || !displayName.trim() || !handle.trim()}
+              disabled={
+                saving || skipping || !displayName.trim() || !handle.trim()
+              }
               onPress={handleSave}
             />
             <Button
               label="Skip for now"
               variant="ghost"
-              disabled={saving}
-              onPress={() => router.replace("/(tabs)/home")}
+              pending={skipping}
+              disabled={saving || skipping}
+              onPress={() => void handleSkip()}
             />
+            {/* The moment of record: both buttons stamp accepted_terms_at, so
+                the document that stamp refers to is one tap away from it. */}
+            <AppText variant="caption" muted style={{ textAlign: "center" }}>
+              Saving or skipping records that you agreed to our{" "}
+              <AppText
+                variant="caption"
+                accessibilityRole="link"
+                style={{ color: theme.brand, fontFamily: fonts.bodySemi }}
+                onPress={() => router.push("/legal/terms")}
+              >
+                Terms of Service
+              </AppText>{" "}
+              when you created your account.
+            </AppText>
           </Card>
         )}
       </ScrollView>

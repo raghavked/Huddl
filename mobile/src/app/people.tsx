@@ -1,5 +1,5 @@
 import Feather from "@expo/vector-icons/Feather";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -11,7 +11,8 @@ import {
   type ListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card } from "@/components/ui";
+import { Avatar } from "@/components/avatar";
+import { AppText, Button, Card, Chip } from "@/components/ui";
 import { fonts, radius } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
@@ -19,10 +20,10 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /**
- * The same shape the web /people page hands its directory. Private profiles
- * that aren't the viewer's own are stripped to handle + avatar right after
- * the fetch (mirroring the web's server-side nulling), so hidden fields never
- * reach search or render.
+ * One classmate as the directory draws them. A private profile arrives with
+ * nothing but a handle and an avatar, because that is all the query asked
+ * for — see {@link LIMITED_SELECT}. Nulling hidden columns in JavaScript
+ * would still have put them on the wire.
  */
 type DirectoryPerson = {
   id: string;
@@ -31,18 +32,35 @@ type DirectoryPerson = {
   avatar_url: string | null;
   major: string | null;
   grad_year: number | null;
+  /** Always empty for a private classmate; drives the `?interest=` filter. */
+  interests: string[];
   is_public: boolean;
 };
 
-type DirectoryRow = {
+/** A profile the viewer may read in full: a public one, or their own. */
+type OpenRow = {
   id: string;
   handle: string;
   display_name: string;
   avatar_url: string | null;
   major: string | null;
   grad_year: number | null;
+  interests: string[] | null;
   is_public: boolean;
 };
+
+/** A private classmate, exactly as much of them as the row draws. */
+type LimitedRow = {
+  id: string;
+  handle: string;
+  avatar_url: string | null;
+};
+
+const OPEN_SELECT =
+  "id, handle, display_name, avatar_url, major, grad_year, interests, is_public";
+
+/** Handle and avatar, and not one column more. */
+const LIMITED_SELECT = "id, handle, avatar_url";
 
 type MeRow = {
   university_id: string;
@@ -64,44 +82,25 @@ function matches(person: DirectoryPerson, query: string): boolean {
   return haystack.some((v) => v.includes(q));
 }
 
-/** Tiny avatar stand-in: two initials on a warm circle, tinted by name hash. */
-function Initials({ name, size = 44 }: { name: string; size?: number }) {
-  const theme = useTheme();
-  let hash = 0;
-  for (let i = 0; i < name.length; i += 1) {
-    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  }
-  const pair =
-    hash % 2 === 0
-      ? { bg: theme.brandSoft, fg: theme.brandInk }
-      : { bg: theme.accentSoft, fg: theme.accent };
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const first = parts[0] ?? "";
-  const last = parts.length > 1 ? parts[parts.length - 1] ?? "" : "";
-  const initials =
-    `${first.charAt(0)}${last ? last.charAt(0) : first.charAt(1)}`.toUpperCase() ||
-    "?";
-  return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{
-        width: size,
-        height: size,
-        borderRadius: radius.full,
-        backgroundColor: pair.bg,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <AppText
-        variant="label"
-        style={{ color: pair.fg, fontSize: size * 0.36, lineHeight: size * 0.5 }}
-      >
-        {initials}
-      </AppText>
-    </View>
-  );
+/**
+ * Arriving from a chip on somebody's profile: show only the classmates who
+ * put the same thing on theirs. A private profile never matches — we don't
+ * have their interests and we shouldn't.
+ */
+function sharesInterest(person: DirectoryPerson, interest: string): boolean {
+  if (interest.length === 0) return true;
+  const wanted = interest.toLowerCase();
+  return person.interests.some((entry) => entry.toLowerCase() === wanted);
+}
+
+/** text[] from PostgREST, kept honest before it reaches the filter. */
+function interestsOf(raw: string[] | null): string[] {
+  return Array.isArray(raw)
+    ? raw.filter(
+        (entry): entry is string =>
+          typeof entry === "string" && entry.trim().length > 0
+      )
+    : [];
 }
 
 function Pill({
@@ -196,7 +195,7 @@ function PersonRow({
           minHeight: 68,
         }}
       >
-        <Initials name={name} size={44} />
+        <Avatar url={person.avatar_url} name={name} size={44} />
         <View style={{ flex: 1, gap: 2 }}>
           {limited ? (
             <>
@@ -275,6 +274,17 @@ export default function PeopleScreen() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
+  /* A tap on an interest chip over on somebody's profile lands here as
+     `?interest=`. It reads as a chip above the list with its own way off,
+     so the screen never gets stuck in a filter you didn't set yourself. */
+  const params = useLocalSearchParams<{ interest?: string }>();
+  const interestParam =
+    typeof params.interest === "string" ? params.interest.trim() : "";
+  const [interest, setInterest] = useState(interestParam);
+  useEffect(() => {
+    setInterest(interestParam);
+  }, [interestParam]);
+
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace("/(tabs)/home");
@@ -294,29 +304,50 @@ export default function PeopleScreen() {
     if (meError || !meData) throw meError ?? new Error("No profile");
     const me = meData as unknown as MeRow;
 
-    const { data, error: dirError } = await supabase
-      .from("profiles")
-      .select("id, handle, display_name, avatar_url, major, grad_year, is_public")
-      .eq("university_id", me.university_id)
-      .order("display_name", { ascending: true });
-    if (dirError) throw dirError;
+    /* Two queries, because the difference between them is the whole point: a
+       private classmate's name, major, year and interests are never asked
+       for, so they never leave the database. Stripping them here instead
+       would ship every hidden field to the phone first. */
+    const [openRes, limitedRes] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select(OPEN_SELECT)
+        .eq("university_id", me.university_id)
+        .or(`is_public.eq.true,id.eq.${userId}`)
+        .order("display_name", { ascending: true }),
+      supabase
+        .from("profiles")
+        .select(LIMITED_SELECT)
+        .eq("university_id", me.university_id)
+        .eq("is_public", false)
+        .neq("id", userId)
+        .order("handle", { ascending: true }),
+    ]);
+    if (openRes.error) throw openRes.error;
+    if (limitedRes.error) throw limitedRes.error;
 
-    // Same rule as the web /people page: private profiles that aren't mine
-    // are stripped to handle + avatar before anything else touches them.
-    const mapped: DirectoryPerson[] = ((data ?? []) as DirectoryRow[]).map(
-      (p) =>
-        p.is_public || p.id === userId
-          ? p
-          : {
-              id: p.id,
-              handle: p.handle,
-              display_name: null,
-              avatar_url: p.avatar_url,
-              major: null,
-              grad_year: null,
-              is_public: false,
-            }
-    );
+    const mapped: DirectoryPerson[] = [
+      ...((openRes.data ?? []) as unknown as OpenRow[]).map((p) => ({
+        id: p.id,
+        handle: p.handle,
+        display_name: p.display_name,
+        avatar_url: p.avatar_url,
+        major: p.major,
+        grad_year: p.grad_year,
+        interests: interestsOf(p.interests),
+        is_public: p.is_public,
+      })),
+      ...((limitedRes.data ?? []) as unknown as LimitedRow[]).map((p) => ({
+        id: p.id,
+        handle: p.handle,
+        display_name: null,
+        avatar_url: p.avatar_url,
+        major: null,
+        grad_year: null,
+        interests: [],
+        is_public: false,
+      })),
+    ];
 
     // Full cards first (alphabetical), limited private cards after (by handle).
     mapped.sort((a, b) => {
@@ -369,10 +400,14 @@ export default function PeopleScreen() {
     [people, blocked, userId]
   );
   const filtered = useMemo(
-    () => visiblePeople.filter((p) => matches(p, query)),
-    [visiblePeople, query]
+    () =>
+      visiblePeople.filter(
+        (p) => sharesInterest(p, interest) && matches(p, query)
+      ),
+    [visiblePeople, query, interest]
   );
-  const searching = query.trim().length > 0;
+  /** Either the box or the interest chip is standing between you and the list. */
+  const narrowed = query.trim().length > 0 || interest.length > 0;
   const count = people === null ? 0 : visiblePeople.length;
 
   const renderItem = useCallback(
@@ -383,10 +418,10 @@ export default function PeopleScreen() {
         /* The directory arrives once and is filtered in the hand after
            that, so the stagger belongs to that first paint — not to every
            keystroke that drops rows out and puts them back. */
-        entrance={searching ? undefined : index}
+        entrance={narrowed ? undefined : index}
       />
     ),
-    [userId, searching]
+    [userId, narrowed]
   );
 
   return (
@@ -492,6 +527,30 @@ export default function PeopleScreen() {
         ) : null}
       </View>
 
+      {interest.length > 0 ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            marginTop: 10,
+          }}
+        >
+          <AppText variant="caption" muted>
+            Into
+          </AppText>
+          <Chip
+            label={interest}
+            tone="brand"
+            size="md"
+            icon="x"
+            selected
+            accessibilityLabel={`Stop showing only classmates into ${interest}`}
+            onPress={() => setInterest("")}
+          />
+        </View>
+      ) : null}
+
       {/* The list narrows under the cursor with nothing else moving, so the
           count says itself as it changes. */}
       <AppText
@@ -500,7 +559,7 @@ export default function PeopleScreen() {
         accessibilityLiveRegion="polite"
         style={{ minHeight: 16, marginTop: 8, marginBottom: 8 }}
       >
-        {searching
+        {narrowed
           ? `${filtered.length} ${filtered.length === 1 ? "match" : "matches"}`
           : ""}
       </AppText>
@@ -649,14 +708,22 @@ export default function PeopleScreen() {
                   muted
                   style={{ textAlign: "center", maxWidth: 280 }}
                 >
-                  No one matches "{query.trim()}". Try a different name, handle
-                  or major.
+                  {query.trim().length > 0
+                    ? `No one matches "${query.trim()}". Try a different name, handle or major.`
+                    : `Nobody else has put ${interest} on their profile yet. Private profiles don't show their interests.`}
                 </AppText>
                 <Button
-                  label="Clear search"
+                  label={
+                    query.trim().length > 0
+                      ? "Clear search"
+                      : "Show everyone again"
+                  }
                   variant="soft"
                   size="sm"
-                  onPress={() => setQuery("")}
+                  onPress={() => {
+                    setQuery("");
+                    setInterest("");
+                  }}
                 />
               </Card>
             )

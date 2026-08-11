@@ -12,6 +12,7 @@ import {
 import {
   AccessibilityInfo,
   Animated,
+  AppState,
   FlatList,
   Pressable,
   RefreshControl,
@@ -22,7 +23,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FocusStrip } from "@/components/focus-strip";
 import { Mug, type IllustrationProps } from "@/components/illustrations";
-import { AppText, Button, Card } from "@/components/ui";
+import { AppText, Button, Card, SectionLabel } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useUnreadNotifications } from "@/hooks/use-unread";
@@ -90,9 +91,15 @@ type CalendarItemRow = {
   due_at: string;
 };
 
+/** The plan card's three numbers. The score is deliberately the WEEK's — the
+    same window `/plan` prints, so the two screens can't disagree. */
 type PlanSummary = {
+  /** Everything in the fetched window, however far out — gates the card's copy. */
   total: number;
-  handled: number;
+  /** Items due between a week ago and the end of this week. */
+  weekTotal: number;
+  /** Checked off among those. */
+  weekHandled: number;
   nextUp: { courseCode: string; title: string; dueAt: Date } | null;
 };
 
@@ -283,13 +290,19 @@ function PlanCard({ plan }: { plan: PlanSummary }) {
     : plan.nextUp
       ? `Next up: ${plan.nextUp.courseCode} ${plan.nextUp.title}`
       : "All handled — nothing hanging over you";
+  // Named window, always: an unlabelled score is the reason Home and /plan
+  // could print two different fractions of the same term.
+  const score =
+    plan.weekTotal > 0
+      ? `${plan.weekHandled} of ${plan.weekTotal} handled this week`
+      : "Nothing due this week";
   const caption = !hasItems
     ? "Import a syllabus and every due date lands here."
     : plan.nextUp
       ? `${plan.nextUp.dueAt.getTime() < Date.now() ? "Was due" : "Due"} ${formatDueTime(
           plan.nextUp.dueAt
-        )} · ${plan.handled} of ${plan.total} handled this week`
-      : `${plan.handled} of ${plan.total} handled this week`;
+        )} · ${score}`
+      : score;
   return (
     <Pressable
       accessibilityRole="button"
@@ -331,50 +344,6 @@ function PlanCard({ plan }: { plan: PlanSummary }) {
         <Feather name="chevron-right" size={18} color={theme.muted} />
       </Card>
     </Pressable>
-  );
-}
-
-/** Section labels carry the whole page rhythm: 24 above, 12 below, always. */
-function SectionLabel({ text, action }: { text: string; action?: RowAction }) {
-  const theme = useTheme();
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 8,
-        marginTop: 24,
-        marginBottom: 12,
-      }}
-    >
-      <AppText
-        variant="label"
-        muted
-        style={{ textTransform: "uppercase", letterSpacing: 1.2 }}
-      >
-        {text}
-      </AppText>
-      {action ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={action.label}
-          onPress={action.onPress}
-          hitSlop={{ top: 14, bottom: 14, left: 12, right: 12 }}
-          style={({ pressed }) => ({
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 2,
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <AppText variant="label" style={{ color: theme.brand }}>
-            {action.label}
-          </AppText>
-          <Feather name="chevron-right" size={14} color={theme.brand} />
-        </Pressable>
-      ) : null}
-    </View>
   );
 }
 
@@ -528,7 +497,7 @@ function CampusRow({
             </AppText>
           ) : (
             <AppText variant="caption" muted numberOfLines={1}>
-              No messages yet — say hi!
+              No messages yet — say hi.
             </AppText>
           )}
         </View>
@@ -706,6 +675,39 @@ function BoardCard({ posts }: { posts: BoardPost[] }) {
   );
 }
 
+/**
+ * The newest readable message in each of these channels, keyed by channel id.
+ *
+ * One tiny indexed lookup per channel, all in flight together — the same
+ * shape the first load uses and cheap enough to re-run every time Home comes
+ * back into view, which is what makes an unread dot able to APPEAR rather
+ * than only to clear. A channel with nothing in it is simply absent.
+ *
+ * Failures are silent per channel: a preview that didn't come back leaves the
+ * row without a subtitle, which is not worth an error state on the front door.
+ */
+async function fetchPreviews(
+  channels: readonly ChannelRow[]
+): Promise<Record<string, MessagePreview>> {
+  const previews: Record<string, MessagePreview> = {};
+  await Promise.all(
+    channels.map(async (channel) => {
+      const { data: preview } = await supabase
+        .from("messages")
+        .select("content, created_at, author_id, author:profiles(display_name)")
+        .eq("channel_id", channel.id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (preview) {
+        previews[channel.id] = preview as unknown as MessagePreview;
+      }
+    })
+  );
+  return previews;
+}
+
 /** Quiet surface2 blocks mirroring the real layout while home loads. */
 function HomeGhosts() {
   const theme = useTheme();
@@ -860,7 +862,12 @@ export default function HomeScreen() {
       .filter((row) => row.archived_at === null)
       .map((row) => row.course)
       .filter((c): c is { id: string; code: string } => c !== null);
-    let plan: PlanSummary = { total: 0, handled: 0, nextUp: null };
+    let plan: PlanSummary = {
+      total: 0,
+      weekTotal: 0,
+      weekHandled: 0,
+      nextUp: null,
+    };
     let today: TodaySummary = { dueCount: 0, firstDueTitle: null };
     if (enrolledCourses.length > 0) {
       const now = new Date();
@@ -896,7 +903,8 @@ export default function HomeScreen() {
       const { groups, stats } = buildPlan(planItems, checkoffs, now);
       plan = {
         total: stats.total,
-        handled: stats.handled,
+        weekTotal: stats.weekTotal,
+        weekHandled: stats.weekHandled,
         nextUp: stats.nextUp
           ? {
               courseCode: stats.nextUp.courseCode,
@@ -920,24 +928,7 @@ export default function HomeScreen() {
       };
     }
 
-    // Latest message per joined channel: one tiny indexed lookup each,
-    // batched in parallel — same shape as the web home.
-    const previews: Record<string, MessagePreview> = {};
-    await Promise.all(
-      [...campusChannels, ...courseChannels].map(async (channel) => {
-        const { data: preview } = await supabase
-          .from("messages")
-          .select("content, created_at, author_id, author:profiles(display_name)")
-          .eq("channel_id", channel.id)
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (preview) {
-          previews[channel.id] = preview as unknown as MessagePreview;
-        }
-      })
-    );
+    const previews = await fetchPreviews([...campusChannels, ...courseChannels]);
 
     const firstName =
       profile.display_name.trim().split(/\s+/)[0] || profile.handle;
@@ -955,10 +946,15 @@ export default function HomeScreen() {
     };
   }, [userId]);
 
+  /**
+   * `initial` shows the ghosts, `refresh` drives the pull-to-refresh spinner,
+   * and `silent` re-fetches with no visible machinery — for the refresh
+   * nobody asked for, when the app comes back to the foreground.
+   */
   const run = useCallback(
-    async (mode: "initial" | "refresh") => {
+    async (mode: "initial" | "refresh" | "silent") => {
       if (mode === "initial") setLoading(true);
-      else setRefreshing(true);
+      if (mode === "refresh") setRefreshing(true);
       try {
         setData(await fetchHome());
         setError(null);
@@ -966,7 +962,7 @@ export default function HomeScreen() {
         setError("We couldn't load your campus right now.");
       } finally {
         if (mode === "initial") setLoading(false);
-        else setRefreshing(false);
+        if (mode === "refresh") setRefreshing(false);
       }
     },
     [fetchHome]
@@ -997,24 +993,49 @@ export default function HomeScreen() {
       .catch(() => entrance.setValue(1));
   }, [data, entrance]);
 
-  // Opening a channel bumps my last_read_at there (the room screen's job), so
-  // re-pull just my membership rows on focus — that's what clears a campus
-  // row's unread dot when you come back from reading it.
-  const refreshMemberMeta = useCallback(async () => {
+  /* The channel list, kept where a callback can reach it without being
+     rebuilt every time Home's data changes. */
+  const channelsRef = useRef<ChannelRow[]>([]);
+  useEffect(() => {
+    channelsRef.current = data
+      ? [...data.campusChannels, ...data.courseChannels]
+      : [];
+  }, [data]);
+
+  /**
+   * Both halves of an unread dot, re-pulled together.
+   *
+   * A dot is "the newest message is newer than my last_read_at", so refreshing
+   * only the membership rows can move `lastReadAt` forward and never move the
+   * message — the dot could clear but could never appear. Opening a channel
+   * bumps `last_read_at` (the room screen's job) and messages arrive while
+   * Home sits there, so both sides have to come back from the same trip.
+   */
+  const refreshUnreadDots = useCallback(async () => {
     if (!userId) return;
-    const { data: metaRows, error: metaError } = await supabase
-      .from("channel_members")
-      .select("channel_id, last_read_at, muted")
-      .eq("user_id", userId);
-    if (metaError) return;
+    const channels = channelsRef.current;
+    const [metaRes, previews] = await Promise.all([
+      supabase
+        .from("channel_members")
+        .select("channel_id, last_read_at, muted")
+        .eq("user_id", userId),
+      fetchPreviews(channels),
+    ]);
+    if (metaRes.error) return;
     const memberMeta: Record<string, MemberMeta> = {};
-    for (const row of (metaRows ?? []) as unknown as MemberMetaRow[]) {
+    for (const row of (metaRes.data ?? []) as unknown as MemberMetaRow[]) {
       memberMeta[row.channel_id] = {
         lastReadAt: row.last_read_at,
         muted: row.muted,
       };
     }
-    setData((prev) => (prev ? { ...prev, memberMeta } : prev));
+    setData((prev) => {
+      if (!prev) return prev;
+      // The first focus can land before the first load, with no channels to
+      // ask about yet — don't let that empty answer erase real previews.
+      if (channels.length === 0) return { ...prev, memberMeta };
+      return { ...prev, memberMeta, previews };
+    });
   }, [userId]);
 
   // Coming back from the inbox: rows marked read arrive as UPDATEs, which the
@@ -1022,9 +1043,30 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       refreshUnread();
-      void refreshMemberMeta();
-    }, [refreshUnread, refreshMemberMeta])
+      void refreshUnreadDots();
+    }, [refreshUnread, refreshUnreadDots])
   );
+
+  /* Focus is not foreground. Lock the phone on Home and Home never blurs, so
+     `useFocusEffect` never fires again — the front door still shows whatever
+     was true when the screen was locked. Coming back from the background is
+     the other moment everything on this page can be stale, so it gets the
+     same treatment, quietly and without a spinner. */
+  useEffect(() => {
+    if (!userId) return;
+    let away = false;
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") {
+        away = true;
+        return;
+      }
+      if (!away) return;
+      away = false;
+      refreshUnread();
+      void run("silent");
+    });
+    return () => sub.remove();
+  }, [userId, run, refreshUnread]);
 
   const rows = useMemo<ListRow[]>(() => {
     if (!data) return [];
@@ -1208,9 +1250,11 @@ export default function HomeScreen() {
   }, [data]);
 
   /* Home builds its own header (instead of Screen's) for one reason: the
-     quiet date eyebrow has to sit ABOVE the display greeting, and Screen's
-     title slot can't host it. Metrics mirror Screen exactly — same safe-area
-     padding, same margins — so the front door still feels like every room. */
+     greeting carries a quiet date line UNDER it, and Screen's title slot is a
+     single line. The date sits below because a screen title stands on its own
+     — an all-caps line above a heading reads as the heading. Metrics mirror
+     Screen exactly — same safe-area padding, same margins — so the front door
+     still feels like every room. */
   return (
     <View
       style={{
@@ -1223,25 +1267,40 @@ export default function HomeScreen() {
       <View
         style={{
           flexDirection: "row",
-          alignItems: "flex-end",
+          alignItems: "flex-start",
           justifyContent: "space-between",
           gap: 12,
           marginBottom: 16,
         }}
       >
-        <View style={{ flexShrink: 1, gap: 4 }}>
-          <AppText
-            variant="label"
-            muted
-            style={{ textTransform: "uppercase", letterSpacing: 1.2 }}
-          >
-            {dateLine}
-          </AppText>
+        <View style={{ flexShrink: 1, gap: 2 }}>
           <AppText variant="display" numberOfLines={1}>
             {greeting}
           </AppText>
+          <AppText variant="caption" muted numberOfLines={1}>
+            {dateLine}
+          </AppText>
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
+        {/* Three 44px targets, pulled 10px past the gutter so the icons sit
+            optically on it and the greeting keeps the width their padding
+            would otherwise take. */}
+        <View
+          style={{ flexDirection: "row", alignItems: "center", marginRight: -10 }}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Search campus"
+            onPress={() => router.push("/search")}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Feather name="search" size={22} color={theme.muted} />
+          </Pressable>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={

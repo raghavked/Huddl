@@ -15,9 +15,10 @@ import { supabase } from "@/lib/supabase";
  *
  *   2. The starter state. One read of what a new student still lacks —
  *      classes, a channel they picked themselves, a face, a line about
- *      themselves — plus a pure helper that turns that into the ordered
- *      checklist, copy and destinations included. The screen renders; it
- *      does not compose sentences and it does not write five queries.
+ *      themselves, a line about what they're after — plus a pure helper that
+ *      turns that into the ordered checklist, copy and destinations included.
+ *      The screen renders; it does not compose sentences and it does not
+ *      write five queries.
  *
  * No React in here, no theme, no navigation calls — storage, three cheap
  * queries, and one pure function.
@@ -104,7 +105,7 @@ export async function resetFirstRun(): Promise<void> {
 /* ------------------------------ shapes ------------------------------ */
 
 /**
- * What a student has actually set up, as four plain values. Everything a
+ * What a student has actually set up, as five plain values. Everything a
  * "get set up" checklist needs, and nothing it doesn't — no profile row, no
  * course list, no channel list, so a caller can hold it in state cheaply and
  * refetch it on focus without thinking twice.
@@ -131,10 +132,20 @@ export type StarterState = {
   hasAvatar: boolean;
   /** Whether `profiles.bio` holds an actual line of text. */
   hasBio: boolean;
+  /**
+   * Whether `profiles.looking_for` (0034) holds an actual line of text — the
+   * one-liner a classmate reads to work out whether to say something.
+   */
+  hasLookingFor: boolean;
 };
 
 /** The step identities, stable enough to use as a React key or a log tag. */
-export type StarterStepKey = "courses" | "channels" | "photo" | "bio";
+export type StarterStepKey =
+  | "courses"
+  | "channels"
+  | "photo"
+  | "bio"
+  | "looking_for";
 
 /**
  * One line of the "get set up" checklist, ready to render: a title, a warm
@@ -142,7 +153,7 @@ export type StarterStepKey = "courses" | "channels" | "photo" | "bio";
  *
  * The copy lives in the data on purpose. Four screens could show this
  * checklist — home, an empty course list, the welcome itself, settings — and
- * they should all say the same four sentences.
+ * they should all say the same sentences.
  */
 export type StarterStep = {
   /** Stable identity. Use it as the list key. */
@@ -225,7 +236,7 @@ async function requireUserId(): Promise<string> {
  * doesn't need: two head-only `count: "exact"` queries — active enrollments,
  * and channel memberships inner-joined to `channels` so the auto-joined
  * defaults and the course chats are filtered out server-side — plus a
- * two-column read of the caller's own profile. Cheap enough to run on every
+ * three-column read of the caller's own profile. Cheap enough to run on every
  * focus of the home screen.
  *
  * The channel filter is the subtle one. `channels!inner(kind, is_default)`
@@ -239,8 +250,9 @@ async function requireUserId(): Promise<string> {
  * a "Try again" button; in a section of a fuller screen, `.catch(() => null)`
  * and render nothing — a missing nudge is no loss.
  *
- * @returns The four counts and flags. Missing profile row reads as no photo
- *   and no bio, which is exactly right mid-onboarding.
+ * @returns The counts and flags. A missing profile row reads as no photo, no
+ *   bio and nothing they're looking for, which is exactly right
+ *   mid-onboarding.
  * @throws {FirstRunError} With copy that's ready to render.
  */
 export async function fetchStarterState(): Promise<StarterState> {
@@ -263,7 +275,7 @@ export async function fetchStarterState(): Promise<StarterState> {
       .eq("channels.is_default", false),
     supabase
       .from("profiles")
-      .select("avatar_url, bio")
+      .select("avatar_url, bio, looking_for")
       .eq("id", userId)
       .maybeSingle(),
   ]);
@@ -277,19 +289,21 @@ export async function fetchStarterState(): Promise<StarterState> {
     joinedChannelCount: safeCount(channels.count),
     hasAvatar: filledIn(field(profile.data, "avatar_url")),
     hasBio: filledIn(field(profile.data, "bio")),
+    hasLookingFor: filledIn(field(profile.data, "looking_for")),
   };
 }
 
 /* --------------------------- pure helpers --------------------------- */
 
 /**
- * The checklist itself: four steps, always all four, always in this order —
- * classes, then a channel, then a face, then a line about yourself.
+ * The checklist itself: five steps, always all five, always in this order —
+ * classes, then a channel, then a face, then a line about yourself, then a
+ * line about what you're after.
  *
  * The order is the argument. Classes are the spine of the app; a student with
  * no courses has an empty calendar, empty notes, and no classmates, so
  * nothing else is worth suggesting first. Channels are next because they're
- * the one step that pays off with people the same evening. The two profile
+ * the one step that pays off with people the same evening. The three profile
  * steps come last: they matter for how classmates read you, but they matter
  * only once you're somewhere they'll see you.
  *
@@ -316,7 +330,7 @@ export function starterSteps(state: StarterState): StarterStep[] {
     {
       key: "channels",
       title: "Find a campus channel",
-      body: "You're already in the campus-wide ones. Browse the rest and join whatever sounds like your evening.",
+      body: "You're in the campus-wide ones already. Join one your classmates started, or start the first one yourself.",
       done: state.joinedChannelCount >= 1,
       route: "/channels/browse",
     },
@@ -334,11 +348,18 @@ export function starterSteps(state: StarterState): StarterStep[] {
       done: state.hasBio,
       route: "/account",
     },
+    {
+      key: "looking_for",
+      title: "Say what you're looking for",
+      body: "A lab partner, a ride home at break, people to run with — one line is how classmates spot the overlap.",
+      done: state.hasLookingFor,
+      route: "/account",
+    },
   ];
 }
 
 /**
- * How far along the checklist is: `{ done, total }`, for the "2 of 4" line
+ * How far along the checklist is: `{ done, total }`, for the "2 of 5" line
  * above it and for deciding whether to draw the checklist at all.
  *
  * Pure. Counts {@link starterSteps} rather than re-deriving the rules, so the

@@ -384,16 +384,34 @@ export default function SettingsScreen() {
             label="Blocked people"
             onPress={() => router.push("/blocked")}
           />
+          {/* A report used to disappear the moment it was sent. */}
+          <SettingsLink
+            icon="flag"
+            label="Reports you've filed"
+            onPress={() => router.push("/my-reports")}
+          />
           <SettingsLink
             icon="book"
             label="Community guidelines"
             onPress={() => router.push("/legal/guidelines")}
           />
+          {/* Onboarding records that these were accepted, so they have to
+              stay readable afterwards — not only on the signup screen. */}
+          <SettingsLink
+            icon="file-text"
+            label="Terms of service"
+            onPress={() => router.push("/legal/terms")}
+          />
+          <SettingsLink
+            icon="shield"
+            label="Privacy policy"
+            onPress={() => router.push("/legal/privacy")}
+          />
           {/* Only campus moderators have a queue to open. */}
           {isModerator === true ? (
             <SettingsLink
-              icon="flag"
-              label="Reports"
+              icon="inbox"
+              label="Moderation queue"
               onPress={() => router.push("/moderation")}
             />
           ) : null}

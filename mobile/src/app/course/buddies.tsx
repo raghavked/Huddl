@@ -1,5 +1,10 @@
 import Feather from "@expo/vector-icons/Feather";
-import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  Redirect,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -24,6 +29,7 @@ import {
   SkeletonRow,
 } from "@/components/ui";
 import { radius } from "@/constants/theme";
+import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { tapSuccess } from "@/lib/haptics";
 import {
@@ -230,15 +236,6 @@ function messageFor(caught: unknown, fallback: string): string {
   return caught instanceof StudyBuddyError ? caught.message : fallback;
 }
 
-/** A raw error message off anything shaped like an error, for matching only. */
-function rawMessage(caught: unknown): string {
-  if (typeof caught === "object" && caught !== null) {
-    const message = (caught as { message?: unknown }).message;
-    if (typeof message === "string") return message;
-  }
-  return "";
-}
-
 /* -------------------------------- screen -------------------------------- */
 
 export default function StudyBuddiesScreen() {
@@ -342,6 +339,17 @@ export default function StudyBuddiesScreen() {
     setRefreshing(true);
     void load().finally(() => setRefreshing(false));
   }, [load]);
+
+  /* Somebody you blocked doesn't get to hand you a note. Their row carries
+     free text straight to you, which is the least defensible place for the
+     block list's promise to go unkept. Refreshed on focus so a block made
+     from their profile takes hold on the way back. */
+  const { blocked, refresh: refreshBlocked } = useBlockedIds();
+  useFocusEffect(
+    useCallback(() => {
+      void refreshBlocked();
+    }, [refreshBlocked])
+  );
 
   /** My row as classmates would see it, for the optimistic insert. */
   const buildMyRow = useCallback(
@@ -449,6 +457,11 @@ export default function StudyBuddiesScreen() {
    * Open the 1:1 thread with a classmate. `create_dm_thread` is find-or-create
    * on the server (and since 0028 it skips group threads), so one call covers
    * both "we've talked before" and "we haven't".
+   *
+   * Every failure reads the same on purpose. The server also refuses across a
+   * block, and a block is one-way and private — a message that said "you two
+   * can't message each other" would only ever be read by the person who got
+   * blocked, which tells them exactly what they were never meant to learn.
    */
   const handleMessage = useCallback(
     async (buddy: StudyBuddy) => {
@@ -463,12 +476,10 @@ export default function StudyBuddiesScreen() {
         const threadId = typeof data === "string" ? data : null;
         if (rpcError || !threadId) throw rpcError ?? new Error("No thread");
         router.push(`/dm/${threadId}`);
-      } catch (caught) {
+      } catch {
         setMessageError({
           userId: buddy.user_id,
-          text: rawMessage(caught).includes("message this person")
-            ? "You two can't message each other."
-            : "We couldn't open that conversation. Give it another go.",
+          text: "We couldn't open that conversation. Give it another go.",
         });
       } finally {
         setMessagingId(null);
@@ -619,7 +630,10 @@ export default function StudyBuddiesScreen() {
   /* ------------------------------- content ------------------------------ */
 
   const remaining = BUDDY_NOTE_MAX - noteDraft.length;
-  const others = buddies.filter((buddy) => !buddy.is_me);
+  const listed = buddies.filter(
+    (buddy) => buddy.is_me || !blocked.has(buddy.user_id)
+  );
+  const others = listed.filter((buddy) => !buddy.is_me);
   const composerOpen = mine === null || editing;
 
   /* The composer — the invitation when I'm not on the list, and the same
@@ -771,7 +785,7 @@ export default function StudyBuddiesScreen() {
 
         <SectionLabel text="Who's looking" />
 
-        {buddies.map((buddy) => (
+        {listed.map((buddy) => (
           <BuddyRow
             key={buddy.user_id}
             buddy={buddy}

@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
-import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -10,7 +10,7 @@ import {
   type ListRenderItemInfo,
 } from "react-native";
 import { Screen } from "@/components/screen";
-import { AppText, Button, Card } from "@/components/ui";
+import { AppText, Button, Card, Chip, type ChipTone } from "@/components/ui";
 import { fonts, radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
@@ -20,9 +20,11 @@ import { useAuth } from "@/providers/auth-provider";
    Mirrors the web events page query, simplified: upcoming only, no kind
    filters in v1. */
 
-type RsvpLite = { user_id: string; status: "going" | "maybe" | "declined" };
+type RsvpStatus = "going" | "maybe" | "declined";
 
-/** Raw select shape, with the joined rsvps rows. */
+type RsvpLite = { user_id: string; status: RsvpStatus };
+
+/** Raw select shape, with the joined rsvps rows and the hosting club. */
 type RawEventRow = {
   id: string;
   kind: "study_session" | "meetup";
@@ -32,6 +34,8 @@ type RawEventRow = {
   ends_at: string | null;
   capacity: number | null;
   rsvps: RsvpLite[];
+  /** The club running it, or null for a student-planned event. */
+  club: { name: string } | null;
 };
 
 type EventItem = {
@@ -44,7 +48,25 @@ type EventItem = {
   capacity: number | null;
   goingCount: number;
   isFull: boolean;
+  /** Who's hosting, when a club is. */
+  clubName: string | null;
+  /**
+   * My own answer, straight out of the rows the list already fetched. Without
+   * it the list is a wall of events with no memory of the three you said yes
+   * to yesterday.
+   */
+  myStatus: RsvpStatus | null;
 };
+
+/** The chip on a row I've answered: fern for yes, quiet for a maybe. A "no"
+    needs no pill — the row is just an event I'm not going to. */
+function statusChip(
+  status: RsvpStatus
+): { label: string; tone: ChipTone } | null {
+  if (status === "going") return { label: "Going", tone: "accent" };
+  if (status === "maybe") return { label: "Maybe", tone: "neutral" };
+  return null;
+}
 
 /** "Sat, Aug 9 · 3:00 PM–5:00 PM" — local device time, like the web. */
 function formatEventTime(startIso: string, endIso: string | null): string {
@@ -119,8 +141,16 @@ function eventLabel(event: EventItem): string {
   const headcount = `${event.goingCount} going${
     event.capacity !== null && !event.isFull ? ` of ${event.capacity}` : ""
   }`;
+  const mine =
+    event.myStatus === "going"
+      ? "you're going"
+      : event.myStatus === "maybe"
+        ? "you said maybe"
+        : null;
   return [
     `Open ${event.title}`,
+    mine,
+    event.clubName ? `hosted by ${event.clubName}` : null,
     formatEventTime(event.starts_at, event.ends_at),
     event.location,
     headcount,
@@ -132,6 +162,7 @@ function eventLabel(event: EventItem): string {
 
 function EventRow({ event, index }: { event: EventItem; index: number }) {
   const theme = useTheme();
+  const mine = event.myStatus ? statusChip(event.myStatus) : null;
   return (
     <Pressable
       accessibilityRole="button"
@@ -155,20 +186,35 @@ function EventRow({ event, index }: { event: EventItem; index: number }) {
       >
         <DateTile iso={event.starts_at} />
         <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-          <AppText variant="bodySemi" numberOfLines={2}>
-            {event.title}
-          </AppText>
+          <View
+            style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}
+          >
+            <AppText
+              variant="bodySemi"
+              numberOfLines={2}
+              style={{ flex: 1, minWidth: 0 }}
+            >
+              {event.title}
+            </AppText>
+            {mine ? <Chip label={mine.label} tone={mine.tone} /> : null}
+          </View>
           <AppText variant="caption" muted numberOfLines={1}>
             {formatEventTime(event.starts_at, event.ends_at)}
             {event.location ? ` · ${event.location}` : ""}
           </AppText>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
             <Feather name="user" size={12} color={theme.muted} />
-            <AppText variant="caption" muted>
+            <AppText
+              variant="caption"
+              muted
+              numberOfLines={1}
+              style={{ flexShrink: 1 }}
+            >
               {event.goingCount} going
               {event.capacity !== null && !event.isFull
                 ? ` of ${event.capacity}`
                 : ""}
+              {event.clubName ? ` · ${event.clubName}` : ""}
             </AppText>
             {event.isFull ? (
               <AppText variant="label" style={{ color: theme.danger }}>
@@ -209,7 +255,7 @@ export default function EventsScreen() {
     const eventsRes = await supabase
       .from("events")
       .select(
-        "id, kind, title, location, starts_at, ends_at, capacity, rsvps:event_rsvps(user_id, status)"
+        "id, kind, title, location, starts_at, ends_at, capacity, rsvps:event_rsvps(user_id, status), club:clubs(name)"
       )
       .eq("university_id", universityId)
       .gte("starts_at", new Date().toISOString())
@@ -219,9 +265,11 @@ export default function EventsScreen() {
 
     const rows = (eventsRes.data ?? []) as unknown as RawEventRow[];
     return rows.map((row) => {
-      const goingCount = (row.rsvps ?? []).filter(
-        (r) => r.status === "going"
-      ).length;
+      const rsvps = row.rsvps ?? [];
+      const goingCount = rsvps.filter((r) => r.status === "going").length;
+      // Every row already arrives carrying my own answer; it just used to be
+      // counted and thrown away.
+      const mine = rsvps.find((r) => r.user_id === userId);
       return {
         id: row.id,
         kind: row.kind,
@@ -232,14 +280,16 @@ export default function EventsScreen() {
         capacity: row.capacity,
         goingCount,
         isFull: row.capacity !== null && goingCount >= row.capacity,
+        clubName: row.club?.name ?? null,
+        myStatus: mine?.status ?? null,
       };
     });
   }, [userId]);
 
   const run = useCallback(
-    async (mode: "initial" | "refresh") => {
+    async (mode: "initial" | "refresh" | "silent") => {
       if (mode === "initial") setLoading(true);
-      else setRefreshing(true);
+      if (mode === "refresh") setRefreshing(true);
       try {
         setEvents(await fetchEvents());
         setError(null);
@@ -247,16 +297,27 @@ export default function EventsScreen() {
         setError("We couldn't load the calendar right now.");
       } finally {
         if (mode === "initial") setLoading(false);
-        else setRefreshing(false);
+        if (mode === "refresh") setRefreshing(false);
       }
     },
     [fetchEvents]
   );
 
-  useEffect(() => {
-    if (!userId) return;
-    void run("initial");
-  }, [userId, run]);
+  /* Tabs stay mounted, so a fetch on mount is a fetch once a session: plan an
+     event, tap back, and it wasn't in the list. First focus loads with a
+     spinner; every focus after it refetches quietly. */
+  const loadedRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+      if (loadedRef.current) {
+        void run("silent");
+      } else {
+        loadedRef.current = true;
+        void run("initial");
+      }
+    }, [userId, run])
+  );
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<EventItem>) => (

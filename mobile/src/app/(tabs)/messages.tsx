@@ -112,7 +112,7 @@ function previewOf(item: ThreadItem): string {
   if (!item.latest) {
     return item.isGroup
       ? "No messages yet — get it started."
-      : "No messages yet — say hi!";
+      : "No messages yet — say hi.";
   }
   if (item.latest.deleted_at) return "Message deleted";
   const body = item.latest.content.replace(/\s+/g, " ");
@@ -321,15 +321,18 @@ function ThreadRow({ item, index }: { item: ThreadItem; index: number }) {
   );
 }
 
+/* The way out of an empty inbox is a person, not a blank composer — so the
+   button opens the directory, where classmates come with a face, a major and
+   a year. The composer is still one tap away in the header. */
 function EmptyThreads() {
   return (
     <EmptyState
       illustration={PaperPlane}
       title="No conversations yet"
-      body="Message a classmate to trade notes, plan study sessions, or just say hi — or pick a few and get everyone in one place."
+      body="Everyone at your campus is in the directory, with their major and their year. Find someone to trade notes with, or pick a few and get them all in one place."
       action={{
-        label: "Start a conversation",
-        onPress: () => router.push("/dm/new"),
+        label: "Find classmates",
+        onPress: () => router.push("/people"),
       }}
     />
   );
@@ -497,23 +500,55 @@ export default function MessagesScreen() {
       title="Messages"
       scroll={false}
       action={
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="New message"
-          onPress={() => router.push("/dm/new")}
-          hitSlop={8}
-          style={({ pressed }) => ({
-            width: 44,
-            height: 44,
-            borderRadius: radius.full,
-            backgroundColor: theme.brandSoft,
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: pressed ? 0.7 : 1,
-          })}
-        >
-          <Feather name="user-plus" size={20} color={theme.brandInk} />
-        </Pressable>
+        /* Two doors, because they answer different questions. The directory
+           is for "who is even here"; the composer is for "I know who I want
+           to talk to". Before this, only the second one existed. */
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Find classmates"
+            onPress={() => router.push("/people")}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Feather
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              name="users"
+              size={20}
+              color={theme.foreground}
+            />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="New message"
+            onPress={() => router.push("/dm/new")}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              borderRadius: radius.full,
+              backgroundColor: theme.brandSoft,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Feather
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              name="edit"
+              size={19}
+              color={theme.brandInk}
+            />
+          </Pressable>
+        </View>
       }
     >
       {loading ? (
