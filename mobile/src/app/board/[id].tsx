@@ -270,9 +270,9 @@ export default function BoardPostScreen() {
   }, [post, messaging]);
 
   /**
-   * Report the post. `/report` takes the author as the subject today, so a
-   * report still lands with someone attached to it; `boardPostId` rides along
-   * for when that screen learns to write `reports.board_post_id`.
+   * Report the post. `/report` writes `reports.board_post_id` and names the
+   * post in its own words; the author rides along as well so the report keeps
+   * a subject if the post itself is later deleted.
    */
   const openReport = useCallback(() => {
     if (!post) return;
