@@ -1,6 +1,7 @@
 import Feather from "@expo/vector-icons/Feather";
 import { Pressable, View } from "react-native";
-import { AppText, Card } from "@/components/ui";
+import { AppText } from "@/components/ui";
+import { MessageBubble } from "@/features/messages";
 import { useTheme } from "@/hooks/use-theme";
 import type { QueuedMessage } from "@/lib/drafts";
 
@@ -37,19 +38,18 @@ export function PendingBubble({
           opacity: pressed ? 0.7 : 1,
         })}
       >
-        <Card
-          padded={false}
-          style={{
-            backgroundColor: theme.surface2,
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: message.stuck ? theme.danger : theme.border,
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-          }}
+        {/* The same bubble the sent messages above it use — a queued message
+            is the message, just not gone yet, and drawing it as its own shape
+            made the wait look like a different kind of thing. Only the border
+            differs, and only when the send is stuck. */}
+        <MessageBubble
+          own
+          style={
+            message.stuck ? { borderColor: theme.danger } : undefined
+          }
         >
           <AppText style={{ color: theme.foreground }}>{content}</AppText>
-        </Card>
+        </MessageBubble>
       </Pressable>
       <View
         style={{

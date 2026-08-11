@@ -1,9 +1,25 @@
 import { ScrollView, View, type ViewProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/ui";
+import { space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
-/** Standard screen scaffold: safe-area padding, display title, content. */
+/**
+ * The standard screen scaffold: safe-area padding, a display title, content.
+ *
+ * This is where most of the app gets its air, so the numbers here are the
+ * `space` ladder rather than literals — `gutter` down both edges, `chapter`
+ * under the title, and `rest` at the foot of a scroll so the last card isn't
+ * pinned against the home indicator.
+ *
+ * The title sits `chapter` above the content rather than `card`. A screen
+ * title is the start of a new thought and wants the same air a section
+ * heading gets; the old 16 read as a caption attached to the first card.
+ *
+ * `insets.top + close` is the one deliberate literal-ish value: it hangs off
+ * the notch rather than off the ladder, and 12 is what puts a 28px display
+ * line optically level with a 44px back chevron on the screens that have one.
+ */
 export function Screen({
   title,
   action,
@@ -25,11 +41,13 @@ export function Screen({
         flexDirection: "row",
         alignItems: "flex-end",
         justifyContent: "space-between",
-        gap: 12,
-        marginBottom: 16,
+        gap: space.close,
+        marginBottom: space.chapter,
       }}
     >
-      <AppText variant="display">{title}</AppText>
+      <AppText variant="display" style={{ flex: 1 }} numberOfLines={2}>
+        {title}
+      </AppText>
       {action}
     </View>
   );
@@ -41,8 +59,8 @@ export function Screen({
           {
             flex: 1,
             backgroundColor: theme.background,
-            paddingTop: insets.top + 12,
-            paddingHorizontal: 20,
+            paddingTop: insets.top + space.close,
+            paddingHorizontal: space.gutter,
           },
           style,
         ]}
@@ -58,9 +76,9 @@ export function Screen({
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.background }}
       contentContainerStyle={{
-        paddingTop: insets.top + 12,
-        paddingHorizontal: 20,
-        paddingBottom: 32,
+        paddingTop: insets.top + space.close,
+        paddingHorizontal: space.gutter,
+        paddingBottom: insets.bottom + space.rest,
       }}
     >
       {header}

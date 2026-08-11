@@ -309,7 +309,8 @@ already exists, and hand-rolling is how a design system dies.
 | `Skeleton` / `SkeletonRow` | Still `surface2` ghost blocks for a first paint whose shape you can honestly predict. **No shimmer** — opt into a gentle `pulse` only for a genuinely long wait. |
 | `useReducedMotion` | Live OS reduce-motion state. Ask before you animate. |
 | `Avatar` (`@/components/avatar`) | The one way we draw a person: photo, or two initials on an ember-or-fern circle tinted by a stable hash of their name. Decorative — the name is always rendered beside it. |
-| `Screen` (`@/components/screen`) | Safe-area scaffold + display title + optional header action. |
+| `MessageBubble` (`@/features/messages`) | The chat bubble — **one shape** for a course room, a thread, a DM, and a message still sitting in the send queue. `own` (clay wash) / `deleted` (dashed outline, no fill) / `highlighted` (ember border, for a search or notification jump). The contents stay with each room, because a channel renders mentions and provenance where a DM renders plain text; folding that in would be a switch statement wearing a component's name. |
+| `Screen` (`@/components/screen`) | Safe-area scaffold + display title + optional header action. Owns the screen's air: `gutter` both edges, `chapter` under the title, `rest` plus the home indicator at the foot of a scroll. |
 | Illustrations (`@/components/illustrations`) | `Mug`, `Doorway`, `PaperPlane`, `Pennant`, `Lantern`, `PinnedNote`, `WallCalendar`, `MagnifyingGlass`, `Tray`, `Shoebox`. Hand-drawn stroke marks, deliberately imperfect. Pass `color` and `softColor` from the theme. |
 
 ### The one recorded exception
