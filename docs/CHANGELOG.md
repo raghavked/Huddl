@@ -114,6 +114,35 @@ the screen just never read either.
 
 ### Craft and platform
 
+- **Five more hand-drawn marks**, bringing the set to ten: a pinned note for
+  the empty board, a wall calendar for the term, a hand lens for a search that
+  found nothing, an empty desk tray for a clear report queue, a shoebox for
+  things put away. Drawn in the house style — 2px round-capped strokes,
+  wobbling quadratics, no geometric-perfect circles. Three were redrawn after
+  the paths were rasterized and checked side by side: the lens specks had
+  arranged themselves into a smiley face, the tray read as a bowl on legs, and
+  the shoebox tapered like a bucket.
+- **Motion grew a house curve.** Three easings on the `motion` tokens —
+  `standard` for anything reversible, `enter` for arrivals, `exit` for
+  departures — so no screen has to reach for `Easing` and invent a fourth.
+  Button's press became asymmetric (quick down, slower back up, which is what
+  pressing something soft actually feels like), Card gained an opt-in staggered
+  entrance frozen at mount so a re-sort can't replay it, and Chip acknowledges
+  selection with a swell rather than only a colour change. Every one gated on
+  `useReducedMotion()`. Skeleton deliberately did *not* become always-pulsing:
+  §4 of this design language calls for a still block, and the conflict was
+  flagged rather than silently overridden.
+- **`Sheet.Row` learned `selected`**, which draws the trailing check *and* sets
+  `accessibilityState` — the half that matters, since the hand-drawn checkmarks
+  it replaces were invisible to VoiceOver. Backward compatible across all 30
+  call sites.
+- **An accessibility pass over every screen**: verb-first labels on every
+  pressable, so an icon-only button stops being invisible; `accessibilityState`
+  on everything selectable, including the switch rows that are meaningless
+  without it; words for anything carried only by colour; composite rows — a
+  person, a notification, a saved message — reading as one item with one full
+  label instead of six fragments; and live regions where counts change under
+  the cursor, so a reader hears "8 results" instead of silence.
 - **Forwarding de-duplicated.** The first pass wrote the same 482 lines into
   three room screens — byte-identical, verified by diff — because the agent
   owned only existing files and could not create a shared module. Now
@@ -127,6 +156,19 @@ the screen just never read either.
 - **Docs**: the operations playbook finally documents the five `pg_cron` jobs
   that have been running in production undocumented, and how to tell a
   deferred notification from a broken pipeline.
+- **A device loop.** `expo-dev-client` plus `npm run device`, which builds and
+  installs to an iPhone over the cable, and a runbook covering the one-time
+  Xcode and Developer Mode setup, native log tailing, the three things only a
+  real device can test (push, camera, haptics), and the failures that actually
+  happen. The README now says plainly that Expo Go cannot run this app — three
+  native modules and push all need a real build — rather than leaving it to be
+  discovered.
+
+Verified at the end of the round: native `tsc` clean and the iOS Hermes bundle
+exporting at 4.9MB; web `tsc`, `eslint`, 301 tests and the production build all
+green. Independently of what any agent reported: zero raw hex outside the
+theme, zero `theme.text`, zero gradients, ten illustrations exported, and all
+four animated primitives gating on reduced motion.
 
 ## Round 13 — the big slate: the design language, groups, focus, and grades
 
