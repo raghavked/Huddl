@@ -11,6 +11,7 @@
     "@supabase/supabase-js": "^2.112.2",
     "expo": "~57.0.11",
     "expo-constants": "~57.0.9",
+    "expo-dev-client": "~57.0.11",
     "expo-device": "~57.0.1",
     "expo-document-picker": "~14.0.0",
     "expo-font": "~57.0.1",
@@ -43,12 +44,18 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --dev-client",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "bundle:ios": "expo export --platform ios",
+    "prebuild": "expo prebuild --clean",
+    "device": "expo run:ios --device",
+    "device:release": "expo run:ios --device --configuration Release",
+    "device:android": "expo run:android --device"
   },
   "private": true
 }

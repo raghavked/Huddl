@@ -11,11 +11,104 @@ TypeScript.
 cd mobile
 cp .env.example .env   # same Supabase project as the web app
 npm install
-npx expo start         # scan the QR with Expo Go, or press i / a
+npm start              # Metro, for a device that already has a dev build
 ```
 
-`npx tsc --noEmit` type-checks; `npx expo export --platform ios`
-verifies the full Hermes bundle without a native toolchain.
+`npm run typecheck` type-checks; `npm run bundle:ios` builds the full
+Hermes bundle and verifies the whole app compiles without a native
+toolchain — that one runs anywhere, including Linux and CI.
+
+**Expo Go will not run this app.** Huddl uses native modules that are
+not in the Go client (`@expo/ui`, `expo-glass-effect`, `expo-dev-client`)
+and push notifications need a real build. Use a development build, below.
+
+## Launch on an iPhone over USB-C
+
+This is the fastest loop: build once, then every save reloads on the
+phone in about a second.
+
+**You need a Mac.** An iOS binary can only be produced by Xcode, so this
+section does not work from Linux or Windows — that is Apple's rule, not
+Expo's. On those machines use `eas build --profile development --platform
+ios` instead, which builds in the cloud and gives you a QR to install
+from.
+
+**One-time setup**
+
+1. Xcode from the App Store, then launch it once to accept the licence
+   and let it finish installing components.
+2. ```bash
+   xcode-select --install                     # command line tools
+   sudo gem install cocoapods                 # or: brew install cocoapods
+   ```
+3. Plug the iPhone in with the USB-C cable and **tap Trust** on the phone.
+4. On the phone: Settings → Privacy & Security → **Developer Mode** → on.
+   The phone restarts. (iOS 16+; the toggle only appears once a Mac with
+   Xcode has been connected.)
+5. In Xcode → Settings → Accounts, add your Apple ID. A free account is
+   enough — apps signed with one expire after 7 days, which is fine for
+   development.
+
+**Every time**
+
+```bash
+cd mobile
+npm install
+npm run device          # builds, installs over the cable, starts Metro
+```
+
+`npm run device` runs `expo run:ios --device`. On first run it generates
+the native `ios/` project, installs pods, builds, and installs to the
+phone — allow ten to fifteen minutes. After that it is under a minute,
+and you usually do not need it at all: leave the app installed and just
+run `npm start`, then open Huddl on the phone.
+
+If more than one device is attached, Expo prompts you to pick. To skip
+the prompt: `npx expo run:ios --device "Raghav's iPhone"`.
+
+**Reading logs from the terminal**
+
+Metro prints JS logs where you ran `npm start`. For native-side logs
+(push registration, crashes, keychain), leave this running in a second
+tab:
+
+```bash
+xcrun devicectl device console --device <udid>   # Xcode 15+
+```
+
+`xcrun xctrace list devices` prints the UDIDs of everything attached.
+
+**Testing what only works on a real device**
+
+- **Push notifications** — a simulator never receives them. Sign in,
+  accept the permission prompt, and confirm a row lands in `push_tokens`.
+  Note that quiet hours and the two-minute coalesce window mean a second
+  notification is *deliberately* deferred to the digest; see
+  `docs/OPERATIONS.md` §3a before reporting a missing push as a bug.
+- **The camera** — the simulator has no camera, so photo capture in chat
+  and the avatar picker can only be tested here.
+- **Haptics**, and how the ember reads under real daylight.
+
+**When it goes wrong**
+
+| Symptom | Fix |
+| --- | --- |
+| `Signing for "Huddl" requires a development team` | Open `ios/Huddl.xcworkspace`, target Huddl → Signing & Capabilities → pick your team, then re-run |
+| `Unable to boot device` / device not listed | Unlock the phone, re-Trust, confirm Developer Mode is on |
+| Build fails right after a dependency change | `npm run prebuild` to regenerate `ios/` from `app.json`, then `npm run device` |
+| App installs but shows a white screen | Metro is not reachable — same Wi-Fi, or `npx expo start --dev-client --tunnel` |
+| `.env` changes do nothing | `EXPO_PUBLIC_*` is inlined at bundle time; restart Metro with `npx expo start --clear` |
+
+The `ios/` and `android/` folders are generated and git-ignored on
+purpose — `app.json` is the source of truth, and `npm run prebuild`
+rebuilds them from it. Never hand-edit them expecting the change to last.
+
+**Release build on the phone**, to check performance honestly (Hermes
+optimised, no dev overlay, no Metro):
+
+```bash
+npm run device:release
+```
 
 ## What's in the app
 
