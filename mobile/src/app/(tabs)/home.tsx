@@ -20,6 +20,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { FocusStrip } from "@/components/focus-strip";
 import { Mug, type IllustrationProps } from "@/components/illustrations";
 import { AppText, Button, Card } from "@/components/ui";
 import { radius } from "@/constants/theme";
@@ -71,7 +72,11 @@ type MemberMetaRow = {
 
 /* Rows feeding the "Your plan" card, built via buildPlan over the week
    around now (7 days back for missed deadlines, 7 days ahead). */
-type EnrollmentJoin = { course: { id: string; code: string } | null };
+type EnrollmentJoin = {
+  /** Set when the student has shelved the class — see 0028's `enrollments`. */
+  archived_at: string | null;
+  course: { id: string; code: string } | null;
+};
 
 type CalendarItemRow = {
   id: string;
@@ -694,7 +699,7 @@ export default function HomeScreen() {
         .eq("user_id", userId),
       supabase
         .from("enrollments")
-        .select("course:courses(id, code)")
+        .select("archived_at, course:courses(id, code)")
         .eq("user_id", userId),
     ]);
     if (profileRes.error) throw profileRes.error;
@@ -722,11 +727,25 @@ export default function HomeScreen() {
       };
     }
 
+    const enrollmentRows = (enrollmentRes.data ?? []) as unknown as
+      EnrollmentJoin[];
+
+    // Shelving a class leaves its chat membership alone, so the grid has to
+    // do the filtering: last quarter's rooms stay reachable from /courses,
+    // they just stop taking up the front door.
+    const archivedCourseIds = new Set(
+      enrollmentRows
+        .filter((row) => row.archived_at !== null)
+        .map((row) => row.course?.id)
+        .filter((id): id is string => typeof id === "string")
+    );
+
     const campusChannels = myChannels
       .filter((c) => c.kind === "campus")
       .sort((a, b) => a.slug.localeCompare(b.slug));
     const courseChannels = myChannels
       .filter((c) => c.kind === "course")
+      .filter((c) => !c.course || !archivedCourseIds.has(c.course.id))
       .sort((a, b) =>
         (a.course?.code ?? a.name).localeCompare(b.course?.code ?? b.name)
       );
@@ -744,9 +763,7 @@ export default function HomeScreen() {
     // The plan card's week: class-calendar items from 7 days back (missed
     // deadlines still count) through 7 days ahead, scored against my
     // check-offs by the same pure buildPlan the full screen uses.
-    const enrolledCourses = (
-      (enrollmentRes.data ?? []) as unknown as EnrollmentJoin[]
-    )
+    const enrolledCourses = enrollmentRows
       .map((row) => row.course)
       .filter((c): c is { id: string; code: string } => c !== null);
     let plan: PlanSummary = { total: 0, handled: 0, nextUp: null };
@@ -1219,6 +1236,9 @@ export default function HomeScreen() {
                   </AppText>
                 ) : null}
                 {todayLine ? <TodayCard line={todayLine} /> : null}
+                {/* Renders nothing unless somebody else is heads-down right
+                    now, so most mornings this line simply isn't here. */}
+                <FocusStrip />
                 {data ? <PlanCard plan={data.plan} /> : null}
               </View>
             }

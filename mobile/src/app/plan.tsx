@@ -250,10 +250,13 @@ export default function PlanScreen() {
     if (!userId) throw new Error("Not signed in");
     const now = new Date();
 
+    // Active classes only — a shelved course keeps its history, but last
+    // quarter's due dates have no business crowding this quarter's plan.
     const enrollRes = await supabase
       .from("enrollments")
       .select("course:courses(id, code)")
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .is("archived_at", null);
     if (enrollRes.error) throw enrollRes.error;
 
     const courses = ((enrollRes.data ?? []) as unknown as EnrollmentJoin[])

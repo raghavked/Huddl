@@ -3,7 +3,10 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  Archive,
+  ArchiveRestore,
   BookOpen,
+  ChevronDown,
   CircleAlert,
   GraduationCap,
   History,
@@ -20,18 +23,17 @@ import {
   cardClasses,
 } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  archiveCourse,
+  fetchMyCourses,
+  groupByTerm,
+  unarchiveCourse,
+  type MyCourse,
+} from "@/lib/course-archive";
 import { createClient } from "@/lib/supabase/server";
-import type { Course, Enrollment, EnrollmentSource, Term } from "@/lib/types";
+import type { EnrollmentSource } from "@/lib/types";
 
 export const metadata: Metadata = { title: "My courses" };
-
-type EnrollmentRow = Enrollment & {
-  course: (Course & { term: Pick<Term, "name"> | null }) | null;
-};
-
-type CourseEnrollment = Enrollment & {
-  course: Course & { term: Pick<Term, "name"> | null };
-};
 
 // 'canvas' / 'schedule_image' are historical sources from retired import
 // flows — old rows keep them, so they render as a plain history label.
@@ -44,9 +46,19 @@ const SOURCE_META: Record<
   manual: { label: "Added by you", icon: ListChecks },
 };
 
+/** What each `?error=` on this page says out loud. */
+const ERRORS: Record<string, string> = {
+  drop: "Couldn't drop that course. Please try again.",
+  shelve: "We couldn't shelve that class just now. Give it another go.",
+  unshelve: "We couldn't bring that class back just now. Give it another go.",
+};
+
 /**
  * Drop a course. Deleting the enrollment fires the DB trigger that also
  * removes the matching course-channel membership — no extra cleanup here.
+ *
+ * This is the destructive path. Shelving is {@link shelveCourse} and it
+ * deletes nothing.
  */
 async function dropCourse(formData: FormData) {
   "use server";
@@ -72,6 +84,242 @@ async function dropCourse(formData: FormData) {
   redirect("/courses");
 }
 
+/**
+ * Shelve a finished class: `enrollments.archived_at` gets a timestamp and
+ * nothing else moves. The channel membership, the chat, the notes and the
+ * calendar history all stay exactly where they were — the class just stops
+ * crowding this quarter's list.
+ */
+async function shelveCourse(formData: FormData) {
+  "use server";
+  const enrollmentId = formData.get("enrollmentId");
+  if (typeof enrollmentId !== "string" || enrollmentId.length === 0) {
+    redirect("/courses");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  let failed = false;
+  try {
+    await archiveCourse(enrollmentId, { client: supabase, userId: user.id });
+  } catch {
+    // The module already refuses to report a write that changed nothing.
+    failed = true;
+  }
+
+  if (failed) redirect("/courses?error=shelve");
+  revalidatePath("/courses");
+  redirect("/courses");
+}
+
+/** Bring a shelved class back to this quarter's list. Nothing to rebuild. */
+async function unshelveCourse(formData: FormData) {
+  "use server";
+  const enrollmentId = formData.get("enrollmentId");
+  if (typeof enrollmentId !== "string" || enrollmentId.length === 0) {
+    redirect("/courses");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  let failed = false;
+  try {
+    await unarchiveCourse(enrollmentId, { client: supabase, userId: user.id });
+  } catch {
+    failed = true;
+  }
+
+  if (failed) redirect("/courses?error=unshelve");
+  revalidatePath("/courses");
+  redirect("/courses");
+}
+
+/** One class on this quarter's list, with its two ways out. */
+function ActiveCourseCard({ course }: { course: MyCourse }) {
+  const source = SOURCE_META[course.source];
+  const SourceIcon = source.icon;
+  const dropId = `drop-confirm-${course.enrollment_id}`;
+  const shelveId = `shelve-confirm-${course.enrollment_id}`;
+
+  return (
+    <li
+      className={cardClasses({
+        padding: "sm",
+        className: "flex h-full flex-col",
+      })}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+          <BookOpen className="size-5" aria-hidden />
+        </span>
+
+        <span className="-mr-2.5 -mt-2.5 flex shrink-0 items-center">
+          <button
+            type="button"
+            popoverTarget={shelveId}
+            aria-label={`Shelve ${course.code}`}
+            title="Shelve course"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <Archive className="size-4" aria-hidden />
+          </button>
+          <button
+            type="button"
+            popoverTarget={dropId}
+            aria-label={`Drop ${course.code}`}
+            title="Drop course"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-danger/10 hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger"
+          >
+            <Trash2 className="size-4" aria-hidden />
+          </button>
+        </span>
+      </div>
+
+      <Link
+        href={`/courses/${course.course_id}`}
+        className="group mt-3 flex min-w-0 flex-1 flex-col rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="text-sm font-bold transition-colors group-hover:text-brand">
+            {course.code}
+          </span>
+          {course.term ? <Badge tone="neutral">{course.term}</Badge> : null}
+        </span>
+        {course.title ? (
+          <span className="mt-0.5 block truncate text-sm text-muted">
+            {course.title}
+          </span>
+        ) : null}
+        <span className="mt-auto inline-flex items-center gap-1 pt-2.5 text-xs font-medium text-accent">
+          <SourceIcon className="size-3.5" aria-hidden />
+          {source.label}
+        </span>
+      </Link>
+
+      {/* Native popover confirms — top-layer, light dismiss, no client JS,
+          so this page stays a server component. */}
+      <div
+        id={shelveId}
+        popover="auto"
+        role="dialog"
+        aria-labelledby={`${shelveId}-title`}
+        aria-describedby={`${shelveId}-body`}
+        className="m-auto w-[min(92vw,22rem)] rounded-card border border-border bg-surface p-5 text-foreground shadow-lift backdrop:bg-black/50"
+      >
+        <h2 id={`${shelveId}-title`} className="font-bold tracking-tight">
+          Shelve {course.code}?
+        </h2>
+        <p id={`${shelveId}-body`} className="mt-1.5 text-sm text-muted">
+          Chat and notes stay put — you keep the {course.code} channel and
+          everything in it. The class just stops showing up in this quarter&apos;s
+          lists, and you can bring it back whenever you like.
+        </p>
+        <form action={shelveCourse} className="mt-4 flex justify-end gap-2">
+          <input
+            type="hidden"
+            name="enrollmentId"
+            value={course.enrollment_id}
+          />
+          <button
+            type="button"
+            popoverTarget={shelveId}
+            popoverTargetAction="hide"
+            className={buttonClasses({ variant: "ghost", size: "sm" })}
+          >
+            Keep it here
+          </button>
+          <button
+            type="submit"
+            className={buttonClasses({ variant: "secondary", size: "sm" })}
+          >
+            <Archive className="size-3.5" aria-hidden />
+            Shelve course
+          </button>
+        </form>
+      </div>
+
+      <div
+        id={dropId}
+        popover="auto"
+        role="dialog"
+        aria-labelledby={`${dropId}-title`}
+        aria-describedby={`${dropId}-body`}
+        className="m-auto w-[min(92vw,22rem)] rounded-card border border-border bg-surface p-5 text-foreground shadow-lift backdrop:bg-black/50"
+      >
+        <h2 id={`${dropId}-title`} className="font-bold tracking-tight">
+          Drop {course.code}?
+        </h2>
+        <p id={`${dropId}-body`} className="mt-1.5 text-sm text-muted">
+          You&apos;ll leave the {course.code} channel too. Notes you shared stay
+          available to classmates, and you can re-join anytime. To keep the
+          chat, shelve it instead.
+        </p>
+        <form action={dropCourse} className="mt-4 flex justify-end gap-2">
+          <input
+            type="hidden"
+            name="enrollmentId"
+            value={course.enrollment_id}
+          />
+          <button
+            type="button"
+            popoverTarget={dropId}
+            popoverTargetAction="hide"
+            className={buttonClasses({ variant: "ghost", size: "sm" })}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className={buttonClasses({ variant: "danger", size: "sm" })}
+          >
+            Drop course
+          </button>
+        </form>
+      </div>
+    </li>
+  );
+}
+
+/** One shelved class: quieter, and one click from coming back. */
+function ArchivedCourseRow({ course }: { course: MyCourse }) {
+  return (
+    <li className="flex items-center gap-3 px-4 py-3">
+      <Link
+        href={`/courses/${course.course_id}`}
+        className="group min-w-0 flex-1 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
+        <span className="block truncate text-sm font-semibold transition-colors group-hover:text-brand">
+          {course.code}
+        </span>
+        {course.title ? (
+          <span className="mt-0.5 block truncate text-xs text-muted">
+            {course.title}
+          </span>
+        ) : null}
+      </Link>
+      <form action={unshelveCourse}>
+        <input type="hidden" name="enrollmentId" value={course.enrollment_id} />
+        <button
+          type="submit"
+          aria-label={`Bring ${course.code} back to this quarter`}
+          className={buttonClasses({ variant: "secondary", size: "sm" })}
+        >
+          <ArchiveRestore className="size-3.5" aria-hidden />
+          Bring back
+        </button>
+      </form>
+    </li>
+  );
+}
+
 export default async function CoursesPage({
   searchParams,
 }: {
@@ -84,14 +332,22 @@ export default async function CoursesPage({
   if (!user) redirect("/login");
 
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("enrollments")
-    .select("*, course:courses(*, term:terms(name))")
-    .eq("user_id", user.userId);
+  let active: MyCourse[] = [];
+  let archived: MyCourse[] = [];
+  let loadError: string | null = null;
+  try {
+    ({ active, archived } = await fetchMyCourses({
+      client: supabase,
+      userId: user.userId,
+    }));
+  } catch {
+    loadError =
+      "We couldn't load your classes. Check your connection and give it another go.";
+  }
 
-  const enrollments = ((data ?? []) as EnrollmentRow[])
-    .filter((row): row is CourseEnrollment => row.course !== null)
-    .sort((a, b) => a.course.code.localeCompare(b.course.code));
+  const shelves = groupByTerm(archived);
+  const errorText =
+    (errorParam ? ERRORS[errorParam] : undefined) ?? loadError ?? null;
 
   const addButton = (
     <Link
@@ -108,131 +364,89 @@ export default async function CoursesPage({
       <PageHeader
         title="My courses"
         description={
-          enrollments.length === 0
+          active.length === 0
             ? `Your classes at ${user.university.short_name}`
-            : `${enrollments.length} ${
-                enrollments.length === 1 ? "course" : "courses"
+            : `${active.length} ${
+                active.length === 1 ? "course" : "courses"
               } at ${user.university.short_name}`
         }
-        action={enrollments.length > 0 ? addButton : undefined}
+        action={active.length > 0 ? addButton : undefined}
       />
 
-      {errorParam === "drop" ? (
+      {errorText ? (
         <p
           role="alert"
           className="mt-4 flex items-start gap-2 rounded-card border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger"
         >
           <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-          Couldn&apos;t drop that course. Please try again.
+          {errorText}
         </p>
       ) : null}
 
-      {enrollments.length === 0 ? (
+      {active.length === 0 ? (
         <div className="mt-6 rounded-card border border-dashed border-border">
           <EmptyState
             icon={GraduationCap}
-            title="No courses yet"
-            description="Add your classes to unlock course chat, shared notes and your classmate list — each course gets its own channel automatically."
+            title={
+              archived.length === 0
+                ? "No courses yet"
+                : "Nothing on this quarter's list"
+            }
+            description={
+              archived.length === 0
+                ? "Add your classes to unlock course chat, shared notes and your classmate list — each course gets its own channel automatically."
+                : "Add this quarter's classes, or bring one back off the shelf below."
+            }
             action={addButton}
           />
         </div>
       ) : (
         <ul className="mt-6 grid animate-fade-up gap-3 sm:grid-cols-2">
-          {enrollments.map((enrollment) => {
-            const { course } = enrollment;
-            const source = SOURCE_META[enrollment.source];
-            const SourceIcon = source.icon;
-            const confirmId = `drop-confirm-${enrollment.id}`;
-            return (
-              <li
-                key={enrollment.id}
-                className={cardClasses({
-                  padding: "sm",
-                  className: "flex h-full flex-col",
-                })}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
-                    <BookOpen className="size-5" aria-hidden />
-                  </span>
-
-                  <button
-                    type="button"
-                    popoverTarget={confirmId}
-                    aria-label={`Drop ${course.code}`}
-                    title="Drop course"
-                    className="-mr-1 -mt-1 shrink-0 rounded-full p-2 text-muted transition-colors hover:bg-danger/10 hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger"
-                  >
-                    <Trash2 className="size-4" aria-hidden />
-                  </button>
-                </div>
-
-                <Link
-                  href={`/courses/${course.id}`}
-                  className="group mt-3 flex min-w-0 flex-1 flex-col rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-                >
-                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="text-sm font-bold transition-colors group-hover:text-brand">
-                      {course.code}
-                    </span>
-                    {course.term ? (
-                      <Badge tone="neutral">{course.term.name}</Badge>
-                    ) : null}
-                  </span>
-                  <span className="mt-0.5 block truncate text-sm text-muted">
-                    {course.title}
-                  </span>
-                  <span className="mt-auto inline-flex items-center gap-1 pt-2.5 text-xs font-medium text-accent">
-                    <SourceIcon className="size-3.5" aria-hidden />
-                    {source.label}
-                  </span>
-                </Link>
-
-                {/* Native popover confirm — top-layer modal with light dismiss,
-                    no client JS needed so the page stays a server component. */}
-                <div
-                  id={confirmId}
-                  popover="auto"
-                  role="dialog"
-                  aria-labelledby={`${confirmId}-title`}
-                  aria-describedby={`${confirmId}-body`}
-                  className="m-auto w-[min(92vw,22rem)] rounded-card border border-border bg-surface p-5 text-foreground shadow-lift backdrop:bg-black/50"
-                >
-                  <h2 id={`${confirmId}-title`} className="font-bold tracking-tight">
-                    Drop {course.code}?
-                  </h2>
-                  <p id={`${confirmId}-body`} className="mt-1.5 text-sm text-muted">
-                    You&apos;ll leave the {course.code} channel too. Notes you
-                    shared stay available to classmates, and you can re-join
-                    anytime.
-                  </p>
-                  <form action={dropCourse} className="mt-4 flex justify-end gap-2">
-                    <input
-                      type="hidden"
-                      name="enrollmentId"
-                      value={enrollment.id}
-                    />
-                    <button
-                      type="button"
-                      popoverTarget={confirmId}
-                      popoverTargetAction="hide"
-                      className={buttonClasses({ variant: "ghost", size: "sm" })}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className={buttonClasses({ variant: "danger", size: "sm" })}
-                    >
-                      Drop course
-                    </button>
-                  </form>
-                </div>
-              </li>
-            );
-          })}
+          {active.map((course) => (
+            <ActiveCourseCard key={course.enrollment_id} course={course} />
+          ))}
         </ul>
       )}
+
+      {shelves.length > 0 ? (
+        <details className="group mt-8">
+          <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full px-1 py-2 text-xs font-bold uppercase tracking-widest text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+            <ChevronDown
+              className="size-4 transition-transform group-open:rotate-180"
+              aria-hidden
+            />
+            Shelved · {archived.length}
+          </summary>
+
+          <p className="mt-2 px-1 text-xs leading-relaxed text-muted text-pretty">
+            Finished classes, kept whole. Their chat, notes and calendar are
+            all still here — bring one back any time.
+          </p>
+
+          <div className="mt-3 flex flex-col gap-5">
+            {shelves.map((shelf) => (
+              <section key={shelf.term} aria-label={shelf.term}>
+                <h2 className="px-1 text-xs font-bold uppercase tracking-widest text-muted">
+                  {shelf.term}
+                </h2>
+                <ul
+                  className={cardClasses({
+                    padding: "none",
+                    className: "mt-2 divide-y divide-border overflow-hidden",
+                  })}
+                >
+                  {shelf.courses.map((course) => (
+                    <ArchivedCourseRow
+                      key={course.enrollment_id}
+                      course={course}
+                    />
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </details>
+      ) : null}
     </div>
   );
 }

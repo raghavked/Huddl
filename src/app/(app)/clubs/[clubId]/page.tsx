@@ -18,11 +18,18 @@ import {
   buttonClasses,
   cardClasses,
 } from "@/components/ui";
+import { AnnouncementsSection } from "@/features/clubs/announcements-section";
 import { CategoryBadge, MembershipActions } from "@/features/clubs/club-card";
 import { DateTile } from "@/features/events/event-chips";
 import { ClubEditor, DisbandClubButton } from "@/features/clubs/club-form";
 import { Roster, sortRoster, type RosterEntry } from "@/features/clubs/roster";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  ANNOUNCEMENTS_PREVIEW,
+  ClubAnnouncementError,
+  fetchAnnouncements,
+  type ClubAnnouncement,
+} from "@/lib/club-announcements";
 import { createClient } from "@/lib/supabase/server";
 import { formatEventTime } from "@/lib/utils";
 import type { CampusEvent, Channel, Club } from "@/lib/types";
@@ -94,6 +101,24 @@ export default async function ClubPage({
   const isMember = myRole !== null;
   const isOfficer = myRole === "officer" || myRole === "owner";
   const isOwner = myRole === "owner";
+
+  // The board is members-only by RLS, so it stays behind the join button —
+  // and a hiccup loading it costs the board, never the whole club page.
+  let announcements: ClubAnnouncement[] = [];
+  let announcementsError: string | null = null;
+  if (isMember) {
+    try {
+      announcements = await fetchAnnouncements(club.id, ANNOUNCEMENTS_PREVIEW, {
+        client: supabase,
+        userId: user.userId,
+      });
+    } catch (caught) {
+      announcementsError =
+        caught instanceof ClubAnnouncementError
+          ? caught.message
+          : "We couldn't load this club's posts. Check your connection and give it another go.";
+    }
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
@@ -171,6 +196,18 @@ export default async function ClubPage({
           </p>
         ) : null}
       </section>
+
+      {/* The board — officers writing to the whole club at once. */}
+      {isMember ? (
+        <AnnouncementsSection
+          clubId={club.id}
+          clubName={club.name}
+          myId={user.userId}
+          canPost={isOfficer}
+          initialAnnouncements={announcements}
+          initialError={announcementsError}
+        />
+      ) : null}
 
       <section className="mt-8" aria-label="Upcoming events">
         <SectionHeader title="Upcoming events" />

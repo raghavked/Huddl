@@ -2,11 +2,18 @@ import Feather from "@expo/vector-icons/Feather";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { resetFirstRun } from "@/lib/first-run";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -178,6 +185,14 @@ export default function SettingsScreen() {
     );
   }
 
+  /* The tour is a one-time thing by default, so the way back to it lives
+     down by the version line — findable when you want it, invisible when you
+     don't. Clearing the flag is what makes the welcome willing to show. */
+  const replayWelcome = useCallback(async () => {
+    await resetFirstRun();
+    router.push("/welcome");
+  }, []);
+
   const version = Constants.expoConfig?.version ?? "1.0.0";
 
   return (
@@ -187,7 +202,6 @@ export default function SettingsScreen() {
         backgroundColor: theme.background,
         paddingTop: insets.top + 8,
         paddingHorizontal: 20,
-        paddingBottom: insets.bottom + 20,
       }}
     >
       <Pressable
@@ -210,221 +224,250 @@ export default function SettingsScreen() {
         Settings
       </AppText>
 
-      {loading ? (
-        <Card style={{ alignItems: "center", paddingVertical: 32 }}>
-          <ActivityIndicator color={theme.brand} />
-        </Card>
-      ) : error ? (
-        <Card style={{ alignItems: "center", gap: 10, paddingVertical: 24 }}>
-          <AppText variant="bodySemi">Something went sideways</AppText>
-          <AppText variant="caption" muted style={{ textAlign: "center" }}>
-            {error}
-          </AppText>
-          <Button
-            label="Try again"
-            variant="soft"
-            size="sm"
-            onPress={() => void load()}
-          />
-        </Card>
-      ) : !profile ? (
-        <Card style={{ alignItems: "center", gap: 6, paddingVertical: 24 }}>
-          <AppText variant="bodySemi">We couldn't find your profile</AppText>
-          <AppText variant="caption" muted style={{ textAlign: "center" }}>
-            Try signing out and back in — that usually clears it up.
-          </AppText>
-        </Card>
-      ) : (
-        <Card style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <View
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: radius.full,
-              backgroundColor: theme.brandSoft,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <AppText
-              variant="title"
-              style={{ color: theme.brandInk, fontSize: 20 }}
-            >
-              {initialsOf(profile.display_name) || "?"}
+      {/* The list outgrew the screen. `flexGrow: 1` keeps the version line
+          pinned to the bottom on a tall phone and lets it scroll on a short
+          one — the footer's `marginTop: "auto"` still does the pinning. */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: insets.bottom + 20,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {loading ? (
+          <Card style={{ alignItems: "center", paddingVertical: 32 }}>
+            <ActivityIndicator color={theme.brand} />
+          </Card>
+        ) : error ? (
+          <Card style={{ alignItems: "center", gap: 10, paddingVertical: 24 }}>
+            <AppText variant="bodySemi">Something went sideways</AppText>
+            <AppText variant="caption" muted style={{ textAlign: "center" }}>
+              {error}
             </AppText>
-          </View>
-          <View style={{ flex: 1, gap: 2 }}>
-            <AppText variant="title" numberOfLines={1}>
-              {profile.display_name}
+            <Button
+              label="Try again"
+              variant="soft"
+              size="sm"
+              onPress={() => void load()}
+            />
+          </Card>
+        ) : !profile ? (
+          <Card style={{ alignItems: "center", gap: 6, paddingVertical: 24 }}>
+            <AppText variant="bodySemi">We couldn't find your profile</AppText>
+            <AppText variant="caption" muted style={{ textAlign: "center" }}>
+              Try signing out and back in — that usually clears it up.
             </AppText>
-            <AppText variant="caption" muted numberOfLines={1}>
-              @{profile.handle}
-            </AppText>
-            {profile.university ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 4,
-                  marginTop: 2,
-                }}
-              >
-                <Feather name="map-pin" size={11} color={theme.muted} />
-                <AppText variant="caption" muted numberOfLines={1}>
-                  {profile.university.name}
-                </AppText>
-              </View>
-            ) : null}
-          </View>
-        </Card>
-      )}
-
-      <Card padded={false} style={{ marginTop: 20 }}>
-        <SettingsLink
-          icon="bell"
-          label="Notifications"
-          first
-          onPress={() => router.push("/notifications")}
-        />
-        <SettingsLink
-          icon="bell"
-          label="Push notifications"
-          onPress={() => router.push("/push-settings")}
-        />
-        <SettingsLink
-          icon="user"
-          label="Account"
-          onPress={() => router.push("/account")}
-        />
-        <SettingsLink
-          icon="users"
-          label="People directory"
-          onPress={() => router.push("/people")}
-        />
-        <SettingsLink
-          icon="bookmark"
-          label="Saved messages"
-          onPress={() => router.push("/saved")}
-        />
-        <SettingsLink
-          icon="slash"
-          label="Blocked people"
-          onPress={() => router.push("/blocked")}
-        />
-        <SettingsLink
-          icon="book"
-          label="Community guidelines"
-          onPress={() => router.push("/legal/guidelines")}
-        />
-      </Card>
-
-      <View style={{ marginTop: 20, gap: 8 }}>
-        {/* The shared Button pins its label color per variant, so this is the
-            secondary variant's exact shell with the danger-colored label the
-            design calls for. */}
-        <Pressable
-          accessibilityRole="button"
-          disabled={signingOut}
-          onPress={handleSignOut}
-          style={({ pressed }) => ({
-            height: 46,
-            borderRadius: radius.full,
-            backgroundColor: theme.surface,
-            borderWidth: 1,
-            borderColor: theme.border,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            opacity: signingOut ? 0.6 : pressed ? 0.85 : 1,
-          })}
-        >
-          {signingOut ? (
-            <ActivityIndicator size="small" color={theme.danger} />
-          ) : (
-            <Feather name="log-out" size={16} color={theme.danger} />
-          )}
-          <AppText variant="bodySemi" style={{ color: theme.danger }}>
-            Sign out
-          </AppText>
-        </Pressable>
-        {signOutError ? (
-          <AppText
-            variant="caption"
-            style={{ color: theme.danger, textAlign: "center" }}
-          >
-            {signOutError}
-          </AppText>
-        ) : null}
-      </View>
-
-      {/* Danger zone — deletion is real and forever, so it sits apart. */}
-      <View style={{ marginTop: 24, gap: 8 }}>
-        <AppText variant="label" style={{ color: theme.danger }}>
-          Danger zone
-        </AppText>
-        <Card padded={false}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Delete account"
-            disabled={deleting}
-            onPress={confirmDeleteAccount}
-            style={({ pressed }) => ({
-              minHeight: 52,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 12,
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              opacity: deleting ? 0.6 : pressed ? 0.7 : 1,
-            })}
-          >
+          </Card>
+        ) : (
+          <Card style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
             <View
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: radius.control,
-                backgroundColor: theme.danger + "1f",
+                width: 56,
+                height: 56,
+                borderRadius: radius.full,
+                backgroundColor: theme.brandSoft,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              {deleting ? (
-                <ActivityIndicator size="small" color={theme.danger} />
-              ) : (
-                <Feather name="trash-2" size={16} color={theme.danger} />
-              )}
+              <AppText
+                variant="title"
+                style={{ color: theme.brandInk, fontSize: 20 }}
+              >
+                {initialsOf(profile.display_name) || "?"}
+              </AppText>
             </View>
-            <AppText
-              variant="bodySemi"
-              style={{ flex: 1, color: theme.danger }}
-            >
-              Delete account
-            </AppText>
-            <Feather name="chevron-right" size={18} color={theme.danger} />
-          </Pressable>
-        </Card>
-        <AppText variant="caption" muted>
-          Permanently removes your profile, messages, and files. There's no
-          undo.
-        </AppText>
-      </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <AppText variant="title" numberOfLines={1}>
+                {profile.display_name}
+              </AppText>
+              <AppText variant="caption" muted numberOfLines={1}>
+                @{profile.handle}
+              </AppText>
+              {profile.university ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 4,
+                    marginTop: 2,
+                  }}
+                >
+                  <Feather name="map-pin" size={11} color={theme.muted} />
+                  <AppText variant="caption" muted numberOfLines={1}>
+                    {profile.university.name}
+                  </AppText>
+                </View>
+              ) : null}
+            </View>
+          </Card>
+        )}
 
-      <View
-        style={{
-          marginTop: "auto",
-          alignItems: "center",
-          gap: 2,
-          paddingTop: 24,
-        }}
-      >
-        <AppText variant="caption" muted>
-          Huddl v{version}
-        </AppText>
-        <AppText variant="caption" muted>
-          Made for campus, with love.
-        </AppText>
-      </View>
+        <Card padded={false} style={{ marginTop: 20 }}>
+          {/* Appearance sits first — it changes every other screen. */}
+          <SettingsLink
+            icon="sliders"
+            label="Look and feel"
+            first
+            onPress={() => router.push("/display-settings")}
+          />
+          <SettingsLink
+            icon="bell"
+            label="Notifications"
+            onPress={() => router.push("/notifications")}
+          />
+          <SettingsLink
+            icon="bell"
+            label="Push notifications"
+            onPress={() => router.push("/push-settings")}
+          />
+          <SettingsLink
+            icon="user"
+            label="Account"
+            onPress={() => router.push("/account")}
+          />
+          <SettingsLink
+            icon="users"
+            label="People directory"
+            onPress={() => router.push("/people")}
+          />
+          <SettingsLink
+            icon="bookmark"
+            label="Saved messages"
+            onPress={() => router.push("/saved")}
+          />
+          <SettingsLink
+            icon="clock"
+            label="Focus"
+            onPress={() => router.push("/focus")}
+          />
+          <SettingsLink
+            icon="slash"
+            label="Blocked people"
+            onPress={() => router.push("/blocked")}
+          />
+          <SettingsLink
+            icon="book"
+            label="Community guidelines"
+            onPress={() => router.push("/legal/guidelines")}
+          />
+        </Card>
+
+        <View style={{ marginTop: 20, gap: 8 }}>
+          {/* The shared Button pins its label color per variant, so this is the
+              secondary variant's exact shell with the danger-colored label the
+              design calls for. */}
+          <Pressable
+            accessibilityRole="button"
+            disabled={signingOut}
+            onPress={handleSignOut}
+            style={({ pressed }) => ({
+              height: 46,
+              borderRadius: radius.full,
+              backgroundColor: theme.surface,
+              borderWidth: 1,
+              borderColor: theme.border,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              opacity: signingOut ? 0.6 : pressed ? 0.85 : 1,
+            })}
+          >
+            {signingOut ? (
+              <ActivityIndicator size="small" color={theme.danger} />
+            ) : (
+              <Feather name="log-out" size={16} color={theme.danger} />
+            )}
+            <AppText variant="bodySemi" style={{ color: theme.danger }}>
+              Sign out
+            </AppText>
+          </Pressable>
+          {signOutError ? (
+            <AppText
+              variant="caption"
+              style={{ color: theme.danger, textAlign: "center" }}
+            >
+              {signOutError}
+            </AppText>
+          ) : null}
+        </View>
+
+        {/* Danger zone — deletion is real and forever, so it sits apart. */}
+        <View style={{ marginTop: 24, gap: 8 }}>
+          <AppText variant="label" style={{ color: theme.danger }}>
+            Danger zone
+          </AppText>
+          <Card padded={false}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Delete account"
+              disabled={deleting}
+              onPress={confirmDeleteAccount}
+              style={({ pressed }) => ({
+                minHeight: 52,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                opacity: deleting ? 0.6 : pressed ? 0.7 : 1,
+              })}
+            >
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: radius.control,
+                  backgroundColor: theme.danger + "1f",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {deleting ? (
+                  <ActivityIndicator size="small" color={theme.danger} />
+                ) : (
+                  <Feather name="trash-2" size={16} color={theme.danger} />
+                )}
+              </View>
+              <AppText
+                variant="bodySemi"
+                style={{ flex: 1, color: theme.danger }}
+              >
+                Delete account
+              </AppText>
+              <Feather name="chevron-right" size={18} color={theme.danger} />
+            </Pressable>
+          </Card>
+          <AppText variant="caption" muted>
+            Permanently removes your profile, messages, and files. There's no
+            undo.
+          </AppText>
+        </View>
+
+        <View
+          style={{
+            marginTop: "auto",
+            alignItems: "center",
+            gap: 2,
+            paddingTop: 24,
+          }}
+        >
+          <Button
+            label="Show the welcome again"
+            variant="ghost"
+            style={{ marginBottom: 2 }}
+            onPress={() => void replayWelcome()}
+          />
+          <AppText variant="caption" muted>
+            Huddl v{version}
+          </AppText>
+          <AppText variant="caption" muted>
+            Made for campus, with love.
+          </AppText>
+        </View>
+      </ScrollView>
     </View>
   );
 }

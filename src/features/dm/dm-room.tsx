@@ -14,10 +14,12 @@ import {
   ArrowLeft,
   Bookmark,
   BookmarkCheck,
+  ChevronRight,
   ImagePlus,
   Loader2,
   SendHorizontal,
   Trash2,
+  Users,
   X,
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
@@ -32,7 +34,9 @@ import {
   uploadChatImage,
 } from "@/features/chat/attachments";
 import { useBlockedIds } from "@/features/chat/blocks";
-import type { DmMessage, Profile } from "@/lib/types";
+import { GroupInfoPanel } from "@/features/dm/group-info-panel";
+import { threadDisplay, type ThreadPerson } from "@/features/dm/group-dm";
+import type { DmMessage } from "@/lib/types";
 import { cn, formatMessageTime } from "@/lib/utils";
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
@@ -79,31 +83,55 @@ function SaveBubbleButton({
 }
 
 /**
- * The 1:1 conversation surface: header linking to the other student's
- * profile, day-separated bubbles (own right/brand-soft, theirs
- * left/surface), realtime inserts, optimistic sends, soft-delete of own
- * messages, and read-cursor upkeep on mount + on incoming messages.
+ * The conversation surface, in either shape.
+ *
+ * A 1:1 is the room as it always was: header linking to the other student's
+ * profile with their presence dot, day-separated bubbles (own
+ * right/brand-soft, theirs left/surface), realtime inserts, optimistic
+ * sends, soft-delete of own messages, and read-cursor upkeep on mount + on
+ * incoming messages.
+ *
+ * A group (migration 0028) swaps the header for the group's name, its
+ * headcount, and a way into the info panel — roster, rename, add people,
+ * leave — and names whoever is talking above their first bubble in a run.
+ * Everything below the header is shared.
+ *
+ * @param other The other student on a 1:1; null in a group.
+ * @param group The group's name and everyone in it (you included); null on
+ *   a 1:1.
  */
 export function DmRoom({
   threadId,
   userId,
   other,
+  group,
   initialMessages,
   initialLastReadAt,
 }: {
   threadId: string;
   userId: string;
-  other: Profile;
+  other: ThreadPerson | null;
+  group: { title: string | null; people: ThreadPerson[] } | null;
   initialMessages: DmMessage[];
   initialLastReadAt: string;
 }) {
+  const isGroup = group !== null;
+  // The room owns the group's name and roster so a rename or an add lands
+  // in the header the moment the panel writes it.
+  const [groupTitle, setGroupTitle] = useState<string | null>(
+    group?.title ?? null
+  );
+  const [people, setPeople] = useState<ThreadPerson[]>(group?.people ?? []);
+  const [infoOpen, setInfoOpen] = useState(false);
   const [messages, setMessages] = useState<DmMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { blockedIds, unblock } = useBlockedIds(userId);
-  const otherBlocked = blockedIds.has(other.id);
+  // A group can hold someone you've blocked, so there's no banner and no
+  // gate on the composer — their messages simply don't render.
+  const otherBlocked = other !== null && blockedIds.has(other.id);
   // Saved messages: my private bookmarks among the loaded bubbles, so each
   // toggle can tell "Save message" from "Remove from saved".
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
@@ -272,7 +300,20 @@ export function DmRoom({
     name: selfName ?? "Someone",
   });
   const online = usePresence(`dm:${threadId}`, userId);
-  const otherOnline = online.has(other.id);
+  const otherOnline = other !== null && online.has(other.id);
+
+  // One naming rule for both shapes, straight from the data layer: a group
+  // shows its title and "N people", a 1:1 shows the other student. A 1:1
+  // carries no roster, so the other student is its whole naming input.
+  const display = threadDisplay(
+    { is_group: isGroup, title: groupTitle },
+    isGroup ? people : other ? [other] : [],
+    userId
+  );
+  const peopleById = useMemo(
+    () => new Map(people.map((person) => [person.id, person] as const)),
+    [people]
+  );
 
   // While a block stands, the other student's messages stay out of view —
   // unblocking brings them straight back (filtering happens at render).
@@ -407,6 +448,7 @@ export function DmRoom({
   );
 
   async function handleUnblock() {
+    if (!other) return;
     setError(null);
     const ok = await unblock(other.id);
     if (!ok) setError("Couldn't unblock. Try again.");
@@ -442,59 +484,120 @@ export function DmRoom({
         >
           <ArrowLeft className="size-5" aria-hidden />
         </Link>
-        <Link
-          href={`/u/${other.handle}`}
-          className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-1 py-0.5 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-        >
-          <Avatar
-            name={other.display_name}
-            src={other.avatar_url}
-            size="md"
-          />
-          <span className="min-w-0">
-            <span
-              role="heading"
-              aria-level={1}
-              className="flex items-center gap-1.5 text-base font-bold"
+        {isGroup ? (
+          // The whole header is the way into the group's panel.
+          <h1 className="min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={() => setInfoOpen(true)}
+              aria-label={`${display.title} group info`}
+              aria-haspopup="dialog"
+              className="flex w-full min-w-0 items-center gap-3 rounded-lg px-1 py-0.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
-              <span className="truncate">{other.display_name}</span>
-              {otherOnline ? (
-                <>
-                  <span
-                    className="size-2 shrink-0 rounded-full bg-success"
-                    aria-hidden
-                  />
-                  <span className="sr-only">online</span>
-                </>
-              ) : null}
+              <span
+                aria-hidden
+                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-ink"
+              >
+                <Users className="size-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-base font-bold">
+                  {display.title}
+                </span>
+                <span className="block truncate text-xs font-normal text-muted">
+                  {display.subtitle ?? "Group chat"}
+                </span>
+              </span>
+              <ChevronRight
+                className="size-4 shrink-0 text-muted"
+                aria-hidden
+              />
+            </button>
+          </h1>
+        ) : other ? (
+          <Link
+            href={`/u/${other.handle}`}
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-1 py-0.5 transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <Avatar
+              name={other.display_name}
+              src={other.avatar_url}
+              size="md"
+            />
+            <span className="min-w-0">
+              <span
+                role="heading"
+                aria-level={1}
+                className="flex items-center gap-1.5 text-base font-bold"
+              >
+                <span className="truncate">{other.display_name}</span>
+                {otherOnline ? (
+                  <>
+                    <span
+                      className="size-2 shrink-0 rounded-full bg-success"
+                      aria-hidden
+                    />
+                    <span className="sr-only">online</span>
+                  </>
+                ) : null}
+              </span>
+              <span className="block truncate text-xs text-muted">
+                @{other.handle}
+              </span>
             </span>
-            <span className="block truncate text-xs text-muted">
-              @{other.handle}
-            </span>
-          </span>
-        </Link>
+          </Link>
+        ) : null}
       </header>
+
+      {infoOpen && isGroup ? (
+        <GroupInfoPanel
+          threadId={threadId}
+          userId={userId}
+          title={display.title}
+          people={people}
+          onTitleChange={setGroupTitle}
+          onPeopleChange={setPeople}
+          onClose={() => setInfoOpen(false)}
+        />
+      ) : null}
 
       <div
         ref={listRef}
         onScroll={handleScroll}
         role="log"
-        aria-label={`Conversation with ${other.display_name}`}
+        aria-label={
+          isGroup
+            ? `Conversation in ${display.title}`
+            : `Conversation with ${display.title}`
+        }
         className="flex-1 overflow-y-auto pb-2 pt-4"
       >
         {visibleMessages.length < PAGE_SIZE ? (
           <div className="px-2 pb-4 pt-2 text-center">
-            <Avatar
-              name={other.display_name}
-              src={other.avatar_url}
-              size="lg"
-              className="mx-auto"
-            />
-            <p className="mt-2 font-bold">{other.display_name}</p>
+            {isGroup ? (
+              <span
+                aria-hidden
+                className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-soft text-brand-ink"
+              >
+                <Users className="size-6" />
+              </span>
+            ) : (
+              <Avatar
+                name={display.title}
+                src={other?.avatar_url ?? null}
+                size="lg"
+                className="mx-auto"
+              />
+            )}
+            <p className="mt-2 font-bold">{display.title}</p>
             <p className="mx-auto max-w-sm text-sm text-muted">
-              {visibleMessages.length === 0
-                ? `This is the start of your conversation with ${other.display_name}. Say hi!`
-                : `This is the very beginning of your conversation with ${other.display_name}.`}
+              {isGroup
+                ? visibleMessages.length === 0
+                  ? `This is the start of ${display.title}. Say hi to everyone.`
+                  : `This is the very beginning of ${display.title}.`
+                : visibleMessages.length === 0
+                  ? `This is the start of your conversation with ${display.title}. Say hi!`
+                  : `This is the very beginning of your conversation with ${display.title}.`}
             </p>
           </div>
         ) : null}
@@ -516,6 +619,10 @@ export function DmRoom({
                   new Date(prev.created_at).getTime() <
                   GROUP_WINDOW_MS
             );
+          // In a group the roster names whoever is talking; a 1:1 only ever
+          // has the one other person.
+          const author = own ? null : (peopleById.get(m.author_id) ?? other);
+          const authorName = author?.display_name ?? "Someone who left";
           const lastOfGroup =
             !next ||
             next.author_id !== m.author_id ||
@@ -569,8 +676,8 @@ export function DmRoom({
                 {!own ? (
                   lastOfGroup ? (
                     <Avatar
-                      name={other.display_name}
-                      src={other.avatar_url}
+                      name={authorName}
+                      src={author?.avatar_url ?? null}
                       size="sm"
                     />
                   ) : (
@@ -606,14 +713,17 @@ export function DmRoom({
                     own ? "items-end" : "items-start"
                   )}
                 >
+                  {/* In a group, say who's talking — once per run of
+                      bubbles, not once per bubble. */}
+                  {isGroup && !own && !grouped ? (
+                    <span className="px-1 text-[11px] font-semibold text-muted">
+                      {authorName}
+                    </span>
+                  ) : null}
                   {!m.deleted_at && m.attachment_path ? (
                     <AttachmentImage
                       path={m.attachment_path}
-                      alt={
-                        own
-                          ? "Photo you sent"
-                          : `Photo from ${other.display_name}`
-                      }
+                      alt={own ? "Photo you sent" : `Photo from ${authorName}`}
                       className={cn(isTemp && "opacity-70")}
                     />
                   ) : null}
@@ -642,7 +752,7 @@ export function DmRoom({
                     </div>
                   )}
                   <span className="sr-only">
-                    {own ? " — sent by you" : ` — from ${other.display_name}`}
+                    {own ? " — sent by you" : ` — from ${authorName}`}
                   </span>
                 </div>
 
@@ -693,7 +803,7 @@ export function DmRoom({
         </p>
       ) : null}
 
-      {otherBlocked ? (
+      {otherBlocked && other ? (
         <div className="mb-2 flex items-center justify-between gap-3 rounded-xl border border-border bg-surface-2 px-3 py-2">
           <p className="text-xs text-muted">
             You&rsquo;ve blocked {other.display_name}. You won&rsquo;t see
@@ -741,7 +851,7 @@ export function DmRoom({
             )}
           </button>
           <label htmlFor="dm-composer" className="sr-only">
-            Message {other.display_name}
+            Message {display.title}
           </label>
           <textarea
             id="dm-composer"
@@ -764,9 +874,9 @@ export function DmRoom({
             }}
             rows={1}
             placeholder={
-              otherBlocked
+              otherBlocked && other
                 ? `You've blocked ${other.display_name}`
-                : `Message ${other.display_name}`
+                : `Message ${display.title}`
             }
             className="max-h-40 flex-1 resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted/70 disabled:cursor-not-allowed disabled:opacity-60"
           />

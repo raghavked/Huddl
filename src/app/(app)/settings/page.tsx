@@ -13,11 +13,9 @@ import {
   UserRound,
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
-import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Badge,
   PageHeader,
-  SectionHeader,
   buttonClasses,
   cardClasses,
 } from "@/components/ui";
@@ -89,6 +87,14 @@ export default async function SettingsPage() {
       tile: "bg-accent-soft text-accent",
       title: "Privacy & stored images",
       description: "The audit trail for anything you stored in the past",
+      trailing: null as React.ReactNode,
+    },
+    {
+      href: "/settings/appearance",
+      icon: SunMoon,
+      tile: "bg-brand-soft text-brand",
+      title: "Appearance",
+      description: "Theme and text size on this device",
       trailing: null as React.ReactNode,
     },
   ];
@@ -166,27 +172,6 @@ export default async function SettingsPage() {
             </li>
           ))}
         </ul>
-      </section>
-
-      <section aria-label="Appearance" className="mt-8">
-        <SectionHeader title="Appearance" />
-        <div
-          className={cardClasses({
-            padding: "none",
-            className: "mt-3 flex items-center gap-3 px-4 py-3.5",
-          })}
-        >
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
-            <SunMoon className="size-5" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">Theme</p>
-            <p className="mt-0.5 truncate text-xs text-muted">
-              Light, dark, or match your system
-            </p>
-          </div>
-          <ThemeToggle />
-        </div>
       </section>
 
       <form action={signOut} className="mt-8">

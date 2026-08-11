@@ -18,7 +18,10 @@ import { useAuth } from "@/providers/auth-provider";
 
 /* Minimal local row shapes — the web app's types live outside this tsconfig. */
 
-type EnrollmentJoin = { course: { id: string; code: string } | null };
+type EnrollmentJoin = {
+  archived_at: string | null;
+  course: { id: string; code: string } | null;
+};
 
 type CalendarItemRow = {
   id: string;
@@ -318,16 +321,23 @@ export default function YourCalendarScreen() {
       const endIso = end.toISOString();
 
       // Two-step like plan.tsx: enrollments first, then an id → code map.
+      // Shelved classes come back too, but only for their codes: every course
+      // that ever labelled something stays nameable, while the month's dots
+      // and agenda fan out from the active classes alone.
       const enrollRes = await supabase
         .from("enrollments")
-        .select("course:courses(id, code)")
+        .select("archived_at, course:courses(id, code)")
         .eq("user_id", userId);
       if (enrollRes.error) throw enrollRes.error;
-      const courses = ((enrollRes.data ?? []) as unknown as EnrollmentJoin[])
-        .map((row) => row.course)
-        .filter((c): c is { id: string; code: string } => c !== null);
-      const codeById = new Map(courses.map((c) => [c.id, c.code]));
-      const courseIds = [...codeById.keys()];
+      const codeById = new Map<string, string>();
+      const activeIds = new Set<string>();
+      for (const row of (enrollRes.data ?? []) as unknown as EnrollmentJoin[]) {
+        const course = row.course;
+        if (course === null) continue;
+        codeById.set(course.id, course.code);
+        if (row.archived_at === null) activeIds.add(course.id);
+      }
+      const courseIds = [...activeIds];
 
       const none = { data: [] as unknown[], error: null };
       const [itemsRes, rsvpRes, courseEventsRes] = await Promise.all([

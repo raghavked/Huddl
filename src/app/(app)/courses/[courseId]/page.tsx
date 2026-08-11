@@ -4,6 +4,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import {
+  BarChart2,
   BookOpen,
   CalendarDays,
   ChevronRight,
@@ -14,7 +15,9 @@ import {
   History,
   Layers,
   ListChecks,
+  Timer,
   UserPlus,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 import { Classmates, type ClassmateEntry } from "@/features/notes/classmates";
@@ -36,6 +39,7 @@ import {
   cardClasses,
 } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
+import { buddyCountLabel, countBuddies } from "@/lib/study-buddy";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import type { Course, EnrollmentSource, Term } from "@/lib/types";
@@ -61,40 +65,74 @@ const SOURCE_META: Record<
   manual: { label: "Added by you", icon: ListChecks },
 };
 
-// The study layer that grew out of the course chat (migrations 0018 + 0024):
-// side rooms, the shared class calendar, paste-first syllabus import, and
-// shared flashcard decks.
-const STUDY_LINKS: {
-  segment: "rooms" | "calendar" | "syllabus" | "decks";
+/** One doorway out of the course home. */
+type StudyLink = {
+  key: string;
+  href: string;
   label: string;
   description: string;
   icon: LucideIcon;
-}[] = [
-  {
-    segment: "rooms",
-    label: "Rooms",
-    description: "Side rooms for lectures and study groups",
-    icon: DoorOpen,
-  },
-  {
-    segment: "calendar",
-    label: "Class calendar",
-    description: "Shared dates — check off what you've handled",
-    icon: CalendarDays,
-  },
-  {
-    segment: "decks",
-    label: "Flashcards",
-    description: "Shared decks the whole class builds together",
-    icon: Layers,
-  },
-  {
-    segment: "syllabus",
-    label: "Import syllabus",
-    description: "Paste it once, the whole class gets the schedule",
-    icon: FilePlus2,
-  },
-];
+};
+
+/**
+ * Every room of the course. The study layer that grew out of the course chat
+ * (migrations 0018 + 0024) — side rooms, the shared class calendar,
+ * paste-first syllabus import, shared decks — plus what 0028 added: your
+ * private grade sheet, the who's-looking list, and the campus focus room.
+ */
+function studyLinks(courseId: string, buddyLabel: string | null): StudyLink[] {
+  return [
+    {
+      key: "rooms",
+      href: `/courses/${courseId}/rooms`,
+      label: "Rooms",
+      description: "Side rooms for lectures and study groups",
+      icon: DoorOpen,
+    },
+    {
+      key: "calendar",
+      href: `/courses/${courseId}/calendar`,
+      label: "Class calendar",
+      description: "Shared dates — check off what you've handled",
+      icon: CalendarDays,
+    },
+    {
+      key: "decks",
+      href: `/courses/${courseId}/decks`,
+      label: "Flashcards",
+      description: "Shared decks the whole class builds together",
+      icon: Layers,
+    },
+    {
+      key: "grades",
+      href: `/courses/${courseId}/grades`,
+      label: "Grades",
+      description: "What you're carrying so far — only you see it",
+      icon: BarChart2,
+    },
+    {
+      key: "buddies",
+      href: `/courses/${courseId}/buddies`,
+      label: "Study partners",
+      description: buddyLabel ?? "Find someone to work through it with",
+      icon: UsersRound,
+    },
+    {
+      key: "focus",
+      href: "/focus",
+      label: "Focus",
+      description: "Sit down with a goal and see who else is heads-down",
+      icon: Timer,
+    },
+    {
+      key: "syllabus",
+      href: `/courses/${courseId}/syllabus`,
+      label: "Import syllabus",
+      description: "Paste it once, the whole class gets the schedule",
+      icon: FilePlus2,
+    },
+  ];
+}
 
 /** RLS scopes courses to the viewer's university — outside it this is null. */
 const getCourse = cache(async (courseId: string): Promise<CourseRow | null> => {
@@ -169,6 +207,7 @@ export default async function CoursePage({
     { data: noteRows },
     { data: enrollmentRows },
     { data: linkRows },
+    buddyCount,
   ] = await Promise.all([
     // A course can have many rooms (0018) — link to the main one.
     supabase
@@ -196,6 +235,9 @@ export default async function CoursePage({
       .select(COURSE_LINK_SELECT)
       .eq("course_id", course.id)
       .order("created_at", { ascending: true }),
+    // How many classmates are looking for a study partner (0028). Head-only,
+    // never throws, and reads 0 for anyone who isn't in the class.
+    countBuddies(course.id, { client: supabase, userId: user.userId }),
   ]);
 
   const classmates = ((enrollmentRows ?? []) as ClassmateEntry[]).filter(
@@ -259,6 +301,7 @@ export default async function CoursePage({
 
   const notes = (noteRows ?? []) as NoteWithUploader[];
   const courseLinks = (linkRows ?? []) as unknown as CourseLinkRow[];
+  const buddyLabel = buddyCountLabel(buddyCount);
   const tab = rawTab === "classmates" ? "classmates" : "notes";
   const source = SOURCE_META[myEnrollment.source];
   const SourceIcon = source.icon;
@@ -306,30 +349,36 @@ export default async function CoursePage({
         </Badge>
       </div>
 
-      {/* The study layer: rooms, the calendar, flashcards, syllabus import. */}
+      {/* The study layer: rooms, the calendar, flashcards, grades, study
+          partners, focus, syllabus import. */}
       <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {STUDY_LINKS.map(({ segment, label, description, icon: Icon }) => (
-          <Link
-            key={segment}
-            href={`/courses/${course.id}/${segment}`}
-            className={cardClasses({
-              padding: "sm",
-              interactive: true,
-              className: "flex items-center gap-3",
-            })}
-          >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
-              <Icon className="size-5" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold">{label}</span>
-              <span className="block truncate text-xs text-muted">
-                {description}
+        {studyLinks(course.id, buddyLabel).map(
+          ({ key, href, label, description, icon: Icon }) => (
+            <Link
+              key={key}
+              href={href}
+              className={cardClasses({
+                padding: "sm",
+                interactive: true,
+                className: "flex items-center gap-3",
+              })}
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                <Icon className="size-5" aria-hidden />
               </span>
-            </span>
-            <ChevronRight className="size-4 shrink-0 text-muted" aria-hidden />
-          </Link>
-        ))}
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">{label}</span>
+                <span className="block truncate text-xs text-muted">
+                  {description}
+                </span>
+              </span>
+              <ChevronRight
+                className="size-4 shrink-0 text-muted"
+                aria-hidden
+              />
+            </Link>
+          )
+        )}
       </div>
 
       {/* Classmate-kept course facts + pinned links (migration 0024). */}

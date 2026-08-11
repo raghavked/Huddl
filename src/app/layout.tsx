@@ -66,7 +66,11 @@ export const viewport: Viewport = {
 
 /* Applies a stored theme override before first paint so there's no flash.
    No stored value (or "system") leaves the media query in charge. */
-const themeInit = `try{var t=localStorage.getItem("huddl-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
+// Replayed before first paint so the saved appearance never flashes: the
+// theme choice, then the text scale (every size in the app is a rem, so one
+// root font-size carries the whole ladder). Both are per-device settings —
+// see /settings/appearance.
+const themeInit = `try{var t=localStorage.getItem("huddl-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}try{var s=parseFloat(localStorage.getItem("huddl-text-size"));if(s>=0.9&&s<=1.4&&s!==1){document.documentElement.style.setProperty("--huddl-text-scale",String(s));document.documentElement.style.fontSize=Math.round(s*100)+"%"}}catch(e){}`;
 
 export default function RootLayout({
   children,

@@ -171,6 +171,13 @@ export interface MessageReaction {
 export interface DmThread {
   id: string;
   created_at: string;
+  // Group DMs (migration 0028): one table, two shapes. A 1:1 stays
+  // is_group = false with no title and no creator, so find-or-create can
+  // never land in a group that happens to hold both people. A group is a
+  // named thread of 3-16 classmates from the same university.
+  is_group: boolean;
+  title: string | null;
+  created_by: string | null;
 }
 
 export interface DmParticipant {

@@ -19,8 +19,21 @@ import {
   type SectionListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card, Field } from "@/components/ui";
-import { radius, type Palette } from "@/constants/theme";
+import { Avatar } from "@/components/avatar";
+import { FocusStrip } from "@/components/focus-strip";
+import {
+  AppText,
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  Field,
+  SectionLabel,
+  Skeleton,
+  SkeletonRow,
+  type ChipTone,
+} from "@/components/ui";
+import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapLight } from "@/lib/haptics";
 import {
@@ -32,6 +45,7 @@ import {
   NotesError,
   type NoteRow,
 } from "@/lib/notes";
+import { buddyCountLabel, countBuddies } from "@/lib/study-buddy";
 import { supabase } from "@/lib/supabase";
 import { kindLabel, type CalendarKind } from "@/lib/syllabus";
 import { useAuth } from "@/providers/auth-provider";
@@ -154,35 +168,16 @@ function sessionWhen(iso: string): string {
 }
 
 /** Quiet chip palette for calendar kinds — mirrored in course/calendar.tsx. */
-function kindColors(kind: CalendarKind, theme: Palette): { bg: string; fg: string } {
+function kindTone(kind: CalendarKind): ChipTone {
   switch (kind) {
     case "exam":
-      return { bg: theme.brandSoft, fg: theme.brandInk };
+      return "brand";
     case "quiz":
     case "project":
-      return { bg: theme.accentSoft, fg: theme.accent };
+      return "accent";
     default:
-      return { bg: theme.surface2, fg: theme.muted };
+      return "neutral";
   }
-}
-
-function KindChip({ kind }: { kind: CalendarKind }) {
-  const theme = useTheme();
-  const colors = kindColors(kind, theme);
-  return (
-    <View
-      style={{
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: radius.full,
-        backgroundColor: colors.bg,
-      }}
-    >
-      <AppText variant="label" style={{ color: colors.fg, fontSize: 11, lineHeight: 14 }}>
-        {kindLabel(kind)}
-      </AppText>
-    </View>
-  );
 }
 
 /** "week-5-notes.pdf" -> "week 5 notes" — a friendly default title. */
@@ -195,50 +190,6 @@ function titleFromFileName(name: string): string {
 }
 
 /* --------------------------- tiny pieces ---------------------------- */
-
-/** Uniform section label — the same quiet uppercase rhythm as home. */
-function SectionLabel({
-  text,
-  action,
-}: {
-  text: string;
-  action?: { label: string; onPress: () => void };
-}) {
-  const theme = useTheme();
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 8,
-        marginTop: 24,
-        marginBottom: 10,
-      }}
-    >
-      <AppText
-        variant="label"
-        muted
-        style={{ textTransform: "uppercase", letterSpacing: 1.2 }}
-      >
-        {text}
-      </AppText>
-      {action ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={action.label}
-          onPress={action.onPress}
-          hitSlop={{ top: 14, bottom: 14, left: 12, right: 12 }}
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-        >
-          <AppText variant="label" style={{ color: theme.brand }}>
-            {action.label}
-          </AppText>
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
 
 /** One doorway in the grid: an icon tile, a name, a one-line hint. */
 function DoorwayTile({
@@ -296,73 +247,6 @@ function DoorwayTile({
   );
 }
 
-/** Tiny avatar stand-in: two initials on a warm circle, tinted by name hash. */
-function Initials({ name, size = 40 }: { name: string; size?: number }) {
-  const theme = useTheme();
-  let hash = 0;
-  for (let i = 0; i < name.length; i += 1) {
-    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  }
-  const pair =
-    hash % 2 === 0
-      ? { bg: theme.brandSoft, fg: theme.brandInk }
-      : { bg: theme.accentSoft, fg: theme.accent };
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const first = parts[0] ?? "";
-  const last = parts.length > 1 ? parts[parts.length - 1] ?? "" : "";
-  const initials =
-    `${first.charAt(0)}${last ? last.charAt(0) : first.charAt(1)}`.toUpperCase() ||
-    "?";
-  return (
-    <View
-      accessibilityElementsHidden
-      style={{
-        width: size,
-        height: size,
-        borderRadius: radius.full,
-        backgroundColor: pair.bg,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <AppText
-        variant="label"
-        style={{ color: pair.fg, fontSize: size * 0.36, lineHeight: size * 0.5 }}
-      >
-        {initials}
-      </AppText>
-    </View>
-  );
-}
-
-function Pill({
-  label,
-  tone,
-}: {
-  label: string;
-  tone: "brand" | "accent";
-}) {
-  const theme = useTheme();
-  const colors =
-    tone === "brand"
-      ? { bg: theme.brandSoft, fg: theme.brandInk }
-      : { bg: theme.accentSoft, fg: theme.accent };
-  return (
-    <View
-      style={{
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: radius.full,
-        backgroundColor: colors.bg,
-      }}
-    >
-      <AppText variant="label" style={{ color: colors.fg, fontSize: 11 }}>
-        {label}
-      </AppText>
-    </View>
-  );
-}
-
 function BackChevron({ onPress }: { onPress: () => void }) {
   const theme = useTheme();
   return (
@@ -384,45 +268,51 @@ function BackChevron({ onPress }: { onPress: () => void }) {
   );
 }
 
+/** The shared `EmptyState`, floated in the middle of an otherwise bare screen. */
 function CenteredState({
   icon,
   title,
   message,
-  children,
+  action,
 }: {
   icon: FeatherName;
   title: string;
   message: string;
-  children?: React.ReactNode;
+  action: { label: string; onPress: () => void };
 }) {
-  const theme = useTheme();
   return (
     <View
       style={{
         flex: 1,
-        alignItems: "center",
+        alignItems: "stretch",
         justifyContent: "center",
-        gap: 10,
-        padding: 28,
+        paddingHorizontal: 20,
+        paddingBottom: 40,
       }}
     >
-      <View
-        style={{
-          width: 52,
-          height: 52,
-          borderRadius: 16,
-          backgroundColor: theme.brandSoft,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Feather name={icon} size={22} color={theme.brand} />
+      <EmptyState icon={icon} title={title} body={message} action={action} />
+    </View>
+  );
+}
+
+/** The hub with the words not yet written — same bones, same order. */
+function HubSkeleton() {
+  return (
+    <View style={{ paddingHorizontal: 20, paddingTop: 4, gap: 12 }}>
+      <Skeleton width={128} height={28} radius={radius.full} />
+      <Skeleton width="76%" height={15} radius={radius.full} />
+      <Skeleton height={44} radius={radius.full} style={{ marginTop: 4 }} />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+        {[0, 1, 2, 3, 4, 5].map((slot) => (
+          <View key={slot} style={{ flexBasis: "47%", flexGrow: 1 }}>
+            <Skeleton height={92} radius={radius.card} />
+          </View>
+        ))}
       </View>
-      <AppText variant="title">{title}</AppText>
-      <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
-        {message}
-      </AppText>
-      {children}
+      <View style={{ marginTop: 4 }}>
+        <SkeletonRow avatar={false} lines={2} />
+        <SkeletonRow avatar={false} lines={1} />
+      </View>
     </View>
   );
 }
@@ -449,6 +339,7 @@ export default function CourseHubScreen() {
   const [upcoming, setUpcoming] = useState<UpcomingItem[]>([]);
   const [sessions, setSessions] = useState<CourseEventRow[]>([]);
   const [linkCount, setLinkCount] = useState(0);
+  const [buddyCount, setBuddyCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
   // Classmate-kept course details: an inline three-field editor.
@@ -496,6 +387,7 @@ export default function CourseHubScreen() {
         upcomingRes,
         sessionsRes,
         linksRes,
+        buddyTally,
       ] = await Promise.all([
           supabase
             .from("courses")
@@ -537,6 +429,10 @@ export default function CourseHubScreen() {
             .from("course_links")
             .select("id", { count: "exact", head: true })
             .eq("course_id", courseId),
+          // How many classmates are open to studying together. Head-only, and
+          // it swallows its own failures — a doorway caption is never worth
+          // holding up the hub for.
+          countBuddies(courseId),
         ]);
       if (courseRes.error) {
         setStatus("error");
@@ -594,6 +490,9 @@ export default function CourseHubScreen() {
       );
       // And for the pinned-links tally — best-effort too.
       setLinkCount(linksRes.count ?? 0);
+      // Same for the study-partner tally: `countBuddies` returns 0 rather
+      // than throwing, so it can never be the reason this screen fails.
+      setBuddyCount(buddyTally);
       const sortedMates = (
         (matesRes.data ?? []) as unknown as ClassmateRow[]
       ).sort(
@@ -1001,7 +900,7 @@ export default function CourseHubScreen() {
           marginBottom: 10,
         }}
       >
-        <Initials name={name} size={40} />
+        <Avatar url={mate.profile?.avatar_url} name={name} size={40} />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <View
             style={{
@@ -1022,11 +921,11 @@ export default function CourseHubScreen() {
                 accessibilityLabel="Added from the catalog"
               />
             ) : null}
-            {isMe ? <Pill label="You" tone="brand" /> : null}
+            {isMe ? <Chip label="You" tone="brand" /> : null}
             {mate.role === "instructor" ? (
-              <Pill label="Instructor" tone="brand" />
+              <Chip label="Instructor" tone="brand" />
             ) : mate.role === "ta" ? (
-              <Pill label="TA" tone="accent" />
+              <Chip label="TA" tone="accent" />
             ) : null}
           </View>
           {caption ? (
@@ -1040,37 +939,13 @@ export default function CourseHubScreen() {
   };
 
   const renderEmptyRow = (item: EmptyItem) => (
-    <Card
-      style={{
-        alignItems: "center",
-        gap: 6,
-        paddingVertical: 24,
-        borderStyle: "dashed",
-        marginBottom: 10,
-      }}
-    >
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: radius.full,
-          backgroundColor: theme.brandSoft,
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: 2,
-        }}
-      >
-        <Feather name={item.icon} size={18} color={theme.brand} />
-      </View>
-      <AppText variant="bodySemi">{item.title}</AppText>
-      <AppText
-        variant="caption"
-        muted
-        style={{ textAlign: "center", maxWidth: 260 }}
-      >
-        {item.message}
-      </AppText>
-    </Card>
+    <EmptyState
+      icon={item.icon}
+      title={item.title}
+      body={item.message}
+      compact
+      style={{ marginBottom: 10 }}
+    />
   );
 
   const renderItem = ({ item }: SectionListRenderItemInfo<Item, Section>) => {
@@ -1228,48 +1103,27 @@ export default function CourseHubScreen() {
           <BackChevron onPress={goBack} />
         </View>
         {status === "loading" ? (
-          <View
-            style={{
-              flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 12,
-            }}
-          >
-            <ActivityIndicator size="large" color={theme.brand} />
-            <AppText variant="caption" muted>
-              Opening your course…
-            </AppText>
-          </View>
+          <HubSkeleton />
         ) : status === "notFound" ? (
           <CenteredState
             icon="book-open"
             title="Course not available"
             message="This course doesn't exist, or it belongs to another campus."
-          >
-            <Button
-              label="Back to home"
-              variant="soft"
-              size="sm"
-              onPress={goBack}
-            />
-          </CenteredState>
+            action={{ label: "Back to home", onPress: goBack }}
+          />
         ) : (
           <CenteredState
             icon="wifi-off"
             title="Something hiccuped"
             message="We couldn't load this course. Check your connection and give it another go."
-          >
-            <Button
-              label="Try again"
-              variant="soft"
-              size="sm"
-              onPress={() => {
+            action={{
+              label: "Try again",
+              onPress: () => {
                 setStatus("loading");
                 void load();
-              }}
-            />
-          </CenteredState>
+              },
+            }}
+          />
         )}
       </View>
     );
@@ -1372,6 +1226,11 @@ export default function CourseHubScreen() {
               </Card>
             ) : null}
 
+            {/* Who's heads-down in this class right now. It draws nothing at
+                all on a quiet day — no loading row, no empty state — so it
+                costs the hub nothing until it has something warm to say. */}
+            <FocusStrip courseId={courseId} style={{ marginTop: 12 }} />
+
             {/* Course details — who teaches it, when it meets, where.
                 Classmate-kept, like the course list itself. */}
             <SectionLabel
@@ -1455,23 +1314,11 @@ export default function CourseHubScreen() {
                   ))}
                 </Card>
               ) : (
-                <Card
-                  style={{
-                    alignItems: "center",
-                    gap: 6,
-                    paddingVertical: 20,
-                    borderStyle: "dashed",
-                  }}
-                >
-                  <AppText
-                    variant="caption"
-                    muted
-                    style={{ textAlign: "center", maxWidth: 260 }}
-                  >
-                    Who teaches it, when it meets, where — fill it in for the
-                    class.
-                  </AppText>
-                </Card>
+                <EmptyState
+                  compact
+                  title="No details yet"
+                  body="Who teaches it, when it meets, where — fill it in for the class."
+                />
               )}
               {detailsError ? (
                 <AppText variant="caption" style={{ color: theme.danger }}>
@@ -1483,8 +1330,15 @@ export default function CourseHubScreen() {
               </AppText>
             </View>
 
-            {/* Doorways — every room of the course, four tiles deep. Each
-                opens a screen that was built as its own feature. */}
+            {/* Doorways — every room of the course, six tiles in three rows.
+                Each opens a screen that was built as its own feature.
+
+                Tone is meaning, not variety: fern for the dated and the
+                graded (calendar, links you've filed, grades), ember for the
+                people and the studying (rooms, flashcards, partners). Laid
+                out two-up that lands as a woven checkerboard — fern, ember /
+                ember, fern / fern, ember — instead of the two solid color
+                columns a mechanical alternation would draw. */}
             <View
               style={{
                 flexDirection: "row",
@@ -1497,7 +1351,7 @@ export default function CourseHubScreen() {
                 icon="book-open"
                 title="Calendar"
                 caption={upcoming[0]?.title ?? "Nothing due"}
-                tone="brand"
+                tone="accent"
                 onPress={() =>
                   router.push({
                     pathname: "/course/calendar",
@@ -1509,7 +1363,7 @@ export default function CourseHubScreen() {
                 icon="message-square"
                 title="Rooms"
                 caption="Lectures, study groups…"
-                tone="accent"
+                tone="brand"
                 onPress={() =>
                   router.push({
                     pathname: "/course/rooms",
@@ -1547,6 +1401,30 @@ export default function CourseHubScreen() {
                   })
                 }
               />
+              <DoorwayTile
+                icon="bar-chart-2"
+                title="Grades"
+                caption="Only you see it"
+                tone="accent"
+                onPress={() =>
+                  router.push({
+                    pathname: "/course/grades",
+                    params: { courseId, courseCode: course.code },
+                  })
+                }
+              />
+              <DoorwayTile
+                icon="users"
+                title="Study partners"
+                caption={buddyCountLabel(buddyCount) ?? "Find someone"}
+                tone="brand"
+                onPress={() =>
+                  router.push({
+                    pathname: "/course/buddies",
+                    params: { courseId, courseCode: course.code },
+                  })
+                }
+              />
             </View>
 
             {/* Class calendar — the next few shared dates, previewed. */}
@@ -1568,7 +1446,7 @@ export default function CourseHubScreen() {
                         borderTopColor: theme.border,
                       }}
                     >
-                      <KindChip kind={item.kind} />
+                      <Chip label={kindLabel(item.kind)} tone={kindTone(item.kind)} />
                       <AppText
                         variant="bodyMedium"
                         numberOfLines={1}
@@ -1583,24 +1461,11 @@ export default function CourseHubScreen() {
                   ))}
                 </Card>
               ) : (
-                <Card
-                  style={{
-                    alignItems: "center",
-                    gap: 6,
-                    paddingVertical: 20,
-                    borderStyle: "dashed",
-                  }}
-                >
-                  <AppText variant="bodySemi">No dates yet</AppText>
-                  <AppText
-                    variant="caption"
-                    muted
-                    style={{ textAlign: "center", maxWidth: 260 }}
-                  >
-                    Paste the syllabus once and the whole class gets the
-                    schedule.
-                  </AppText>
-                </Card>
+                <EmptyState
+                  compact
+                  title="No dates yet"
+                  body="Paste the syllabus once and the whole class gets the schedule."
+                />
               )}
               <Button
                 label="Import syllabus"
@@ -1679,23 +1544,11 @@ export default function CourseHubScreen() {
                   ))}
                 </Card>
               ) : (
-                <Card
-                  style={{
-                    alignItems: "center",
-                    gap: 6,
-                    paddingVertical: 20,
-                    borderStyle: "dashed",
-                  }}
-                >
-                  <AppText
-                    variant="caption"
-                    muted
-                    style={{ textAlign: "center", maxWidth: 260 }}
-                  >
-                    Nothing planned yet — be the one who gets the class
-                    together.
-                  </AppText>
-                </Card>
+                <EmptyState
+                  compact
+                  title="Nothing planned yet"
+                  body="Be the one who gets the class together — pick a time and a place."
+                />
               )}
               <Button
                 label="Plan a study session"

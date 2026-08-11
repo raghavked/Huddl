@@ -1,24 +1,35 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertCircle, MessageCircle, UserRoundSearch } from "lucide-react";
+import {
+  AlertCircle,
+  MessageCircle,
+  UserRoundSearch,
+  UsersRound,
+} from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ChatScene } from "@/components/illustrations";
 import { PageHeader, buttonClasses } from "@/components/ui";
 import { ThreadListItem } from "@/features/dm/thread-list-item";
+import {
+  firstNameOf,
+  threadDisplay,
+  type ThreadPerson,
+} from "@/features/dm/group-dm";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { DmMessage, DmThread, Profile } from "@/lib/types";
+import type { DmMessage, DmThread } from "@/lib/types";
 
 /** My side of each thread, with the thread's created_at as an activity floor. */
 type MyParticipantRow = {
   thread_id: string;
   last_read_at: string;
-  thread: Pick<DmThread, "created_at"> | null;
+  thread: Pick<DmThread, "created_at" | "is_group" | "title"> | null;
 };
 
-type OtherParticipantRow = {
+type ParticipantRow = {
   thread_id: string;
-  profile: Profile | null;
+  user_id: string;
+  profile: ThreadPerson | null;
 };
 
 /** Friendly copy for the ?error= codes set by /messages/new. */
@@ -41,22 +52,24 @@ export default async function MessagesPage({
   const supabase = await createClient();
   const { data: mineData } = await supabase
     .from("dm_participants")
-    .select("thread_id, last_read_at, thread:dm_threads(created_at)")
+    .select(
+      "thread_id, last_read_at, thread:dm_threads(created_at, is_group, title)"
+    )
     .eq("user_id", user.userId);
   const mine = (mineData ?? []) as unknown as MyParticipantRow[];
   const threadIds = mine.map((row) => row.thread_id);
 
-  // Other participants + the latest message per thread, all in parallel.
-  const [othersResult, latestResults] =
+  // Everyone in each thread — me included, so a group's headcount is honest —
+  // plus the latest message per thread, all in parallel.
+  const [peopleResult, latestResults] =
     threadIds.length > 0
       ? await Promise.all([
           supabase
             .from("dm_participants")
             .select(
-              "thread_id, profile:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+              "thread_id, user_id, profile:profiles(id, handle, display_name, avatar_url)"
             )
-            .in("thread_id", threadIds)
-            .neq("user_id", user.userId),
+            .in("thread_id", threadIds),
           Promise.all(
             threadIds.map((id) =>
               supabase
@@ -71,10 +84,13 @@ export default async function MessagesPage({
         ])
       : [null, []];
 
-  const otherByThread = new Map<string, Profile>();
-  for (const row of (othersResult?.data ??
-    []) as unknown as OtherParticipantRow[]) {
-    if (row.profile) otherByThread.set(row.thread_id, row.profile);
+  const peopleByThread = new Map<string, ThreadPerson[]>();
+  for (const row of (peopleResult?.data ??
+    []) as unknown as ParticipantRow[]) {
+    if (!row.profile) continue;
+    const seated = peopleByThread.get(row.thread_id);
+    if (seated) seated.push(row.profile);
+    else peopleByThread.set(row.thread_id, [row.profile]);
   }
   const latestByThread = new Map<string, DmMessage>();
   threadIds.forEach((id, i) => {
@@ -84,15 +100,31 @@ export default async function MessagesPage({
 
   const threads = mine
     .map((row) => {
-      // No other participant (e.g. a deleted account) — nothing to show.
-      const other = otherByThread.get(row.thread_id);
-      if (!other) return null;
+      const isGroup = row.thread?.is_group === true;
+      const everyone = peopleByThread.get(row.thread_id) ?? [];
+      const others = everyone.filter((person) => person.id !== user.userId);
+      // A 1:1 whose other account is gone has nothing left to show; a group
+      // stands on its own name.
+      if (!isGroup && others.length === 0) return null;
       const latest = latestByThread.get(row.thread_id) ?? null;
+      const author = latest
+        ? (everyone.find((person) => person.id === latest.author_id) ?? null)
+        : null;
+      // One naming rule for both shapes, straight from the data layer.
+      const named = threadDisplay(
+        { is_group: isGroup, title: row.thread?.title ?? null },
+        everyone,
+        user.userId
+      );
       return {
         threadId: row.thread_id,
-        other,
+        isGroup,
+        name: named.title,
+        subtitle: named.subtitle,
+        others,
         latest,
         latestIsMine: latest?.author_id === user.userId,
+        latestAuthorName: author ? firstNameOf(author.display_name) : null,
         unread: Boolean(
           latest &&
             latest.author_id !== user.userId &&
@@ -114,15 +146,28 @@ export default async function MessagesPage({
         title="Direct messages"
         description="Trade notes, plan study sessions, or just say hi."
         action={
-          threads.length === 0 ? undefined : (
+          <div className="flex items-center gap-2">
+            {threads.length === 0 ? null : (
+              <Link
+                href="/people"
+                className={buttonClasses({
+                  variant: "secondary",
+                  size: "sm",
+                  className: "gap-1.5",
+                })}
+              >
+                <UserRoundSearch className="size-4" aria-hidden />
+                New message
+              </Link>
+            )}
             <Link
-              href="/people"
+              href="/messages/new-group"
               className={buttonClasses({ size: "sm", className: "gap-1.5" })}
             >
-              <UserRoundSearch className="size-4" aria-hidden />
-              New message
+              <UsersRound className="size-4" aria-hidden />
+              New group
             </Link>
-          )
+          </div>
         }
       />
 
@@ -142,7 +187,7 @@ export default async function MessagesPage({
             illustration={<ChatScene />}
             icon={MessageCircle}
             title="No conversations yet"
-            description="DM classmates to trade notes, plan study sessions, or just say hi. Find people from your courses to get started."
+            description="DM classmates to trade notes, plan study sessions, or just say hi. Find people from your courses to get started, or start a group with the whole study crew."
             action={
               <Link href="/people" className={buttonClasses({ size: "sm" })}>
                 Find classmates
@@ -159,9 +204,13 @@ export default async function MessagesPage({
             <ThreadListItem
               key={t.threadId}
               threadId={t.threadId}
-              other={t.other}
+              isGroup={t.isGroup}
+              name={t.name}
+              subtitle={t.subtitle}
+              others={t.others}
               latest={t.latest}
               latestIsMine={t.latestIsMine}
+              latestAuthorName={t.latestAuthorName}
               unread={t.unread}
             />
           ))}
