@@ -42,6 +42,7 @@ import {
   categoryLabel,
   fetchQueue,
   fetchQueueCounts,
+  fetchReportedContent,
   filedAgo,
   moveCount,
   ModerationError,
@@ -52,6 +53,7 @@ import {
   summarize,
   triageActions,
   type ModerationReport,
+  type ReportedContent,
   type ReportStatus,
 } from "@/lib/moderation";
 import { useAuth } from "@/providers/auth-provider";
@@ -112,6 +114,98 @@ function Well({ children }: { children: ReactNode }) {
 }
 
 /**
+ * A reported message the queue query couldn't carry — a room this moderator
+ * isn't in, or a direct message, which no moderator is ever a participant of.
+ *
+ * Deliberately behind a tap rather than loaded with the list. These are
+ * private words, and the difference between "a screen that can show you a
+ * reported message" and "a screen that pulls a hundred private messages out
+ * of the database to draw a list" is exactly this button.
+ */
+function HiddenMessage({
+  report,
+  note,
+}: {
+  report: ModerationReport;
+  note: string;
+}) {
+  const theme = useTheme();
+  const [content, setContent] = useState<ReportedContent | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [empty, setEmpty] = useState(false);
+
+  const load = useCallback(async () => {
+    if (loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const found = await fetchReportedContent(report.id);
+      if (found) setContent(found);
+      else setEmpty(true);
+    } catch (caught) {
+      setError(
+        caught instanceof ModerationError
+          ? caught.message
+          : "We couldn't load what was reported. Give it another go."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [report.id, loading]);
+
+  if (content) {
+    return (
+      <View style={{ gap: 6 }}>
+        <AppText variant="label" muted>
+          {content.kind === "direct" ? "The direct message" : "What they said"}
+        </AppText>
+        <Well>
+          <AppText>{content.content}</AppText>
+          {content.deleted_at ? (
+            <AppText variant="caption" muted>
+              The author has taken this down since.
+            </AppText>
+          ) : null}
+        </Well>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+        <Feather
+          name="eye-off"
+          size={13}
+          color={theme.muted}
+          style={{ marginTop: 2 }}
+        />
+        <AppText variant="caption" muted style={{ flex: 1 }}>
+          {empty
+            ? "That message has been deleted outright. The report is all that's left."
+            : note}
+        </AppText>
+      </View>
+      {empty ? null : (
+        <Button
+          label="Read the message"
+          variant="secondary"
+          size="sm"
+          pending={loading}
+          onPress={() => void load()}
+        />
+      )}
+      {error ? (
+        <AppText variant="caption" style={{ color: theme.danger }}>
+          {error}
+        </AppText>
+      ) : null}
+    </View>
+  );
+}
+
+/**
  * What was reported, quoted — or a sentence saying where it went.
  *
  * A soft-deleted message keeps its content here on purpose: "they took it down
@@ -123,6 +217,14 @@ function Subject({ report }: { report: ModerationReport }) {
   const subject = reportSubject(report);
 
   if (subject.kind === "gone") {
+    /* A message we can't embed isn't necessarily a message we can't read.
+       `messages` is channel-member-only and `dm_messages` is participant-only,
+       so a moderator triaging a room they never joined — or any DM at all —
+       used to be judging words they couldn't see. `reported_content()` is the
+       one narrow way through, so offer it rather than the shrug. */
+    if (subject.was === "message") {
+      return <HiddenMessage report={report} note={subject.note} />;
+    }
     return (
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
         <Feather

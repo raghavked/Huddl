@@ -12,21 +12,23 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /* The app-wide report flow. Pushed from anywhere with
-   { messageId?, userId?, boardPostId?, label?, context? } — label is a short
-   human subject (a display name, or a post's title) for the header, and
-   context is the reported words themselves, quoted back so she can see
-   exactly which message she's flagging.
+   { messageId?, dmMessageId?, userId?, boardPostId?, label?, context? } —
+   label is a short human subject (a display name, or a post's title) for the
+   header, and context is the reported words themselves, quoted back so she
+   can see exactly which message she's flagging.
 
-   Three things can be reported, and public.reports takes any one of them:
-   a message, a person, or — since migration 0034 added board_post_id and
-   rewrote the reports_have_subject check — a post on the campus board.
-   Message-only reports also record the message's author so the report keeps
-   a subject if the message is later deleted; the board pushes its post's
-   author along for the same reason.
+   Four things can be reported, and public.reports takes any one of them: a
+   room message, a direct message, a person, or a post on the campus board.
+   Whichever it is, the author rides along in reported_user_id, because every
+   subject column is `on delete set null` — the report has to keep a subject
+   when the thing it named is deleted, which is the most likely moment for
+   someone to try.
 
-   `reports.message_id` points at public.messages, so a DM can't be attached
-   as a row: a reported DM arrives as { userId, context } instead, and the
-   screen says plainly that the message itself isn't travelling with it. */
+   Direct messages were the gap. Until migration 0038 there was no
+   dm_message_id, so a reported DM filed against the PERSON with the words
+   pasted into the reason box if the student thought to include them — and
+   the moderator triaged a harassment report with no evidence attached. That
+   is now a real subject like any other. */
 
 /** Longest quoted excerpt we show back — enough to recognise the message. */
 const CONTEXT_MAX = 240;
@@ -95,6 +97,7 @@ export default function ReportScreen() {
 
   const params = useLocalSearchParams<{
     messageId?: string;
+    dmMessageId?: string;
     userId?: string;
     boardPostId?: string;
     label?: string;
@@ -106,6 +109,10 @@ export default function ReportScreen() {
       : null;
   const reportedUserParam =
     typeof params.userId === "string" && params.userId ? params.userId : null;
+  const dmMessageId =
+    typeof params.dmMessageId === "string" && params.dmMessageId
+      ? params.dmMessageId
+      : null;
   const boardPostId =
     typeof params.boardPostId === "string" && params.boardPostId
       ? params.boardPostId
@@ -172,9 +179,12 @@ export default function ReportScreen() {
      `@/lib/moderation` reads them back with, so the sentence a student sees
      here and the one a moderator sees later name the same thing. A board post
      arrives with its author attached, and naming the post is what keeps this
-     from reading as a report about them. A quoted DM has no message row to
-     attach, but it is still a report about a message — say so. */
-  const aboutAMessage = Boolean(messageId) || (Boolean(context) && !boardPostId);
+     from reading as a report about them. A direct message is a message like
+     any other now that 0038 gave it a column. */
+  const aboutAMessage =
+    Boolean(messageId) ||
+    Boolean(dmMessageId) ||
+    (Boolean(context) && !boardPostId);
   const subject = aboutAMessage
     ? label
       ? `a message from ${label}`
@@ -184,9 +194,12 @@ export default function ReportScreen() {
         ? `this post — ${label}`
         : "this post"
       : (label ?? "this person");
-  /* True only for the DM case: we're quoting words that the report row itself
-     can't carry, so the reason field has to do that work. */
-  const wordsDontTravel = Boolean(context) && !messageId && !boardPostId;
+  /* The one case where the words still don't travel: a screen quoted a
+     message at us without naming which row it was. The reason field has to
+     carry it, and the copy below says so rather than letting a student assume
+     the message went with it. */
+  const wordsDontTravel =
+    Boolean(context) && !messageId && !dmMessageId && !boardPostId;
 
   async function handleSubmit() {
     if (!myId || submitting) return;
@@ -224,6 +237,7 @@ export default function ReportScreen() {
       const { error } = await supabase.from("reports").insert({
         reporter_id: myId,
         message_id: messageId,
+        dm_message_id: dmMessageId,
         board_post_id: boardPostId,
         reported_user_id: reportedUserId,
         category,
@@ -265,7 +279,7 @@ export default function ReportScreen() {
   );
 
   /* Nothing to report — pushed without a subject. */
-  if (!messageId && !reportedUserParam && !boardPostId) {
+  if (!messageId && !dmMessageId && !reportedUserParam && !boardPostId) {
     return (
       <View
         style={{
@@ -426,8 +440,8 @@ export default function ReportScreen() {
         ) : null}
         {wordsDontTravel ? (
           <AppText variant="caption" muted style={{ marginTop: 8 }}>
-            A direct message can't be attached to a report, so tell us below
-            what was said.
+            We couldn't attach the message itself, so tell us below what was
+            said.
           </AppText>
         ) : null}
 

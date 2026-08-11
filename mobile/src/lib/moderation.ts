@@ -188,6 +188,14 @@ export type ModerationReport = {
   message_id: string | null;
   /** Raw `reports.board_post_id` — same story as `message_id`. */
   board_post_id: string | null;
+  /**
+   * Raw `reports.dm_message_id` (migration 0038). There is deliberately NO
+   * embedded `dm_message` beside it: `dm_messages` is readable only to the
+   * two people in the thread, and a moderator is by definition not one of
+   * them. A reported DM resolves through {@link fetchReportedContent}, which
+   * is the only path to those words and is scoped to this one report.
+   */
+  dm_message_id: string | null;
   /** Raw `reports.reported_user_id`. */
   reported_user_id: string | null;
 };
@@ -223,7 +231,7 @@ export const QUEUE_LIMIT = 100;
 
 /** Columns every queue query selects. Keep selects consistent. */
 export const REPORT_SELECT =
-  "id, status, category, reason, created_at, message_id, board_post_id, reported_user_id, " +
+  "id, status, category, reason, created_at, message_id, dm_message_id, board_post_id, reported_user_id, " +
   // Two foreign keys point at `profiles`, so both embeds need naming.
   "reporter:profiles!reports_reporter_id_fkey(id, handle, display_name, avatar_url), " +
   "reported:profiles!reports_reported_user_id_fkey(id, handle, display_name, avatar_url, bio), " +
@@ -375,6 +383,7 @@ function toReport(raw: unknown): ModerationReport | null {
     post: toPost(record["post"]),
     message_id: text(record["message_id"]),
     board_post_id: text(record["board_post_id"]),
+    dm_message_id: text(record["dm_message_id"]),
     reported_user_id: text(record["reported_user_id"]),
   };
 }
@@ -588,7 +597,14 @@ export function reportSubject(report: ModerationReport): ReportSubject {
     return {
       kind: "gone",
       was: "message",
-      note: "That message is in a channel you haven't joined, so it isn't shown here.",
+      note: "That message is in a room you haven't joined. Open the report to read it.",
+    };
+  }
+  if (report.dm_message_id !== null) {
+    return {
+      kind: "gone",
+      was: "message",
+      note: "A direct message. Open the report to read it — the words aren't loaded with the queue.",
     };
   }
   if (report.post !== null) return { kind: "post", post: report.post };
@@ -722,3 +738,75 @@ export function moveCount(
     [to]: counts[to] + 1,
   };
 }
+
+/* ═════════════════════════ the words behind it ═══════════════════════ */
+
+/**
+ * The reported message itself, for the one report a moderator has open.
+ *
+ * This exists because triage was blind. `messages` is readable only to
+ * channel members and `dm_messages` only to the two people in the thread —
+ * both correct, and both meaning a moderator was being asked to judge words
+ * they could not read. Migration 0038 added `reported_content()`, a
+ * security-definer function that returns the text of the ONE message a given
+ * report names, for a moderator on that report's own campus.
+ *
+ * It is deliberately not part of {@link REPORT_SELECT}. One call per opened
+ * report, never one per row: a queue screen should not be pulling a hundred
+ * private messages out of the database to draw a list.
+ *
+ * @param reportId The report being triaged.
+ * @returns The words and who said them, or null when the subject is a person
+ *   or a board post (both already readable), or when the message has since
+ *   been hard-deleted — in which case the report stands on its own.
+ * @throws {ModerationError} With copy that's ready to render.
+ */
+export async function fetchReportedContent(
+  reportId: string
+): Promise<ReportedContent | null> {
+  const { data, error } = await supabase.rpc("reported_content", {
+    p_report_id: reportId,
+  });
+  if (error) {
+    if (error.message.includes("not a moderator")) {
+      throw new ModerationError(
+        "You're not a moderator any more, so this report isn't yours to read."
+      );
+    }
+    if (error.message.includes("not your campus")) {
+      throw new ModerationError("That report belongs to another campus.");
+    }
+    throw new ModerationError(
+      "We couldn't load what was reported. Give it another go."
+    );
+  }
+  const record = embedded(data);
+  if (!record) return null;
+  const content = text(record["content"]);
+  if (content === null) return null;
+  const kind = text(record["kind"]);
+  return {
+    kind: kind === "direct" ? "direct" : "channel",
+    content,
+    author_id: text(record["author_id"]),
+    created_at: text(record["created_at"]),
+    deleted_at: text(record["deleted_at"]),
+  };
+}
+
+/** What {@link fetchReportedContent} hands back. */
+export type ReportedContent = {
+  /** Which surface it was said on — a room, or a one-to-one thread. */
+  kind: "channel" | "direct";
+  /** The words. Never truncated on the way through here. */
+  content: string;
+  /** Who said them, or null if the row no longer names an author. */
+  author_id: string | null;
+  /** ISO timestamp it was sent, or null. */
+  created_at: string | null;
+  /**
+   * Set if it has been taken down since. The content is still here — a soft
+   * delete hides a message from the room, not from triage.
+   */
+  deleted_at: string | null;
+};
