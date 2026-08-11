@@ -122,16 +122,93 @@ YikYak lesson).
 - **Escalation path:** moderators flag serious issues (threats, harassment,
   academic-integrity schemes) directly to the team; we respond within 24 hours
   and can disable accounts at the auth level.
+- **In-app reporting**, from the overflow menu on a message, a person, or a
+  board post. Eight categories, an optional note, and a rate limit so the
+  flow cannot itself be used to harass. A report keeps its subject even if the
+  message is later hard-deleted.
+- **The moderation queue** at `/moderation` on both clients, open to anyone
+  with `profiles.is_moderator`. Open / reviewed / dismissed with counts, the
+  reported content rendered in place, and one tap through to the message, the
+  profile, or the board post.
+
+### Promoting a moderator
+
+`is_moderator` is **not** self-assignable, and that is enforced in the schema
+rather than in the UI: the `authenticated` grant on `profiles` is
+column-scoped and does not include it (migration 0034). Promotion is a
+service-role write, deliberately:
+
+```sql
+update public.profiles set is_moderator = true where handle = '<handle>';
+```
+
+Do it from the Supabase SQL editor, and only for a student who has agreed to
+the role. Demotion is the same statement with `false`. There is no in-app
+path to either, and there should not be one until there is a council to
+answer to.
 
 ### Roadmap (in order)
 
-1. **In-app report flow** — report a message/user from the overflow menu,
-   routed to channel moderators with team visibility.
-2. **Moderator tools page** — queue of reports, removal history, per-channel
-   audit log.
-3. **Campus moderator council** — per-campus group of vetted student mods for
+1. **Removal history and a per-channel audit log** — the queue records the
+   triage decision but not yet the removals that followed it.
+2. **Campus moderator council** — per-campus group of vetted student mods for
    cross-channel issues, appeals, and policy input.
-4. **Rate limits + new-account friction** for burst abuse during rush periods.
+3. **Rate limits + new-account friction** for burst abuse during rush periods.
+   Reports are rate-limited today; messages and board posts are not.
+
+---
+
+## 3a. Scheduled jobs
+
+Five `pg_cron` jobs run against the production database. They are defined in
+the migrations, not in the dashboard, so `supabase/migrations/` is the source
+of truth — but they run whether or not anyone is watching, and this is the
+list to check first when something arrives late, twice, or not at all.
+
+| Job | Schedule (UTC) | Function | What it does |
+| --- | --- | --- | --- |
+| `huddl-push-digests` | `*/5 * * * *` | `send_push_digests()` | One push for a pile of deferred notifications |
+| `huddl-calendar-reminders` | `10 * * * *` | `send_calendar_reminders()` | Your own lead time on a due date |
+| `huddl-event-reminders` | `25 * * * *` | `send_event_reminders()` | Before an event you said yes to |
+| `huddl-weekly-digest` | `0 15 * * 1` | `send_weekly_digest()` | The week ahead in your classes |
+| `huddl-weekly-recap` | `0 1 * * 0` | `send_weekly_recap()` | Your week, in short — Saturday evening on the coast |
+
+The two reminder sweeps run hourly, at :10 and :25 rather than both at :00 —
+staggered so they never contend, and offset from the digest sweep. Hourly is
+also the real resolution of a reminder: a lead time of "a day before" is
+honoured to within the hour, not to the minute, and the copy is written to
+match. Do not tighten these to `*/5` to make a reminder feel prompter; the
+sweeps scan forward from `now()` and a shorter period only re-scans the same
+rows.
+
+To see them, their last run, and whether any are failing:
+
+```sql
+select jobname, schedule, active from cron.job order by jobname;
+
+select j.jobname, r.status, r.start_time, r.return_message
+from cron.job_run_details r join cron.job j using (jobid)
+where r.start_time > now() - interval '24 hours'
+order by r.start_time desc limit 50;
+```
+
+**Two things to know before debugging a quiet phone.** Notifications are
+written by the app and pushed by a BEFORE-INSERT trigger on `notifications`;
+the trigger defers rather than sends when the student is inside their quiet
+hours, or when a push already went out in the last two minutes. Deferred rows
+have `pushed_at is null`, and `huddl-push-digests` is what eventually carries
+them. So "no push arrived" is usually correct behaviour, and the query that
+tells you which is:
+
+```sql
+select kind, title, created_at, pushed_at
+from public.notifications
+where user_id = '<uuid>' order by created_at desc limit 20;
+```
+
+A row with `pushed_at` set was delivered to Expo. A row still null after the
+digest window means either quiet hours or no registered device — check
+`push_tokens` before assuming the pipeline is broken.
 
 ---
 
