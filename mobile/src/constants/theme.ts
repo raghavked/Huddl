@@ -51,6 +51,101 @@ export const palettes = {
 
 export type Palette = { [K in keyof (typeof palettes)["light"]]: string };
 
+/* ----------------------------- course tints ----------------------------- */
+
+/**
+ * The six colours a student can hang on a course, matching the values
+ * `enrollments.color` accepts. The name is what we store and what the picker
+ * shows; the colours themselves live in `courseTints`.
+ *
+ * The rule for turning a course into one of these — the student's pick when
+ * they made one, a stable hash of the course code when they didn't — lives in
+ * `@/lib/course-color`, not here. This file only owns the paint.
+ */
+export type CourseTint = "ember" | "fern" | "clay" | "plum" | "sky" | "sand";
+
+/**
+ * One tint: the wash a course sits on, and the ink that reads on that wash.
+ *
+ * `soft` is a fill — a chip, a calendar block, the stripe down a card. `ink`
+ * is the text and the icons *on* that fill, and it is dark enough in light
+ * and bright enough in dark to also work as a standalone mark (a dot, a bar,
+ * the course code) on `background`, `surface`, or `surface2`.
+ *
+ * There is deliberately no saturated third step. A course colour is a label,
+ * not a call to action — the ember stays the only thing in the app that fills
+ * a button.
+ */
+export type CourseTintColors = { soft: string; ink: string };
+
+export type CourseTintScale = Record<CourseTint, CourseTintColors>;
+
+/**
+ * The course palette, both appearances.
+ *
+ * **Ember and fern are the brand and accent pairs, unchanged.** A course the
+ * student tinted ember is wearing the same clay wash as every brand chip in
+ * the app, so a coloured course sits *inside* the hearth rather than beside
+ * it. The other four are new, and they are held to the same standard: warm,
+ * low chroma, and quiet enough that six of them in a week view read as a
+ * calendar rather than a highlighter drawer.
+ *
+ * How they were tuned:
+ *
+ * - **Every `ink` on its own `soft` clears 4.5:1** in both themes — 5.15 to
+ *   6.05 in light, 5.26 to 7.58 in dark. Ink on `background` and on `surface`
+ *   clears it too (5.7 minimum), so the code can be set in its colour on a
+ *   plain card.
+ * - **The six fills stay apart.** No two `soft` fills in a theme are closer
+ *   than ΔE 9.2 (light) or 8.3 (dark) in CIE Lab, so adjacent rows are
+ *   distinguishable without reading the label.
+ * - **The six fills stay level.** Light fills sit in an L\* band of 89–93 and
+ *   dark in 17.6–19.1, so no one course looks heavier than its neighbours.
+ * - **A course keeps its identity across themes.** Each tint holds its hue
+ *   within a few degrees between light and dark; only the lightness flips.
+ *
+ * Colour is never the only signal — the course code is always rendered next
+ * to the tint, so a student who cannot separate two of these still reads the
+ * row correctly.
+ */
+export const courseTints: { light: CourseTintScale; dark: CourseTintScale } = {
+  light: {
+    /* The brand pair, verbatim: brandSoft / brandInk. */
+    ember: { soft: "#f6e3d7", ink: "#8f3a1f" },
+    /* The accent pair, verbatim: accentSoft / accent. */
+    fern: { soft: "#e9edd8", ink: "#56682d" },
+    /* Unfired rose-brick. Sits opposite ember so the two don't blur. */
+    clay: { soft: "#f9d9dc", ink: "#8e3f48" },
+    /* Dried plum skin — the one violet, kept greyed. */
+    plum: { soft: "#ecdcf1", ink: "#6f4482" },
+    /* Faded chambray. The coolest thing we allow, and barely. */
+    sky: { soft: "#d3e6eb", ink: "#3b5e6a" },
+    /* Wheat and dry grass, one step off the cream page. */
+    sand: { soft: "#f2e5c4", ink: "#77591f" },
+  },
+  dark: {
+    ember: { soft: "#40291c", ink: "#eda07b" },
+    fern: { soft: "#262e1a", ink: "#8ba852" },
+    clay: { soft: "#402326", ink: "#e79fa5" },
+    plum: { soft: "#352339", ink: "#cba3d5" },
+    sky: { soft: "#1d3035", ink: "#8fc1cb" },
+    sand: { soft: "#362d19", ink: "#dabf7c" },
+  },
+};
+
+/**
+ * The course palette for the active appearance. Feed it `useColorScheme()` —
+ * anything that isn't an explicit "dark" falls back to light, the same way
+ * `elevationFor` and `useTheme()` do.
+ *
+ * `const tint = courseTintsFor(scheme)[colorForCourse(enrollment.color, course.code)];`
+ */
+export function courseTintsFor(
+  scheme: "light" | "dark" | "unspecified" | null | undefined
+): CourseTintScale {
+  return scheme === "dark" ? courseTints.dark : courseTints.light;
+}
+
 export const radius = {
   card: 20,
   control: 12,

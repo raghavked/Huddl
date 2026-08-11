@@ -4,12 +4,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
-import { radius, type Palette } from "@/constants/theme";
+import {
+  courseTintsFor,
+  radius,
+  type CourseTintColors,
+  type Palette,
+} from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { colorForCourse, type CourseTint } from "@/lib/course-color";
 import { tapLight, tapSuccess } from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
 import { kindLabel, type CalendarKind } from "@/lib/syllabus";
 import { useAuth } from "@/providers/auth-provider";
+import { useResolvedScheme } from "@/providers/display-provider";
 
 /* Your calendar — one warm month of everything: class due dates from every
    enrolled course, plus the events you said you'd show up to. Weeks start on
@@ -20,6 +27,8 @@ import { useAuth } from "@/providers/auth-provider";
 
 type EnrollmentJoin = {
   archived_at: string | null;
+  /** The student's own tint for this course; null means "let the app choose". */
+  color: string | null;
   course: { id: string; code: string } | null;
 };
 
@@ -62,6 +71,20 @@ type DayEvent = {
 };
 
 type MonthData = { classDates: ClassDate[]; events: DayEvent[] };
+
+/** Course code → the tint that course wears for this student. Codes, not
+    ids, because a code is all a `ClassDate` or a `DayEvent` carries. */
+type TintByCode = ReadonlyMap<string, CourseTint>;
+
+/**
+ * How many class dots one day can show. Past three the day is simply busy,
+ * and the agenda underneath is the honest answer — a row of six dots in a
+ * 47px cell is confetti, not information.
+ */
+const MAX_DAY_DOTS = 3;
+
+/** Shared empty list, so a quiet day doesn't allocate one per cell per paint. */
+const NO_TINTS: readonly CourseTint[] = [];
 
 type AgendaRow =
   | { type: "class"; item: ClassDate }
@@ -176,18 +199,20 @@ function DayCell({
   date,
   isToday,
   isSelected,
-  hasClass,
+  classTints,
   hasEvent,
   onSelect,
 }: {
   date: Date;
   isToday: boolean;
   isSelected: boolean;
-  hasClass: boolean;
+  /** One tint per course with something due that day, already capped. */
+  classTints: readonly CourseTint[];
   hasEvent: boolean;
   onSelect: () => void;
 }) {
   const theme = useTheme();
+  const tints = courseTintsFor(useResolvedScheme());
   return (
     <Pressable
       accessibilityRole="button"
@@ -235,7 +260,11 @@ function DayCell({
           marginTop: 3,
         }}
       >
-        {hasClass ? <Dot color={theme.brand} /> : null}
+        {/* A dot per course, in that course's ink — a soft wash at 5px would
+            vanish against the card. Events keep fern, always last. */}
+        {classTints.map((tint) => (
+          <Dot key={tint} color={tints[tint].ink} />
+        ))}
         {hasEvent ? <Dot color={theme.accent} /> : null}
       </View>
     </Pressable>
@@ -292,6 +321,7 @@ function GhostGrid() {
 
 export default function YourCalendarScreen() {
   const theme = useTheme();
+  const tints = courseTintsFor(useResolvedScheme());
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
@@ -302,6 +332,12 @@ export default function YourCalendarScreen() {
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   });
   const [data, setData] = useState<MonthData | null>(null);
+  /* Kept beside the month rather than inside it: the tints belong to the
+     enrolments, not to March, so a colour changed elsewhere lands on every
+     cached month the next time any month loads. */
+  const [tintByCode, setTintByCode] = useState<TintByCode>(
+    () => new Map<string, CourseTint>()
+  );
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -314,7 +350,13 @@ export default function YourCalendarScreen() {
   const activeKeyRef = useRef<string>("");
 
   const fetchMonth = useCallback(
-    async (start: Date): Promise<{ month: MonthData; doneIds: string[] }> => {
+    async (
+      start: Date
+    ): Promise<{
+      month: MonthData;
+      doneIds: string[];
+      tintByCode: TintByCode;
+    }> => {
       if (!userId) throw new Error("Not signed in");
       const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
       const startIso = start.toISOString();
@@ -326,15 +368,19 @@ export default function YourCalendarScreen() {
       // and agenda fan out from the active classes alone.
       const enrollRes = await supabase
         .from("enrollments")
-        .select("archived_at, course:courses(id, code)")
+        .select("archived_at, color, course:courses(id, code)")
         .eq("user_id", userId);
       if (enrollRes.error) throw enrollRes.error;
       const codeById = new Map<string, string>();
       const activeIds = new Set<string>();
+      // Shelved classes keep their tint too — a chip on an old date should
+      // still be the colour that class always was.
+      const readTints = new Map<string, CourseTint>();
       for (const row of (enrollRes.data ?? []) as unknown as EnrollmentJoin[]) {
         const course = row.course;
         if (course === null) continue;
         codeById.set(course.id, course.code);
+        readTints.set(course.code, colorForCourse(row.color, course.code));
         if (row.archived_at === null) activeIds.add(course.id);
       }
       const courseIds = [...activeIds];
@@ -425,7 +471,11 @@ export default function YourCalendarScreen() {
         );
       }
 
-      return { month: { classDates, events }, doneIds };
+      return {
+        month: { classDates, events },
+        doneIds,
+        tintByCode: readTints,
+      };
     },
     [userId]
   );
@@ -447,10 +497,11 @@ export default function YourCalendarScreen() {
         setData(null);
       }
       try {
-        const { month, doneIds } = await fetchMonth(start);
+        const { month, doneIds, tintByCode: fresh } = await fetchMonth(start);
         cacheRef.current.set(key, month);
         if (activeKeyRef.current !== key) return; // paged on — stay quiet
         setData(month);
+        setTintByCode(fresh);
         setChecked((prev) => {
           const next = new Set(prev);
           for (const item of month.classDates) next.delete(item.id);
@@ -548,23 +599,44 @@ export default function YourCalendarScreen() {
     return out;
   }, [monthStart]);
 
+  /** The tint name a course code wears — the student's pick where they made
+      one, and the stable hash of the code everywhere else. */
+  const tintNameFor = useCallback(
+    (courseCode: string): CourseTint =>
+      tintByCode.get(courseCode) ?? colorForCourse(null, courseCode),
+    [tintByCode]
+  );
+
+  const tintFor = useCallback(
+    (courseCode: string): CourseTintColors => tints[tintNameFor(courseCode)],
+    [tints, tintNameFor]
+  );
+
   const dayMarks = useMemo(() => {
-    const map = new Map<string, { hasClass: boolean; hasEvent: boolean }>();
+    const map = new Map<string, { classTints: CourseTint[]; hasEvent: boolean }>();
     if (!data) return map;
     for (const item of data.classDates) {
       const key = dayKey(item.dueAt);
-      const mark = map.get(key) ?? { hasClass: false, hasEvent: false };
-      mark.hasClass = true;
+      const mark = map.get(key) ?? { classTints: [], hasEvent: false };
+      const tint = tintNameFor(item.courseCode);
+      // One dot per colour, in due order. Two courses that share a tint
+      // share a dot — a second dot in the same colour says nothing.
+      if (
+        mark.classTints.length < MAX_DAY_DOTS &&
+        !mark.classTints.includes(tint)
+      ) {
+        mark.classTints.push(tint);
+      }
       map.set(key, mark);
     }
     for (const ev of data.events) {
       const key = dayKey(ev.startsAt);
-      const mark = map.get(key) ?? { hasClass: false, hasEvent: false };
+      const mark = map.get(key) ?? { classTints: [], hasEvent: false };
       mark.hasEvent = true;
       map.set(key, mark);
     }
     return map;
-  }, [data]);
+  }, [data, tintNameFor]);
 
   const agenda = useMemo<AgendaRow[]>(() => {
     if (!data) return [];
@@ -754,7 +826,9 @@ export default function YourCalendarScreen() {
                           date={date}
                           isToday={dayKey(date) === todayKey}
                           isSelected={dayKey(date) === selectedKey}
-                          hasClass={dayMarks.get(dayKey(date))?.hasClass ?? false}
+                          classTints={
+                            dayMarks.get(dayKey(date))?.classTints ?? NO_TINTS
+                          }
                           hasEvent={dayMarks.get(dayKey(date))?.hasEvent ?? false}
                           onSelect={() => setSelectedDay(date)}
                         />
@@ -808,6 +882,7 @@ export default function YourCalendarScreen() {
                       const item = row.item;
                       const done = checked.has(item.id);
                       const colors = kindColors(item.kind, theme);
+                      const courseTint = tintFor(item.courseCode);
                       return (
                         <Card
                           key={`class-${item.id}`}
@@ -879,8 +954,8 @@ export default function YourCalendarScreen() {
                             >
                               <Chip
                                 text={item.courseCode}
-                                bg={theme.brandSoft}
-                                fg={theme.brandInk}
+                                bg={courseTint.soft}
+                                fg={courseTint.ink}
                               />
                               <Chip
                                 text={capitalize(kindLabel(item.kind))}
@@ -946,8 +1021,8 @@ export default function YourCalendarScreen() {
                               {ev.courseCode ? (
                                 <Chip
                                   text={ev.courseCode}
-                                  bg={theme.brandSoft}
-                                  fg={theme.brandInk}
+                                  bg={tintFor(ev.courseCode).soft}
+                                  fg={tintFor(ev.courseCode).ink}
                                 />
                               ) : null}
                             </View>
@@ -969,18 +1044,22 @@ export default function YourCalendarScreen() {
                   })
                 )}
 
+                {/* The class dot isn't one colour any more, so the legend
+                    says what it is instead of drawing a sample that would
+                    only be right for one course. */}
                 <View
                   style={{
                     flexDirection: "row",
+                    flexWrap: "wrap",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: 6,
+                    columnGap: 6,
+                    rowGap: 4,
                     marginTop: 14,
                   }}
                 >
-                  <Dot color={theme.brand} />
                   <AppText variant="caption" muted>
-                    Class dates
+                    Class dates wear their course's colour
                   </AppText>
                   <AppText variant="caption" muted>
                     ·

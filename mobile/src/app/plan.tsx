@@ -19,8 +19,13 @@ import {
   SectionLabel,
   type ChipTone,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import {
+  courseTintsFor,
+  radius,
+  type CourseTintColors,
+} from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { colorForCourse, type CourseTint } from "@/lib/course-color";
 import { tapLight, tapSuccess } from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
 import {
@@ -34,12 +39,17 @@ import {
   type StudyBlock,
 } from "@/lib/study-plan";
 import { useAuth } from "@/providers/auth-provider";
+import { useResolvedScheme } from "@/providers/display-provider";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /* Minimal local row shapes — the web app's types live outside this tsconfig. */
 
-type EnrollmentJoin = { course: { id: string; code: string } | null };
+type EnrollmentJoin = {
+  /** The student's own tint for this course; null means "let the app choose". */
+  color: string | null;
+  course: { id: string; code: string } | null;
+};
 
 type CalendarItemRow = {
   id: string;
@@ -55,6 +65,13 @@ type PlanData = {
   items: PlanItem[];
   /** item_id → done_at ISO — membership drives the plan, times drive the streak. */
   checkoffs: Map<string, string>;
+  /**
+   * Course code → the tint that course wears for this student. Keyed by code
+   * rather than id because that is all a {@link PlanEntry} carries by the
+   * time it reaches a row, and a student can't be in two courses with the
+   * same code.
+   */
+  tintByCode: ReadonlyMap<string, CourseTint>;
   /** Any ACTIVE enrolments — what the plan is actually built from. */
   hasCourses: boolean;
   /**
@@ -130,12 +147,45 @@ function emptyPlanCopy(data: PlanData | null): {
 
 /* ---------------------------- row pieces ---------------------------- */
 
+/**
+ * The course code, wearing that course's colour.
+ *
+ * Hand-drawn rather than a `Chip`, because `Chip` takes a `tone` — four fixed
+ * meanings — and a course tint is a sixth of a personal palette, not a
+ * meaning. The metrics are `Chip`'s static `sm` numbers exactly, so this is a
+ * colour change and nothing else. If a third screen needs it, `Chip` should
+ * grow a way to be handed a soft/ink pair instead of a third copy of this.
+ */
+function CourseChip({ code, tint }: { code: string; tint: CourseTintColors }) {
+  return (
+    <View
+      style={{
+        alignSelf: "flex-start",
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: radius.full,
+        backgroundColor: tint.soft,
+      }}
+    >
+      <AppText
+        variant="label"
+        numberOfLines={1}
+        style={{ color: tint.ink, fontSize: 11, lineHeight: 14 }}
+      >
+        {code}
+      </AppText>
+    </View>
+  );
+}
+
 function EntryRow({
   entry,
+  tint,
   now,
   onToggle,
 }: {
   entry: PlanEntry;
+  tint: CourseTintColors;
   now: Date;
   onToggle: () => void;
 }) {
@@ -198,7 +248,7 @@ function EntryRow({
       </Pressable>
       <View style={{ flex: 1, gap: 4 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <Chip label={entry.courseCode} tone="brand" />
+          <CourseChip code={entry.courseCode} tint={tint} />
           <Chip label={kindLabel(entry.kind)} tone={kindTone(entry.kind)} />
         </View>
         <AppText
@@ -254,6 +304,7 @@ function BlockRow({ block }: { block: StudyBlock }) {
 
 export default function PlanScreen() {
   const theme = useTheme();
+  const tints = courseTintsFor(useResolvedScheme());
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
@@ -272,14 +323,21 @@ export default function PlanScreen() {
     // quarter's due dates have no business crowding this quarter's plan.
     const enrollRes = await supabase
       .from("enrollments")
-      .select("course:courses(id, code)")
+      .select("color, course:courses(id, code)")
       .eq("user_id", userId)
       .is("archived_at", null);
     if (enrollRes.error) throw enrollRes.error;
 
-    const courses = ((enrollRes.data ?? []) as unknown as EnrollmentJoin[])
+    const enrollments = (enrollRes.data ?? []) as unknown as EnrollmentJoin[];
+    const courses = enrollments
       .map((row) => row.course)
       .filter((c): c is { id: string; code: string } => c !== null);
+    // Resolved once here, so a row only ever looks a colour up by code.
+    const tintByCode = new Map<string, CourseTint>();
+    for (const row of enrollments) {
+      if (row.course === null) continue;
+      tintByCode.set(row.course.code, colorForCourse(row.color, row.course.code));
+    }
     if (courses.length === 0) {
       // Nothing active. Before saying "no courses yet", check the shelf —
       // a student between quarters has added plenty, they're just all
@@ -293,6 +351,7 @@ export default function PlanScreen() {
       return {
         items: [],
         checkoffs: new Map(),
+        tintByCode,
         hasCourses: false,
         hasArchivedCourses: (shelvedRes.count ?? 0) > 0,
         loadedAt: now,
@@ -336,6 +395,7 @@ export default function PlanScreen() {
     return {
       items,
       checkoffs,
+      tintByCode,
       hasCourses: true,
       hasArchivedCourses: false,
       loadedAt: now,
@@ -429,6 +489,14 @@ export default function PlanScreen() {
     return out;
   }, [plan]);
 
+  /** A code we somehow have no enrolment for still gets a stable tint from
+      the hash rather than falling back to a flat brand pill. */
+  const tintFor = useCallback(
+    (courseCode: string): CourseTintColors =>
+      tints[data?.tintByCode.get(courseCode) ?? colorForCourse(null, courseCode)],
+    [tints, data]
+  );
+
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<ListRow>) => {
       switch (item.type) {
@@ -439,6 +507,7 @@ export default function PlanScreen() {
             <View style={{ marginBottom: 8 }}>
               <EntryRow
                 entry={item.entry}
+                tint={tintFor(item.entry.courseCode)}
                 now={data?.loadedAt ?? new Date()}
                 onToggle={() => void toggle(item.entry)}
               />
@@ -452,7 +521,7 @@ export default function PlanScreen() {
           );
       }
     },
-    [data, toggle]
+    [data, tintFor, toggle]
   );
 
   const empty = useMemo(() => emptyPlanCopy(data), [data]);

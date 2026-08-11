@@ -33,8 +33,9 @@ import {
   SkeletonRow,
   type ChipTone,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { courseTintsFor, radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { colorForCourse } from "@/lib/course-color";
 import { tapLight } from "@/lib/haptics";
 import {
   formatFileSize,
@@ -49,6 +50,7 @@ import { buddyCountLabel, countBuddies } from "@/lib/study-buddy";
 import { supabase } from "@/lib/supabase";
 import { kindLabel, type CalendarKind } from "@/lib/syllabus";
 import { useAuth } from "@/providers/auth-provider";
+import { useResolvedScheme } from "@/providers/display-provider";
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
 
@@ -79,6 +81,17 @@ type ClassmateRow = {
     major: string | null;
   } | null;
 };
+
+/**
+ * The enrollment row as it actually arrives, tint included.
+ *
+ * `enrollments.color` is **personal**: the SELECT policy lets a student read
+ * their classmates' enrollment rows, so every classmate's pick comes down the
+ * wire — and exactly one of them is ever read, the one whose `user_id` is
+ * ours. `ClassmateRow` deliberately doesn't carry the field, so nothing that
+ * renders a classmate can reach it by accident.
+ */
+type EnrollmentRow = ClassmateRow & { color: string | null };
 
 /* The next few shared calendar dates, previewed on the hub. */
 type UpcomingItem = {
@@ -321,6 +334,7 @@ function HubSkeleton() {
 
 export default function CourseHubScreen() {
   const theme = useTheme();
+  const tints = courseTintsFor(useResolvedScheme());
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { session, ready } = useAuth();
@@ -336,6 +350,9 @@ export default function CourseHubScreen() {
     {}
   );
   const [mates, setMates] = useState<ClassmateRow[]>([]);
+  /** My own tint for this course, straight off the wire — null until it
+      loads, and null forever for a student who never picked one. */
+  const [myColor, setMyColor] = useState<string | null>(null);
   const [upcoming, setUpcoming] = useState<UpcomingItem[]>([]);
   const [sessions, setSessions] = useState<CourseEventRow[]>([]);
   const [linkCount, setLinkCount] = useState(0);
@@ -407,7 +424,7 @@ export default function CourseHubScreen() {
           supabase
             .from("enrollments")
             .select(
-              "id, user_id, role, catalog_course_id, profile:profiles(id, handle, display_name, avatar_url, major)"
+              "id, user_id, role, catalog_course_id, color, profile:profiles(id, handle, display_name, avatar_url, major)"
             )
             .eq("course_id", courseId),
           supabase
@@ -493,9 +510,12 @@ export default function CourseHubScreen() {
       // Same for the study-partner tally: `countBuddies` returns 0 rather
       // than throwing, so it can never be the reason this screen fails.
       setBuddyCount(buddyTally);
-      const sortedMates = (
-        (matesRes.data ?? []) as unknown as ClassmateRow[]
-      ).sort(
+      const enrollmentRows = (matesRes.data ?? []) as unknown as EnrollmentRow[];
+      // Only ever our own row's colour — see the note on `EnrollmentRow`.
+      setMyColor(
+        enrollmentRows.find((row) => row.user_id === userId)?.color ?? null
+      );
+      const sortedMates = enrollmentRows.sort(
         (a, b) =>
           ROLE_WEIGHT[a.role] - ROLE_WEIGHT[b.role] ||
           (a.profile?.display_name ?? "").localeCompare(
@@ -1131,6 +1151,11 @@ export default function CourseHubScreen() {
 
   /* ------------------------------ the hub ---------------------------- */
 
+  /* The colour this student gave this course, or the tint hashed from its
+     code when they never picked one. It is theirs alone — the classmate
+     reading the same hub may well see a different band. */
+  const tint = tints[colorForCourse(myColor, course.code)];
+
   const detailRows: { key: string; icon: FeatherName; value: string }[] = [];
   if (course.instructor) {
     detailRows.push({ key: "instructor", icon: "user", value: course.instructor });
@@ -1177,11 +1202,27 @@ export default function CourseHubScreen() {
         }
         ListHeaderComponent={
           <View>
-            <View style={{ gap: 4 }}>
-              <AppText variant="display">{course.code}</AppText>
+            {/* The header wears the course's colour: a soft band, with the
+                code set in that tint's ink. A saturated block would turn the
+                first thing on the screen into a button it isn't, so this is
+                the wash. The term line takes its colour from the band rather
+                than falling back to grey — muted text never sits on a tinted
+                fill. */}
+            <View
+              style={{
+                backgroundColor: tint.soft,
+                borderRadius: radius.card,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                gap: 4,
+              }}
+            >
+              <AppText variant="display" style={{ color: tint.ink }}>
+                {course.code}
+              </AppText>
               <AppText variant="bodyMedium">{course.title}</AppText>
               {course.term ? (
-                <AppText variant="caption" muted>
+                <AppText variant="caption" style={{ color: tint.ink }}>
                   {course.term.name}
                 </AppText>
               ) : null}

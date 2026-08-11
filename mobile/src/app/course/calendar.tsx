@@ -8,6 +8,7 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
   SectionList,
   View,
   type SectionListData,
@@ -21,11 +22,24 @@ import {
   Chip,
   EmptyState,
   Field,
+  Sheet,
   type ChipTone,
 } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapLight, tapSuccess } from "@/lib/haptics";
+import {
+  LEAD_CHOICES,
+  LEAD_MIN_MINUTES,
+  ReminderError,
+  clearReminder,
+  describeLead,
+  fetchReminders,
+  reminderFiresAt,
+  setReminder,
+  type LeadChoice,
+  type Reminder,
+} from "@/lib/reminders";
 import { CALENDAR_KINDS, kindLabel, type CalendarKind } from "@/lib/syllabus";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -99,6 +113,28 @@ function timeSuffix(iso: string): string {
   return ` · ${d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
 }
 
+/** A ladder label dropped into the middle of a sentence: "the night before". */
+function leadPhrase(minutes: number): string {
+  const label = describeLead(minutes);
+  return label.charAt(0).toLowerCase() + label.slice(1);
+}
+
+/** The quiet second caption on a row that has a reminder on it. A stamped
+    reminder already did its job, so it says so rather than sounding armed. */
+function reminderCaption(reminder: Reminder): string {
+  const phrase = leadPhrase(reminder.lead_minutes);
+  return reminder.sent_at === null
+    ? `Reminder: ${phrase}`
+    : `Reminded you ${phrase}`;
+}
+
+/** True while the nearest lead on the ladder could still reach you — the
+    hourly sweep only sends before a deadline, so past this point a bell would
+    be a promise we can't keep. */
+function remindable(dueAt: string, now: Date): boolean {
+  return !reminderFiresAt(new Date(dueAt), LEAD_MIN_MINUTES, now).past;
+}
+
 /** Group date-sorted items into month sections ("October 2026"). */
 function groupByMonth(items: CalendarItemRow[]): Section[] {
   const sections: Section[] = [];
@@ -140,6 +176,19 @@ export default function ClassCalendarScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Your own reminders, keyed by item — absent from the map IS "no reminder".
+  const [reminders, setReminders] = useState<Map<string, Reminder>>(new Map());
+  const [remindersError, setRemindersError] = useState<string | null>(null);
+  // The lead-time sheet. `openedAt` is the clock read once on open, so every
+  // row in the ladder measures against the same moment while it's up.
+  const [sheet, setSheet] = useState<{
+    item: CalendarItemRow;
+    openedAt: Date;
+  } | null>(null);
+  // The lead someone picked whose moment is already behind them, so the sheet
+  // can say why nothing happened, right under the row they tapped.
+  const [pastChoice, setPastChoice] = useState<number | null>(null);
+
   // The inline "Add a date" form — no datepicker dependency, just honest text.
   const [formOpen, setFormOpen] = useState(false);
   const [formKind, setFormKind] = useState<CalendarKind>("assignment");
@@ -174,21 +223,37 @@ export default function ClassCalendarScreen() {
     setItems(rows);
     // Your own check-offs — private, one query, keyed by item.
     if (rows.length > 0) {
+      const ids = rows.map((row) => row.id);
+      // Every visible item's reminder in one lookup, in flight beside the
+      // check-offs so the bells and the circles land together. A reminder
+      // outage is not a calendar outage: it says so and the month still draws.
+      const remindersInFlight = fetchReminders(ids).then(
+        (map) => ({ map, failure: null as string | null }),
+        (err: unknown) => ({
+          map: new Map<string, Reminder>(),
+          failure:
+            err instanceof ReminderError
+              ? err.message
+              : "We couldn't load your reminders. Give it another go.",
+        })
+      );
       const { data: checks } = await supabase
         .from("study_checkoffs")
         .select("item_id")
         .eq("user_id", userId)
-        .in(
-          "item_id",
-          rows.map((row) => row.id)
-        );
+        .in("item_id", ids);
       setChecked(
         new Set(
           ((checks ?? []) as { item_id: string }[]).map((row) => row.item_id)
         )
       );
+      const { map, failure } = await remindersInFlight;
+      setReminders(map);
+      setRemindersError(failure);
     } else {
       setChecked(new Set());
+      setReminders(new Map());
+      setRemindersError(null);
     }
     setStatus("ready");
   }, [userId, courseId]);
@@ -247,6 +312,108 @@ export default function ClassCalendarScreen() {
     },
     [userId, checked]
   );
+
+  /* ---------------------------- reminders ---------------------------- */
+
+  const openReminders = useCallback((item: CalendarItemRow) => {
+    setPastChoice(null);
+    setSheet({ item, openedAt: new Date() });
+  }, []);
+
+  const closeReminders = useCallback(() => {
+    setSheet(null);
+    setPastChoice(null);
+  }, []);
+
+  /** Arm or re-aim a reminder. The bell fills now; the row syncs behind it. */
+  const armReminder = useCallback(
+    async (item: CalendarItemRow, minutes: number) => {
+      const previous = reminders.get(item.id) ?? null;
+      setActionError(null);
+      setReminders((prev) => {
+        const next = new Map(prev);
+        next.set(item.id, {
+          item_id: item.id,
+          lead_minutes: minutes,
+          // Picking a new lead re-arms a reminder that already went out.
+          sent_at: null,
+        });
+        return next;
+      });
+      tapLight();
+      try {
+        const saved = await setReminder(item.id, minutes);
+        setReminders((prev) => new Map(prev).set(item.id, saved));
+      } catch (err) {
+        setReminders((prev) => {
+          const next = new Map(prev);
+          if (previous) next.set(item.id, previous);
+          else next.delete(item.id);
+          return next;
+        });
+        setActionError(
+          err instanceof ReminderError
+            ? err.message
+            : "We couldn't set that reminder just now. Give it another go."
+        );
+      }
+    },
+    [reminders]
+  );
+
+  /** Take the reminder off, with the bell emptying first. */
+  const disarmReminder = useCallback(
+    async (item: CalendarItemRow) => {
+      const previous = reminders.get(item.id);
+      if (!previous) return;
+      setActionError(null);
+      setReminders((prev) => {
+        const next = new Map(prev);
+        next.delete(item.id);
+        return next;
+      });
+      tapLight();
+      try {
+        await clearReminder(item.id);
+      } catch (err) {
+        setReminders((prev) => new Map(prev).set(item.id, previous));
+        setActionError(
+          err instanceof ReminderError
+            ? err.message
+            : "We couldn't turn that reminder off just now. Give it another tap."
+        );
+      }
+    },
+    [reminders]
+  );
+
+  const pickLead = useCallback(
+    (choice: LeadChoice) => {
+      if (sheet === null) return;
+      const { item, openedAt } = sheet;
+      const timing = reminderFiresAt(
+        new Date(item.due_at),
+        choice.minutes,
+        openedAt
+      );
+      // A lead longer than the time left is a nudge the sweep would skip, so
+      // say so where they tapped instead of arming nothing.
+      if (timing.past) {
+        setPastChoice(choice.minutes);
+        return;
+      }
+      closeReminders();
+      void armReminder(item, choice.minutes);
+    },
+    [sheet, closeReminders, armReminder]
+  );
+
+  const dropLead = useCallback(() => {
+    if (sheet === null) return;
+    const { item } = sheet;
+    closeReminders();
+    void disarmReminder(item);
+  }, [sheet, closeReminders, disarmReminder]);
 
   /* ------------------------ creator delete --------------------------- */
 
@@ -371,18 +538,28 @@ export default function ClassCalendarScreen() {
 
   /* ------------------------------ rows -------------------------------- */
 
+  // One clock read per pass, so every bell on screen judges "could a nudge
+  // still land?" against the same moment.
+  const now = new Date();
+
   const renderItem = ({
     item,
   }: SectionListRenderItemInfo<CalendarItemRow, Section>) => {
     const done = checked.has(item.id);
     const mine = item.created_by === userId;
+    const reminder = reminders.get(item.id);
+    // The bell stays out of the way once a nudge could no longer arrive —
+    // unless there's already one here to read and turn off.
+    const showBell = reminder !== undefined || remindable(item.due_at, now);
+    const checkLabel = `${done ? "Mark not done" : "Mark done"} — ${
+      item.title
+    }, ${shortDay(item.due_at)}${mine ? ". Long press to remove" : ""}`;
     return (
       <Pressable
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: done }}
-        accessibilityLabel={`${done ? "Mark not done" : "Mark done"} — ${
-          item.title
-        }, ${shortDay(item.due_at)}${mine ? ". Long press to remove" : ""}`}
+        // Not accessible itself: the whole card stays the check-off target for
+        // a thumb, and the two buttons inside stay reachable one at a time for
+        // a screen reader. Same scaffold as the course rows in courses/index.
+        accessible={false}
         onPress={() => void toggleCheck(item)}
         onLongPress={mine ? () => confirmDelete(item) : undefined}
         style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
@@ -392,7 +569,7 @@ export default function ClassCalendarScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 12,
+            gap: 8,
             padding: 12,
             minHeight: 64,
             marginBottom: 10,
@@ -425,23 +602,87 @@ export default function ClassCalendarScreen() {
               {shortDay(item.due_at)} · {relativeDay(item.due_at)}
               {timeSuffix(item.due_at)}
             </AppText>
-          </View>
-          <View
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: radius.full,
-              borderWidth: done ? 0 : 2,
-              borderColor: theme.border,
-              backgroundColor: done ? theme.success : "transparent",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {done ? (
-              <Feather name="check" size={16} color={theme.onSolid} />
+            {reminder ? (
+              <AppText variant="caption" muted numberOfLines={1}>
+                {reminderCaption(reminder)}
+              </AppText>
             ) : null}
           </View>
+          {/* The bell sits inboard of the check-off circle, its own 44px
+              button with ~30px of clear space before the circle, so the two
+              never trade taps. Empty outline until a reminder is set, then a
+              soft ember tile — the same icon-tile language as Sheet.Row. */}
+          {showBell ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                reminder
+                  ? `Change the reminder for ${item.title}, currently ${leadPhrase(
+                      reminder.lead_minutes
+                    )}`
+                  : `Remind me about ${item.title}`
+              }
+              onPress={() => openReminders(item)}
+              style={({ pressed }) => ({
+                width: 44,
+                height: 44,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: radius.full,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: reminder ? theme.brandSoft : "transparent",
+                }}
+              >
+                <Feather
+                  name="bell"
+                  size={17}
+                  color={reminder ? theme.brand : theme.muted}
+                />
+              </View>
+            </Pressable>
+          ) : null}
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: done }}
+            accessibilityLabel={checkLabel}
+            onPress={() => void toggleCheck(item)}
+            onLongPress={mine ? () => confirmDelete(item) : undefined}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              // The drawn circle keeps the trailing edge it has always had;
+              // only its hit area grew around it.
+              marginRight: -6,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <View
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: radius.full,
+                borderWidth: done ? 0 : 2,
+                borderColor: theme.border,
+                backgroundColor: done ? theme.success : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {done ? (
+                <Feather name="check" size={16} color={theme.onSolid} />
+              ) : null}
+            </View>
+          </Pressable>
         </Card>
       </Pressable>
     );
@@ -577,7 +818,115 @@ export default function ClassCalendarScreen() {
           {actionError}
         </AppText>
       ) : null}
+      {remindersError ? (
+        <AppText
+          variant="caption"
+          style={{ color: theme.danger, marginBottom: 10 }}
+        >
+          {remindersError}
+        </AppText>
+      ) : null}
     </View>
+  );
+
+  /* ------------------------- the lead-time sheet ---------------------- */
+
+  const sheetReminder = sheet ? reminders.get(sheet.item.id) : undefined;
+  const sheetDue = sheet ? new Date(sheet.item.due_at) : null;
+  // Even the closest rung is behind us — there is no honest choice left to
+  // offer, so the sheet explains instead of listing seven dead ones.
+  const sheetTooLate =
+    sheet !== null && sheetDue !== null
+      ? reminderFiresAt(sheetDue, LEAD_MIN_MINUTES, sheet.openedAt).past
+      : false;
+
+  const leadLadder =
+    sheet === null || sheetDue === null
+      ? null
+      : LEAD_CHOICES.map((choice) => {
+          const chosen = sheetReminder?.lead_minutes === choice.minutes;
+          const past = reminderFiresAt(
+            sheetDue,
+            choice.minutes,
+            sheet.openedAt
+          ).past;
+          return (
+            <View key={choice.minutes}>
+              {/* Faded when that moment is already behind them — tapping it
+                  says why rather than arming a nudge that can't arrive. */}
+              <View style={{ opacity: past ? 0.5 : 1 }}>
+                <Sheet.Row
+                  icon={chosen ? "check" : "clock"}
+                  label={choice.label}
+                  onPress={() => pickLead(choice)}
+                />
+              </View>
+              {pastChoice === choice.minutes ? (
+                <AppText
+                  variant="caption"
+                  style={{
+                    color: theme.warning,
+                    marginLeft: 46,
+                    marginBottom: 4,
+                  }}
+                >
+                  That moment has passed — pick something closer in.
+                </AppText>
+              ) : null}
+            </View>
+          );
+        });
+
+  const reminderSheet = (
+    <Sheet
+      visible={sheet !== null}
+      onClose={closeReminders}
+      title={sheet?.item.title ?? "Reminder"}
+    >
+      {sheet ? (
+        <AppText variant="caption" muted style={{ marginBottom: 6 }}>
+          {/* Loose on purpose: the sweep ticks hourly, so a nudge lands near
+              the moment they picked, not on the minute. */}
+          {`Due ${shortDay(sheet.item.due_at)}${timeSuffix(sheet.item.due_at)}.${
+            sheetTooLate ? "" : " One nudge, around the time you pick."
+          }`}
+        </AppText>
+      ) : null}
+      {sheetTooLate ? (
+        <AppText
+          variant="caption"
+          style={{ color: theme.warning, marginBottom: 6 }}
+        >
+          This one's due too soon — even the closest reminder would land after
+          the deadline.
+        </AppText>
+      ) : (
+        <ScrollView
+          style={{ flexShrink: 1 }}
+          contentContainerStyle={{ gap: 4 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {leadLadder}
+        </ScrollView>
+      )}
+      {sheetReminder ? (
+        <>
+          <View
+            style={{
+              height: 1,
+              backgroundColor: theme.border,
+              marginTop: 6,
+              marginBottom: 8,
+            }}
+          />
+          <Sheet.Row
+            icon="bell-off"
+            label="Don't remind me"
+            onPress={dropLead}
+          />
+        </>
+      ) : null}
+    </Sheet>
   );
 
   const emptyState = (
@@ -712,6 +1061,8 @@ export default function ClassCalendarScreen() {
           )}
         </View>
       </View>
+
+      {reminderSheet}
     </KeyboardAvoidingView>
   );
 }

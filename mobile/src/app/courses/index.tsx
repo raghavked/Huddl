@@ -23,7 +23,12 @@ import {
   SkeletonRow,
   useReducedMotion,
 } from "@/components/ui";
-import { motion } from "@/constants/theme";
+import {
+  courseTintsFor,
+  motion,
+  radius,
+  type CourseTintColors,
+} from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   archiveCourse,
@@ -34,9 +39,17 @@ import {
   type MyCourse,
   type MyCourses,
 } from "@/lib/course-archive";
+import {
+  asCourseTint,
+  colorForCourse,
+  COURSE_TINT_KEYS,
+  COURSE_TINT_LABELS,
+  type CourseTint,
+} from "@/lib/course-color";
 import { tapLight } from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
+import { useResolvedScheme } from "@/providers/display-provider";
 
 /* My courses — two shelves.
  *
@@ -56,6 +69,8 @@ const SHELVE_FAILED =
   "We couldn't shelve that class just now. Give it another go.";
 const UNSHELVE_FAILED =
   "We couldn't bring that class back just now. Give it another go.";
+const COLOR_FAILED =
+  "We couldn't save that colour just now. Give it another go.";
 
 /** Which list the reader was looking at when a write failed, so the apology
     lands next to the row that snapped back rather than off-screen. */
@@ -123,24 +138,53 @@ function restamp(
 }
 
 /**
- * Which enrollments were matched to the course catalog. The archive module
- * doesn't carry this — it's a note about where the details came from, not part
- * of a course — so it rides along in one cheap read. If it fails, the notes
- * simply don't draw; it is never worth an error message.
+ * The two things the enrollment row knows that a {@link MyCourse} doesn't:
+ * whether the catalog filled its details in, and which tint the student hung
+ * on it. Neither belongs in the archive module — one is a note about where
+ * the details came from, the other is a private, per-student pick — so they
+ * ride along together in one cheap read.
  */
-async function fetchCatalogIds(userId: string): Promise<ReadonlySet<string>> {
+type EnrollmentMarks = {
+  /** Enrollment ids whose details came from the course catalog. */
+  catalogIds: ReadonlySet<string>;
+  /** Enrollment id → the tint the student chose, when they chose one. */
+  colors: ReadonlyMap<string, CourseTint>;
+};
+
+const NO_MARKS: EnrollmentMarks = {
+  catalogIds: NO_IDS,
+  colors: new Map<string, CourseTint>(),
+};
+
+/**
+ * Read both marks for one student's enrollments. If it fails the catalog
+ * notes simply don't draw and every course falls back to its hashed tint —
+ * neither is ever worth an error message on top of a list that loaded fine.
+ */
+async function fetchEnrollmentMarks(userId: string): Promise<EnrollmentMarks> {
   const { data, error } = await supabase
     .from("enrollments")
-    .select("id, catalog_course_id")
-    .eq("user_id", userId)
-    .not("catalog_course_id", "is", null);
-  if (error || !Array.isArray(data)) return NO_IDS;
+    .select("id, catalog_course_id, color")
+    .eq("user_id", userId);
+  if (error || !Array.isArray(data)) return NO_MARKS;
 
-  const ids = new Set<string>();
-  for (const row of data as unknown as { id?: unknown }[]) {
-    if (typeof row.id === "string" && row.id.length > 0) ids.add(row.id);
+  const catalogIds = new Set<string>();
+  const colors = new Map<string, CourseTint>();
+  for (const row of data as unknown as {
+    id?: unknown;
+    catalog_course_id?: unknown;
+    color?: unknown;
+  }[]) {
+    if (typeof row.id !== "string" || row.id.length === 0) continue;
+    if (typeof row.catalog_course_id === "string") catalogIds.add(row.id);
+    // Anything the palette doesn't recognise is left unset, so the course
+    // keeps its hashed tint instead of going grey.
+    const picked = asCourseTint(
+      typeof row.color === "string" ? row.color : null
+    );
+    if (picked) colors.set(row.id, picked);
   }
-  return ids;
+  return { catalogIds, colors };
 }
 
 /* --------------------------------- rows --------------------------------- */
@@ -148,11 +192,13 @@ async function fetchCatalogIds(userId: string): Promise<ReadonlySet<string>> {
 /** A class this quarter. Tap the "…" or long-press the row for the menu. */
 function CourseRow({
   course,
+  tint,
   fromCatalog,
   busy,
   onMenu,
 }: {
   course: MyCourse;
+  tint: CourseTintColors;
   fromCatalog: boolean;
   busy: boolean;
   onMenu: () => void;
@@ -168,13 +214,28 @@ function CourseRow({
           flexDirection: "row",
           alignItems: "center",
           gap: 4,
-          paddingLeft: 14,
+          paddingLeft: 8,
           paddingRight: 4,
           paddingVertical: 12,
           minHeight: 72,
         }}
       >
-        <View style={{ flex: 1, gap: 3 }}>
+        {/* The course's colour, as a spine down the left of the card.
+            The ink rather than the wash: a 4px bar in a soft fill would
+            disappear against the paper, and the ink clears 6:1 on `surface`.
+            A flow child that stretches, not an absolute one — it sits inside
+            the card's padding of its own accord, and clipping the Card to
+            reach its rounded corner would take the warm shadow with it.
+            Decorative: the code is right beside it. */}
+        <View
+          style={{
+            width: 4,
+            alignSelf: "stretch",
+            borderRadius: radius.full,
+            backgroundColor: tint.ink,
+          }}
+        />
+        <View style={{ flex: 1, gap: 3, marginLeft: 2 }}>
           <View
             style={{
               flexDirection: "row",
@@ -280,6 +341,69 @@ function ArchivedRow({
           <Feather name="more-vertical" size={16} color={theme.muted} />
         </Pressable>
       </View>
+    </Pressable>
+  );
+}
+
+/* --------------------------- the colour picker --------------------------- */
+
+/**
+ * One tint as a swatch: the wash it paints, ringed in its own ink when it's
+ * the colour this course is already wearing, and named underneath — so the
+ * six are never told apart by colour alone.
+ */
+function ColorSwatch({
+  tint,
+  colors,
+  selected,
+  onPress,
+}: {
+  tint: CourseTint;
+  colors: CourseTintColors;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const name = COURSE_TINT_LABELS[tint];
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      accessibilityLabel={name}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width: "33.333%",
+        alignItems: "center",
+        gap: 6,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: radius.full,
+          backgroundColor: colors.soft,
+          // The ring is always drawn so the swatches never shift when the
+          // pick moves — it just goes quiet on the five that aren't chosen.
+          borderWidth: 2,
+          borderColor: selected ? colors.ink : theme.border,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {selected ? (
+          <Feather name="check" size={18} color={colors.ink} />
+        ) : null}
+      </View>
+      <AppText
+        variant={selected ? "label" : "caption"}
+        numberOfLines={1}
+        muted={!selected}
+        style={selected ? { color: colors.ink } : undefined}
+      >
+        {name}
+      </AppText>
     </Pressable>
   );
 }
@@ -409,6 +533,7 @@ function ArchivedShelf({
 
 export default function MyCoursesScreen() {
   const theme = useTheme();
+  const tints = courseTintsFor(useResolvedScheme());
   const insets = useSafeAreaInsets();
   const { session, ready } = useAuth();
   const userId = session?.user.id ?? null;
@@ -417,13 +542,15 @@ export default function MyCoursesScreen() {
     active: [],
     archived: [],
   });
-  const [catalogIds, setCatalogIds] = useState<ReadonlySet<string>>(NO_IDS);
+  const [marks, setMarks] = useState<EnrollmentMarks>(NO_MARKS);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<ActionError | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [menu, setMenu] = useState<MyCourse | null>(null);
+  /** Which face the long-press sheet is showing. */
+  const [sheetView, setSheetView] = useState<"menu" | "colour">("menu");
   const [shelfOpen, setShelfOpen] = useState(false);
 
   const goBack = useCallback(() => {
@@ -434,12 +561,12 @@ export default function MyCoursesScreen() {
   const load = useCallback(async () => {
     if (!userId) return;
     try {
-      const [mine, catalog] = await Promise.all([
+      const [mine, enrollmentMarks] = await Promise.all([
         fetchMyCourses(),
-        fetchCatalogIds(userId),
+        fetchEnrollmentMarks(userId),
       ]);
       setShelves(mine);
-      setCatalogIds(catalog);
+      setMarks(enrollmentMarks);
       setError(null);
     } catch (cause) {
       setError(warmMessage(cause, LOAD_FAILED));
@@ -567,7 +694,74 @@ export default function MyCoursesScreen() {
     }
   }, []);
 
-  const openMenu = useCallback((course: MyCourse) => setMenu(course), []);
+  /** Move one course's tint in local state; its own inverse, so a failed
+      write rolls back with the value the row had before. */
+  const paint = useCallback((enrollmentId: string, tint: CourseTint | null) => {
+    setMarks((prev) => {
+      const colors = new Map(prev.colors);
+      if (tint === null) colors.delete(enrollmentId);
+      else colors.set(enrollmentId, tint);
+      return { catalogIds: prev.catalogIds, colors };
+    });
+  }, []);
+
+  /**
+   * Hang a colour on a course. Optimistic — the spine changes under the
+   * sheet as it slides away, and changes back with an apology if the write
+   * doesn't land.
+   *
+   * The colour is private: it goes on the student's own `enrollments` row,
+   * scoped by `user_id` as well as `id`, and no classmate ever sees it.
+   *
+   * BACKEND GAP — READ BEFORE DEBUGGING A COLOUR THAT WON'T STICK.
+   * Migration 0029 revoked blanket UPDATE on `enrollments` and granted it
+   * back one column at a time; 0032 added `color` without extending that
+   * grant. Until it does, every write here fails with a permission error and
+   * the swatch snaps back with the apology below — which is the honest
+   * behaviour, not a bug in this screen. The fix is one line:
+   *
+   *   grant update (color) on public.enrollments to authenticated;
+   *
+   * The row policy from 0029 ("students shelve their own enrollments")
+   * already scopes UPDATE to `user_id = auth.uid()`, so nothing else is
+   * needed and no classmate's tint becomes writable.
+   */
+  const recolor = useCallback(
+    async (course: MyCourse, next: CourseTint) => {
+      if (!userId) return;
+      const previous = marks.colors.get(course.enrollment_id) ?? null;
+      if (previous === next) return;
+      setActionError(null);
+      tapLight();
+      paint(course.enrollment_id, next);
+
+      const { data, error: writeError } = await supabase
+        .from("enrollments")
+        .update({ color: next })
+        .eq("id", course.enrollment_id)
+        .eq("user_id", userId)
+        .select("id, color")
+        .maybeSingle();
+      // No row back means RLS refused the update and PostgREST reported no
+      // error — the same silent no-op `@/lib/course-archive` guards against.
+      if (writeError || data === null) {
+        paint(course.enrollment_id, previous);
+        setActionError({
+          message: COLOR_FAILED,
+          shelf: course.archived_at === null ? "active" : "archived",
+        });
+      }
+    },
+    [userId, marks.colors, paint]
+  );
+
+  const openMenu = useCallback((course: MyCourse) => {
+    setSheetView("menu");
+    setMenu(course);
+  }, []);
+  // The face stays as it was while the sheet slides away — resetting it here
+  // would swap the picker back to the menu mid-dismissal. `openMenu` is what
+  // puts the next sheet back on its first face.
   const closeMenu = useCallback(() => setMenu(null), []);
 
   // Hold onto the course while the sheet slides away, so its rows don't swap
@@ -584,6 +778,24 @@ export default function MyCoursesScreen() {
       if (course) action(course);
     },
     [menu]
+  );
+
+  /** Close the sheet, then paint — the row is about to change under it. */
+  const pickColor = useCallback(
+    (tint: CourseTint) => {
+      const course = menu;
+      setMenu(null);
+      if (course) void recolor(course, tint);
+    },
+    [menu, recolor]
+  );
+
+  /** The colours this course wears right now — the student's pick, or the
+      tint hashed from its code when they never made one. */
+  const tintFor = useCallback(
+    (course: MyCourse): CourseTintColors =>
+      tints[colorForCourse(marks.colors.get(course.enrollment_id), course.code)],
+    [tints, marks.colors]
   );
 
   const { active, archived } = shelves;
@@ -759,7 +971,8 @@ export default function MyCoursesScreen() {
               <View style={{ marginBottom: 10 }}>
                 <CourseRow
                   course={item}
-                  fromCatalog={catalogIds.has(item.enrollment_id)}
+                  tint={tintFor(item)}
+                  fromCatalog={marks.catalogIds.has(item.enrollment_id)}
                   busy={busyId === item.enrollment_id}
                   onMenu={() => openMenu(item)}
                 />
@@ -777,13 +990,53 @@ export default function MyCoursesScreen() {
         )}
       </View>
 
+      {/* One sheet, two faces. The picker swaps in behind the same card
+          rather than opening a second Modal on top of this one — stacked
+          native modals fight each other on the way in and out, and the
+          colour a course wears is a follow-up to the menu, not a new
+          decision somewhere else. */}
       <Sheet
         visible={menu !== null}
         onClose={closeMenu}
-        title={sheetCourse?.code ?? "Course"}
+        title={
+          sheetView === "colour"
+            ? `Colour for ${sheetCourse?.code ?? "this course"}`
+            : sheetCourse?.code ?? "Course"
+        }
       >
-        {sheetCourse !== null && sheetCourse.archived_at === null ? (
+        {sheetView === "colour" && sheetCourse !== null ? (
+          <View style={{ gap: 12, paddingTop: 4 }}>
+            <View
+              accessibilityRole="radiogroup"
+              style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 14 }}
+            >
+              {COURSE_TINT_KEYS.map((key) => (
+                <ColorSwatch
+                  key={key}
+                  tint={key}
+                  colors={tints[key]}
+                  selected={
+                    key ===
+                    colorForCourse(
+                      marks.colors.get(sheetCourse.enrollment_id),
+                      sheetCourse.code
+                    )
+                  }
+                  onPress={() => pickColor(key)}
+                />
+              ))}
+            </View>
+            <AppText variant="caption" muted>
+              Colours are yours — your classmates each pick their own.
+            </AppText>
+          </View>
+        ) : sheetCourse !== null && sheetCourse.archived_at === null ? (
           <>
+            <Sheet.Row
+              icon="droplet"
+              label="Change colour"
+              onPress={() => setSheetView("colour")}
+            />
             <Sheet.Row
               icon="archive"
               label="Archive course"
