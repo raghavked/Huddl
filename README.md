@@ -22,9 +22,14 @@ roster and events.
   (launching at UC Davis, then the UC system, then CSUs)
 - **Campus channels** — general, study-buddies, campus-events, asks-and-offers
   on every campus, plus student-created topic channels and a browsable directory
-- **Campus search** — people, channels, courses, clubs and events in one query
+- **Campus search** — people, channels, courses, clubs and events in one query,
+  with your recent searches kept on-device
+- **The campus board** — rides home for break, a lost water bottle, a couch
+  that needs a new apartment, a tutor: seven boards, closable rather than
+  deletable so a post that got what it wanted stays readable
 - **Profiles & people directory** — majors, grad years, shared courses, photos,
-  and an optional phone-verification trust badge
+  an optional phone-verification trust badge, and what you're into: interests
+  you can filter the directory by, plus a line about what you're looking for
 
 ### Your classes
 
@@ -37,8 +42,16 @@ roster and events.
   and due dates notify every classmate
 - **Course details, kept up by the class** — instructor, meeting times,
   location, and pinned links (syllabus, textbook, office hours)
+- **Weekly series** — one entry for a lab that meets every Tuesday, expanded
+  across the term and editable as a set
+- **Your own reminders** — pick the lead time per due date, from fifteen
+  minutes to two weeks out
 - **Personal study plan** — private check-offs over the shared calendars,
   grouped by urgency, with recommended study blocks before every exam
+- **Course colours** — assign each class a tint and it carries across the
+  calendar, the plan and the hubs
+- **Semester overview** — the whole term on one screen, with a GPA estimate
+  that tells you when it isn't weighted rather than guessing at your units
 - **Archive a finished class** — shelve it without dropping it; the chat and
   notes stay put, and the shelf groups by term
 
@@ -54,7 +67,7 @@ roster and events.
 - **Study buddies** — opt in per course with a note, find the classmates who
   did the same, message them in a tap
 - **Note sharing** — per-course files with uploader credit, signed downloads,
-  and a thanks the uploader actually feels
+  tags to find them by, and a thanks the uploader actually feels
 
 ### Talking
 
@@ -64,8 +77,15 @@ roster and events.
 - **Group DMs** — name a thread, add classmates, leave when you're done
 - **Saved messages** — private bookmarks on any message, with a shelf to read
   them back
+- **Forwarding** — pass a message to another room or a classmate, with the
+  original author still credited
+- **Availability polls** — propose a few times, everyone taps the ones that
+  work, and the winner is obvious
+- **Write while offline** — drafts survive leaving the room, and a message
+  sent with no signal queues and goes out when there is one
 - **Device push, on your terms** — DMs, mentions, replies, class dates and
-  events reach the phone, with per-kind toggles and a weekly digest
+  events reach the phone, with per-kind toggles, quiet hours, a digest that
+  sends one push instead of twelve, and a weekly digest
 
 ### Clubs, events, and your week
 
@@ -89,11 +109,19 @@ roster and events.
 
 ### Safe by default
 
-- **Safety built in** — blocking, categorized reporting with a 24-hour
-  review promise, server-side rate limits, and in-app account deletion
+- **Safety built in** — blocking, categorized reporting on messages, people
+  and board posts with a 24-hour review promise, server-side rate limits, and
+  in-app account deletion
+- **A real moderation queue** — campus moderators triage reports in-app, with
+  the reported content in front of them; the flag is a service-role write, so
+  nobody can promote themselves
 - **Privacy by design** — campus-scoped visibility with RLS on every table;
   audited storage events generate user-facing notifications, enforced by
   database triggers
+- **Reciprocal privacy toggles** — turn off read receipts or typing indicators
+  and you stop seeing them too, which is the only version that's honest
+- **Take your data with you** — one tap exports everything Huddl holds that's
+  yours as a single JSON document, the other half of the deletion promise
 
 ## Stack
 
