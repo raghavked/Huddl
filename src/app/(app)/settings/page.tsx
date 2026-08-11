@@ -6,11 +6,14 @@ import {
   Bell,
   Bookmark,
   ChevronRight,
+  Download,
+  Flag,
   LogOut,
   ShieldCheck,
   Smartphone,
   SunMoon,
   UserRound,
+  type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import {
@@ -20,6 +23,7 @@ import {
   cardClasses,
 } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
+import { amIModerator } from "@/lib/moderation";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -35,13 +39,36 @@ async function signOut() {
   redirect("/login");
 }
 
+/** One row in the list: where it goes, and how it introduces itself. */
+type SettingsRow = {
+  href: string;
+  icon: LucideIcon;
+  tile: string;
+  title: string;
+  description: string;
+  trailing: React.ReactNode;
+};
+
 export default async function SettingsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { profile, university, email } = user;
   const phoneVerified = Boolean(profile.phone_verified_at);
 
-  const rows = [
+  /* The moderation row only exists for the handful of students who look after
+     campus. `profiles.is_moderator` is set through the service role and can't
+     be written from the app, so this is a read and never a claim. A hiccup
+     reading it just leaves the row off — /moderation explains itself warmly to
+     anyone who arrives there anyway, so nothing is lost. */
+  let isModerator = false;
+  try {
+    const supabase = await createClient();
+    isModerator = await amIModerator({ client: supabase, userId: user.userId });
+  } catch {
+    isModerator = false;
+  }
+
+  const rows: SettingsRow[] = [
     {
       href: "/settings/account",
       icon: UserRound,
@@ -70,7 +97,7 @@ export default async function SettingsPage() {
       icon: Bell,
       tile: "bg-brand-soft text-brand",
       title: "Notifications",
-      description: "Choose what gets pushed to your phone",
+      description: "Quiet hours, and what gets pushed to your phone",
       trailing: null as React.ReactNode,
     },
     {
@@ -85,8 +112,16 @@ export default async function SettingsPage() {
       href: "/settings/privacy",
       icon: ShieldCheck,
       tile: "bg-accent-soft text-accent",
-      title: "Privacy & stored images",
-      description: "The audit trail for anything you stored in the past",
+      title: "Privacy",
+      description: "Read receipts, typing indicators and stored images",
+      trailing: null as React.ReactNode,
+    },
+    {
+      href: "/settings/data",
+      icon: Download,
+      tile: "bg-accent-soft text-accent",
+      title: "Your data",
+      description: "One file with everything Huddl holds that's yours",
       trailing: null as React.ReactNode,
     },
     {
@@ -97,6 +132,18 @@ export default async function SettingsPage() {
       description: "Theme and text size on this device",
       trailing: null as React.ReactNode,
     },
+    ...(isModerator
+      ? [
+          {
+            href: "/moderation",
+            icon: Flag,
+            tile: "bg-brand-soft text-brand",
+            title: "Reports",
+            description: "What campus flagged, and what happens next",
+            trailing: <Badge tone="accent">Moderator</Badge>,
+          },
+        ]
+      : []),
   ];
 
   return (

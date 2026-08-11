@@ -168,7 +168,11 @@ const DIGEST_NOTE =
 
 /* ------------------------------- pieces ------------------------------ */
 
-/** A plain switch: track + thumb, keyboard- and screen-reader-honest. */
+/**
+ * A plain switch: track + thumb, keyboard- and screen-reader-honest. The
+ * drawn track is 24px tall; the button around it is 44, because everything
+ * tappable clears the floor even when the thing you can see doesn't.
+ */
 function Toggle({
   label,
   on,
@@ -189,18 +193,25 @@ function Toggle({
       disabled={disabled}
       onClick={() => onToggle(!on)}
       className={cn(
-        "relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-        "disabled:pointer-events-none disabled:opacity-60",
-        on ? "bg-brand" : "bg-surface-3"
+        "flex size-11 shrink-0 items-center justify-center rounded-full",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+        "disabled:pointer-events-none disabled:opacity-60"
       )}
     >
       <span
         aria-hidden
         className={cn(
-          "absolute top-0.5 left-0.5 size-5 rounded-full bg-on-solid shadow-soft transition-transform",
-          on && "translate-x-5"
+          "relative block h-6 w-11 rounded-full transition-colors",
+          on ? "bg-brand" : "bg-surface-3"
         )}
-      />
+      >
+        <span
+          className={cn(
+            "absolute top-0.5 left-0.5 size-5 rounded-full bg-on-solid shadow-soft transition-transform",
+            on && "translate-x-5"
+          )}
+        />
+      </span>
     </button>
   );
 }
@@ -489,7 +500,7 @@ export default function NotificationSettingsPage() {
                             value={quiet.start}
                             disabled={savingQuiet}
                             onChange={(e) => pickTime("start", e.target.value)}
-                            className="h-11 w-32 shrink-0 py-0"
+                            className="h-11 w-32 shrink-0"
                           >
                             {timeOptions}
                           </Select>
@@ -505,7 +516,7 @@ export default function NotificationSettingsPage() {
                             value={quiet.end}
                             disabled={savingQuiet}
                             onChange={(e) => pickTime("end", e.target.value)}
-                            className="h-11 w-32 shrink-0 py-0"
+                            className="h-11 w-32 shrink-0"
                           >
                             {timeOptions}
                           </Select>

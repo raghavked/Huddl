@@ -282,10 +282,7 @@ export default async function PrivacySettingsPage({
         <SectionHeader title="Stored images" />
 
         <div
-          className={cardClasses({
-            className:
-              "mt-3 animate-fade-up border-accent/20 bg-accent-soft",
-          })}
+          className="mt-3 animate-fade-up rounded-card border border-accent/20 bg-accent-soft p-5 shadow-soft"
         >
           <div className="flex items-start gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">

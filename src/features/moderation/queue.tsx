@@ -217,7 +217,7 @@ function ReportCard({
         padding: "none",
         className: cn(
           "overflow-hidden transition-all duration-[240ms] ease-in-out",
-          settling && "scale-[0.97] opacity-0"
+          settling && "pointer-events-none scale-[0.97] opacity-0"
         ),
       })}
       aria-busy={settling || undefined}
@@ -266,9 +266,6 @@ function ReportCard({
             disabled={busy}
             onClick={() => onTriage(action.status)}
           >
-            {settling ? (
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />
-            ) : null}
             {action.label}
           </Button>
         ))}
