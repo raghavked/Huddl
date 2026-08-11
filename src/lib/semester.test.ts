@@ -3,8 +3,10 @@ import {
   GRADE_POINTS,
   formatGpa,
   gradePointFor,
+  SemesterError,
   semesterEstimate,
   totalUnits,
+  unitsFrom,
   type SemesterCourseInput,
 } from "@/lib/semester";
 
@@ -255,5 +257,49 @@ describe("semesterEstimate — the number itself", () => {
     expect(semesterEstimate(many).note).toBe(
       "Weighted by units across all 12 of your classes."
     );
+  });
+});
+
+/* ---------------------------------- units --------------------------------- */
+
+describe("unitsFrom", () => {
+  it("reads a whole or fractional unit count", () => {
+    expect(unitsFrom("4")).toBe(4);
+    expect(unitsFrom("1.5")).toBe(1.5);
+    expect(unitsFrom(" 3 ")).toBe(3);
+  });
+
+  it("treats a blank field as clearing, not as an error", () => {
+    // Null is a real value here: the overview reports "missing its units"
+    // honestly rather than papering over it with a default, so a student has
+    // to be able to take a wrong number back out.
+    expect(unitsFrom("")).toBeNull();
+    expect(unitsFrom("   ")).toBeNull();
+    expect(unitsFrom(null)).toBeNull();
+    expect(unitsFrom(undefined)).toBeNull();
+  });
+
+  it("refuses a number the GPA would be wrong to trust", () => {
+    expect(() => unitsFrom("four")).toThrow(SemesterError);
+    expect(() => unitsFrom("four")).toThrow(
+      "Units should be a number — 4, or 1.5. Leave it blank if you're not sure."
+    );
+  });
+
+  it("holds the same 0.5 to 30 range the RPC enforces", () => {
+    expect(unitsFrom("0.5")).toBe(0.5);
+    expect(unitsFrom("30")).toBe(30);
+    expect(() => unitsFrom("0.4")).toThrow("Units run 0.5 to 30.");
+    expect(() => unitsFrom("31")).toThrow("Units run 0.5 to 30.");
+    expect(() => unitsFrom("0")).toThrow("Units run 0.5 to 30.");
+    expect(() => unitsFrom("-4")).toThrow("Units run 0.5 to 30.");
+  });
+
+  it("trims excess precision rather than storing a long decimal", () => {
+    // Units are a coarse quantity — 1, 1.5, 3, 4 — so two places is all the
+    // precision the column ever needs, and a pasted 3.333333 should not be
+    // what a whole class's GPA is weighted by.
+    expect(unitsFrom("3.333333")).toBe(3.33);
+    expect(unitsFrom("4.567")).toBe(4.57);
   });
 });

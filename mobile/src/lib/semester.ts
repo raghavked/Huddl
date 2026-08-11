@@ -695,3 +695,77 @@ export async function fetchSemester(): Promise<Semester> {
 
   return { courses, summary: semesterEstimate(courses) };
 }
+
+/* ═════════════════════════════ units ════════════════════════════════ */
+
+/** The floor and ceiling `set_course_units` enforces server-side. */
+export const UNITS_MIN = 0.5;
+export const UNITS_MAX = 30;
+
+/**
+ * Read what a student typed into the units field as a number the RPC will
+ * accept — or as null, which is a real value meaning "nobody's filled this
+ * in", not a failure.
+ *
+ * Blank clears. Anything else has to be a number in range, because a units
+ * figure the GPA is weighted by is worth refusing rather than guessing at.
+ *
+ * Pure.
+ *
+ * @param text Raw field contents.
+ * @returns Units, or null to clear.
+ * @throws {SemesterError} With copy that's ready to render.
+ */
+export function unitsFrom(text: string | null | undefined): number | null {
+  const trimmed = (text ?? "").trim();
+  if (trimmed.length === 0) return null;
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed)) {
+    throw new SemesterError(
+      "Units should be a number — 4, or 1.5. Leave it blank if you're not sure."
+    );
+  }
+  const rounded = Math.round(parsed * 100) / 100;
+  if (rounded < UNITS_MIN || rounded > UNITS_MAX) {
+    throw new SemesterError(`Units run ${UNITS_MIN} to ${UNITS_MAX}.`);
+  }
+  return rounded;
+}
+
+/**
+ * Set or clear a course's units, for anyone enrolled in it.
+ *
+ * This is a **shared** column — one number per course, not per student — so
+ * filling it in fixes the semester GPA for the whole class, and clearing it
+ * un-fixes it for the whole class too. That's the same bargain as the
+ * instructor and room fields, and the screen says so before it offers the
+ * field.
+ *
+ * Deliberately its own RPC rather than a fifth argument on the course-details
+ * save: migration 0036 has the long version, but the short one is that a
+ * student correcting a room number must never be able to blank the number the
+ * GPA is weighted by.
+ *
+ * @param courseId The course to update.
+ * @param units    Units, or null to clear.
+ * @throws {SemesterError} With copy that's ready to render.
+ */
+export async function setCourseUnits(
+  courseId: string,
+  units: number | null
+): Promise<void> {
+  const { error } = await supabase.rpc("set_course_units", {
+    p_course_id: courseId,
+    p_units: units,
+  });
+  if (!error) return;
+  if (error.message.includes("join the course")) {
+    throw new SemesterError(
+      "Units are kept by the class — add this course to your classes first."
+    );
+  }
+  if (error.message.includes("units run")) {
+    throw new SemesterError(`Units run ${UNITS_MIN} to ${UNITS_MAX}.`);
+  }
+  throw new SemesterError("We couldn't save those units just now. Try again.");
+}
