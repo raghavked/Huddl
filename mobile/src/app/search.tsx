@@ -1,29 +1,106 @@
 import Feather from "@expo/vector-icons/Feather";
 import { router, type Href } from "expo-router";
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+} from "react";
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   SectionList,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
 import { Lantern } from "@/components/illustrations";
-import { AppText, Button, Card, Field } from "@/components/ui";
+import { AppText, Button, Card, Chip, Field, SectionLabel } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import {
+  clearRecents,
+  fetchRecents,
+  pushRecent,
+  removeRecent,
+  withRecent,
+  withoutRecent,
+} from "@/lib/recent-searches";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /* One warm search box for the whole campus: people, channels, courses,
-   clubs, and upcoming events, queried in parallel and shown in sections. */
+   clubs, and upcoming events, queried in parallel and shown in sections.
+
+   Two things make it more than a box. A filter rail narrows the fan-out to
+   one corner of campus and, because only one query goes out, lets that corner
+   return four times as many rows — a filtered search is genuinely deeper, not
+   the same five results with the others hidden. And the idle screen remembers:
+   queries that actually found something come back as tappable rows under the
+   lantern, kept on the device by `@/lib/recent-searches`. */
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
 
 const MIN_QUERY_LENGTH = 2;
 const DEBOUNCE_MS = 300;
+
+/** Rows per source when we're asking all five at once. */
 const PER_SOURCE_LIMIT = 5;
+
+/** Rows when a filter is on and there's only one question to ask. */
+const FOCUSED_LIMIT = 20;
+
+/* -------------------------------- sources --------------------------------- */
+
+/** The five corners of campus this box knows how to look in. */
+type SourceKey = "people" | "channels" | "courses" | "clubs" | "events";
+
+/** Which corner we're limited to, or null for all of them. */
+type Filter = SourceKey | null;
+
+type Source = {
+  key: SourceKey;
+  /** The filter chip, and the section header above its results. */
+  label: string;
+  icon: FeatherName;
+  /** The "nothing matched" line when this source is the only one asked. */
+  empty: string;
+};
+
+const SOURCES: readonly Source[] = [
+  {
+    key: "people",
+    label: "People",
+    icon: "user",
+    empty: "Nobody on campus matches that — yet.",
+  },
+  {
+    key: "channels",
+    label: "Channels",
+    icon: "hash",
+    empty: "No channels match that — yet.",
+  },
+  {
+    key: "courses",
+    label: "Courses",
+    icon: "book-open",
+    empty: "No courses match that — check the code, or try the title.",
+  },
+  {
+    key: "clubs",
+    label: "Clubs",
+    icon: "users",
+    empty: "No clubs match that — yet.",
+  },
+  {
+    key: "events",
+    label: "Events",
+    icon: "calendar",
+    empty: "Nothing coming up matches that. Past events don't show here.",
+  },
+];
 
 /* ------------------------------- row shapes ------------------------------- */
 
@@ -33,6 +110,8 @@ type PersonRow = {
   display_name: string;
   avatar_url: string | null;
   is_public: boolean;
+  major: string | null;
+  grad_year: number | null;
 };
 
 type ChannelKind = "campus" | "course" | "topic" | "club";
@@ -119,6 +198,28 @@ function formatWhen(startIso: string): string {
   return `${datePart} · ${timePart}`;
 }
 
+/**
+ * The one extra thing worth knowing about a classmate in a list of matches:
+ * their major, or their year if they haven't filled a major in. Null when
+ * they've told us neither — a handle on its own is a fine row.
+ *
+ * A nonsense `grad_year` (a stray 0, a typo'd 20255) is dropped rather than
+ * rendered as "Class of 20255".
+ */
+function personLine(major: string | null, gradYear: number | null): string | null {
+  const written = (major ?? "").trim();
+  if (written.length > 0) return written;
+  if (
+    typeof gradYear === "number" &&
+    Number.isInteger(gradYear) &&
+    gradYear >= 1900 &&
+    gradYear <= 2100
+  ) {
+    return `Class of ${gradYear}`;
+  }
+  return null;
+}
+
 /* --------------------------------- pieces --------------------------------- */
 
 function CenteredState({
@@ -166,6 +267,70 @@ function CenteredState({
         {message}
       </AppText>
       {children}
+    </View>
+  );
+}
+
+/** One remembered query: tap the row to run it again, tap the x to forget it. */
+function RecentRow({
+  query,
+  divided,
+  onPress,
+  onForget,
+}: {
+  query: string;
+  /** Hairline above every row but the first, so the group reads as one card. */
+  divided: boolean;
+  onPress: () => void;
+  onForget: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        borderTopWidth: divided ? 1 : 0,
+        borderTopColor: theme.border,
+      }}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Search for ${query} again`}
+        onPress={onPress}
+        style={({ pressed }) => ({
+          flex: 1,
+          minWidth: 0,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          minHeight: 48,
+          paddingLeft: 14,
+          paddingRight: 4,
+          paddingVertical: 8,
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <Feather name="clock" size={15} color={theme.muted} />
+        <AppText variant="bodyMedium" numberOfLines={1} style={{ flex: 1 }}>
+          {query}
+        </AppText>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Forget ${query}`}
+        onPress={onForget}
+        hitSlop={6}
+        style={({ pressed }) => ({
+          width: 44,
+          height: 44,
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <Feather name="x" size={16} color={theme.muted} />
+      </Pressable>
     </View>
   );
 }
@@ -238,9 +403,11 @@ export default function SearchScreen() {
   const userId = session?.user.id ?? null;
 
   const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>(null);
   const [sections, setSections] = useState<ResultSection[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [recents, setRecents] = useState<string[]>([]);
   const requestRef = useRef(0);
 
   const goBack = useCallback(() => {
@@ -248,64 +415,112 @@ export default function SearchScreen() {
     else router.replace("/(tabs)/home");
   }, []);
 
+  /* The device's memory, read once. A search that lands before this resolves
+     wins — we only take the stored list if nothing's been remembered yet. */
+  useEffect(() => {
+    let alive = true;
+    void fetchRecents().then((stored) => {
+      if (!alive) return;
+      setRecents((current) => (current.length === 0 ? stored : current));
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  /* Every history change moves the list here first and lets storage catch up
+     behind it, so the rows are right even on a phone that can't write. */
+  const remember = useCallback((q: string) => {
+    setRecents((current) => withRecent(current, q));
+    void pushRecent(q);
+  }, []);
+
+  const forget = useCallback((q: string) => {
+    setRecents((current) => withoutRecent(current, q));
+    void removeRecent(q);
+  }, []);
+
+  const forgetAll = useCallback(() => {
+    setRecents([]);
+    void clearRecents();
+  }, []);
+
   const runSearch = useCallback(
-    async (q: string) => {
+    async (q: string, only: Filter) => {
       const ticket = ++requestRef.current;
       const nowIso = new Date().toISOString();
-      // Five corners of campus, asked at once. RLS keeps every one of these
-      // scoped to the signed-in student's university.
+      // With a filter on there's one question instead of five, so the one
+      // source we're asking gets to answer at length.
+      const limit = only === null ? PER_SOURCE_LIMIT : FOCUSED_LIMIT;
+      const asks = (key: SourceKey): boolean => only === null || only === key;
+
+      // The corners of campus we're asking, at once. RLS keeps every one of
+      // these scoped to the signed-in student's university.
       const [peopleRes, channelsRes, coursesRes, clubsRes, eventsRes] =
         await Promise.all([
-          supabase
-            .from("profiles")
-            .select("id, handle, display_name, avatar_url, is_public")
-            .or(orIlike(["display_name", "handle"], q))
-            .order("display_name", { ascending: true })
-            .limit(PER_SOURCE_LIMIT),
-          supabase
-            .from("channels")
-            .select("id, name, slug, kind, course_id")
-            .or(orIlike(["name", "slug"], q))
-            .order("name", { ascending: true })
-            .limit(PER_SOURCE_LIMIT),
-          supabase
-            .from("courses")
-            .select("id, code, title")
-            .or(orIlike(["code", "title"], q))
-            .order("code", { ascending: true })
-            .limit(PER_SOURCE_LIMIT),
-          supabase
-            .from("clubs")
-            .select("id, name, category")
-            .ilike("name", likePattern(q))
-            .order("name", { ascending: true })
-            .limit(PER_SOURCE_LIMIT),
-          supabase
-            .from("events")
-            .select("id, title, starts_at")
-            .ilike("title", likePattern(q))
-            .gte("starts_at", nowIso)
-            .order("starts_at", { ascending: true })
-            .limit(PER_SOURCE_LIMIT),
+          asks("people")
+            ? supabase
+                .from("profiles")
+                .select(
+                  "id, handle, display_name, avatar_url, is_public, major, grad_year"
+                )
+                .or(orIlike(["display_name", "handle"], q))
+                .order("display_name", { ascending: true })
+                .limit(limit)
+            : null,
+          asks("channels")
+            ? supabase
+                .from("channels")
+                .select("id, name, slug, kind, course_id")
+                .or(orIlike(["name", "slug"], q))
+                .order("name", { ascending: true })
+                .limit(limit)
+            : null,
+          asks("courses")
+            ? supabase
+                .from("courses")
+                .select("id, code, title")
+                .or(orIlike(["code", "title"], q))
+                .order("code", { ascending: true })
+                .limit(limit)
+            : null,
+          asks("clubs")
+            ? supabase
+                .from("clubs")
+                .select("id, name, category")
+                .ilike("name", likePattern(q))
+                .order("name", { ascending: true })
+                .limit(limit)
+            : null,
+          asks("events")
+            ? supabase
+                .from("events")
+                .select("id, title, starts_at")
+                .ilike("title", likePattern(q))
+                .gte("starts_at", nowIso)
+                .order("starts_at", { ascending: true })
+                .limit(limit)
+            : null,
         ]);
       if (ticket !== requestRef.current) return; // a newer keystroke won
       setSearching(false);
       if (
-        peopleRes.error ||
-        channelsRes.error ||
-        coursesRes.error ||
-        clubsRes.error ||
-        eventsRes.error
+        peopleRes?.error ||
+        channelsRes?.error ||
+        coursesRes?.error ||
+        clubsRes?.error ||
+        eventsRes?.error
       ) {
         setFailed(true);
         return;
       }
       setFailed(false);
 
-      const people = ((peopleRes.data ?? []) as unknown as PersonRow[]).map(
+      const people = ((peopleRes?.data ?? []) as unknown as PersonRow[]).map(
         (p): Hit => {
           // Private profiles show up as a handle behind a lock — nothing more.
           const open = p.is_public || p.id === userId;
+          const line = personLine(p.major, p.grad_year);
           return {
             key: `person-${p.id}`,
             icon: "user",
@@ -314,13 +529,19 @@ export default function SearchScreen() {
               name: open ? p.display_name : p.handle,
             },
             title: open ? p.display_name : `@${p.handle}`,
-            caption: open ? `@${p.handle}` : "Private profile",
+            caption: open
+              ? line
+                ? `@${p.handle} · ${line}`
+                : `@${p.handle}`
+              : "Private profile",
             locked: !open,
             href: `/u/${p.handle}`,
           };
         }
       );
-      const channels = ((channelsRes.data ?? []) as unknown as ChannelRow[]).map(
+      const channels = (
+        (channelsRes?.data ?? []) as unknown as ChannelRow[]
+      ).map(
         (c): Hit => ({
           key: `channel-${c.id}`,
           icon: "hash",
@@ -331,7 +552,7 @@ export default function SearchScreen() {
           href: `/channel/${c.id}`,
         })
       );
-      const courses = ((coursesRes.data ?? []) as unknown as CourseRow[]).map(
+      const courses = ((coursesRes?.data ?? []) as unknown as CourseRow[]).map(
         (c): Hit => ({
           key: `course-${c.id}`,
           icon: "book-open",
@@ -342,7 +563,7 @@ export default function SearchScreen() {
           href: `/course/${c.id}`,
         })
       );
-      const clubs = ((clubsRes.data ?? []) as unknown as ClubRow[]).map(
+      const clubs = ((clubsRes?.data ?? []) as unknown as ClubRow[]).map(
         (c): Hit => ({
           key: `club-${c.id}`,
           icon: "users",
@@ -353,7 +574,7 @@ export default function SearchScreen() {
           href: `/club/${c.id}`,
         })
       );
-      const events = ((eventsRes.data ?? []) as unknown as EventRow[]).map(
+      const events = ((eventsRes?.data ?? []) as unknown as EventRow[]).map(
         (e): Hit => ({
           key: `event-${e.id}`,
           icon: "calendar",
@@ -365,19 +586,26 @@ export default function SearchScreen() {
         })
       );
 
-      setSections(
-        (
-          [
-            { title: "People", data: people },
-            { title: "Channels", data: channels },
-            { title: "Courses", data: courses },
-            { title: "Clubs", data: clubs },
-            { title: "Events", data: events },
-          ] as ResultSection[]
-        ).filter((section) => section.data.length > 0)
-      );
+      const byKey: Record<SourceKey, Hit[]> = {
+        people,
+        channels,
+        courses,
+        clubs,
+        events,
+      };
+      const next = SOURCES.map(
+        (source): ResultSection => ({
+          title: source.label,
+          data: byKey[source.key],
+        })
+      ).filter((section) => section.data.length > 0);
+      setSections(next);
+
+      // Worth remembering only once it found something. A query that turned
+      // up nothing is a shortcut to a dead end.
+      if (next.length > 0) remember(q);
     },
-    [userId]
+    [userId, remember]
   );
 
   useEffect(() => {
@@ -391,17 +619,19 @@ export default function SearchScreen() {
     }
     setSearching(true);
     setFailed(false);
-    const timer = setTimeout(() => void runSearch(q), DEBOUNCE_MS);
+    const timer = setTimeout(() => void runSearch(q, filter), DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [query, runSearch]);
+  }, [query, filter, runSearch]);
 
   const retry = useCallback(() => {
     const q = query.trim();
     if (q.length < MIN_QUERY_LENGTH) return;
     setSearching(true);
     setFailed(false);
-    void runSearch(q);
-  }, [query, runSearch]);
+    void runSearch(q, filter);
+  }, [query, filter, runSearch]);
+
+  const active = SOURCES.find((source) => source.key === filter) ?? null;
 
   return (
     <View
@@ -444,6 +674,43 @@ export default function SearchScreen() {
         returnKeyType="search"
       />
 
+      {/* The rail bleeds into both gutters so the last chip runs off the edge
+          instead of stopping short of it. `handled` keeps a chip tappable in
+          one go while the keyboard is up. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        style={{ flexGrow: 0, marginTop: 12, marginHorizontal: -20 }}
+        contentContainerStyle={{
+          alignItems: "center",
+          gap: 8,
+          paddingHorizontal: 20,
+          paddingVertical: 2,
+        }}
+      >
+        <Chip
+          label="All"
+          tone="brand"
+          size="md"
+          selected={filter === null}
+          onPress={() => setFilter(null)}
+          accessibilityLabel="Search everything"
+        />
+        {SOURCES.map((source) => (
+          <Chip
+            key={source.key}
+            label={source.label}
+            icon={source.icon}
+            tone="brand"
+            size="md"
+            selected={filter === source.key}
+            onPress={() => setFilter(source.key)}
+            accessibilityLabel={`Search ${source.label.toLowerCase()} only`}
+          />
+        ))}
+      </ScrollView>
+
       {searching ? (
         <View
           style={{
@@ -465,39 +732,100 @@ export default function SearchScreen() {
           <Button label="Try again" variant="soft" size="sm" onPress={retry} />
         </CenteredState>
       ) : sections === null ? (
-        <CenteredState
-          icon="search"
-          title="Find your people and places"
-          message="Search your campus — people, channels, courses, clubs, events"
-          art={
-            <Lantern size={96} color={theme.muted} softColor={theme.surface2} />
-          }
-        />
+        recents.length === 0 ? (
+          <CenteredState
+            icon="search"
+            title="Find your people and places"
+            message="Search your campus — people, channels, courses, clubs, events"
+            art={
+              <Lantern size={96} color={theme.muted} softColor={theme.surface2} />
+            }
+          />
+        ) : (
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            style={{ flex: 1, marginTop: 4 }}
+            contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <View
+              style={{
+                alignItems: "center",
+                gap: 10,
+                paddingTop: 20,
+                paddingHorizontal: 8,
+              }}
+            >
+              <Lantern
+                size={84}
+                color={theme.muted}
+                softColor={theme.surface2}
+              />
+              <AppText variant="title">Find your people and places</AppText>
+              <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
+                Search your campus — people, channels, courses, clubs, events
+              </AppText>
+            </View>
+
+            <SectionLabel
+              text="Recent"
+              action={{ label: "Clear", onPress: forgetAll }}
+            />
+            <Card padded={false} style={{ overflow: "hidden" }}>
+              {recents.map((entry, index) => (
+                <RecentRow
+                  key={entry}
+                  query={entry}
+                  divided={index > 0}
+                  onPress={() => setQuery(entry)}
+                  onForget={() => forget(entry)}
+                />
+              ))}
+            </Card>
+          </ScrollView>
+        )
       ) : sections.length === 0 ? (
         <CenteredState
           icon="compass"
           title="No matches"
-          message="Nothing on campus matches that — yet."
-        />
+          message={active ? active.empty : "Nothing on campus matches that — yet."}
+        >
+          {active ? (
+            <Button
+              label="Search everything"
+              variant="soft"
+              size="sm"
+              onPress={() => setFilter(null)}
+            />
+          ) : null}
+        </CenteredState>
       ) : (
         <SectionList
           sections={sections}
           keyExtractor={(item) => item.key}
           renderItem={({ item }) => <HitRow hit={item} />}
-          renderSectionHeader={({ section }) => (
-            <AppText
-              variant="label"
-              muted
-              style={{ marginTop: 16, marginBottom: 8 }}
-            >
-              {section.title}
-            </AppText>
-          )}
+          /* With a filter on, the chip above already names the section — a
+             header would just repeat it over a single list. */
+          renderSectionHeader={({ section }) =>
+            filter === null ? (
+              <AppText
+                variant="label"
+                muted
+                style={{ marginTop: 16, marginBottom: 8 }}
+              >
+                {section.title}
+              </AppText>
+            ) : null
+          }
           stickySectionHeadersEnabled={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           style={{ flex: 1, marginTop: 4 }}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+          contentContainerStyle={{
+            paddingTop: filter === null ? 0 : 12,
+            paddingBottom: insets.bottom + 32,
+          }}
           showsVerticalScrollIndicator={false}
         />
       )}

@@ -10,7 +10,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card } from "@/components/ui";
+import { Avatar } from "@/components/avatar";
+import { AppText, Button, Card, Chip } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
@@ -30,6 +31,8 @@ type ProfileRow = {
   bio: string | null;
   major: string | null;
   grad_year: number | null;
+  interests: string[] | null;
+  looking_for: string | null;
   phone_verified_at: string | null;
   is_public: boolean;
   university: { short_name: string } | null;
@@ -44,81 +47,25 @@ type MemberChannelRow = { channel: SharedChannel | null };
 type Status = "loading" | "error" | "notFound" | "ready";
 
 const PROFILE_SELECT =
-  "id, handle, display_name, avatar_url, bio, major, grad_year, phone_verified_at, is_public, university:universities(short_name)";
+  "id, handle, display_name, avatar_url, bio, major, grad_year, interests, looking_for, phone_verified_at, is_public, university:universities(short_name)";
 
-/** "Ada Lovelace" -> "AL" for the avatar circle. */
-function initialsOf(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((word) => word[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+/** text[] from PostgREST, kept honest before it reaches the chips. */
+function interestsOf(row: ProfileRow): string[] {
+  return Array.isArray(row.interests)
+    ? row.interests.filter(
+        (entry): entry is string =>
+          typeof entry === "string" && entry.trim().length > 0
+      )
+    : [];
 }
 
-function Avatar({ name, size = 72 }: { name: string; size?: number }) {
-  const theme = useTheme();
-  return (
-    <View
-      accessibilityElementsHidden
-      style={{
-        width: size,
-        height: size,
-        borderRadius: radius.full,
-        backgroundColor: theme.brandSoft,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <AppText
-        variant="title"
-        style={{
-          color: theme.brandInk,
-          fontSize: size * 0.34,
-          lineHeight: size * 0.44,
-        }}
-      >
-        {initialsOf(name) || "?"}
-      </AppText>
-    </View>
-  );
-}
-
-function Badge({
-  label,
-  icon,
-  bg,
-  fg,
-}: {
-  label: string;
-  icon?: FeatherName;
-  bg: string;
-  fg: string;
-}) {
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
-        paddingHorizontal: 9,
-        paddingVertical: 3,
-        borderRadius: radius.full,
-        backgroundColor: bg,
-      }}
-    >
-      {icon ? <Feather name={icon} size={11} color={fg} /> : null}
-      <AppText variant="label" style={{ color: fg, fontSize: 11 }}>
-        {label}
-      </AppText>
-    </View>
-  );
-}
-
-/** Tappable pill chip — shared courses and campus channels in common. */
-function Chip({
+/**
+ * The navigational pill: a shared course or a channel in common, tapped to
+ * go there. Deliberately not the `Chip` primitive — these are destinations
+ * rather than filters, so they carry a real 44px drawn height and body-sized
+ * text instead of a hairline and `accessibilityState.selected`.
+ */
+function LinkPill({
   icon,
   label,
   tint,
@@ -703,9 +650,12 @@ export default function ProfileScreen() {
   const limited = !profile.is_public && !isMe;
   const universityName = profile.university?.short_name ?? null;
   const firstName = profile.display_name.split(/\s+/)[0] ?? profile.handle;
+  const interests = interestsOf(profile);
 
+  /* No `alignItems` on purpose: this hugs inside the centered private card
+     and stretches to full width under the hero, where it's the main move. */
   const messageButton = (
-    <View style={{ gap: 8, alignItems: "center" }}>
+    <View style={{ gap: 8 }}>
       <Button
         label="Message"
         pending={messaging}
@@ -725,7 +675,10 @@ export default function ProfileScreen() {
     </View>
   );
 
-  /* Private profile viewed by someone else: handle + avatar only. */
+  /* Private profile viewed by someone else: handle + avatar only. Everything
+     else on the row — name, bio, major, grad year, interests, looking_for —
+     stays off this screen. Interests and looking_for are profile columns like
+     any other, so they're hidden here too. */
   if (limited) {
     return (
       <View
@@ -749,6 +702,7 @@ export default function ProfileScreen() {
         <Card
           style={{ alignItems: "center", gap: 12, paddingVertical: 32 }}
         >
+          {/* Initials from the handle — no photo, same as the directory. */}
           <Avatar name={profile.handle} size={72} />
           <AppText variant="display" style={{ fontSize: 22, lineHeight: 28 }}>
             @{profile.handle}
@@ -809,97 +763,146 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* Hero */}
-        <Card style={{ alignItems: "center", gap: 10, paddingVertical: 24 }}>
-          <Avatar name={profile.display_name} size={72} />
-          <View style={{ alignItems: "center", gap: 6 }}>
-            <AppText
-              variant="display"
-              style={{ fontSize: 24, lineHeight: 30, textAlign: "center" }}
-            >
-              {profile.display_name}
-            </AppText>
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                justifyContent: "center",
-                gap: 6,
-              }}
-            >
-              {profile.phone_verified_at ? (
-                <Badge
-                  label="Verified"
-                  icon="check-circle"
-                  bg={theme.accentSoft}
-                  fg={theme.success}
-                />
-              ) : null}
-              {isMe && !profile.is_public ? (
-                <Badge
-                  label="Private"
-                  icon="lock"
-                  bg={theme.surface2}
-                  fg={theme.muted}
-                />
+        {/* Hero — the person first: their face, their name set against it,
+            then the quiet facts, then what they're actually after. */}
+        <Card style={{ gap: 16 }}>
+          <View
+            style={{ flexDirection: "row", alignItems: "center", gap: 16 }}
+          >
+            <Avatar
+              url={profile.avatar_url}
+              name={profile.display_name}
+              size={80}
+            />
+            <View style={{ flex: 1, gap: 4 }}>
+              <AppText variant="display" style={{ fontSize: 24, lineHeight: 30 }}>
+                {profile.display_name}
+              </AppText>
+              <AppText variant="caption" muted>
+                @{profile.handle}
+                {universityName ? ` · ${universityName}` : ""}
+              </AppText>
+              {profile.phone_verified_at || (isMe && !profile.is_public) ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: 6,
+                    marginTop: 2,
+                  }}
+                >
+                  {profile.phone_verified_at ? (
+                    <Chip label="Verified" icon="check-circle" tone="accent" />
+                  ) : null}
+                  {isMe && !profile.is_public ? (
+                    <Chip label="Private" icon="lock" tone="neutral" />
+                  ) : null}
+                </View>
               ) : null}
             </View>
-            <AppText variant="caption" muted>
-              @{profile.handle}
-              {universityName ? ` · ${universityName}` : ""}
-            </AppText>
           </View>
+
           {profile.major || profile.grad_year ? (
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                justifyContent: "center",
-                gap: 6,
-              }}
-            >
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {profile.major ? (
-                <Badge
+                <Chip
                   label={profile.major}
                   icon="book"
-                  bg={theme.surface2}
-                  fg={theme.foreground}
+                  tone="neutral"
+                  size="md"
                 />
               ) : null}
               {profile.grad_year ? (
-                <Badge
+                <Chip
                   label={`Class of ${profile.grad_year}`}
-                  bg={theme.surface2}
-                  fg={theme.foreground}
+                  tone="neutral"
+                  size="md"
                 />
               ) : null}
             </View>
           ) : null}
-          {profile.bio ? (
-            <AppText style={{ textAlign: "center", maxWidth: 300 }}>
-              {profile.bio}
-            </AppText>
+
+          {/* Body type, left-aligned, with the card's 16px gaps either side —
+              a paragraph, not a caption under a portrait. */}
+          {profile.bio ? <AppText>{profile.bio}</AppText> : null}
+
+          {/* The one line on this page somebody can act on, so it gets the
+              ember and sits directly above the button that answers it. */}
+          {profile.looking_for ? (
+            <View
+              style={{
+                gap: 6,
+                padding: 14,
+                borderRadius: radius.control,
+                backgroundColor: theme.brandSoft,
+              }}
+            >
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+              >
+                <Feather name="compass" size={13} color={theme.brand} />
+                <AppText variant="label" style={{ color: theme.brandInk }}>
+                  Looking for
+                </AppText>
+              </View>
+              <AppText variant="title" style={{ color: theme.brandInk }}>
+                {profile.looking_for}
+              </AppText>
+            </View>
           ) : null}
-          <View style={{ marginTop: 6 }}>
-            {isMe ? (
-              <Button
-                label="Edit profile"
-                variant="secondary"
-                onPress={() => router.push("/account")}
-                icon={<Feather name="edit-2" size={15} color={theme.foreground} />}
-              />
-            ) : isBlocked ? (
-              blockedActions
-            ) : (
-              messageButton
-            )}
-          </View>
+
+          {isMe ? (
+            <Button
+              label="Edit profile"
+              variant="secondary"
+              onPress={() => router.push("/account")}
+              icon={<Feather name="edit-2" size={15} color={theme.foreground} />}
+            />
+          ) : isBlocked ? (
+            blockedActions
+          ) : (
+            messageButton
+          )}
         </Card>
+
+        {/* Interests — hidden entirely on someone else's profile when they
+            haven't added any; on your own it's an invitation. */}
+        {isMe || interests.length > 0 ? (
+          <>
+            <AppText variant="title" style={{ marginTop: 24, marginBottom: 10 }}>
+              {isMe ? "What you're into" : `What ${firstName}'s into`}
+            </AppText>
+            {interests.length === 0 ? (
+              <EmptySection
+                icon="compass"
+                title="Nothing on here yet"
+                description={
+                  profile.looking_for
+                    ? "Add a few things you're into — it's how classmates spot the overlap."
+                    : "A few things you're into, plus a line on what you're looking for, is how classmates know where to start."
+                }
+                actionLabel="Edit profile"
+                onAction={() => router.push("/account")}
+              />
+            ) : (
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {interests.map((interest) => (
+                  <Chip
+                    key={interest}
+                    label={interest}
+                    tone="brand"
+                    size="md"
+                  />
+                ))}
+              </View>
+            )}
+          </>
+        ) : null}
 
         {sectionsError ? (
           <AppText
             variant="caption"
-            style={{ color: theme.danger, marginTop: 12 }}
+            style={{ color: theme.danger, marginTop: 24 }}
           >
             We couldn't load courses and channels just now — pull down to try
             again.
@@ -925,7 +928,7 @@ export default function ProfileScreen() {
         ) : (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {sharedCourses.map((course) => (
-              <Chip
+              <LinkPill
                 key={course.id}
                 icon="book-open"
                 label={course.code}
@@ -955,7 +958,7 @@ export default function ProfileScreen() {
         ) : (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {sharedChannels.map((channel) => (
-              <Chip
+              <LinkPill
                 key={channel.id}
                 icon="hash"
                 label={channel.name}

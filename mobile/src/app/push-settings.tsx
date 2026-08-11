@@ -3,20 +3,31 @@ import * as Device from "expo-device";
 import { PermissionStatus } from "expo-modules-core";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import {
-  ActivityIndicator,
   AppState,
   Linking,
   Pressable,
   ScrollView,
   Switch,
   View,
+  type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card } from "@/components/ui";
+import {
+  AppText,
+  Button,
+  Card,
+  Chip,
+  SectionLabel,
+  Sheet,
+  Skeleton,
+  type ChipTone,
+} from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { tapLight } from "@/lib/haptics";
 import { registerForPush } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -27,6 +38,11 @@ type PermissionView = "loading" | "granted" | "denied" | "undetermined";
    A missing key means on; {"dm":"off"} means quiet. We only ever store
    'off' keys — re-enabling removes the key, keeping the object minimal. */
 type NotificationPrefs = Record<string, string>;
+
+/* profiles.quiet_hours, exactly the shape in_quiet_hours() reads. `null`
+   here is the app's word for "no window" — on the row that is stored as an
+   empty object, never a deleted or null column. */
+type QuietHours = { start: string; end: string; tz: string };
 
 type PushKind =
   | "dm"
@@ -80,39 +96,127 @@ const PUSH_KINDS: {
   },
 ];
 
-/** Icon tile + label + caption + switch, one push kind per row. */
-function PushKindRow({
+/* ---------------------------- quiet hours ---------------------------- */
+
+const QUIET_DEFAULT_START = "22:00";
+const QUIET_DEFAULT_END = "08:00";
+const FALLBACK_TZ = "America/Los_Angeles";
+
+/** Every half hour of the day, "00:00" through "23:30". */
+const HALF_HOURS: string[] = Array.from({ length: 48 }, (_, index) => {
+  const hour = Math.floor(index / 2);
+  return `${hour < 10 ? "0" : ""}${hour}:${index % 2 === 0 ? "00" : "30"}`;
+});
+
+/** Sheet.Row is 44 tall and the picker list gaps by 4. */
+const PICKER_STRIDE = 48;
+
+/** The window follows the phone it was set on; the server needs the name. */
+function deviceTimeZone(): string {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return typeof zone === "string" && zone.length > 0 ? zone : FALLBACK_TZ;
+  } catch {
+    return FALLBACK_TZ;
+  }
+}
+
+/** "America/Los_Angeles" → "Los Angeles". */
+function zoneLabel(zone: string): string {
+  const tail = zone.split("/").pop();
+  return (tail ?? zone).replace(/_/g, " ");
+}
+
+/** Snap anything the column might hold onto the half-hour grid. */
+function normalizeTime(value: string, fallback: string): string {
+  const match = /^(\d{1,2}):(\d{2})/.exec(value);
+  if (!match) return fallback;
+  const hour = Math.min(23, Math.max(0, Number(match[1])));
+  const half = Number(match[2]) >= 30 ? "30" : "00";
+  return `${hour < 10 ? "0" : ""}${hour}:${half}`;
+}
+
+/** `null` for the empty object, a malformed row, or a missing time. */
+function parseQuietHours(raw: unknown): QuietHours | null {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const value = raw as Record<string, unknown>;
+  if (typeof value.start !== "string" || typeof value.end !== "string") {
+    return null;
+  }
+  const zone = typeof value.tz === "string" && value.tz.length > 0
+    ? value.tz
+    : FALLBACK_TZ;
+  return {
+    start: normalizeTime(value.start, QUIET_DEFAULT_START),
+    end: normalizeTime(value.end, QUIET_DEFAULT_END),
+    tz: zone,
+  };
+}
+
+/** "22:00" → "10:00 PM". */
+function clockLabel(value: string): string {
+  const [hourText, minuteText] = value.split(":");
+  const hour = Number(hourText);
+  if (!Number.isFinite(hour)) return value;
+  const suffix = hour < 12 ? "AM" : "PM";
+  const shown = hour % 12 === 0 ? 12 : hour % 12;
+  return `${shown}:${minuteText ?? "00"} ${suffix}`;
+}
+
+/* The two lines this screen exists to say out loud. Both live as plain
+   strings so the copy reads as copy and not as JSX. */
+
+function quietSentence(quiet: QuietHours | null): string {
+  if (!quiet) {
+    return "Pick a window — 10:00 PM until 8:00 AM, say — and your phone stays silent inside it. Nothing gets lost either: whatever arrives is waiting in your inbox in the morning.";
+  }
+  return `Between ${clockLabel(quiet.start)} and ${clockLabel(
+    quiet.end
+  )} nothing buzzes. Nothing is dropped either — whatever arrives is sitting in your inbox, and the first nudge after the window carries it along. Those times follow the ${zoneLabel(
+    quiet.tz
+  )} clock.`;
+}
+
+const DIGEST_NOTE =
+  "When a class channel gets going, Huddl rolls the pile into one nudge — the “4 new notifications” kind — instead of buzzing twelve times. Tapping it opens your inbox with all of them in it.";
+
+/* ------------------------------- rows -------------------------------- */
+
+/** Icon tile + label + caption + whatever sits on the right, one per row. */
+function SettingRow({
   icon,
   label,
   caption,
   first,
-  on,
-  disabled,
-  onToggle,
+  disabled = false,
+  trailing,
+  onPress,
+  accessibilityLabel,
 }: {
   icon: keyof typeof Feather.glyphMap;
   label: string;
-  caption: string;
+  caption?: string;
   first: boolean;
-  on: boolean;
-  disabled: boolean;
-  onToggle: (next: boolean) => void;
+  disabled?: boolean;
+  trailing?: ReactNode;
+  /** Pass it and the whole row becomes the target; leave it off for a switch. */
+  onPress?: () => void;
+  accessibilityLabel?: string;
 }) {
   const theme = useTheme();
-  return (
-    <View
-      style={{
-        minHeight: 44,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderTopWidth: first ? 0 : 1,
-        borderTopColor: theme.border,
-        opacity: disabled ? 0.5 : 1,
-      }}
-    >
+  const frame: ViewStyle = {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: first ? 0 : 1,
+    borderTopColor: theme.border,
+  };
+
+  const content = (
+    <>
       <View
         style={{
           width: 32,
@@ -131,22 +235,74 @@ function PushKindRow({
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <AppText variant="bodySemi">{label}</AppText>
-        <AppText variant="caption" muted>
-          {caption}
-        </AppText>
+        {caption ? (
+          <AppText variant="caption" muted>
+            {caption}
+          </AppText>
+        ) : null}
       </View>
-      <Switch
-        accessibilityLabel={label}
-        value={on}
-        disabled={disabled}
-        onValueChange={onToggle}
-        trackColor={{ false: theme.surface3, true: theme.brand }}
-        thumbColor={theme.onSolid}
-        ios_backgroundColor={theme.surface3}
-      />
+      {trailing}
+    </>
+  );
+
+  if (!onPress) {
+    return <View style={[frame, { opacity: disabled ? 0.5 : 1 }]}>{content}</View>;
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        frame,
+        { opacity: disabled ? 0.5 : pressed ? 0.6 : 1 },
+      ]}
+    >
+      {content}
+    </Pressable>
+  );
+}
+
+/** The ghost of a SettingRow, for the beat before the profile lands. */
+function SettingRowSkeleton({ first }: { first: boolean }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        minHeight: 44,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderTopWidth: first ? 0 : 1,
+        borderTopColor: theme.border,
+      }}
+    >
+      <Skeleton width={32} height={32} radius={radius.control} />
+      <View style={{ flex: 1, gap: 6 }}>
+        <Skeleton width="52%" height={13} radius={radius.full} />
+        <Skeleton width="74%" height={10} radius={radius.full} />
+      </View>
+      <Skeleton width={44} height={26} radius={radius.full} />
     </View>
   );
 }
+
+/** The current time on a From / Until row, plus the chevron that says "pick". */
+function TimeValue({ value }: { value: string }) {
+  const theme = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+      <Chip label={clockLabel(value)} tone="brand" size="md" />
+      <Feather name="chevron-right" size={16} color={theme.muted} />
+    </View>
+  );
+}
+
+/* ------------------------------ screen ------------------------------- */
 
 export default function PushSettingsScreen() {
   const theme = useTheme();
@@ -162,6 +318,18 @@ export default function PushSettingsScreen() {
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
   const [prefsError, setPrefsError] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
+
+  // null means no window. `prefs === null` is the one loading flag for both,
+  // since they arrive in the same profiles row.
+  const [quiet, setQuiet] = useState<QuietHours | null>(null);
+  const [quietError, setQuietError] = useState<string | null>(null);
+  const [picker, setPicker] = useState<"start" | "end" | null>(null);
+  // Which end the sheet was opened on, held past the close so its title and
+  // its checkmark don't change under the slide-out animation.
+  const openedOn = useRef<"start" | "end">("start");
+  const held = picker ?? openedOn.current;
+
+  const deviceTz = useMemo(() => deviceTimeZone(), []);
 
   const checkPermission = useCallback(async () => {
     if (!isDevice) return;
@@ -185,29 +353,34 @@ export default function PushSettingsScreen() {
     return () => sub.remove();
   }, [checkPermission]);
 
-  const loadPrefs = useCallback(async () => {
+  const loadSettings = useCallback(async () => {
     if (!userId) return;
     setPrefsError(null);
     const { data, error } = await supabase
       .from("profiles")
-      .select("notification_prefs")
+      .select("notification_prefs, quiet_hours")
       .eq("id", userId)
       .maybeSingle();
     if (error || !data) {
-      setPrefsError("We couldn't load your push preferences right now.");
+      setPrefsError(
+        "Your notification settings didn't come through. Check your connection and give it another go."
+      );
       return;
     }
-    const raw = (data as { notification_prefs: unknown }).notification_prefs;
+    const row = data as { notification_prefs: unknown; quiet_hours: unknown };
     setPrefs(
-      raw !== null && typeof raw === "object" && !Array.isArray(raw)
-        ? (raw as NotificationPrefs)
+      row.notification_prefs !== null &&
+        typeof row.notification_prefs === "object" &&
+        !Array.isArray(row.notification_prefs)
+        ? (row.notification_prefs as NotificationPrefs)
         : {}
     );
+    setQuiet(parseQuietHours(row.quiet_hours));
   }, [userId]);
 
   useEffect(() => {
-    void loadPrefs();
-  }, [loadPrefs]);
+    void loadSettings();
+  }, [loadSettings]);
 
   const handleEnable = useCallback(async () => {
     if (!userId || enabling) return;
@@ -254,8 +427,105 @@ export default function PushSettingsScreen() {
     [userId, prefs]
   );
 
+  /** Optimistic, like every other write here: the row moves, then syncs. */
+  const saveQuiet = useCallback(
+    async (next: QuietHours | null) => {
+      if (!userId) return;
+      const previous = quiet;
+      setQuietError(null);
+      setQuiet(next);
+      const { error } = await supabase
+        .from("profiles")
+        // Off is an empty object, not a null and not a missing row — that is
+        // what in_quiet_hours() reads as "never quiet".
+        .update({ quiet_hours: next ?? {} })
+        .eq("id", userId);
+      if (error) {
+        setQuiet(previous);
+        setQuietError(
+          "That didn't save — your quiet hours are still the old ones. Give it another go."
+        );
+      }
+    },
+    [userId, quiet]
+  );
+
+  const toggleQuiet = useCallback(
+    (next: boolean) => {
+      void saveQuiet(
+        next
+          ? {
+              start: QUIET_DEFAULT_START,
+              end: QUIET_DEFAULT_END,
+              tz: deviceTimeZone(),
+            }
+          : null
+      );
+    },
+    [saveQuiet]
+  );
+
+  const pickTime = useCallback(
+    (value: string) => {
+      const which = picker;
+      setPicker(null);
+      if (which === null || quiet === null) return;
+      tapLight();
+      void saveQuiet({
+        start: which === "start" ? value : quiet.start,
+        end: which === "end" ? value : quiet.end,
+        // Re-stamp the zone on every edit: set the window here, it runs here.
+        tz: deviceTimeZone(),
+      });
+    },
+    [picker, quiet, saveQuiet]
+  );
+
+  const openPicker = useCallback((which: "start" | "end") => {
+    openedOn.current = which;
+    setPicker(which);
+  }, []);
+
+  /* --- the half-hour picker, opened to whatever is currently chosen --- */
+
+  const listRef = useRef<ScrollView>(null);
+  const pickerValue =
+    quiet === null ? undefined : held === "start" ? quiet.start : quiet.end;
+
+  const alignPicker = useCallback(() => {
+    if (pickerValue === undefined) return;
+    const index = HALF_HOURS.indexOf(pickerValue);
+    if (index < 0) return;
+    // Two rows of air above it, so the neighbouring times are visible and
+    // the chosen one doesn't read as the top of the list.
+    listRef.current?.scrollTo({
+      y: Math.max(0, (index - 2) * PICKER_STRIDE),
+      animated: false,
+    });
+  }, [pickerValue]);
+
+  // Belt and braces: the modal may lay its content out before or after this
+  // effect, so the layout callbacks aim it too. Landing twice is invisible.
+  useEffect(() => {
+    if (picker !== null) alignPicker();
+  }, [picker, alignPicker]);
+
   const statusIcon: keyof typeof Feather.glyphMap =
     permission === "granted" ? "bell" : "bell-off";
+
+  const statusChip: { label: string; tone: ChipTone } =
+    permission === "granted"
+      ? { label: "On", tone: "accent" }
+      : permission === "denied"
+        ? { label: "Off", tone: "danger" }
+        : { label: "Not set up", tone: "neutral" };
+
+  const statusLine =
+    permission === "granted"
+      ? "DMs, mentions, and class dates reach you here."
+      : permission === "denied"
+        ? "Notifications are turned off for Huddl in your phone's settings."
+        : "Turn it on and this phone starts getting nudges.";
 
   const pushReady = isDevice && permission === "granted";
 
@@ -308,8 +578,12 @@ export default function PushSettingsScreen() {
             </AppText>
           </Card>
         ) : permission === "loading" ? (
-          <Card style={{ alignItems: "center", paddingVertical: 32 }}>
-            <ActivityIndicator color={theme.brand} />
+          <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Skeleton width={40} height={40} radius={radius.control} />
+            <View style={{ flex: 1, gap: 8 }}>
+              <Skeleton width="46%" height={14} radius={radius.full} />
+              <Skeleton width="72%" height={11} radius={radius.full} />
+            </View>
           </Card>
         ) : (
           <Card style={{ gap: 12 }}>
@@ -333,20 +607,22 @@ export default function PushSettingsScreen() {
                   color={permission === "granted" ? theme.brand : theme.muted}
                 />
               </View>
-              <View style={{ flex: 1, gap: 2 }}>
-                <AppText variant="bodySemi">
-                  {permission === "granted"
-                    ? "On — this device gets a nudge for DMs, mentions, and class dates"
-                    : permission === "denied"
-                      ? "Off — enable in Settings"
-                      : "Not set up yet"}
-                </AppText>
-                {permission === "denied" ? (
-                  <AppText variant="caption" muted>
-                    Notifications are turned off for Huddl in your phone's
-                    settings.
+              <View style={{ flex: 1, gap: 4 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <AppText variant="bodySemi" style={{ flexShrink: 1 }}>
+                    Push on this phone
                   </AppText>
-                ) : null}
+                  <Chip label={statusChip.label} tone={statusChip.tone} />
+                </View>
+                <AppText variant="caption" muted>
+                  {statusLine}
+                </AppText>
               </View>
             </View>
 
@@ -373,68 +649,240 @@ export default function PushSettingsScreen() {
           </Card>
         )}
 
-        <View style={{ marginTop: 24 }}>
-          <AppText variant="label">What gets pushed</AppText>
-          <AppText variant="caption" muted style={{ marginTop: 4 }}>
-            The in-app inbox always keeps everything — these only quiet your
-            phone.
-          </AppText>
-
-          <Card padded={false} style={{ marginTop: 10 }}>
-            {prefsError ? (
-              <View
-                style={{ alignItems: "center", gap: 10, paddingVertical: 20 }}
-              >
-                <AppText
-                  variant="caption"
-                  muted
-                  style={{ textAlign: "center", maxWidth: 260 }}
-                >
-                  {prefsError}
-                </AppText>
-                <Button
-                  label="Try again"
-                  variant="soft"
-                  size="sm"
-                  onPress={() => void loadPrefs()}
-                />
-              </View>
-            ) : prefs === null ? (
-              <View style={{ alignItems: "center", paddingVertical: 24 }}>
-                <ActivityIndicator color={theme.brand} />
-              </View>
-            ) : (
-              PUSH_KINDS.map((entry, index) => (
-                <PushKindRow
-                  key={entry.kind}
-                  icon={entry.icon}
-                  label={entry.label}
-                  caption={entry.caption}
-                  first={index === 0}
-                  on={prefs[entry.kind] !== "off"}
-                  disabled={!pushReady}
-                  onToggle={(next) => void handleToggle(entry.kind, next)}
-                />
-              ))
-            )}
-          </Card>
-
-          {!pushReady && isDevice && permission !== "loading" ? (
-            <AppText variant="caption" muted style={{ marginTop: 8 }}>
-              These wake up once push is on for this device — flip it on above
-              first.
-            </AppText>
-          ) : null}
-          {toggleError ? (
+        {prefsError ? (
+          <Card
+            style={{
+              alignItems: "center",
+              gap: 8,
+              marginTop: 24,
+              paddingVertical: 24,
+            }}
+          >
+            <Feather name="cloud-off" size={20} color={theme.muted} />
+            <AppText variant="bodySemi">We couldn't reach your settings</AppText>
             <AppText
               variant="caption"
-              style={{ color: theme.danger, marginTop: 8 }}
+              muted
+              style={{ textAlign: "center", maxWidth: 280 }}
             >
-              {toggleError}
+              {prefsError}
             </AppText>
-          ) : null}
-        </View>
+            <Button
+              label="Try again"
+              variant="soft"
+              size="sm"
+              onPress={() => void loadSettings()}
+            />
+          </Card>
+        ) : (
+          <>
+            <SectionLabel text="Quiet hours" />
+
+            <Card padded={false}>
+              {prefs === null ? (
+                <SettingRowSkeleton first />
+              ) : (
+                <>
+                  <SettingRow
+                    icon="moon"
+                    label="Quiet hours"
+                    caption={
+                      quiet
+                        ? "Silent between the times below."
+                        : "Your phone can buzz at any hour."
+                    }
+                    first
+                    trailing={
+                      <Switch
+                        accessibilityLabel="Quiet hours"
+                        value={quiet !== null}
+                        onValueChange={toggleQuiet}
+                        trackColor={{
+                          false: theme.surface3,
+                          true: theme.brand,
+                        }}
+                        thumbColor={theme.onSolid}
+                        ios_backgroundColor={theme.surface3}
+                      />
+                    }
+                  />
+                  {quiet ? (
+                    <>
+                      <SettingRow
+                        icon="sunset"
+                        label="From"
+                        first={false}
+                        onPress={() => openPicker("start")}
+                        accessibilityLabel={`Quiet hours start, currently ${clockLabel(
+                          quiet.start
+                        )}`}
+                        trailing={<TimeValue value={quiet.start} />}
+                      />
+                      <SettingRow
+                        icon="sunrise"
+                        label="Until"
+                        first={false}
+                        onPress={() => openPicker("end")}
+                        accessibilityLabel={`Quiet hours end, currently ${clockLabel(
+                          quiet.end
+                        )}`}
+                        trailing={<TimeValue value={quiet.end} />}
+                      />
+                    </>
+                  ) : null}
+                </>
+              )}
+            </Card>
+
+            {prefs === null ? null : (
+              <AppText variant="caption" muted style={{ marginTop: 10 }}>
+                {quietSentence(quiet)}
+              </AppText>
+            )}
+            {quiet && quiet.start === quiet.end ? (
+              <AppText
+                variant="caption"
+                style={{ color: theme.warning, marginTop: 6 }}
+              >
+                From and until are the same time, so the window is empty and
+                nothing is quiet yet. Move one of them.
+              </AppText>
+            ) : null}
+            {quiet && quiet.tz !== deviceTz ? (
+              <AppText
+                variant="caption"
+                style={{ color: theme.warning, marginTop: 6 }}
+              >
+                {`This phone is on ${zoneLabel(
+                  deviceTz
+                )} time. Pick either time again to move the window here.`}
+              </AppText>
+            ) : null}
+            {!pushReady && isDevice && permission !== "loading" ? (
+              <AppText variant="caption" muted style={{ marginTop: 6 }}>
+                Worth setting either way — quiet hours ride with your account,
+                not just this phone.
+              </AppText>
+            ) : null}
+            {quietError ? (
+              <AppText
+                variant="caption"
+                style={{ color: theme.danger, marginTop: 6 }}
+              >
+                {quietError}
+              </AppText>
+            ) : null}
+
+            <SectionLabel text="What gets pushed" />
+
+            <Card padded={false}>
+              {prefs === null
+                ? PUSH_KINDS.map((entry, index) => (
+                    <SettingRowSkeleton key={entry.kind} first={index === 0} />
+                  ))
+                : PUSH_KINDS.map((entry, index) => (
+                    <SettingRow
+                      key={entry.kind}
+                      icon={entry.icon}
+                      label={entry.label}
+                      caption={entry.caption}
+                      first={index === 0}
+                      disabled={!pushReady}
+                      trailing={
+                        <Switch
+                          accessibilityLabel={entry.label}
+                          value={prefs[entry.kind] !== "off"}
+                          disabled={!pushReady}
+                          onValueChange={(next) =>
+                            void handleToggle(entry.kind, next)
+                          }
+                          trackColor={{
+                            false: theme.surface3,
+                            true: theme.brand,
+                          }}
+                          thumbColor={theme.onSolid}
+                          ios_backgroundColor={theme.surface3}
+                        />
+                      }
+                    />
+                  ))}
+            </Card>
+
+            <AppText variant="caption" muted style={{ marginTop: 10 }}>
+              The in-app inbox always keeps everything — these only quiet your
+              phone.
+            </AppText>
+            <AppText variant="caption" muted style={{ marginTop: 6 }}>
+              {DIGEST_NOTE}
+            </AppText>
+            {!pushReady && isDevice && permission !== "loading" ? (
+              <AppText variant="caption" muted style={{ marginTop: 6 }}>
+                These wake up once push is on for this device — flip it on
+                above first.
+              </AppText>
+            ) : null}
+            {toggleError ? (
+              <AppText
+                variant="caption"
+                style={{ color: theme.danger, marginTop: 6 }}
+              >
+                {toggleError}
+              </AppText>
+            ) : null}
+          </>
+        )}
       </ScrollView>
+
+      <Sheet
+        visible={picker !== null}
+        onClose={() => setPicker(null)}
+        title={held === "end" ? "Quiet until" : "Quiet from"}
+      >
+        <AppText variant="caption" muted style={{ marginBottom: 6 }}>
+          {held === "end"
+            ? "When your phone is allowed to buzz again."
+            : "When your phone goes quiet."}
+        </AppText>
+        <ScrollView
+          ref={listRef}
+          style={{ flexShrink: 1 }}
+          contentContainerStyle={{ gap: 4 }}
+          showsVerticalScrollIndicator={false}
+          onLayout={alignPicker}
+          onContentSizeChange={alignPicker}
+        >
+          {HALF_HOURS.map((value) => {
+            const chosen = value === pickerValue;
+            return (
+              // The chosen half hour sits in a shallow well and swaps its
+              // clock tile for a check — the same "this is the current one"
+              // language as the reminder ladder on a course calendar. Its
+              // label carries the word too: Sheet.Row has no selected state
+              // to hand a screen reader, and a check it can't see is no help
+              // in a list of forty-eight near-identical rows.
+              <View
+                key={value}
+                style={{
+                  backgroundColor: chosen ? theme.surface2 : undefined,
+                  borderRadius: radius.control,
+                  paddingHorizontal: 6,
+                  marginHorizontal: -6,
+                }}
+              >
+                <Sheet.Row
+                  icon={chosen ? "check" : "clock"}
+                  label={
+                    chosen
+                      ? `${clockLabel(value)} · current`
+                      : clockLabel(value)
+                  }
+                  onPress={() => pickTime(value)}
+                />
+              </View>
+            );
+          })}
+        </ScrollView>
+      </Sheet>
     </View>
   );
 }

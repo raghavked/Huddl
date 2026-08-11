@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
-import { AppText, Button, Card, Field } from "@/components/ui";
+import { AppText, Button, Card, Chip, Field } from "@/components/ui";
 import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
@@ -23,6 +23,28 @@ import { useAuth } from "@/providers/auth-provider";
 const HANDLE_RE = /^[a-z0-9_]{3,24}$/;
 const MAX_BIO_LENGTH = 280;
 
+/* Interests: 0034's normalize trigger trims, lowercases, dedupes and keeps
+   the first eight, dropping anything outside 2–28 characters. We hold the
+   same line up front so a word never disappears on the way to the server —
+   but we still send exactly what the student typed and settle on their
+   spelling until the next load. */
+const MAX_INTERESTS = 8;
+const MIN_INTEREST_LENGTH = 2;
+const MAX_INTEREST_LENGTH = 28;
+const MAX_LOOKING_FOR_LENGTH = 140;
+
+/** A campus-flavoured starting vocabulary — tap one, or type your own. */
+const INTEREST_SUGGESTIONS = [
+  "study spots",
+  "live music",
+  "intramurals",
+  "cooking",
+  "hiking",
+  "gaming",
+  "film",
+  "volunteering",
+] as const;
+
 type AccountRow = {
   display_name: string;
   handle: string;
@@ -31,8 +53,20 @@ type AccountRow = {
   bio: string | null;
   avatar_url: string | null;
   is_public: boolean;
+  interests: string[] | null;
+  looking_for: string | null;
   university: { short_name: string } | null;
 };
+
+/** How two interests are compared before the trigger has seen either. */
+function interestKey(interest: string): string {
+  return interest.trim().toLowerCase();
+}
+
+function hasInterest(list: readonly string[], interest: string): boolean {
+  const key = interestKey(interest);
+  return list.some((existing) => interestKey(existing) === key);
+}
 
 type FieldErrors = {
   displayName?: string;
@@ -61,6 +95,11 @@ export default function AccountScreen() {
   const [isPublic, setIsPublic] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
+  const [interests, setInterests] = useState<string[]>([]);
+  const [interestDraft, setInterestDraft] = useState("");
+  const [interestHint, setInterestHint] = useState<string | null>(null);
+  const [lookingFor, setLookingFor] = useState("");
+
   // The photo flow gets its own quiet corner of state.
   const [photoBusy, setPhotoBusy] = useState<"upload" | "remove" | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -88,7 +127,7 @@ export default function AccountScreen() {
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "display_name, handle, major, grad_year, bio, avatar_url, is_public, university:universities(short_name)"
+        "display_name, handle, major, grad_year, bio, avatar_url, is_public, interests, looking_for, university:universities(short_name)"
       )
       .eq("id", userId)
       .maybeSingle();
@@ -109,6 +148,19 @@ export default function AccountScreen() {
     setBio(row.bio ?? "");
     setIsPublic(row.is_public);
     setAvatarUrl(row.avatar_url);
+    // text[] comes back as an array, but a null column and a stray non-string
+    // both cost nothing to guard against.
+    setInterests(
+      Array.isArray(row.interests)
+        ? row.interests.filter(
+            (entry): entry is string =>
+              typeof entry === "string" && entry.trim().length > 0
+          )
+        : []
+    );
+    setInterestDraft("");
+    setInterestHint(null);
+    setLookingFor(row.looking_for ?? "");
     setUniversityName(row.university?.short_name ?? null);
   }, [userId]);
 
@@ -176,6 +228,51 @@ export default function AccountScreen() {
     void load();
   }, [load]);
 
+  /* --------------------------- interest chips --------------------------- */
+
+  /** Put a word on. Shared by the add-field and the suggestion chips. */
+  const addInterest = useCallback(
+    (raw: string) => {
+      const typed = raw.trim();
+      if (typed.length === 0) return false;
+      if (typed.length < MIN_INTEREST_LENGTH) {
+        setInterestHint(
+          `Interests need at least ${MIN_INTEREST_LENGTH} characters.`
+        );
+        return false;
+      }
+      if (hasInterest(interests, typed)) {
+        setInterestHint(`"${typed}" is already on there.`);
+        return false;
+      }
+      if (interests.length >= MAX_INTERESTS) {
+        setInterestHint(
+          `That's ${MAX_INTERESTS} — take one off to add another.`
+        );
+        return false;
+      }
+      setInterests([...interests, typed]);
+      setInterestHint(null);
+      return true;
+    },
+    [interests]
+  );
+
+  const commitInterestDraft = useCallback(() => {
+    if (addInterest(interestDraft)) setInterestDraft("");
+  }, [addInterest, interestDraft]);
+
+  const removeInterest = useCallback((interest: string) => {
+    setInterestHint(null);
+    setInterests((current) =>
+      current.filter((existing) => interestKey(existing) !== interestKey(interest))
+    );
+  }, []);
+
+  const openSuggestions = INTEREST_SUGGESTIONS.filter(
+    (suggestion) => !hasInterest(interests, suggestion)
+  );
+
   /** Mirrors the web account form's save: same validation, same update set. */
   const handleSave = useCallback(async () => {
     if (!userId || saving) return;
@@ -203,6 +300,16 @@ export default function AccountScreen() {
       return;
     }
 
+    /* A word still sitting in the add-field is one they meant to keep, so it
+       goes in with the rest rather than vanishing on save. */
+    const pending = interestDraft.trim();
+    const nextInterests =
+      pending.length >= MIN_INTEREST_LENGTH &&
+      !hasInterest(interests, pending) &&
+      interests.length < MAX_INTERESTS
+        ? [...interests, pending]
+        : interests;
+
     setErrors({});
     setSaving(true);
     setSaved(false);
@@ -215,6 +322,9 @@ export default function AccountScreen() {
         grad_year: year,
         bio: bio.trim() || null,
         is_public: isPublic,
+        // 0034's trigger trims, lowercases and dedupes — send what they typed.
+        interests: nextInterests,
+        looking_for: lookingFor.trim() || null,
       })
       .eq("id", userId);
     setSaving(false);
@@ -232,10 +342,27 @@ export default function AccountScreen() {
       return;
     }
     setHandle(h);
+    if (nextInterests !== interests) {
+      setInterests(nextInterests);
+      setInterestDraft("");
+      setInterestHint(null);
+    }
     setSaved(true);
     if (savedTimer.current) clearTimeout(savedTimer.current);
     savedTimer.current = setTimeout(() => setSaved(false), 2500);
-  }, [userId, saving, displayName, handle, gradYear, major, bio, isPublic]);
+  }, [
+    userId,
+    saving,
+    displayName,
+    handle,
+    gradYear,
+    major,
+    bio,
+    isPublic,
+    interests,
+    interestDraft,
+    lookingFor,
+  ]);
 
   return (
     <View
@@ -442,6 +569,132 @@ export default function AccountScreen() {
                   Signed in as {email ?? "your school email"}
                   {universityName ? ` · ${universityName}` : ""}. Your school
                   email can't be changed.
+                </AppText>
+              </View>
+            </Card>
+
+            <Card style={{ gap: 14 }}>
+              <View style={{ gap: 4 }}>
+                <AppText variant="title">What you're into</AppText>
+                <AppText variant="caption" muted>
+                  Up to eight things. They sit on your profile so classmates
+                  can spot the overlap.
+                </AppText>
+              </View>
+
+              {interests.length > 0 ? (
+                <View
+                  style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+                >
+                  {interests.map((interest) => (
+                    <Chip
+                      key={interestKey(interest)}
+                      label={interest}
+                      tone="brand"
+                      size="md"
+                      icon="x"
+                      selected
+                      onPress={() => removeInterest(interest)}
+                      accessibilityLabel={`Remove ${interest}`}
+                    />
+                  ))}
+                </View>
+              ) : null}
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-end",
+                  gap: 8,
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Field
+                    label="Add an interest"
+                    value={interestDraft}
+                    onChangeText={(text) => {
+                      setInterestDraft(text);
+                      if (interestHint) setInterestHint(null);
+                    }}
+                    placeholder="board games"
+                    maxLength={MAX_INTEREST_LENGTH}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="done"
+                    onSubmitEditing={commitInterestDraft}
+                  />
+                </View>
+                <Button
+                  label="Add"
+                  variant="secondary"
+                  size="sm"
+                  disabled={interestDraft.trim().length === 0}
+                  onPress={commitInterestDraft}
+                />
+              </View>
+
+              {interestHint ? (
+                <AppText variant="caption" style={{ color: theme.warning }}>
+                  {interestHint}
+                </AppText>
+              ) : (
+                <AppText variant="caption" muted>
+                  {interests.length === 0
+                    ? `Optional, and up to ${MAX_INTERESTS}.`
+                    : `${interests.length} of ${MAX_INTERESTS} — tap one to take it off.`}
+                </AppText>
+              )}
+
+              {openSuggestions.length > 0 ? (
+                /* Faded rather than gone at the cap: the word may still be
+                   true of them, it just can't fit until something comes off. */
+                <View
+                  style={{
+                    gap: 8,
+                    opacity: interests.length >= MAX_INTERESTS ? 0.5 : 1,
+                  }}
+                >
+                  <AppText variant="caption" muted>
+                    Or start from one of these
+                  </AppText>
+                  <View
+                    style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+                  >
+                    {openSuggestions.map((suggestion) => (
+                      <Chip
+                        key={suggestion}
+                        label={suggestion}
+                        size="md"
+                        onPress={() => addInterest(suggestion)}
+                        accessibilityLabel={`Add ${suggestion}`}
+                      />
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+
+              <View
+                style={{
+                  borderTopWidth: 1,
+                  borderTopColor: theme.border,
+                  paddingTop: 14,
+                  gap: 6,
+                }}
+              >
+                <Field
+                  label="Looking for (optional)"
+                  value={lookingFor}
+                  onChangeText={(text) =>
+                    setLookingFor(text.slice(0, MAX_LOOKING_FOR_LENGTH))
+                  }
+                  maxLength={MAX_LOOKING_FOR_LENGTH}
+                  placeholder="A lab partner for BIS 2A"
+                  returnKeyType="done"
+                />
+                <AppText variant="caption" muted>
+                  {lookingFor.trim().length === 0
+                    ? "One line near the top of your profile — people to run with, a study group for the midterm, a ride home for break."
+                    : `${lookingFor.length}/${MAX_LOOKING_FOR_LENGTH}`}
                 </AppText>
               </View>
             </Card>
