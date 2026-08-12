@@ -20,6 +20,8 @@ import {
 } from "@/components/ui";
 import { KindBadge } from "@/features/events/event-chips";
 import { JoinButton } from "@/features/discover/join-button";
+import { TodayStrip } from "@/features/home/today-strip";
+import type { PlanItemRow } from "@/features/study/plan-section";
 import { getCurrentUser } from "@/lib/auth";
 import { buildPlan, toPlanKind, type PlanItem } from "@/lib/study-plan";
 import { createClient } from "@/lib/supabase/server";
@@ -37,37 +39,6 @@ type MessagePreview = {
   created_at: string;
   author: { display_name: string } | null;
 };
-
-/** What's still on deck today, skimmed from the plan the page already built. */
-type TodaySummary = { dueCount: number; firstDueTitle: string | null };
-
-/** "PHYS 9B review tonight" / "Coffee hour at 3:00 PM" for the Today strip. */
-function eventTodayPhrase(event: Pick<CampusEvent, "title" | "starts_at">) {
-  const start = new Date(event.starts_at);
-  if (start.getHours() >= 17) return `${event.title} tonight`;
-  const time = start.toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  return `${event.title} at ${time}`;
-}
-
-/** One calm line from what today actually holds — null means stay silent. */
-function buildTodayLine(
-  today: TodaySummary,
-  event: Pick<CampusEvent, "title" | "starts_at"> | null
-): string | null {
-  const eventPart = event ? eventTodayPhrase(event) : null;
-  if (today.dueCount > 0 && eventPart) {
-    return `${today.dueCount} due · ${eventPart}`;
-  }
-  if (today.dueCount > 0) {
-    return today.firstDueTitle
-      ? `${today.dueCount} due today · ${today.firstDueTitle}`
-      : `${today.dueCount} due today`;
-  }
-  return eventPart;
-}
 
 export default async function HomePage() {
   const user = await getCurrentUser();
@@ -112,7 +83,8 @@ export default async function HomePage() {
     .map((row) => row.course)
     .filter((c): c is { id: string; code: string } => c !== null);
   let planStats: ReturnType<typeof buildPlan>["stats"] | null = null;
-  let today: TodaySummary = { dueCount: 0, firstDueTitle: null };
+  let planRows: PlanItemRow[] = [];
+  let checkedIds: string[] = [];
   if (planCourses.length > 0) {
     const codeById = new Map(planCourses.map((c) => [c.id, c.code]));
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -127,7 +99,7 @@ export default async function HomePage() {
         .select("item_id")
         .eq("user_id", user.userId),
     ]);
-    const planItems = (
+    planRows = (
       (itemsRes.data ?? []) as {
         id: string;
         course_id: string;
@@ -135,35 +107,30 @@ export default async function HomePage() {
         title: string;
         due_at: string;
       }[]
-    ).map(
+    ).map((row) => ({
+      id: row.id,
+      courseCode: codeById.get(row.course_id) ?? "Course",
+      kind: row.kind,
+      title: row.title,
+      due_at: row.due_at,
+    }));
+    checkedIds = ((checksRes.data ?? []) as { item_id: string }[]).map(
+      (row) => row.item_id
+    );
+    // Only the headline stats are settled here: they're counts plus the
+    // earliest unhandled item, so no calendar day comes into it and the
+    // server's zone can't colour them. The Today strip does need a day, so
+    // it gets the same rows and works them out in the browser.
+    const planItems = planRows.map(
       (row): PlanItem => ({
         id: row.id,
-        courseCode: codeById.get(row.course_id) ?? "Course",
+        courseCode: row.courseCode,
         kind: toPlanKind(row.kind),
         title: row.title,
         dueAt: new Date(row.due_at),
       })
     );
-    const checkoffs = new Set(
-      ((checksRes.data ?? []) as { item_id: string }[]).map(
-        (row) => row.item_id
-      )
-    );
-    const plan = buildPlan(planItems, checkoffs, new Date());
-    planStats = plan.stats;
-    // The Today strip skims the same plan: what's still ahead of me today
-    // and unhandled. No extra queries — silence when the day is clear.
-    const dueToday =
-      plan.groups
-        .find((group) => group.label === "Today")
-        ?.entries.filter((entry) => !entry.done) ?? [];
-    const firstDue = dueToday[0];
-    today = {
-      dueCount: dueToday.length,
-      firstDueTitle: firstDue
-        ? `${firstDue.courseCode} ${firstDue.title}`
-        : null,
-    };
+    planStats = buildPlan(planItems, new Set(checkedIds), new Date()).stats;
   }
 
   const myChannels = (
@@ -182,16 +149,6 @@ export default async function HomePage() {
     );
 
   const events = (eventsRes.data ?? []) as CampusEvent[];
-
-  // Today at a glance: due items from the plan above + the first event that
-  // lands today, both already in hand. No line means nothing to say.
-  const todayStamp = new Date().toDateString();
-  const todayLine = buildTodayLine(
-    today,
-    events.find(
-      (event) => new Date(event.starts_at).toDateString() === todayStamp
-    ) ?? null
-  );
 
   const joinedIds = new Set(myChannels.map((c) => c.id));
   const discover = ((topicsRes.data ?? []) as Channel[])
@@ -225,28 +182,18 @@ export default async function HomePage() {
         description="Here's what's happening on campus."
       />
 
-      {/* 0 — today at a glance, only when today actually holds something */}
-      {todayLine ? (
-        <section className="mt-8" aria-label="Today">
-          <Link
-            href="/calendar"
-            aria-label={`Today: ${todayLine}`}
-            className={cardClasses({
-              padding: "none",
-              interactive: true,
-              className: "flex items-center gap-3 px-4 py-3",
-            })}
-          >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
-              <CalendarDays className="size-5" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1 truncate text-sm font-semibold">
-              {todayLine}
-            </span>
-            <ChevronRight className="size-4 shrink-0 text-muted" aria-hidden />
-          </Link>
-        </section>
-      ) : null}
+      {/* 0 — today at a glance, only when today actually holds something.
+          Drawn in the browser: what counts as "today" is the student's day,
+          not the server's. */}
+      <TodayStrip
+        nowIso={nowIso}
+        items={planRows}
+        checkedIds={checkedIds}
+        events={events.map((event) => ({
+          title: event.title,
+          starts_at: event.starts_at,
+        }))}
+      />
 
       {/* 1 — the study plan, when there are classes to plan around */}
       {planStats ? (

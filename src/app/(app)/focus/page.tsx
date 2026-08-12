@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ui";
-import { FocusPanel, type CourseOption } from "@/features/focus/focus-panel";
+import type { CourseOption } from "@/features/focus/focus-panel";
+import { FocusPanelWithStreak } from "@/features/focus/focus-panel-streak";
 import { getCurrentUser } from "@/lib/auth";
 import {
-  computeFocusStreak,
   fetchMyOpenSession,
   fetchStudyingNow,
   FocusError,
@@ -26,8 +26,9 @@ type EnrollmentJoin = { course: CourseOption | null };
  *
  * Everything the first paint needs is loaded here — your open session (if you
  * left one running on your phone), the campus's "studying now" list, your
- * live classes for the course chips, and the streak. The panel takes it from
- * there: it owns the clock, the writes, and the realtime subscription.
+ * live classes for the course chips, and the sessions the streak is counted
+ * from. The panel takes it from there: it owns the clock, the writes, and the
+ * realtime subscription.
  */
 export default async function FocusPage() {
   const user = await getCurrentUser();
@@ -76,21 +77,18 @@ export default async function FocusPage() {
     .filter((course): course is CourseOption => course !== null)
     .sort((a, b) => a.code.localeCompare(b.code));
 
-  const streak = computeFocusStreak(
-    (streakRows ?? []) as { ended_at: string | null }[],
-    now
-  );
-
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader backHref="/home" backLabel="Home" title="Focus" />
 
-      <FocusPanel
+      {/* The closed sessions go down raw: a streak is counted in calendar
+          days, and only the browser knows which days those are. */}
+      <FocusPanelWithStreak
         userId={user.userId}
         nowIso={now.toISOString()}
         initialSession={mine}
         initialStudying={studying.filter((row) => row.user_id !== user.userId)}
-        initialStreak={streak}
+        streakRows={(streakRows ?? []) as { ended_at: string | null }[]}
         courses={courses}
         initialError={loadError}
       />
