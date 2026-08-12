@@ -12,7 +12,7 @@ import {
   SectionLabel,
   useReducedMotion,
 } from "@/components/ui";
-import { motion, palettes, radius, type Palette } from "@/constants/theme";
+import { motion, palettes, radius, space, type Palette } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapLight } from "@/lib/haptics";
 import {
@@ -40,6 +40,11 @@ const MODES: { mode: DisplayMode; label: string; hint: string }[] = [
  * One pane of a theme preview, painted entirely in the *other* palette's
  * tokens rather than the active one — that is the whole point: you can see
  * light while standing in dark.
+ *
+ * The numbers inside are off the spacing ladder deliberately. This is a
+ * drawing of a screen at about a sixth scale, not a screen — 7 and 5 and the
+ * 11px dot are the proportions of the picture, and snapping them to rungs
+ * meant for real layout would only distort it.
  */
 function PalettePane({ palette }: { palette: Palette }) {
   return (
@@ -48,7 +53,7 @@ function PalettePane({ palette }: { palette: Palette }) {
         flex: 1,
         backgroundColor: palette.background,
         paddingHorizontal: 7,
-        paddingVertical: 8,
+        paddingVertical: space.cosy,
         justifyContent: "flex-end",
         gap: 5,
       }}
@@ -145,7 +150,7 @@ function ModeCard({
         opacity: pressed ? 0.8 : 1,
       })}
     >
-      <Card padded={false} style={{ padding: 8, gap: 8 }}>
+      <Card padded={false} style={{ padding: space.cosy, gap: space.cosy }}>
         <ModePreview mode={option.mode} />
         <AppText
           variant="label"
@@ -301,7 +306,7 @@ export default function DisplaySettingsScreen() {
         flex: 1,
         backgroundColor: theme.background,
         paddingTop: insets.top + 8,
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
       }}
     >
       <Pressable
@@ -330,11 +335,11 @@ export default function DisplaySettingsScreen() {
       <AppText
         variant="display"
         accessibilityRole="header"
-        style={{ marginTop: 2 }}
+        style={{ marginTop: space.hair }}
       >
         Look and feel
       </AppText>
-      <AppText variant="caption" muted style={{ marginTop: 4 }}>
+      <AppText variant="caption" muted style={{ marginTop: space.tight }}>
         Set the appearance and the type size. Both take hold the moment you
         tap.
       </AppText>
@@ -349,7 +354,7 @@ export default function DisplaySettingsScreen() {
         <View
           accessibilityRole="radiogroup"
           accessibilityLabel="Appearance"
-          style={{ flexDirection: "row", gap: 8 }}
+          style={{ flexDirection: "row", gap: space.cosy }}
         >
           {MODES.map((option) => (
             <ModeCard
@@ -361,7 +366,7 @@ export default function DisplaySettingsScreen() {
           ))}
         </View>
 
-        <AppText variant="caption" muted style={{ marginTop: 10 }}>
+        <AppText variant="caption" muted style={{ marginTop: space.room }}>
           System flips whenever your phone does. Light is the warm cream one;
           dark is the candle-lit one, made for a late library table.
         </AppText>
@@ -374,8 +379,8 @@ export default function DisplaySettingsScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 4,
-            padding: 4,
+            gap: space.tight,
+            padding: space.tight,
             borderRadius: radius.full,
             backgroundColor: theme.surface2,
           }}
@@ -396,9 +401,9 @@ export default function DisplaySettingsScreen() {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 8,
+            gap: space.cosy,
             minHeight: 40,
-            marginTop: 10,
+            marginTop: space.room,
           }}
         >
           {/* The one thing on the screen that reports the choice you just
@@ -427,11 +432,11 @@ export default function DisplaySettingsScreen() {
           )}
         </View>
 
-        <AppText variant="caption" muted style={{ marginTop: 14 }}>
+        <AppText variant="caption" muted style={{ marginTop: space.card }}>
           Here's how a post reads at that size:
         </AppText>
 
-        <Card style={{ gap: 6, marginTop: 8 }}>
+        <Card style={{ gap: space.snug, marginTop: space.cosy }}>
           <AppText variant="title">Thursday night, Shields third floor</AppText>
           <AppText variant="body">
             I'm camping out with the practice midterm from 7 until they kick us
@@ -442,7 +447,7 @@ export default function DisplaySettingsScreen() {
           </AppText>
         </Card>
 
-        <View style={{ alignItems: "center", gap: 8, marginTop: 32 }}>
+        <View style={{ alignItems: "center", gap: space.cosy, marginTop: space.rest }}>
           <View
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"

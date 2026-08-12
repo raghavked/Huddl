@@ -17,7 +17,7 @@ import {
   EmptyState,
   SkeletonRow,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { unblockUser } from "@/lib/blocks";
 import { supabase } from "@/lib/supabase";
@@ -108,11 +108,11 @@ function BlockedRowCard({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
+        gap: space.close,
+        paddingHorizontal: space.card,
+        paddingVertical: space.close,
         minHeight: 68,
-        marginBottom: 10,
+        marginBottom: space.room,
       }}
     >
       {/* Not `Avatar` on purpose — see MutedInitials above. */}
@@ -121,7 +121,7 @@ function BlockedRowCard({
       <View
         accessible
         accessibilityLabel={`${person.display_name}, @${person.handle}`}
-        style={{ flex: 1, gap: 2 }}
+        style={{ flex: 1, gap: space.hair }}
       >
         <AppText variant="bodySemi" numberOfLines={1}>
           {person.display_name}
@@ -246,7 +246,7 @@ export default function BlockedPeopleScreen() {
         flex: 1,
         backgroundColor: theme.background,
         paddingTop: insets.top + 8,
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
       }}
     >
       <Pressable
@@ -275,11 +275,11 @@ export default function BlockedPeopleScreen() {
       <AppText
         variant="display"
         accessibilityRole="header"
-        style={{ marginTop: 2 }}
+        style={{ marginTop: space.hair }}
       >
         Blocked people
       </AppText>
-      <AppText variant="caption" muted style={{ marginTop: 4, marginBottom: 16 }}>
+      <AppText variant="caption" muted style={{ marginTop: space.tight, marginBottom: space.card }}>
         They can't DM you, and their posts stay out of sight. They were never
         told.
       </AppText>
@@ -297,7 +297,7 @@ export default function BlockedPeopleScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
+            gap: space.room,
             paddingBottom: 80,
           }}
         >
@@ -338,7 +338,7 @@ export default function BlockedPeopleScreen() {
               <AppText
                 variant="caption"
                 accessibilityLiveRegion="polite"
-                style={{ color: theme.danger, marginBottom: 10 }}
+                style={{ color: theme.danger, marginBottom: space.room }}
               >
                 {rowError ?? "We couldn't refresh just now — pull down to try again."}
               </AppText>

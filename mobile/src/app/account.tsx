@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
 import { AppText, Button, Card, Chip, Field } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -416,7 +416,7 @@ export default function AccountScreen() {
         paddingTop: insets.top + 8,
       }}
     >
-      <View style={{ paddingHorizontal: 20 }}>
+      <View style={{ paddingHorizontal: space.gutter }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
@@ -443,15 +443,15 @@ export default function AccountScreen() {
         <AppText
           variant="display"
           accessibilityRole="header"
-          style={{ marginTop: 2, marginBottom: 16 }}
+          style={{ marginTop: space.hair, marginBottom: space.card }}
         >
           Account
         </AppText>
       </View>
 
       {loading ? (
-        <View style={{ paddingHorizontal: 20 }}>
-          <Card style={{ alignItems: "center", paddingVertical: 32 }}>
+        <View style={{ paddingHorizontal: space.gutter }}>
+          <Card style={{ alignItems: "center", paddingVertical: space.rest }}>
             <ActivityIndicator
               accessibilityLabel="Loading your profile"
               color={theme.brand}
@@ -459,10 +459,10 @@ export default function AccountScreen() {
           </Card>
         </View>
       ) : loadError ? (
-        <View style={{ paddingHorizontal: 20 }}>
+        <View style={{ paddingHorizontal: space.gutter }}>
           <Card
             accessibilityLiveRegion="polite"
-            style={{ alignItems: "center", gap: 10, paddingVertical: 24 }}
+            style={{ alignItems: "center", gap: space.room, paddingVertical: space.chapter }}
           >
             <AppText variant="bodySemi" accessibilityRole="header">
               Something went sideways
@@ -479,8 +479,8 @@ export default function AccountScreen() {
           </Card>
         </View>
       ) : missing ? (
-        <View style={{ paddingHorizontal: 20 }}>
-          <Card style={{ alignItems: "center", gap: 6, paddingVertical: 24 }}>
+        <View style={{ paddingHorizontal: space.gutter }}>
+          <Card style={{ alignItems: "center", gap: space.snug, paddingVertical: space.chapter }}>
             <AppText variant="bodySemi" accessibilityRole="header">
               We couldn't find your profile
             </AppText>
@@ -497,19 +497,19 @@ export default function AccountScreen() {
           <ScrollView
             style={{ flex: 1 }}
             contentContainerStyle={{
-              paddingHorizontal: 20,
+              paddingHorizontal: space.gutter,
               paddingBottom: insets.bottom + 32,
-              gap: 16,
+              gap: space.card,
             }}
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
           >
-            <Card style={{ gap: 12 }}>
+            <Card style={{ gap: space.close }}>
               <View
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 14,
+                  gap: space.card,
                 }}
               >
                 <Avatar
@@ -517,7 +517,7 @@ export default function AccountScreen() {
                   name={displayName || "You"}
                   size={56}
                 />
-                <View style={{ flex: 1, gap: 4 }}>
+                <View style={{ flex: 1, gap: space.tight }}>
                   <AppText variant="title" accessibilityRole="header">
                     Your photo
                   </AppText>
@@ -532,7 +532,7 @@ export default function AccountScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 8,
+                  gap: space.cosy,
                   flexWrap: "wrap",
                 }}
               >
@@ -586,7 +586,7 @@ export default function AccountScreen() {
               ) : null}
             </Card>
 
-            <Card style={{ gap: 14 }}>
+            <Card style={{ gap: space.close }}>
               <AppText variant="title" accessibilityRole="header">
                 About you
               </AppText>
@@ -602,7 +602,7 @@ export default function AccountScreen() {
                 autoComplete="name"
                 error={errors.displayName ?? null}
               />
-              <View style={{ gap: 6 }}>
+              <View style={{ gap: space.snug }}>
                 <Field
                   label="Handle"
                   accessibilityLabel={fieldLabel(
@@ -646,7 +646,7 @@ export default function AccountScreen() {
                 placeholder="2027"
                 error={errors.gradYear ?? null}
               />
-              <View style={{ gap: 6 }}>
+              <View style={{ gap: space.snug }}>
                 <Field
                   label="Bio (optional)"
                   value={bio}
@@ -668,7 +668,7 @@ export default function AccountScreen() {
                 style={{
                   borderTopWidth: 1,
                   borderTopColor: theme.border,
-                  paddingTop: 12,
+                  paddingTop: space.close,
                 }}
               >
                 <AppText variant="caption" muted>
@@ -679,8 +679,8 @@ export default function AccountScreen() {
               </View>
             </Card>
 
-            <Card style={{ gap: 14 }}>
-              <View style={{ gap: 4 }}>
+            <Card style={{ gap: space.close }}>
+              <View style={{ gap: space.tight }}>
                 <AppText variant="title" accessibilityRole="header">
                   What you're into
                 </AppText>
@@ -692,7 +692,7 @@ export default function AccountScreen() {
 
               {interests.length > 0 ? (
                 <View
-                  style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+                  style={{ flexDirection: "row", flexWrap: "wrap", gap: space.cosy }}
                 >
                   {interests.map((interest) => (
                     <Chip
@@ -713,7 +713,7 @@ export default function AccountScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "flex-end",
-                  gap: 8,
+                  gap: space.cosy,
                 }}
               >
                 <View style={{ flex: 1 }}>
@@ -778,7 +778,7 @@ export default function AccountScreen() {
                    above says it in words too. */
                 <View
                   style={{
-                    gap: 8,
+                    gap: space.cosy,
                     opacity: interests.length >= MAX_INTERESTS ? 0.5 : 1,
                   }}
                 >
@@ -788,7 +788,7 @@ export default function AccountScreen() {
                       : "Or start from one of these"}
                   </AppText>
                   <View
-                    style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+                    style={{ flexDirection: "row", flexWrap: "wrap", gap: space.cosy }}
                   >
                     {openSuggestions.map((suggestion) => (
                       <Chip
@@ -807,8 +807,8 @@ export default function AccountScreen() {
                 style={{
                   borderTopWidth: 1,
                   borderTopColor: theme.border,
-                  paddingTop: 14,
-                  gap: 6,
+                  paddingTop: space.card,
+                  gap: space.snug,
                 }}
               >
                 <Field
@@ -841,7 +841,7 @@ export default function AccountScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 12,
+                gap: space.close,
               }}
             >
               {/* The switch carries the whole row: hiding the words here and
@@ -850,7 +850,7 @@ export default function AccountScreen() {
               <View
                 accessibilityElementsHidden
                 importantForAccessibility="no-hide-descendants"
-                style={{ flex: 1, gap: 4 }}
+                style={{ flex: 1, gap: space.tight }}
               >
                 <AppText variant="title">Public profile</AppText>
                 <AppText variant="caption" muted>
@@ -877,9 +877,9 @@ export default function AccountScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 8,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
+                  gap: space.cosy,
+                  paddingHorizontal: space.close,
+                  paddingVertical: space.room,
                   borderRadius: radius.control,
                   backgroundColor: theme.surface2,
                 }}
@@ -901,7 +901,7 @@ export default function AccountScreen() {
             ) : null}
 
             <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+              style={{ flexDirection: "row", alignItems: "center", gap: space.close }}
             >
               <Button
                 label={saving ? "Saving…" : "Save changes"}
@@ -917,7 +917,7 @@ export default function AccountScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 4,
+                    gap: space.tight,
                   }}
                 >
                   <Feather

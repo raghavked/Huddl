@@ -25,7 +25,7 @@ import {
   Skeleton,
   type ChipTone,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapLight } from "@/lib/haptics";
 import { registerForPush } from "@/lib/push";
@@ -217,9 +217,9 @@ function SettingRow({
     minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    gap: space.close,
+    paddingHorizontal: space.card,
+    paddingVertical: space.room,
     borderTopWidth: first ? 0 : 1,
     borderTopColor: theme.border,
   };
@@ -233,7 +233,7 @@ function SettingRow({
           flex: 1,
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
+          gap: space.close,
         }}
       >
         <View
@@ -252,7 +252,7 @@ function SettingRow({
             color={disabled ? theme.muted : theme.brand}
           />
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: space.hair }}>
           <AppText variant="bodySemi">{label}</AppText>
           {caption ? (
             <AppText variant="caption" muted>
@@ -295,15 +295,15 @@ function SettingRowSkeleton({ first }: { first: boolean }) {
         minHeight: 44,
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+        gap: space.close,
+        paddingHorizontal: space.card,
+        paddingVertical: space.room,
         borderTopWidth: first ? 0 : 1,
         borderTopColor: theme.border,
       }}
     >
       <Skeleton width={32} height={32} radius={radius.control} />
-      <View style={{ flex: 1, gap: 6 }}>
+      <View style={{ flex: 1, gap: space.snug }}>
         <Skeleton width="52%" height={13} radius={radius.full} />
         <Skeleton width="74%" height={10} radius={radius.full} />
       </View>
@@ -320,7 +320,7 @@ function TimeValue({ value }: { value: string }) {
       // The row it sits on already says the time it's showing.
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+      style={{ flexDirection: "row", alignItems: "center", gap: space.tight }}
     >
       <Chip label={clockLabel(value)} tone="brand" size="md" />
       <Feather name="chevron-right" size={16} color={theme.muted} />
@@ -561,7 +561,7 @@ export default function PushSettingsScreen() {
         flex: 1,
         backgroundColor: theme.background,
         paddingTop: insets.top + 8,
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
       }}
     >
       <Pressable
@@ -590,7 +590,7 @@ export default function PushSettingsScreen() {
       <AppText
         variant="display"
         accessibilityRole="header"
-        style={{ marginTop: 2, marginBottom: 16 }}
+        style={{ marginTop: space.hair, marginBottom: space.card }}
       >
         Push notifications
       </AppText>
@@ -601,7 +601,7 @@ export default function PushSettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {!isDevice ? (
-          <Card style={{ alignItems: "center", gap: 6, paddingVertical: 24 }}>
+          <Card style={{ alignItems: "center", gap: space.snug, paddingVertical: space.chapter }}>
             <Feather
               accessibilityElementsHidden
               importantForAccessibility="no-hide-descendants"
@@ -622,22 +622,22 @@ export default function PushSettingsScreen() {
             </AppText>
           </Card>
         ) : permission === "loading" ? (
-          <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Card style={{ flexDirection: "row", alignItems: "center", gap: space.close }}>
             <Skeleton width={40} height={40} radius={radius.control} />
-            <View style={{ flex: 1, gap: 8 }}>
+            <View style={{ flex: 1, gap: space.cosy }}>
               <Skeleton width="46%" height={14} radius={radius.full} />
               <Skeleton width="72%" height={11} radius={radius.full} />
             </View>
           </Card>
         ) : (
-          <Card style={{ gap: 12 }}>
+          <Card style={{ gap: space.close }}>
             {/* Tile, heading, status pill and the line under it are one
                 statement about this phone, so they are read as one. */}
             <View
               accessible
               accessibilityLiveRegion="polite"
               accessibilityLabel={`Push on this phone: ${statusChip.label.toLowerCase()}. ${statusLine}`}
-              style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+              style={{ flexDirection: "row", alignItems: "center", gap: space.close }}
             >
               <View
                 accessibilityElementsHidden
@@ -658,12 +658,12 @@ export default function PushSettingsScreen() {
                   color={permission === "granted" ? theme.brand : theme.muted}
                 />
               </View>
-              <View style={{ flex: 1, gap: 4 }}>
+              <View style={{ flex: 1, gap: space.tight }}>
                 <View
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 8,
+                    gap: space.cosy,
                   }}
                 >
                   <AppText variant="bodySemi" style={{ flexShrink: 1 }}>
@@ -711,9 +711,9 @@ export default function PushSettingsScreen() {
           <Card
             style={{
               alignItems: "center",
-              gap: 8,
-              marginTop: 24,
-              paddingVertical: 24,
+              gap: space.cosy,
+              marginTop: space.chapter,
+              paddingVertical: space.chapter,
             }}
           >
             <Feather
@@ -811,7 +811,7 @@ export default function PushSettingsScreen() {
                 variant="caption"
                 muted
                 accessibilityLiveRegion="polite"
-                style={{ marginTop: 10 }}
+                style={{ marginTop: space.room }}
               >
                 {quietSentence(quiet)}
               </AppText>
@@ -820,7 +820,7 @@ export default function PushSettingsScreen() {
               <AppText
                 variant="caption"
                 accessibilityLiveRegion="polite"
-                style={{ color: theme.warning, marginTop: 6 }}
+                style={{ color: theme.warning, marginTop: space.snug }}
               >
                 From and until are the same time, so the window is empty and
                 nothing is quiet yet. Move one of them.
@@ -830,7 +830,7 @@ export default function PushSettingsScreen() {
               <AppText
                 variant="caption"
                 accessibilityLiveRegion="polite"
-                style={{ color: theme.warning, marginTop: 6 }}
+                style={{ color: theme.warning, marginTop: space.snug }}
               >
                 {`This phone is on ${zoneLabel(
                   deviceTz
@@ -838,7 +838,7 @@ export default function PushSettingsScreen() {
               </AppText>
             ) : null}
             {!pushReady && isDevice && permission !== "loading" ? (
-              <AppText variant="caption" muted style={{ marginTop: 6 }}>
+              <AppText variant="caption" muted style={{ marginTop: space.snug }}>
                 Worth setting either way — quiet hours ride with your account,
                 not just this phone.
               </AppText>
@@ -847,7 +847,7 @@ export default function PushSettingsScreen() {
               <AppText
                 variant="caption"
                 accessibilityLiveRegion="polite"
-                style={{ color: theme.danger, marginTop: 6 }}
+                style={{ color: theme.danger, marginTop: space.snug }}
               >
                 {quietError}
               </AppText>
@@ -900,15 +900,15 @@ export default function PushSettingsScreen() {
                   ))}
             </Card>
 
-            <AppText variant="caption" muted style={{ marginTop: 10 }}>
+            <AppText variant="caption" muted style={{ marginTop: space.room }}>
               The in-app inbox always keeps everything — these only quiet your
               phone.
             </AppText>
-            <AppText variant="caption" muted style={{ marginTop: 6 }}>
+            <AppText variant="caption" muted style={{ marginTop: space.snug }}>
               {DIGEST_NOTE}
             </AppText>
             {!pushReady && isDevice && permission !== "loading" ? (
-              <AppText variant="caption" muted style={{ marginTop: 6 }}>
+              <AppText variant="caption" muted style={{ marginTop: space.snug }}>
                 These wake up once push is on for this device — flip it on
                 above first.
               </AppText>
@@ -917,7 +917,7 @@ export default function PushSettingsScreen() {
               <AppText
                 variant="caption"
                 accessibilityLiveRegion="polite"
-                style={{ color: theme.danger, marginTop: 6 }}
+                style={{ color: theme.danger, marginTop: space.snug }}
               >
                 {toggleError}
               </AppText>
@@ -931,7 +931,7 @@ export default function PushSettingsScreen() {
         onClose={() => setPicker(null)}
         title={held === "end" ? "Quiet until" : "Quiet from"}
       >
-        <AppText variant="caption" muted style={{ marginBottom: 6 }}>
+        <AppText variant="caption" muted style={{ marginBottom: space.snug }}>
           {held === "end"
             ? "When your phone is allowed to buzz again."
             : "When your phone goes quiet."}
@@ -939,7 +939,7 @@ export default function PushSettingsScreen() {
         <ScrollView
           ref={listRef}
           style={{ flexShrink: 1 }}
-          contentContainerStyle={{ gap: 4 }}
+          contentContainerStyle={{ gap: space.tight }}
           showsVerticalScrollIndicator={false}
           onLayout={alignPicker}
           onContentSizeChange={alignPicker}
@@ -956,7 +956,7 @@ export default function PushSettingsScreen() {
                 style={{
                   backgroundColor: chosen ? theme.surface2 : undefined,
                   borderRadius: radius.control,
-                  paddingHorizontal: 6,
+                  paddingHorizontal: space.snug,
                   marginHorizontal: -6,
                 }}
               >

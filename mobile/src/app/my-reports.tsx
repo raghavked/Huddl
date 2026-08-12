@@ -18,7 +18,7 @@ import {
   EmptyState,
   SkeletonRow,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   categoryLabel,
@@ -183,13 +183,13 @@ function ReportRow({ report, index }: { report: FiledReport; index: number }) {
   const state = statusLine(report.status);
 
   return (
-    <Card entrance={index} style={{ gap: 8, marginBottom: 10 }}>
+    <Card entrance={index} style={{ gap: space.cosy, marginBottom: space.room }}>
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           flexWrap: "wrap",
-          gap: 6,
+          gap: space.snug,
         }}
       >
         <Chip label={categoryLabel(report.category)} tone="brand" />
@@ -205,7 +205,7 @@ function ReportRow({ report, index }: { report: FiledReport; index: number }) {
       {report.reason ? (
         <View
           style={{
-            padding: 12,
+            padding: space.close,
             borderRadius: radius.control,
             backgroundColor: theme.surface2,
           }}
@@ -293,7 +293,7 @@ export default function MyReportsScreen() {
         flex: 1,
         backgroundColor: theme.background,
         paddingTop: insets.top + 8,
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
       }}
     >
       <Pressable
@@ -322,11 +322,11 @@ export default function MyReportsScreen() {
       <AppText
         variant="display"
         accessibilityRole="header"
-        style={{ marginTop: 2 }}
+        style={{ marginTop: space.hair }}
       >
         Reports you've filed
       </AppText>
-      <AppText variant="caption" muted style={{ marginTop: 4, marginBottom: 16 }}>
+      <AppText variant="caption" muted style={{ marginTop: space.tight, marginBottom: space.card }}>
         Every report you've sent, and where it sits. Nobody you reported is
         ever told you filed it.
       </AppText>
@@ -343,7 +343,7 @@ export default function MyReportsScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
+            gap: space.room,
             paddingBottom: 80,
           }}
         >
@@ -384,7 +384,7 @@ export default function MyReportsScreen() {
               <AppText
                 variant="caption"
                 accessibilityLiveRegion="polite"
-                style={{ color: theme.danger, marginBottom: 10 }}
+                style={{ color: theme.danger, marginBottom: space.room }}
               >
                 We couldn't refresh just now — pull down to try again.
               </AppText>
@@ -402,7 +402,7 @@ export default function MyReportsScreen() {
               <AppText
                 variant="caption"
                 muted
-                style={{ marginTop: 6, lineHeight: 17 }}
+                style={{ marginTop: space.snug, lineHeight: 17 }}
               >
                 A campus moderator reads every one. "Closed, no action" means
                 they looked and decided nothing needed doing — if it happens

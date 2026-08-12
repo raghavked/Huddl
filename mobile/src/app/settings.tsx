@@ -10,8 +10,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppText, Button, Card } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { AppText, Button, Card, SectionLabel } from "@/components/ui";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { resetFirstRun } from "@/lib/first-run";
 import { amIModerator } from "@/lib/moderation";
@@ -58,9 +58,9 @@ function SettingsLink({
         minHeight: 52,
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
+        gap: space.close,
+        paddingHorizontal: space.card,
+        paddingVertical: space.cosy,
         borderTopWidth: first ? 0 : 1,
         borderTopColor: theme.border,
         opacity: pressed ? 0.7 : 1,
@@ -227,8 +227,8 @@ export default function SettingsScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
-        paddingHorizontal: 20,
+        paddingTop: insets.top + space.close,
+        paddingHorizontal: space.gutter,
       }}
     >
       <Pressable
@@ -238,6 +238,7 @@ export default function SettingsScreen() {
         style={({ pressed }) => ({
           width: 44,
           height: 44,
+          /* Pulls the 44px target's optical edge back onto the gutter. */
           marginLeft: -10,
           alignItems: "center",
           justifyContent: "center",
@@ -247,7 +248,13 @@ export default function SettingsScreen() {
         <Feather name="chevron-left" size={26} color={theme.foreground} />
       </Pressable>
 
-      <AppText variant="display" style={{ marginTop: 2, marginBottom: 16 }}>
+      {/* `chapter` under the title, the same as `Screen` — a screen title
+          starts a new thought, and the old 16 read as a caption stuck to the
+          profile card. */}
+      <AppText
+        variant="display"
+        style={{ marginTop: space.hair, marginBottom: space.chapter }}
+      >
         Settings
       </AppText>
 
@@ -258,16 +265,22 @@ export default function SettingsScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           flexGrow: 1,
-          paddingBottom: insets.bottom + 20,
+          paddingBottom: insets.bottom + space.rest,
         }}
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
-          <Card style={{ alignItems: "center", paddingVertical: 32 }}>
+          <Card style={{ alignItems: "center", paddingVertical: space.rest }}>
             <ActivityIndicator color={theme.brand} />
           </Card>
         ) : error ? (
-          <Card style={{ alignItems: "center", gap: 10, paddingVertical: 24 }}>
+          <Card
+            style={{
+              alignItems: "center",
+              gap: space.room,
+              paddingVertical: space.chapter,
+            }}
+          >
             <AppText variant="bodySemi">Something went sideways</AppText>
             <AppText variant="caption" muted style={{ textAlign: "center" }}>
               {error}
@@ -280,14 +293,26 @@ export default function SettingsScreen() {
             />
           </Card>
         ) : !profile ? (
-          <Card style={{ alignItems: "center", gap: 6, paddingVertical: 24 }}>
+          <Card
+            style={{
+              alignItems: "center",
+              gap: space.snug,
+              paddingVertical: space.chapter,
+            }}
+          >
             <AppText variant="bodySemi">We couldn't find your profile</AppText>
             <AppText variant="caption" muted style={{ textAlign: "center" }}>
               Try signing out and back in — that usually clears it up.
             </AppText>
           </Card>
         ) : (
-          <Card style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <Card
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.card,
+            }}
+          >
             <View
               style={{
                 width: 56,
@@ -305,7 +330,7 @@ export default function SettingsScreen() {
                 {initialsOf(profile.display_name) || "?"}
               </AppText>
             </View>
-            <View style={{ flex: 1, gap: 2 }}>
+            <View style={{ flex: 1, gap: space.hair }}>
               <AppText variant="title" numberOfLines={1}>
                 {profile.display_name}
               </AppText>
@@ -317,8 +342,8 @@ export default function SettingsScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 4,
-                    marginTop: 2,
+                    gap: space.tight,
+                    marginTop: space.hair,
                   }}
                 >
                   <Feather name="map-pin" size={11} color={theme.muted} />
@@ -331,12 +356,23 @@ export default function SettingsScreen() {
           </Card>
         )}
 
-        <Card padded={false} style={{ marginTop: 20 }}>
-          {/* Appearance sits first — it changes every other screen. */}
+        {/* Fifteen destinations used to sit in one card as fifteen rows of
+            identical height, which is a wall rather than a list — nothing to
+            aim at, and finding "Blocked people" meant reading every label.
+            Grouped under section labels, the scroll has handholds and each
+            group is short enough to take in at once. */}
+        <SectionLabel text="Your account" />
+        <Card padded={false}>
+          <SettingsLink
+            icon="user"
+            label="Account"
+            first
+            onPress={() => router.push("/account")}
+          />
+          {/* Appearance sits high — it changes every other screen. */}
           <SettingsLink
             icon="sliders"
             label="Look and feel"
-            first
             onPress={() => router.push("/display-settings")}
           />
           <SettingsLink
@@ -344,19 +380,22 @@ export default function SettingsScreen() {
             label="Notifications"
             onPress={() => router.push("/notifications")}
           />
+          {/* A different bell from the row above it: that one is the inbox,
+              this one is what the phone is allowed to do. Same glyph twice
+              running read as one row duplicated. */}
           <SettingsLink
-            icon="bell"
+            icon="smartphone"
             label="Push notifications"
             onPress={() => router.push("/push-settings")}
           />
-          <SettingsLink
-            icon="user"
-            label="Account"
-            onPress={() => router.push("/account")}
-          />
+        </Card>
+
+        <SectionLabel text="Around campus" />
+        <Card padded={false}>
           <SettingsLink
             icon="users"
             label="People directory"
+            first
             onPress={() => router.push("/people")}
           />
           <SettingsLink
@@ -369,20 +408,25 @@ export default function SettingsScreen() {
             label="Focus"
             onPress={() => router.push("/focus")}
           />
+        </Card>
+
+        <SectionLabel text="Privacy and safety" />
+        <Card padded={false}>
           <SettingsLink
             icon="lock"
             label="Privacy"
+            first
             onPress={() => router.push("/privacy-settings")}
-          />
-          <SettingsLink
-            icon="download"
-            label="Your data"
-            onPress={() => router.push("/data-export")}
           />
           <SettingsLink
             icon="slash"
             label="Blocked people"
             onPress={() => router.push("/blocked")}
+          />
+          <SettingsLink
+            icon="download"
+            label="Your data"
+            onPress={() => router.push("/data-export")}
           />
           {/* A report used to disappear the moment it was sent. */}
           <SettingsLink
@@ -390,9 +434,14 @@ export default function SettingsScreen() {
             label="Reports you've filed"
             onPress={() => router.push("/my-reports")}
           />
+        </Card>
+
+        <SectionLabel text="About" />
+        <Card padded={false}>
           <SettingsLink
             icon="book"
             label="Community guidelines"
+            first
             onPress={() => router.push("/legal/guidelines")}
           />
           {/* Onboarding records that these were accepted, so they have to
@@ -407,17 +456,26 @@ export default function SettingsScreen() {
             label="Privacy policy"
             onPress={() => router.push("/legal/privacy")}
           />
-          {/* Only campus moderators have a queue to open. */}
-          {isModerator === true ? (
-            <SettingsLink
-              icon="inbox"
-              label="Moderation queue"
-              onPress={() => router.push("/moderation")}
-            />
-          ) : null}
         </Card>
 
-        <View style={{ marginTop: 20, gap: 8 }}>
+        {/* Only campus moderators have a queue to open, and it is a different
+            job from anything above — its own group rather than a fifteenth
+            row nobody else can see. */}
+        {isModerator === true ? (
+          <>
+            <SectionLabel text="Moderation" />
+            <Card padded={false}>
+              <SettingsLink
+                icon="inbox"
+                label="Moderation queue"
+                first
+                onPress={() => router.push("/moderation")}
+              />
+            </Card>
+          </>
+        ) : null}
+
+        <View style={{ marginTop: space.chapter, gap: space.cosy }}>
           {/* The shared Button pins its label color per variant, so this is the
               secondary variant's exact shell with the danger-colored label the
               design calls for. */}
@@ -434,7 +492,7 @@ export default function SettingsScreen() {
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "center",
-              gap: 8,
+              gap: space.cosy,
               opacity: signingOut ? 0.6 : pressed ? 0.85 : 1,
             })}
           >
@@ -458,7 +516,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Danger zone — deletion is real and forever, so it sits apart. */}
-        <View style={{ marginTop: 24, gap: 8 }}>
+        <View style={{ marginTop: space.chapter, gap: space.cosy }}>
           <AppText variant="label" style={{ color: theme.danger }}>
             Danger zone
           </AppText>
@@ -472,9 +530,9 @@ export default function SettingsScreen() {
                 minHeight: 52,
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
+                gap: space.close,
+                paddingHorizontal: space.card,
+                paddingVertical: space.cosy,
                 opacity: deleting ? 0.6 : pressed ? 0.7 : 1,
               })}
             >
@@ -513,14 +571,14 @@ export default function SettingsScreen() {
           style={{
             marginTop: "auto",
             alignItems: "center",
-            gap: 2,
-            paddingTop: 24,
+            gap: space.hair,
+            paddingTop: space.rest,
           }}
         >
           <Button
             label="Show the welcome again"
             variant="ghost"
-            style={{ marginBottom: 2 }}
+            style={{ marginBottom: space.hair }}
             onPress={() => void replayWelcome()}
           />
           <AppText variant="caption" muted>

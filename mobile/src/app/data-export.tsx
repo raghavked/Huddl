@@ -11,7 +11,7 @@ import {
   EmptyState,
   SectionLabel,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   exportedAt,
@@ -137,9 +137,9 @@ function SummaryRow({ line, first }: { line: ExportLine; first: boolean }) {
         minHeight: 52,
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+        gap: space.close,
+        paddingHorizontal: space.card,
+        paddingVertical: space.room,
         borderTopWidth: first ? 0 : 1,
         borderTopColor: theme.border,
       }}
@@ -236,7 +236,7 @@ export default function DataExportScreen() {
         flex: 1,
         backgroundColor: theme.background,
         paddingTop: insets.top + 8,
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
       }}
     >
       <Pressable
@@ -256,7 +256,7 @@ export default function DataExportScreen() {
         <Feather name="chevron-left" size={26} color={theme.foreground} />
       </Pressable>
 
-      <AppText variant="display" style={{ marginTop: 2 }}>
+      <AppText variant="display" style={{ marginTop: space.hair }}>
         Your data
       </AppText>
 
@@ -265,7 +265,7 @@ export default function DataExportScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
         showsVerticalScrollIndicator={false}
       >
-        <AppText variant="body" muted style={{ marginTop: 6 }}>
+        <AppText variant="body" muted style={{ marginTop: space.snug }}>
           This is your copy of everything Huddl holds that's yours — your
           profile, your classes, the messages and notes you've written, your
           focus sessions and grades, and the safety records: who you've
@@ -299,12 +299,12 @@ export default function DataExportScreen() {
               />
             )}
 
-            <AppText variant="caption" muted style={{ marginTop: 10 }}>
+            <AppText variant="caption" muted style={{ marginTop: space.room }}>
               {fileName} · {sizeLabel(prepared.json)}
               {preparedAt ? ` · prepared at ${timeLabel(preparedAt)}` : ""}
             </AppText>
 
-            <View style={{ marginTop: 16, gap: 10 }}>
+            <View style={{ marginTop: space.card, gap: space.room }}>
               <Button
                 label="Save or share"
                 pending={sharing}
@@ -323,14 +323,14 @@ export default function DataExportScreen() {
             {shareNote ? (
               <AppText
                 variant="caption"
-                style={{ color: theme.warning, marginTop: 10 }}
+                style={{ color: theme.warning, marginTop: space.room }}
               >
                 {shareNote}
               </AppText>
             ) : null}
 
             {showRaw ? (
-              <Card style={{ marginTop: 12, gap: 8 }}>
+              <Card style={{ marginTop: space.close, gap: space.cosy }}>
                 <AppText variant="caption" muted>
                   Press and hold to select all of it.
                 </AppText>
@@ -351,10 +351,10 @@ export default function DataExportScreen() {
         ) : phase === "error" ? (
           <Card
             style={{
-              marginTop: 20,
+              marginTop: space.gutter,
               alignItems: "center",
-              gap: 10,
-              paddingVertical: 24,
+              gap: space.room,
+              paddingVertical: space.chapter,
             }}
           >
             <Feather name="cloud-off" size={26} color={theme.muted} />
@@ -374,11 +374,11 @@ export default function DataExportScreen() {
             />
           </Card>
         ) : (
-          <View style={{ marginTop: 20, gap: 10 }}>
+          <View style={{ marginTop: space.gutter, gap: space.room }}>
             {/* The box your things keep in until you ask for them back. It
                 sits above the one button on the screen rather than inside an
                 EmptyState — this is the primary action, not a consolation. */}
-            <View style={{ alignItems: "center", paddingVertical: 8 }}>
+            <View style={{ alignItems: "center", paddingVertical: space.cosy }}>
               <Shoebox
                 size={96}
                 color={theme.muted}
@@ -405,7 +405,7 @@ export default function DataExportScreen() {
         )}
 
         {/* The companion action, mentioned once and left alone. */}
-        <AppText variant="caption" muted style={{ marginTop: 28 }}>
+        <AppText variant="caption" muted style={{ marginTop: space.rest }}>
           Leaving is the other half of this. Whenever you want Huddl to hold
           none of it, Delete account sits at the bottom of Settings.
         </AppText>

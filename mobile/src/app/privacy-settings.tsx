@@ -17,7 +17,7 @@ import {
   SectionLabel,
   Skeleton,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { usePrivacyPrefs, type PrivacyPrefs } from "@/hooks/use-privacy-prefs";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -93,9 +93,9 @@ function SwitchRow({
         minHeight: 44,
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        gap: space.close,
+        paddingHorizontal: space.card,
+        paddingVertical: space.close,
         borderTopWidth: first ? 0 : 1,
         borderTopColor: theme.border,
       }}
@@ -116,7 +116,7 @@ function SwitchRow({
           color={value ? theme.brand : theme.muted}
         />
       </View>
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: space.hair }}>
         <AppText variant="bodySemi">{label}</AppText>
         <AppText variant="caption" muted>
           {caption}
@@ -143,15 +143,15 @@ function SwitchRowSkeleton({ first }: { first: boolean }) {
         minHeight: 44,
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        gap: space.close,
+        paddingHorizontal: space.card,
+        paddingVertical: space.close,
         borderTopWidth: first ? 0 : 1,
         borderTopColor: theme.border,
       }}
     >
       <Skeleton width={32} height={32} radius={radius.control} />
-      <View style={{ flex: 1, gap: 6 }}>
+      <View style={{ flex: 1, gap: space.snug }}>
         <Skeleton width="46%" height={13} radius={radius.full} />
         <Skeleton width="86%" height={10} radius={radius.full} />
       </View>
@@ -171,7 +171,10 @@ function Fact({
   children: ReactNode;
 }) {
   return (
-    <View style={{ flexDirection: "row", gap: 10 }}>
+    <View style={{ flexDirection: "row", gap: space.room }}>
+      {/* Off the ladder on purpose: 3px drops the 14px glyph onto the
+          cap-height of the 15/21 body line beside it. An optical nudge, not
+          a spacing decision. */}
       <Feather name={icon} size={14} color={tint} style={{ marginTop: 3 }} />
       <AppText variant="body" style={{ flex: 1 }}>
         {children}
@@ -204,9 +207,9 @@ function LinkRow({
         minHeight: 52,
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+        gap: space.close,
+        paddingHorizontal: space.card,
+        paddingVertical: space.room,
         borderTopWidth: first ? 0 : 1,
         borderTopColor: theme.border,
         opacity: pressed ? 0.7 : 1,
@@ -224,7 +227,7 @@ function LinkRow({
       >
         <Feather name={icon} size={16} color={theme.brand} />
       </View>
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: space.hair }}>
         <AppText variant="bodySemi">{label}</AppText>
         <AppText variant="caption" muted>
           {caption}
@@ -263,7 +266,7 @@ export default function PrivacySettingsScreen() {
         flex: 1,
         backgroundColor: theme.background,
         paddingTop: insets.top + 8,
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
       }}
     >
       <Pressable
@@ -283,10 +286,10 @@ export default function PrivacySettingsScreen() {
         <Feather name="chevron-left" size={26} color={theme.foreground} />
       </Pressable>
 
-      <AppText variant="display" style={{ marginTop: 2 }}>
+      <AppText variant="display" style={{ marginTop: space.hair }}>
         Privacy
       </AppText>
-      <AppText variant="caption" muted style={{ marginTop: 4, marginBottom: 8 }}>
+      <AppText variant="caption" muted style={{ marginTop: space.tight, marginBottom: space.cosy }}>
         One signal you can switch off, and a straight account of everything
         else.
       </AppText>
@@ -336,14 +339,14 @@ export default function PrivacySettingsScreen() {
             </Card>
 
             {loading ? null : (
-              <AppText variant="caption" muted style={{ marginTop: 10 }}>
+              <AppText variant="caption" muted style={{ marginTop: space.room }}>
                 {sharingSentence(prefs)}
               </AppText>
             )}
             {saveError ? (
               <AppText
                 variant="caption"
-                style={{ color: theme.danger, marginTop: 6 }}
+                style={{ color: theme.danger, marginTop: space.snug }}
               >
                 {saveError}
               </AppText>
@@ -355,7 +358,7 @@ export default function PrivacySettingsScreen() {
             load, so it lives outside the error branch. */}
         <SectionLabel text="What campus sees" />
 
-        <Card style={{ gap: 12 }}>
+        <Card style={{ gap: space.close }}>
           <Fact icon="user" tint={theme.brand}>
             Your profile: your name, handle, photo, major, year, and bio. Turn
             off Public profile in Account and classmates see only your handle
@@ -380,7 +383,7 @@ export default function PrivacySettingsScreen() {
 
         <SectionLabel text="What stays yours" />
 
-        <Card style={{ gap: 12 }}>
+        <Card style={{ gap: space.close }}>
           <Fact icon="mail" tint={theme.accent}>
             Your email address. It proves you're a student here and does
             nothing else.
@@ -405,13 +408,13 @@ export default function PrivacySettingsScreen() {
           </Fact>
         </Card>
 
-        <AppText variant="caption" muted style={{ marginTop: 10 }}>
+        <AppText variant="caption" muted style={{ marginTop: space.room }}>
           Apart from your profile photo, nothing on Huddl is reachable from
           the wider internet. Your university never gets a copy, and none of
           it is ever sold.
         </AppText>
 
-        <Card padded={false} style={{ marginTop: 24 }}>
+        <Card padded={false} style={{ marginTop: space.chapter }}>
           <LinkRow
             icon="slash"
             label="Blocked people"
