@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -35,6 +35,13 @@ export default function SignupScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isDomainError, setIsDomainError] = useState(false);
   const [accountExists, setAccountExists] = useState(false);
+
+  // Signup is deep-linkable, and verify sends people back here with a
+  // replace, so there is often nothing behind it to go back to.
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(auth)/login");
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,7 +167,7 @@ export default function SignupScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
-          onPress={() => router.back()}
+          onPress={goBack}
           style={({ pressed }) => ({
             width: 44,
             height: 44,
@@ -339,27 +346,56 @@ export default function SignupScreen() {
             onPress={handleSignup}
           />
 
-          <AppText variant="caption" muted style={{ textAlign: "center" }}>
-            By creating an account you agree to our{" "}
-            <AppText
-              variant="caption"
-              accessibilityRole="link"
-              style={{ color: theme.brand, fontFamily: fonts.bodySemi }}
-              onPress={() => router.push("/legal/terms")}
-            >
-              Terms of Service
-            </AppText>{" "}
-            and{" "}
-            <AppText
-              variant="caption"
-              accessibilityRole="link"
-              style={{ color: theme.brand, fontFamily: fonts.bodySemi }}
-              onPress={() => router.push("/legal/privacy")}
-            >
-              Privacy Policy
+          {/* The sentence wraps as one sentence, but each link is its own
+              Pressable: caption text draws 16px tall, so it takes 14 of
+              slop above and below to reach a 44px target. */}
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <AppText variant="caption" muted style={{ flexShrink: 1 }}>
+              By creating an account you agree to our{" "}
             </AppText>
-            .
-          </AppText>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Terms of Service"
+              hitSlop={{ top: 14, bottom: 14 }}
+              onPress={() => router.push("/legal/terms")}
+              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            >
+              <AppText
+                variant="caption"
+                style={{ color: theme.brand, fontFamily: fonts.bodySemi }}
+              >
+                Terms of Service
+              </AppText>
+            </Pressable>
+            <AppText variant="caption" muted>
+              {" "}
+              and{" "}
+            </AppText>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Privacy Policy"
+              hitSlop={{ top: 14, bottom: 14 }}
+              onPress={() => router.push("/legal/privacy")}
+              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            >
+              <AppText
+                variant="caption"
+                style={{ color: theme.brand, fontFamily: fonts.bodySemi }}
+              >
+                Privacy Policy
+              </AppText>
+            </Pressable>
+            <AppText variant="caption" muted>
+              .
+            </AppText>
+          </View>
 
           <AppText variant="caption" muted style={{ textAlign: "center" }}>
             We'll email you a confirmation link to verify your student status.

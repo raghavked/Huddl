@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   View,
 } from "react-native";
@@ -520,19 +521,39 @@ export default function OnboardingScreen() {
               onPress={() => void handleSkip()}
             />
             {/* The moment of record: both buttons stamp accepted_terms_at, so
-                the document that stamp refers to is one tap away from it. */}
-            <AppText variant="caption" muted style={{ textAlign: "center" }}>
-              Saving or skipping records that you agreed to our{" "}
-              <AppText
-                variant="caption"
+                the document that stamp refers to is one tap away from it.
+                The link is its own Pressable — caption text draws 16px tall,
+                so it takes 14 of slop above and below to reach 44. */}
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AppText variant="caption" muted style={{ flexShrink: 1 }}>
+                Saving or skipping records that you agreed to our{" "}
+              </AppText>
+              <Pressable
                 accessibilityRole="link"
-                style={{ color: theme.brand, fontFamily: fonts.bodySemi }}
+                accessibilityLabel="Terms of Service"
+                hitSlop={{ top: 14, bottom: 14 }}
                 onPress={() => router.push("/legal/terms")}
+                style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
               >
-                Terms of Service
-              </AppText>{" "}
-              when you created your account.
-            </AppText>
+                <AppText
+                  variant="caption"
+                  style={{ color: theme.brand, fontFamily: fonts.bodySemi }}
+                >
+                  Terms of Service
+                </AppText>
+              </Pressable>
+              <AppText variant="caption" muted style={{ flexShrink: 1 }}>
+                {" "}
+                when you created your account.
+              </AppText>
+            </View>
           </Card>
         )}
       </ScrollView>

@@ -357,6 +357,11 @@ export default function PushSettingsScreen() {
 
   const deviceTz = useMemo(() => deviceTimeZone(), []);
 
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/settings");
+  }, []);
+
   const checkPermission = useCallback(async () => {
     if (!isDevice) return;
     const current = await Notifications.getPermissionsAsync();
@@ -567,7 +572,7 @@ export default function PushSettingsScreen() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Back"
-        onPress={() => router.back()}
+        onPress={goBack}
         hitSlop={8}
         style={({ pressed }) => ({
           width: 44,

@@ -103,6 +103,11 @@ export default function SettingsScreen() {
      and then vanishes is worse than one that arrives a beat late. */
   const [isModerator, setIsModerator] = useState<boolean | null>(null);
 
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/home");
+  }, []);
+
   const load = useCallback(async () => {
     if (!userId) {
       setLoading(false);
@@ -234,7 +239,7 @@ export default function SettingsScreen() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Back"
-        onPress={() => router.back()}
+        onPress={goBack}
         style={({ pressed }) => ({
           width: 44,
           height: 44,
@@ -281,6 +286,13 @@ export default function SettingsScreen() {
               paddingVertical: space.chapter,
             }}
           >
+            <Feather
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              name="cloud-off"
+              size={26}
+              color={theme.muted}
+            />
             <AppText variant="bodySemi">Something went sideways</AppText>
             <AppText variant="caption" muted style={{ textAlign: "center" }}>
               {error}

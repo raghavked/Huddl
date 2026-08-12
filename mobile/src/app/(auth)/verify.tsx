@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
@@ -20,6 +20,13 @@ export default function VerifyScreen() {
   const [sent, setSent] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // Signup replaces itself with this screen, so there is usually nothing
+  // behind us — fall back to sending people back to sign up.
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(auth)/signup");
+  }, []);
 
   // Tick the resend cooldown down one second at a time.
   useEffect(() => {
@@ -69,7 +76,7 @@ export default function VerifyScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
-          onPress={() => router.back()}
+          onPress={goBack}
           style={({ pressed }) => ({
             width: 44,
             height: 44,

@@ -264,6 +264,11 @@ export default function DmRoomScreen() {
   const forwardedNamesRef = useRef(forwardedNames);
   forwardedNamesRef.current = forwardedNames;
 
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/messages");
+  }, []);
+
   /** The display names behind any forwarded_author_id on this page. One
       batched query, and only for ids we haven't already resolved. */
   const loadForwardedNames = useCallback(
@@ -995,7 +1000,9 @@ export default function DmRoomScreen() {
               onPress={() => {
                 if (author) router.push(`/u/${author.handle}`);
               }}
-              hitSlop={10}
+              // The strip draws at the avatar's 20px, so it takes 12 above and
+              // below to give a thumb the full 44 to land on.
+              hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
               style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
@@ -1181,7 +1188,7 @@ export default function DmRoomScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back to messages"
-          onPress={() => router.back()}
+          onPress={goBack}
           style={({ pressed }) => ({
             width: 44,
             height: 44,
@@ -1304,7 +1311,7 @@ export default function DmRoomScreen() {
             label="Back to messages"
             variant="soft"
             size="sm"
-            onPress={() => router.back()}
+            onPress={goBack}
           />
         </View>
       ) : error ? (

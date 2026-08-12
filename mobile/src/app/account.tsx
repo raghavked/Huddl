@@ -117,6 +117,11 @@ export default function AccountScreen() {
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
 
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/settings");
+  }, []);
+
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
@@ -420,7 +425,7 @@ export default function AccountScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
-          onPress={() => router.back()}
+          onPress={goBack}
           hitSlop={8}
           style={({ pressed }) => ({
             width: 44,
@@ -464,6 +469,13 @@ export default function AccountScreen() {
             accessibilityLiveRegion="polite"
             style={{ alignItems: "center", gap: space.room, paddingVertical: space.chapter }}
           >
+            <Feather
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              name="cloud-off"
+              size={26}
+              color={theme.muted}
+            />
             <AppText variant="bodySemi" accessibilityRole="header">
               Something went sideways
             </AppText>
