@@ -116,6 +116,20 @@ No cable, no signing, no paid Apple account — the fastest way to click
 through the whole app. **Still a Mac**, because the binary is compiled by
 Xcode either way.
 
+> **Apply migrations 0039 and 0040 to whatever Supabase project the app
+> points at, before you run it.** This is not optional housekeeping — the
+> app reads two columns those migrations add, so against an un-migrated
+> database it does not degrade, it breaks:
+>
+> - `focus_sessions.is_private` is in `FOCUS_SELECT`, so **the whole focus
+>   feature fails**, including the strip on the home tab.
+> - `profiles.dm_privacy` is in the privacy screen's query, so **the privacy
+>   screen fails** — including the typing switch that used to work.
+>
+> 0039 also carries the fix that makes quiet hours saveable for the first
+> time, and closes a chat-photo read leak. Use a dev or branch project for
+> simulator testing rather than production.
+
 ```bash
 cd mobile
 cp .env.example .env    # same Supabase project as the web app

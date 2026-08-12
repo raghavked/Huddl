@@ -210,6 +210,58 @@ A row with `pushed_at` set was delivered to Expo. A row still null after the
 digest window means either quiet hours or no registered device — check
 `push_tokens` before assuming the pipeline is broken.
 
+Since 0039 there is a third state. A notification that was never going to be
+pushed — the student muted that room, or switched that kind off — is stamped
+`pushed_at = '-infinity'` rather than `now()`. It reads as settled so the
+digest leaves it alone, but it can never be mistaken for a delivery, which is
+what the two-minute coalesce probe used to do: before the fix, one muted room
+silenced every unrelated push for two minutes. So `'-infinity'` means
+"deliberately not sent", a real timestamp means delivered, and null still
+means deferred.
+
+---
+
+## 3b. Deploying migrations 0039 and 0040
+
+These two ship together and in order, and they are worth reading before you
+run them — 0039 in particular changes who can read files.
+
+**0039 fixes a live data exposure.** The `chat-uploads` bucket granted read to
+every authenticated user, so every DM photo in the product was readable by any
+signed-in student on any campus. Section 1 replaces that. Before deploying,
+sanity-check the path assumption on a branch: pick a real
+`messages.attachment_path` and confirm
+
+```sql
+select 1 from storage.objects
+where bucket_id = 'chat-uploads' and name = '<that path>';
+```
+
+returns a row. If production ever wrote a URL-encoded or bucket-prefixed path,
+images would go blank instead of merely getting safer.
+
+**Two operational notes on 0039.** It creates two partial indexes on
+`messages` and `dm_messages` non-concurrently, which takes a SHARE lock and
+blocks sends on both tables for the length of the build — deploy it in a quiet
+window, or build those two indexes CONCURRENTLY out-of-transaction first (the
+`if not exists` guards make the migration idempotent against that). And an
+object whose message row was hard-deleted becomes readable only to its
+uploader, so any client holding a cached signed URL starts getting 403s once
+the one-hour TTL lapses.
+
+**0040 changes behaviour for students who narrow a setting.** `dm_privacy`
+defaults to `'campus'`, which is exactly today's reach, so nothing changes on
+deploy for anyone who leaves it alone. But it binds the group RPCs as well as
+the 1:1 one, so a student who picks `'classmates'` can no longer be added to a
+club chat by an officer who shares no course with them. That is deliberate —
+it is the same inbox and the same push — but it is a product call, not purely
+a security fix.
+
+**The clients depend on both.** `focus_sessions.is_private` is in the mobile
+app's `FOCUS_SELECT` and `profiles.dm_privacy` is in its privacy query, so the
+focus feature and the privacy screen fail outright against a database that
+does not have 0040. Ship the migrations first, or ship them together.
+
 ---
 
 ## 4. Growth loops
