@@ -704,34 +704,49 @@ export default function DmRoomScreen() {
     setMessages((prev) => [temp, ...prev]);
     tapLight(); // the send lands with the optimistic bubble, not the round-trip
     setSending(true);
+    // Queue it first, then send the queue's own row. The point is the id:
+    // both attempts carry the same primary key, so a send that commits but
+    // never answers is retried as a unique violation the queue reads as "it
+    // already landed" — rather than as a second copy of the message. See
+    // QueuedMessage.id in drafts.ts.
+    const payload = { thread_id: threadId, author_id: userId, content };
+    let queued: QueuedMessage | null = null;
+    let queueError: unknown = null;
+    try {
+      queued = await enqueue({
+        key: conversationKey,
+        table: "dm_messages",
+        payload,
+      });
+    } catch (thrown) {
+      // The device wouldn't hold it. Still worth the wire — this one send
+      // just goes out with nothing behind it if it fails.
+      queueError = thrown;
+    }
     const { data, error: insertError } = await supabase
       .from("dm_messages")
-      .insert({ thread_id: threadId, author_id: userId, content })
+      .insert(queued?.payload ?? payload)
       .select("*")
       .single();
     setSending(false);
     if (insertError || !data) {
       noteConnectivity(!isLikelyOffline(insertError));
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      // Hold it rather than drop it: the optimistic bubble becomes a pending
-      // one, and the words stay in the conversation where they were typed.
-      try {
-        await enqueue({
-          key: conversationKey,
-          table: "dm_messages",
-          payload: { thread_id: threadId, author_id: userId, content },
-        });
-        await refreshPending();
-        void runFlush();
-      } catch (queueError) {
-        // The device wouldn't hold it either — give the words back.
+      if (!queued) {
+        // Nothing is holding it — give the words back.
         setDraft(content);
         setSendError(
           queueError instanceof DraftError
             ? queueError.message
             : "Couldn't send that. Check your connection and try again."
         );
+        return;
       }
+      // It's already queued under the id we just tried: the optimistic bubble
+      // becomes a pending one, and the words stay in the conversation where
+      // they were typed.
+      await refreshPending();
+      void runFlush();
       return;
     }
     noteConnectivity(true);
@@ -747,6 +762,13 @@ export default function DmRoomScreen() {
       return next;
     });
     markRead();
+    // The row is in the table, so the queue's copy has done its job. If this
+    // drop is the thing that fails, the next flush hits 23505 and reads it as
+    // sent anyway.
+    if (queued) {
+      await dropQueued(queued.id);
+      await refreshPending();
+    }
   }
 
   /** Pick a photo → upload to the student's own chat-uploads folder → send.
@@ -935,10 +957,11 @@ export default function DmRoomScreen() {
   // gate on the composer — their messages simply don't render.
   const otherBlocked = !isGroup && other !== null && blocked.has(other.id);
 
-  // A block hides their words everywhere, and a 1:1 is no exception — the
-  // insert policy only knows about participation, so nothing stops a blocked
-  // person typing on. The room is what keeps the promise, same as the web
-  // one. Unblocking brings them straight back: this filters at render.
+  // A block hides their words everywhere, and a 1:1 is no exception — this
+  // used to filter groups only, so a blocked person could keep typing into an
+  // existing 1:1 and be read. 0042 now drops them from the read policy too,
+  // so the rows don't arrive at all; this stays because unblocking should
+  // bring the conversation back on the spot rather than after a refetch.
   const visibleMessages = useMemo(
     () =>
       messages.filter(

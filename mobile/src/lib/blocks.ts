@@ -1,9 +1,15 @@
 import { supabase } from "@/lib/supabase";
 
 /* Blocking is one-way and private: the blocked person never finds out.
-   The server refuses DMs across a block (create_dm_thread) and mutes their
-   notifications; hiding their existing content is the client's job, driven
-   by the id set from fetchBlockedIds / useBlockedIds. */
+   The server refuses new DM threads across a block (create_dm_thread), mutes
+   their notifications, and since 0042 drops their direct messages from the
+   blocker's reads outright — their sends still succeed and still show up in
+   their own copy of the thread, which is what keeps the block invisible.
+
+   Everything else is still filtered here, off the id set from
+   fetchBlockedIds / useBlockedIds: channel messages, board posts, previews.
+   Screens keep filtering DMs too, so unblocking brings the conversation back
+   on the spot rather than after a refetch. */
 
 export async function blockUser(blockerId: string, blockedId: string) {
   const { error } = await supabase

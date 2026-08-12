@@ -262,6 +262,28 @@ app's `FOCUS_SELECT` and `profiles.dm_privacy` is in its privacy query, so the
 focus feature and the privacy screen fail outright against a database that
 does not have 0040. Ship the migrations first, or ship them together.
 
+**0041 and 0042 follow, and both are read-path changes.** 0041 repairs
+forwarded attachments that 0039 broke, and adds a BEFORE INSERT trigger on
+`messages` and `dm_messages` that refuses a forward of an object the sender
+can't currently see. Any client sending `forwarded_author_id` will find its
+value overwritten by the server; that is the point, and no client change is
+needed.
+
+0042 makes a block real at the database: a `dm_messages` row is no longer
+selectable by anyone who has blocked its author. Two things to know before
+running it. It does **not** refuse the blocked person's INSERT, deliberately —
+the block sheet promises "they're never told", and a send that suddenly starts
+failing for one person in one conversation says everything. And it is one-way:
+the blocker stops seeing them, they keep seeing the blocker, because holes in
+their copy of the thread would be the same tell. Both clients keep their
+render-side filter on top of it so unblocking is instant rather than a
+refetch. The policy calls `i_blocked(author_id)` once per row, served by the
+`blocks` primary key — no new index. It is intentionally **not** applied to
+`public.messages`: `reportMessage` looks the message up first and uses RLS as
+its access check, so filtering channel messages would stop a student reporting
+somebody they had already blocked, which is the ordinary order to do those two
+things in.
+
 ---
 
 ## 4. Growth loops

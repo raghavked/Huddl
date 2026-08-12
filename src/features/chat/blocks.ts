@@ -4,9 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 /* Blocking (migration 0019) is one-way and private: the blocked person
-   never finds out. The server refuses new DM threads across a block and
-   silences notifications; hiding a blocked student's existing messages is
-   the client's job, driven by the id set below.
+   never finds out. The server refuses new DM threads across a block,
+   silences notifications, and since 0042 drops their direct messages from
+   the blocker's reads — their sends still succeed and still appear in their
+   own copy of the thread, which is what keeps the block invisible. Hiding
+   everything else, channel messages and board posts included, is still the
+   client's job, driven by the id set below.
 
    For a long time this module could only take a block off. That meant a
    student being hassled on their laptop had to pick up their phone to make

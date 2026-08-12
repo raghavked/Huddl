@@ -315,8 +315,10 @@ export function DmRoom({
     [people]
   );
 
-  // While a block stands, the other student's messages stay out of view —
-  // unblocking brings them straight back (filtering happens at render).
+  // While a block stands, the other student's messages stay out of view.
+  // 0042 keeps them out of the read policy as well, so they don't arrive in
+  // the first place; this stays because unblocking should bring them back on
+  // the spot rather than after a refetch.
   const visibleMessages = useMemo(
     () => messages.filter((m) => !blockedIds.has(m.author_id)),
     [messages, blockedIds]
