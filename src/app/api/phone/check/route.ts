@@ -40,6 +40,22 @@ export async function POST(request: Request) {
   }
   const normalized = normalizePhone(phone);
 
+  // Everything this route WRITES goes through the service client: the badge
+  // (profiles.phone_verified_at, held back from the profiles grant by 0039)
+  // and, since 0045, the verification row itself — attempts and verified_at.
+  // A student who can write that row can choose their own code_hash and mint
+  // the badge on a number no text was ever sent to. Created before the first
+  // write so a project with no service key says so instead of half-finishing.
+  let admin;
+  try {
+    admin = createServiceClient();
+  } catch {
+    return jsonError(
+      "Phone verification is temporarily unavailable. Please try again later.",
+      503
+    );
+  }
+
   const { data: row } = await supabase
     .from("phone_verifications")
     .select("id, code_hash, attempts")
@@ -72,7 +88,7 @@ export async function POST(request: Request) {
 
   if (!approved) {
     const attempts = row.attempts + 1;
-    await supabase
+    await admin
       .from("phone_verifications")
       .update({ attempts })
       .eq("id", row.id);
@@ -88,22 +104,8 @@ export async function POST(request: Request) {
   }
 
   const now = new Date().toISOString();
-  // phone_verified_at is outside the `authenticated` column grant on profiles
-  // on purpose (0039: a badge you can set yourself is a lie), so the student's
-  // own session cannot write it — not even here. This route is "the
-  // verification flow" that grant reserves the column for, so it makes the one
-  // badge write with the service client.
-  let admin;
-  try {
-    admin = createServiceClient();
-  } catch {
-    // No service key configured — the badge is unwritable, so say so rather
-    // than burning the code on a write that cannot land.
-    return jsonError(
-      "Phone verification is temporarily unavailable. Please try again later.",
-      503
-    );
-  }
+  // This route is "the verification flow" that 0039's grant reserves
+  // phone_verified_at for, so it is the one place the badge gets written.
   const { error: profileError } = await admin
     .from("profiles")
     .update({ phone_verified_at: now })
@@ -120,7 +122,7 @@ export async function POST(request: Request) {
   // Stamped last, after the badge is on: any failure above has to leave the
   // row unverified, or the correct code is spent and every retry reads as
   // expired.
-  await supabase
+  await admin
     .from("phone_verifications")
     .update({ verified_at: now })
     .eq("id", row.id);

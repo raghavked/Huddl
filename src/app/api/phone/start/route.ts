@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { isValidPhone, normalizePhone } from "@/lib/utils";
 import { getVerifier, sha256Hex, StubVerifier } from "@/lib/phone/provider";
 
@@ -15,7 +15,13 @@ function jsonError(message: string, status: number) {
  * phone_verifications, and return it as devCode so the dev UI can show it.
  * Twilio mode: Twilio sends the SMS and holds the code; we store a marker row
  * (code_hash = 'twilio') so /api/phone/check knows which path to take.
- * RLS scopes phone_verifications rows to their owner.
+ *
+ * The row is written with the SERVICE client, not the caller's session. It is
+ * the evidence /api/phone/check weighs before stamping the Verified badge, so
+ * a student who could write it could choose their own code_hash and mint the
+ * badge on any number without an SMS ever being sent (migration 0045 revoked
+ * the grant; this is the other half of that change). Reading stays on the
+ * caller's session — the phone screen prefills from their own row under RLS.
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -52,12 +58,25 @@ export async function POST(request: Request) {
     );
   }
 
+  // Needed before either branch writes; a project with no service key cannot
+  // verify a phone at all, and saying so beats sending a text that leads
+  // nowhere.
+  let admin;
+  try {
+    admin = createServiceClient();
+  } catch {
+    return jsonError(
+      "Phone verification is temporarily unavailable. Please try again later.",
+      503
+    );
+  }
+
   if (verifier instanceof StubVerifier) {
     const { devCode } = await verifier.start(normalized);
     if (!devCode) {
       return jsonError("Couldn't generate a verification code.", 500);
     }
-    const { error } = await supabase.from("phone_verifications").insert({
+    const { error } = await admin.from("phone_verifications").insert({
       user_id: user.id,
       phone: normalized,
       code_hash: sha256Hex(devCode),
@@ -85,7 +104,7 @@ export async function POST(request: Request) {
       502
     );
   }
-  const { error } = await supabase.from("phone_verifications").insert({
+  const { error } = await admin.from("phone_verifications").insert({
     user_id: user.id,
     phone: normalized,
     code_hash: "twilio",
