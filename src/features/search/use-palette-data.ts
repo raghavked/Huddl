@@ -20,6 +20,11 @@ export type PaletteChannel = {
 export type PalettePerson = {
   id: string;
   handle: string;
+  /**
+   * What to call them — their display name, or just their handle when their
+   * profile is private. The palette both renders and searches this string,
+   * so a withheld name is neither shown nor findable here.
+   */
   displayName: string;
   avatarUrl: string | null;
 };
@@ -32,7 +37,10 @@ type ChannelJoinRow = {
     | null;
 };
 
-type PersonRow = Pick<Profile, "id" | "handle" | "display_name" | "avatar_url">;
+type PersonRow = Pick<
+  Profile,
+  "id" | "handle" | "display_name" | "avatar_url" | "is_public"
+>;
 
 /* Campus channels first, then courses, then clubs and topics — the same
    priority the home page reads in. */
@@ -86,9 +94,12 @@ export function usePaletteData(enabled: boolean): {
           const universityId = (me as { university_id: string } | null)
             ?.university_id;
           if (!universityId) return [];
+          // `is_public` comes along because nothing in the database withholds
+          // a private student's name — the profiles SELECT policy is
+          // campus-scoped only, so the redaction below is the whole of it.
           const { data } = await supabase
             .from("profiles")
-            .select("id, handle, display_name, avatar_url")
+            .select("id, handle, display_name, avatar_url, is_public")
             .eq("university_id", universityId)
             .order("display_name", { ascending: true })
             .limit(40);
@@ -130,7 +141,13 @@ export function usePaletteData(enabled: boolean): {
             (p): PalettePerson => ({
               id: p.id,
               handle: p.handle,
-              displayName: p.display_name,
+              // A private classmate is only ever their handle to us, the same
+              // way the board, the people directory and the group-DM picker
+              // read them. You always see yourself in full.
+              displayName:
+                p.is_public || p.id === userId
+                  ? p.display_name || p.handle
+                  : p.handle,
               avatarUrl: p.avatar_url,
             })
           )

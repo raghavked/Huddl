@@ -71,7 +71,11 @@ export type FocusSession = {
 export type FocusPerson = {
   /** `profiles.id`. */
   id: string;
-  /** Their display name, falling back to their handle if it's somehow blank. */
+  /**
+   * What to call them. Their display name — or, for a student whose profile
+   * is private, their handle. See {@link toFocusPerson}: a private profile
+   * never lends its real name to this list.
+   */
   display_name: string;
   /** Their handle, without the leading `@`. */
   handle: string;
@@ -133,8 +137,16 @@ export const STUDYING_NOW_LIMIT = 50;
 export const FOCUS_SELECT =
   "id, user_id, course_id, goal_minutes, note, started_at, ended_at";
 
-/** {@link FOCUS_SELECT} plus the person and the course code, for the list. */
-const STUDYING_NOW_SELECT = `${FOCUS_SELECT}, person:profiles(id, display_name, handle, avatar_url), course:courses(code)`;
+/**
+ * {@link FOCUS_SELECT} plus the person and the course code, for the list.
+ *
+ * `is_public` rides along because "studying now" is a campus-wide list and a
+ * private profile must not go out on it under its real name — see
+ * {@link toFocusPerson}. The profiles SELECT policy is campus-scoped and says
+ * nothing about `is_public` (migration 0012 leaves the redaction to the app),
+ * so if this column isn't asked for, nothing else stops the name going out.
+ */
+const STUDYING_NOW_SELECT = `${FOCUS_SELECT}, person:profiles(id, display_name, handle, avatar_url, is_public), course:courses(code)`;
 
 /* ----------------------------- failures ----------------------------- */
 
@@ -213,7 +225,24 @@ function embedded(raw: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-/** Narrow an embedded `profiles` row; null when it's unreadable. */
+/**
+ * Narrow an embedded `profiles` row; null when it's unreadable.
+ *
+ * A student with Public profile turned off comes back under their handle
+ * rather than their name — exactly the redaction the board (`lib/board.ts`),
+ * study buddies (`lib/study-buddy.ts`), the people directory and the group-DM
+ * picker already apply, down to keeping the avatar. They still appear: being
+ * heads-down is the one thing a focus session says about you, and the privacy
+ * screen says so. Their real name is not part of that.
+ *
+ * Anything other than a literal `true` counts as private, so a select that
+ * forgets the column redacts rather than leaks.
+ *
+ * There is no "except me" here on purpose: {@link fetchStudyingNow}'s callers
+ * all drop their own row (you are the timer at the top of the page, not an
+ * entry in the list) and read their own session through
+ * {@link fetchMyOpenSession}, which never goes through this function.
+ */
 function toFocusPerson(raw: unknown): FocusPerson | null {
   const record = embedded(raw);
   if (!record) return null;
@@ -223,11 +252,12 @@ function toFocusPerson(raw: unknown): FocusPerson | null {
   const avatarUrl = record["avatar_url"];
   if (typeof id !== "string" || id.length === 0) return null;
   if (typeof handle !== "string" || handle.length === 0) return null;
+  const isPublic = record["is_public"] === true;
   return {
     id,
     handle,
     display_name:
-      typeof displayName === "string" && displayName.length > 0
+      isPublic && typeof displayName === "string" && displayName.length > 0
         ? displayName
         : handle,
     avatar_url: typeof avatarUrl === "string" ? avatarUrl : null,
