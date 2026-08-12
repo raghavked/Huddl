@@ -1,9 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-    <rect width="192" height="192" rx="42" fill="#b5502f"/>
-  <g fill="#ffffff" transform="translate(32 32) scale(4)">
-    <circle cx="16" cy="7.5" r="4.1"/>
-    <circle cx="7" cy="14.5" r="3.4" opacity="0.75"/>
-    <circle cx="25" cy="14.5" r="3.4" opacity="0.75"/>
-    <path d="M16 13.5c-5.6 0-9.5 3.6-9.5 9.2 0 2.6 1.9 4.3 4.6 4.3h9.8c2.7 0 4.6-1.7 4.6-4.3 0-5.6-3.9-9.2-9.5-9.2z"/>
+  <rect width="192" height="192" rx="42" fill="#b5502f"/>
+  <g transform="translate(38.4 38.4) scale(3.6)">
+    <path d="M9 4h14a6 6 0 0 1 6 6v6a6 6 0 0 1-6 6h-8.5l-5.6 5.1c-.9.8-2.2.1-2.2-1V22H9a6 6 0 0 1-6-6v-6a6 6 0 0 1 6-6z M7.85 15.6a2.75 2.75 0 1 0 5.5 0a2.75 2.75 0 1 0-5.5 0 M12.85 12.6a3.15 3.15 0 1 0 6.3 0a3.15 3.15 0 1 0-6.3 0 M18.5 15.3a2.9 2.9 0 1 0 5.8 0a2.9 2.9 0 1 0-5.8 0" fill="#ffffff" fill-rule="evenodd"/>
   </g>
 </svg>

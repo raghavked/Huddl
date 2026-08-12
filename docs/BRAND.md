@@ -72,12 +72,27 @@ notes anyway. Specifically:
 
 ## 3. Logo
 
-The mark is **rounded figures leaning into a huddle** — heads together, one
-shape. It's drawn in `currentColor`, so it inherits whatever text color you set.
+The mark is **three heads leaning together inside a speech bubble**.
+
+The bubble is the category: this is a place where people talk, and an icon on a
+home screen has about a tenth of a second to say so. The three heads inside are
+the huddle — the middle one a little larger and a little higher, the way the
+person leaning furthest in always is. They're *cut out* of the bubble rather
+than drawn on top of it, so the entire mark is one path in one color, drawn in
+`currentColor`. That's what lets it sit on an ember tile, in a cream nav bar,
+and in a monochrome Android notification tray without a second artwork existing
+anywhere.
+
+Two arrangements were tried and rejected; they're recorded here so nobody
+re-discovers them. Heads evenly spaced around a **closed** ring always resolve
+into a flower — five petals, or a four-leaf clover at four. And **two heads
+above one below** reads as a face (two eyes and an open mouth) at any size over
+about 40 px.
 
 | Usage | Rule |
 | --- | --- |
 | Component | Always render via `<LogoMark />` or `<Wordmark />` from `src/components/logo.tsx`. Never re-draw or export flattened copies. |
+| App icons | All of `mobile/assets/images/*.png` and `public/icons/*.svg` are generated from the same path as `<LogoMark />`. If the mark changes, regenerate them together — the mobile icon was an unrelated "h." monogram for a while, and one mark that is actually one mark is the point. |
 | Color | Mark in `text-brand` next to foreground-colored wordmark text (the default). One-color contexts: all-foreground or all-`brand-fg` on brand backgrounds. App-icon / tile contexts: `brand-fg` mark on a **solid ember** (`bg-brand`) tile — the gradient tile is retired. |
 | Wordmark | "huddl", lowercase, bold, tight tracking — exactly as `<Wordmark />` renders it. |
 | Minimum size | Mark: 20 px. Wordmark: 88 px wide. Below that, use the mark alone. |
