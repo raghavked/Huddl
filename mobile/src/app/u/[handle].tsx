@@ -211,6 +211,7 @@ export default function ProfileScreen() {
   const [messageError, setMessageError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [unblocking, setUnblocking] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const { blocked, refresh: refreshBlocked } = useBlockedIds();
   const isBlocked = profile ? blocked.has(profile.id) : false;
@@ -428,12 +429,12 @@ export default function ProfileScreen() {
 
   const doBlock = useCallback(async () => {
     if (!userId || !profile) return;
+    setActionError(null);
     try {
       await blockUser(userId, profile.id);
       await refreshBlocked();
     } catch {
-      Alert.alert(
-        "That didn't go through",
+      setActionError(
         "We couldn't block them just now — give it another try."
       );
     }
@@ -455,13 +456,13 @@ export default function ProfileScreen() {
   const doUnblock = useCallback(async () => {
     if (!userId || !profile || unblocking) return;
     setMenuOpen(false);
+    setActionError(null);
     setUnblocking(true);
     try {
       await unblockUser(userId, profile.id);
       await refreshBlocked();
     } catch {
-      Alert.alert(
-        "That didn't go through",
+      setActionError(
         "We couldn't unblock them just now — give it another try."
       );
     } finally {
@@ -543,6 +544,18 @@ export default function ProfileScreen() {
     </Sheet>
   ) : null;
 
+  /* Blocking is a toggle, so a failed one says so right where the tap
+     happened — the state stayed put and another tap is all it takes. */
+  const actionNotice = actionError ? (
+    <AppText
+      variant="caption"
+      accessibilityLiveRegion="polite"
+      style={{ color: theme.danger, textAlign: "center" }}
+    >
+      {actionError}
+    </AppText>
+  ) : null;
+
   /* Quiet blocked chip + the way back, shown in place of the Message button. */
   const blockedActions = (
     <View style={{ alignItems: "center", gap: space.room }}>
@@ -579,6 +592,7 @@ export default function ProfileScreen() {
         accessibilityState={{ busy: unblocking, disabled: unblocking }}
         onPress={() => void doUnblock()}
       />
+      {actionNotice}
     </View>
   );
 
@@ -618,7 +632,7 @@ export default function ProfileScreen() {
                 style={{
                   width: 52,
                   height: 52,
-                  borderRadius: 16,
+                  borderRadius: radius.control,
                   backgroundColor: theme.brandSoft,
                   alignItems: "center",
                   justifyContent: "center",
@@ -648,7 +662,7 @@ export default function ProfileScreen() {
                 style={{
                   width: 52,
                   height: 52,
-                  borderRadius: 16,
+                  borderRadius: radius.control,
                   backgroundColor: theme.brandSoft,
                   alignItems: "center",
                   justifyContent: "center",
@@ -712,6 +726,8 @@ export default function ProfileScreen() {
           {messageError}
         </AppText>
       ) : null}
+      {/* A block that didn't land leaves you here, on the Message button. */}
+      {actionNotice}
     </View>
   );
 

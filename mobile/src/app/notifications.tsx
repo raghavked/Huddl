@@ -205,6 +205,7 @@ export default function NotificationsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
   const [markAllError, setMarkAllError] = useState<string | null>(null);
+  const [rowError, setRowError] = useState<string | null>(null);
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -275,6 +276,7 @@ export default function NotificationsScreen() {
   const handlePress = useCallback((item: AppNotification) => {
     if (!item.read_at) {
       const readAt = new Date().toISOString();
+      setRowError(null);
       setItems((prev) =>
         prev === null
           ? prev
@@ -283,7 +285,23 @@ export default function NotificationsScreen() {
       void supabase
         .from("notifications")
         .update({ read_at: readAt })
-        .eq("id", item.id);
+        .eq("id", item.id)
+        .then(({ error: updateError }) => {
+          if (!updateError) return;
+          /* The row went quiet before the server agreed, so put the dot
+             back — a notification that looks handled and isn't is worse
+             than one that asks for a second tap. */
+          setItems((prev) =>
+            prev === null
+              ? prev
+              : prev.map((n) =>
+                  n.id === item.id ? { ...n, read_at: null } : n
+                )
+          );
+          setRowError(
+            `"${item.title}" didn't mark as read — give it another tap.`
+          );
+        });
     }
     const route = routeForLink(item.link);
     if (route) router.push(route);
@@ -488,13 +506,14 @@ export default function NotificationsScreen() {
           }}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
-            error ? (
+            rowError || error ? (
               <AppText
                 variant="caption"
                 accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginBottom: space.room }}
               >
-                We couldn't refresh just now — pull down to try again.
+                {rowError ??
+                  "We couldn't refresh just now — pull down to try again."}
               </AppText>
             ) : null
           }

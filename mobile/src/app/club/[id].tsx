@@ -289,6 +289,7 @@ export default function ClubHomeScreen() {
   const [myProfile, setMyProfile] = useState<MemberProfile | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [membershipError, setMembershipError] = useState<string | null>(null);
 
   const [announcements, setAnnouncements] = useState<ClubAnnouncement[]>([]);
   const [announcementsLoading, setAnnouncementsLoading] = useState(true);
@@ -460,6 +461,7 @@ export default function ClubHomeScreen() {
 
   const handleJoin = useCallback(async () => {
     if (!userId || busy) return;
+    setMembershipError(null);
     setBusy(true);
     // Optimistic: you're on the roster right away, and step back off if the
     // server disagrees. The DB trigger adds you to the club chat.
@@ -482,8 +484,7 @@ export default function ClubHomeScreen() {
     // 23505 = already a member; let the optimistic row stand.
     if (error && error.code !== "23505") {
       setRoster(previous);
-      Alert.alert(
-        "That didn't go through",
+      setMembershipError(
         "We couldn't add you to the club just now — give it another try."
       );
       return;
@@ -494,6 +495,7 @@ export default function ClubHomeScreen() {
 
   const doLeave = useCallback(async () => {
     if (!userId || busy) return;
+    setMembershipError(null);
     setBusy(true);
     // Optimistic: the row leaves immediately and returns on failure. The DB
     // trigger takes you out of the club chat.
@@ -507,8 +509,7 @@ export default function ClubHomeScreen() {
     setBusy(false);
     if (error) {
       setRoster(previous);
-      Alert.alert(
-        "That didn't go through",
+      setMembershipError(
         "We couldn't take you off the roster just now — give it another try."
       );
       return;
@@ -790,6 +791,15 @@ export default function ClubHomeScreen() {
                     }
                     onPress={() => void handleJoin()}
                   />
+                  {membershipError ? (
+                    <AppText
+                      variant="caption"
+                      accessibilityLiveRegion="polite"
+                      style={{ color: theme.danger }}
+                    >
+                      {membershipError}
+                    </AppText>
+                  ) : null}
                   {channel ? (
                     <AppText variant="caption" muted>
                       Join to get into #{channel.slug} and meet the members.
@@ -797,15 +807,28 @@ export default function ClubHomeScreen() {
                   ) : null}
                 </View>
               ) : myRole !== "owner" ? (
-                <Button
-                  label="Leave club"
-                  variant="secondary"
-                  size="sm"
-                  pending={busy}
-                  icon={<Feather name="log-out" size={14} color={theme.muted} />}
-                  onPress={confirmLeave}
-                  style={{ alignSelf: "flex-start" }}
-                />
+                <>
+                  <Button
+                    label="Leave club"
+                    variant="secondary"
+                    size="sm"
+                    pending={busy}
+                    icon={
+                      <Feather name="log-out" size={14} color={theme.muted} />
+                    }
+                    onPress={confirmLeave}
+                    style={{ alignSelf: "flex-start" }}
+                  />
+                  {membershipError ? (
+                    <AppText
+                      variant="caption"
+                      accessibilityLiveRegion="polite"
+                      style={{ color: theme.danger }}
+                    >
+                      {membershipError}
+                    </AppText>
+                  ) : null}
+                </>
               ) : null}
             </View>
 

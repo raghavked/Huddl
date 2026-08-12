@@ -26,6 +26,7 @@ import {
   TextInput,
   View,
   type ListRenderItemInfo,
+  type PressableProps,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -270,11 +271,15 @@ function AuthorLink({
   handle,
   name,
   style,
+  hitSlop = 10,
   children,
 }: {
   handle: string | null | undefined;
   name: string;
   style?: StyleProp<ViewStyle>;
+  /** The default suits the 28px avatar. A caller wrapping something shorter
+      passes the slop that gets its own drawn height back up to 44. */
+  hitSlop?: PressableProps["hitSlop"];
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -284,7 +289,7 @@ function AuthorLink({
       accessibilityRole="link"
       accessibilityLabel={`${name}'s profile`}
       onPress={() => router.push(`/u/${handle}`)}
-      hitSlop={10}
+      hitSlop={hitSlop}
       style={({ pressed }) => [style, { opacity: pressed ? 0.6 : 1 }]}
     >
       {children}
@@ -704,6 +709,7 @@ export default function ChannelRoomScreen() {
         (r) => r.user_id === userId && r.emoji === emoji
       );
       if (!mine) tapLight(); // adding a reaction gets a tick; removing stays silent
+      setSendError(null);
       setReactionsByMessage((prev) => {
         const rows = prev[messageId] ?? [];
         return {
@@ -733,6 +739,7 @@ export default function ChannelRoomScreen() {
             .insert({ message_id: messageId, user_id: userId, emoji });
       if (reactError && reactError.code !== "23505") {
         await loadReactions([messageId]);
+        setSendError("That reaction didn't save — give it another tap.");
       }
     },
     [userId, loadReactions]
@@ -1698,6 +1705,9 @@ export default function ChannelRoomScreen() {
                 <AuthorLink
                   handle={item.author?.handle}
                   name={authorName}
+                  // A 16px line of type, so it takes 14 above and below to
+                  // give the name the same 44 the avatar already has.
+                  hitSlop={{ top: 14, bottom: 14, left: 12, right: 12 }}
                   style={{
                     flexDirection: "row",
                     alignItems: "baseline",
@@ -2344,7 +2354,8 @@ export default function ChannelRoomScreen() {
               }}
             >
               <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
-                Nothing in this room matches that.
+                Nothing in this room matches that yet. Try a shorter word, or a
+                name you remember typing.
               </AppText>
             </View>
           ) : (

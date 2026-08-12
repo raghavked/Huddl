@@ -140,6 +140,8 @@ export default function ChannelsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Set when a mute flip had to be rolled back, so the list can say so. */
+  const [muteError, setMuteError] = useState<string | null>(null);
   /** The channel whose long-press menu is open, or null. */
   const [menu, setMenu] = useState<ChannelRow | null>(null);
 
@@ -238,20 +240,31 @@ export default function ChannelsScreen() {
     if (!userId || !menu) return;
     const channelId = menu.id;
     const wasMuted = memberMeta[channelId]?.muted ?? false;
+    // A side room goes by its own name, the way the sheet titles it.
+    const name =
+      menu.kind === "course" && !menu.is_main ? menu.name : channelTitle(menu);
     const applyMuted = (muted: boolean) =>
       setMemberMeta((prev) => {
         const current = prev[channelId];
         return current ? { ...prev, [channelId]: { ...current, muted } } : prev;
       });
+    setMuteError(null);
     closeMenu();
     applyMuted(!wasMuted);
-    const { error: muteError } = await supabase
+    const { error: writeError } = await supabase
       .from("channel_members")
       .update({ muted: !wasMuted })
       .eq("channel_id", channelId)
       .eq("user_id", userId);
-    // Roll the optimistic flip back if the write didn't land.
-    if (muteError) applyMuted(wasMuted);
+    // Roll the optimistic flip back if the write didn't land — and say so,
+    // because a row that quietly un-mutes itself looks like a bug.
+    if (writeError) {
+      applyMuted(wasMuted);
+      const verb = wasMuted ? "unmute" : "mute";
+      setMuteError(
+        `We couldn't ${verb} ${name} just now — press and hold to try again.`
+      );
+    }
   }, [menu, memberMeta, userId, closeMenu]);
 
   /* Long-press is the only route to mute, and a long press is invisible to a
@@ -434,7 +447,7 @@ export default function ChannelsScreen() {
             style={{
               width: 52,
               height: 52,
-              borderRadius: 16,
+              borderRadius: radius.control,
               backgroundColor: theme.brandSoft,
               alignItems: "center",
               justifyContent: "center",
@@ -473,13 +486,13 @@ export default function ChannelsScreen() {
             />
           }
           ListHeaderComponent={
-            error ? (
+            muteError || error ? (
               <AppText
                 variant="caption"
                 accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginBottom: space.cosy }}
               >
-                {error}
+                {muteError ?? error}
               </AppText>
             ) : null
           }
