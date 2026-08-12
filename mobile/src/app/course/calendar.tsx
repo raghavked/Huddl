@@ -662,18 +662,18 @@ export default function ClassCalendarScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 8,
-            padding: 12,
+            gap: space.cosy,
+            padding: space.close,
             minHeight: 64,
-            marginBottom: 10,
+            marginBottom: space.room,
           }}
         >
-          <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
+          <View style={{ flex: 1, minWidth: 0, gap: space.snug }}>
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 8,
+                gap: space.cosy,
                 flexWrap: "wrap",
               }}
             >
@@ -786,19 +786,22 @@ export default function ClassCalendarScreen() {
   }: {
     section: SectionListData<CalendarItemRow, Section>;
   }) => (
-    <AppText variant="title" style={{ marginTop: 6, marginBottom: 10 }}>
+    <AppText
+      variant="title"
+      style={{ marginTop: space.snug, marginBottom: space.room }}
+    >
       {section.title}
     </AppText>
   );
 
   const addForm = formOpen ? (
-    <Card style={{ gap: 12, marginBottom: 14 }}>
+    <Card style={{ gap: space.close, marginBottom: space.card }}>
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 8,
+          gap: space.cosy,
         }}
       >
         <AppText variant="title">Add a date</AppText>
@@ -821,7 +824,7 @@ export default function ClassCalendarScreen() {
           <Feather name="x" size={18} color={theme.muted} />
         </Pressable>
       </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.cosy }}>
         {CALENDAR_KINDS.map((kind) => (
           <Chip
             key={kind}
@@ -842,7 +845,7 @@ export default function ClassCalendarScreen() {
         maxLength={200}
         editable={!formPending}
       />
-      <View style={{ flexDirection: "row", gap: 10 }}>
+      <View style={{ flexDirection: "row", gap: space.room }}>
         <View style={{ flex: 1 }}>
           <Field
             label="Date"
@@ -873,7 +876,13 @@ export default function ClassCalendarScreen() {
           {formError}
         </AppText>
       ) : null}
-      <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 8 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "flex-end",
+          gap: space.cosy,
+        }}
+      >
         <Button
           label="Cancel"
           variant="ghost"
@@ -896,7 +905,7 @@ export default function ClassCalendarScreen() {
       variant="secondary"
       icon={<Feather name="plus" size={16} color={theme.foreground} />}
       onPress={() => setFormOpen(true)}
-      style={{ marginBottom: 14 }}
+      style={{ marginBottom: space.card }}
     />
   );
 
@@ -906,7 +915,7 @@ export default function ClassCalendarScreen() {
       {actionError ? (
         <AppText
           variant="caption"
-          style={{ color: theme.danger, marginBottom: 10 }}
+          style={{ color: theme.danger, marginBottom: space.room }}
         >
           {actionError}
         </AppText>
@@ -914,7 +923,7 @@ export default function ClassCalendarScreen() {
       {remindersError ? (
         <AppText
           variant="caption"
-          style={{ color: theme.danger, marginBottom: 10 }}
+          style={{ color: theme.danger, marginBottom: space.room }}
         >
           {remindersError}
         </AppText>
@@ -954,13 +963,16 @@ export default function ClassCalendarScreen() {
                   onPress={() => pickLead(choice)}
                 />
               </View>
+              {/* 46 lines the warning up with the row labels above it rather
+                  than the sheet's edge: Sheet.Row draws a 36px icon tile and
+                  a 10 gap. Taken from the primitive, not a spacing choice. */}
               {pastChoice === choice.minutes ? (
                 <AppText
                   variant="caption"
                   style={{
                     color: theme.warning,
                     marginLeft: 46,
-                    marginBottom: 4,
+                    marginBottom: space.tight,
                   }}
                 >
                   That moment has passed — pick something closer in.
@@ -977,7 +989,7 @@ export default function ClassCalendarScreen() {
       title={sheet?.item.title ?? "Reminder"}
     >
       {sheet ? (
-        <AppText variant="caption" muted style={{ marginBottom: 6 }}>
+        <AppText variant="caption" muted style={{ marginBottom: space.snug }}>
           {/* Loose on purpose: the sweep ticks hourly, so a nudge lands near
               the moment they picked, not on the minute. */}
           {`Due ${shortDay(sheet.item.due_at)}${timeSuffix(sheet.item.due_at)}.${
@@ -988,7 +1000,7 @@ export default function ClassCalendarScreen() {
       {sheetTooLate ? (
         <AppText
           variant="caption"
-          style={{ color: theme.warning, marginBottom: 6 }}
+          style={{ color: theme.warning, marginBottom: space.snug }}
         >
           This one's due too soon — even the closest reminder would land after
           the deadline.
@@ -996,7 +1008,7 @@ export default function ClassCalendarScreen() {
       ) : (
         <ScrollView
           style={{ flexShrink: 1 }}
-          contentContainerStyle={{ gap: 4 }}
+          contentContainerStyle={{ gap: space.tight }}
           showsVerticalScrollIndicator={false}
         >
           {leadLadder}
@@ -1008,8 +1020,8 @@ export default function ClassCalendarScreen() {
             style={{
               height: 1,
               backgroundColor: theme.border,
-              marginTop: 6,
-              marginBottom: 8,
+              marginTop: space.snug,
+              marginBottom: space.cosy,
             }}
           />
           <Sheet.Row
@@ -1044,7 +1056,7 @@ export default function ClassCalendarScreen() {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            paddingHorizontal: 12,
+            paddingHorizontal: space.close,
           }}
         >
           <Pressable
@@ -1071,11 +1083,15 @@ export default function ClassCalendarScreen() {
           />
         </View>
 
-        <View style={{ flex: 1, paddingHorizontal: 20 }}>
-          <AppText variant="display" style={{ marginTop: 2 }}>
+        <View style={{ flex: 1, paddingHorizontal: space.gutter }}>
+          <AppText variant="display" style={{ marginTop: space.hair }}>
             Class calendar
           </AppText>
-          <AppText variant="caption" muted style={{ marginTop: 6, marginBottom: 14 }}>
+          <AppText
+            variant="caption"
+            muted
+            style={{ marginTop: space.snug, marginBottom: space.card }}
+          >
             {courseCode ? `${courseCode} · shared` : "Shared"} with everyone in
             the class — check off what you've handled.
           </AppText>
@@ -1083,7 +1099,7 @@ export default function ClassCalendarScreen() {
           {/* Stays put above the list rather than riding in the header, so
               the way back to today is one tap from anywhere in the term. */}
           {status === "ready" && todayAt !== null && todayAt.behind > 0 ? (
-            <View style={{ flexDirection: "row", marginBottom: 12 }}>
+            <View style={{ flexDirection: "row", marginBottom: space.close }}>
               <Chip
                 label="Jump to today"
                 icon="arrow-down"
@@ -1102,7 +1118,7 @@ export default function ClassCalendarScreen() {
                 flex: 1,
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 12,
+                gap: space.close,
                 paddingBottom: 80,
               }}
             >
@@ -1117,7 +1133,7 @@ export default function ClassCalendarScreen() {
                 flex: 1,
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 10,
+                gap: space.room,
                 paddingBottom: 80,
               }}
             >

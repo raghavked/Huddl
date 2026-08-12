@@ -241,18 +241,18 @@ function PrivacyLine() {
       style={{
         flexDirection: "row",
         alignItems: "flex-start",
-        gap: 9,
-        padding: 12,
+        gap: space.room,
+        padding: space.close,
         borderRadius: radius.control,
         backgroundColor: theme.accentSoft,
-        marginTop: 10,
+        marginTop: space.room,
       }}
     >
       <Feather
         name="lock"
         size={14}
         color={theme.accent}
-        style={{ marginTop: 2 }}
+        style={{ marginTop: space.hair }}
       />
       <AppText variant="caption" style={{ flex: 1, lineHeight: 17 }}>
         Only you can see this. Huddl never shares your grades with classmates
@@ -284,7 +284,7 @@ function EstimateCard({
 
   if (estimate.pct === null) {
     return (
-      <View style={{ gap: 10 }}>
+      <View style={{ gap: space.room }}>
         <EmptyState
           icon="trending-up"
           title="Your estimate starts here"
@@ -296,7 +296,7 @@ function EstimateCard({
   }
 
   return (
-    <Card style={{ gap: 8 }}>
+    <Card style={{ gap: space.cosy }}>
       <AppText variant="caption" muted>
         Estimated grade
       </AppText>
@@ -305,7 +305,7 @@ function EstimateCard({
         accessibilityLabel={`Estimated grade ${pctText(estimate.pct)} percent${
           letter ? `, about a ${letter}` : ""
         }`}
-        style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+        style={{ flexDirection: "row", alignItems: "center", gap: space.room }}
       >
         <AppText
           variant="display"
@@ -333,12 +333,18 @@ function EstimateCard({
 function WeightWarning({ message }: { message: string }) {
   const theme = useTheme();
   return (
-    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 7 }}>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: space.cosy,
+      }}
+    >
       <Feather
         name="alert-circle"
         size={13}
         color={theme.warning}
-        style={{ marginTop: 2 }}
+        style={{ marginTop: space.hair }}
       />
       <AppText
         variant="caption"
@@ -380,13 +386,13 @@ function EntryRow({
       style={({ pressed }) => ({
         flexDirection: "row",
         alignItems: "center",
-        gap: 10,
+        gap: space.room,
         minHeight: 44,
-        paddingVertical: 6,
+        paddingVertical: space.snug,
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+      <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
         <AppText variant="bodyMedium" numberOfLines={1}>
           {entry.title}
         </AppText>
@@ -423,7 +429,7 @@ function EntryFields({
     earned !== null && possible !== null && possible > 0 && earned > possible;
 
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: space.room }}>
       <Field
         label="What was it?"
         value={draft.title}
@@ -432,7 +438,7 @@ function EntryFields({
         maxLength={ENTRY_TITLE_MAX}
         editable={!disabled}
       />
-      <View style={{ flexDirection: "row", gap: 10 }}>
+      <View style={{ flexDirection: "row", gap: space.room }}>
         <View style={{ flex: 1 }}>
           <Field
             label="You got"
@@ -498,7 +504,7 @@ function AddEntryForm({
   }, [draft, onSubmit, saving]);
 
   return (
-    <View style={{ gap: 10, marginTop: 4 }}>
+    <View style={{ gap: space.room, marginTop: space.tight }}>
       <EntryFields
         draft={draft}
         onChange={(next) => {
@@ -508,7 +514,7 @@ function AddEntryForm({
         disabled={saving}
       />
       <InlineError message={error} />
-      <View style={{ flexDirection: "row", gap: 8 }}>
+      <View style={{ flexDirection: "row", gap: space.cosy }}>
         <Button
           label="Add score"
           size="sm"
@@ -562,9 +568,9 @@ function EditEntryForm({
   return (
     <View
       style={{
-        gap: 10,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
+        gap: space.room,
+        paddingVertical: space.room,
+        paddingHorizontal: space.close,
         borderRadius: radius.control,
         backgroundColor: theme.surface2,
       }}
@@ -581,7 +587,7 @@ function EditEntryForm({
         disabled={saving}
       />
       <InlineError message={error} />
-      <View style={{ flexDirection: "row", gap: 8 }}>
+      <View style={{ flexDirection: "row", gap: space.cosy }}>
         <Button
           label="Save"
           size="sm"
@@ -638,9 +644,9 @@ function EditCategoryForm({
   return (
     <View
       style={{
-        gap: 10,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
+        gap: space.room,
+        paddingVertical: space.room,
+        paddingHorizontal: space.close,
         borderRadius: radius.control,
         backgroundColor: theme.surface2,
       }}
@@ -671,7 +677,7 @@ function EditCategoryForm({
         editable={!saving}
       />
       <InlineError message={error} />
-      <View style={{ flexDirection: "row", gap: 8 }}>
+      <View style={{ flexDirection: "row", gap: space.cosy }}>
         <Button
           label="Save"
           size="sm"
@@ -722,7 +728,7 @@ function CategoryCard({
   const pending = isDraft(category.id);
 
   return (
-    <Card style={{ gap: 10, marginBottom: 10 }}>
+    <Card style={{ gap: space.room, marginBottom: space.room }}>
       {/* Long-press anywhere on the header opens the menu; the "…" button is
           the same door for anyone who can't long-press, so the wrapper stays
           out of the accessibility tree and its children stay in it. */}
@@ -733,13 +739,19 @@ function CategoryCard({
         delayLongPress={320}
         style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.cosy,
+          }}
+        >
+          <View style={{ flex: 1, minWidth: 0, gap: space.snug }}>
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 8,
+                gap: space.cosy,
                 flexWrap: "wrap",
               }}
             >
@@ -796,12 +808,12 @@ function CategoryCard({
           style={{
             borderTopWidth: 1,
             borderTopColor: theme.border,
-            paddingTop: 2,
+            paddingTop: space.hair,
           }}
         >
           {entries.map((entry) =>
             editingEntryId === entry.id ? (
-              <View key={entry.id} style={{ paddingVertical: 8 }}>
+              <View key={entry.id} style={{ paddingVertical: space.cosy }}>
                 <EditEntryForm
                   entry={entry}
                   onSubmit={(draft) => onSaveEntry(entry, draft)}
@@ -833,7 +845,7 @@ function CategoryCard({
           style={({ pressed }) => ({
             flexDirection: "row",
             alignItems: "center",
-            gap: 7,
+            gap: space.cosy,
             minHeight: 44,
             opacity: pressed ? 0.6 : 1,
           })}
@@ -883,7 +895,7 @@ function WhatIfPanel({
         style={({ pressed }) => ({
           flexDirection: "row",
           alignItems: "center",
-          gap: 8,
+          gap: space.cosy,
           minHeight: 44,
           opacity: pressed ? 0.7 : 1,
         })}
@@ -899,8 +911,10 @@ function WhatIfPanel({
       </Pressable>
 
       {open ? (
-        <View style={{ gap: 12 }}>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        <View style={{ gap: space.close }}>
+          <View
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: space.cosy }}
+          >
             {TARGETS.map((option) => (
               <Chip
                 key={option.value}
@@ -914,12 +928,18 @@ function WhatIfPanel({
             ))}
           </View>
           <View
-            style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: space.cosy,
+            }}
           >
             <Feather
               name={result.reachable ? "check-circle" : "info"}
               size={14}
               color={result.reachable ? theme.accent : theme.muted}
+              /* Optical: 3px drops a 14px glyph onto the cap-height of the
+                 21px body line beside it. */
               style={{ marginTop: 3 }}
             />
             <AppText variant="body" style={{ flex: 1, lineHeight: 21 }}>
@@ -1302,7 +1322,7 @@ export default function CourseGradesScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 20 }}>
+      <View style={{ paddingHorizontal: space.gutter }}>
         <BackChevron onPress={goBack} />
       </View>
       {children}
@@ -1311,9 +1331,11 @@ export default function CourseGradesScreen() {
 
   if (!id) {
     return scaffold(
-      <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
+      <View
+        style={{ paddingHorizontal: space.gutter, paddingTop: space.close }}
+      >
         <AppText variant="display">Your grades</AppText>
-        <View style={{ marginTop: 16 }}>
+        <View style={{ marginTop: space.card }}>
           <EmptyState
             icon="book-open"
             title="We lost track of the class"
@@ -1326,12 +1348,12 @@ export default function CourseGradesScreen() {
   }
 
   const header = (
-    <View style={{ marginBottom: 18 }}>
+    <View style={{ marginBottom: space.gutter }}>
       <View
         style={{
           flexDirection: "row",
           alignItems: "flex-end",
-          gap: 10,
+          gap: space.room,
           flexWrap: "wrap",
         }}
       >
@@ -1341,7 +1363,7 @@ export default function CourseGradesScreen() {
             label={courseCode}
             tone="brand"
             size="md"
-            style={{ marginBottom: 4 }}
+            style={{ marginBottom: space.tight }}
           />
         ) : null}
       </View>
@@ -1354,19 +1376,22 @@ export default function CourseGradesScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
       >
         {header}
-        <Card style={{ gap: 10 }}>
+        <Card style={{ gap: space.room }}>
           <Skeleton width={90} height={11} radius={radius.full} />
           <Skeleton width={150} height={40} />
           <Skeleton width="80%" height={11} radius={radius.full} />
         </Card>
         <SectionLabel text="Categories" />
         {[0, 1].map((index) => (
-          <Card key={index} style={{ gap: 10, marginBottom: 10 }}>
+          <Card
+            key={index}
+            style={{ gap: space.room, marginBottom: space.room }}
+          >
             <Skeleton width="55%" height={16} radius={radius.full} />
             <Skeleton width="35%" height={11} radius={radius.full} />
             <Skeleton width="70%" height={11} radius={radius.full} />
@@ -1381,7 +1406,7 @@ export default function CourseGradesScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
       >
@@ -1412,7 +1437,7 @@ export default function CourseGradesScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + 40,
         }}
         keyboardShouldPersistTaps="handled"
@@ -1430,12 +1455,12 @@ export default function CourseGradesScreen() {
         {header}
 
         {error ? (
-          <View style={{ marginBottom: 10 }}>
+          <View style={{ marginBottom: space.room }}>
             <InlineError message={error} />
           </View>
         ) : null}
         {actionError ? (
-          <View style={{ marginBottom: 10 }}>
+          <View style={{ marginBottom: space.room }}>
             <InlineError message={actionError} />
           </View>
         ) : null}
@@ -1477,8 +1502,14 @@ export default function CourseGradesScreen() {
           ))
         )}
 
-        <Card style={{ marginTop: 10, gap: 12 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Card style={{ marginTop: space.room, gap: space.close }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.cosy,
+            }}
+          >
             <Feather name="plus-circle" size={16} color={theme.brand} />
             <AppText variant="title">Add a category</AppText>
           </View>

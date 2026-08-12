@@ -59,8 +59,8 @@ function KindChip({
   const chip = (
     <View
       style={{
-        paddingHorizontal: 10,
-        paddingVertical: 4,
+        paddingHorizontal: space.room,
+        paddingVertical: space.tight,
         borderRadius: radius.full,
         backgroundColor: colors.bg,
         borderWidth: 1,
@@ -221,8 +221,8 @@ export default function SyllabusImportScreen() {
           paddingTop: insets.top + space.close,
           alignItems: "center",
           justifyContent: "center",
-          gap: 10,
-          padding: 28,
+          gap: space.room,
+          padding: space.rest,
         }}
       >
         <AppText variant="title">Course not available</AppText>
@@ -243,8 +243,8 @@ export default function SyllabusImportScreen() {
           backgroundColor: theme.background,
           alignItems: "center",
           justifyContent: "center",
-          gap: 12,
-          padding: 28,
+          gap: space.close,
+          padding: space.rest,
         }}
       >
         <View
@@ -279,7 +279,7 @@ export default function SyllabusImportScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={{ flex: 1, paddingTop: insets.top + space.close }}>
-        <View style={{ paddingHorizontal: 12 }}>
+        <View style={{ paddingHorizontal: space.close }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back"
@@ -300,22 +300,22 @@ export default function SyllabusImportScreen() {
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: space.gutter,
             paddingBottom: insets.bottom + space.rest,
           }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
-          <AppText variant="display" style={{ marginTop: 2 }}>
+          <AppText variant="display" style={{ marginTop: space.hair }}>
             Import syllabus
           </AppText>
-          <AppText variant="caption" muted style={{ marginTop: 6 }}>
+          <AppText variant="caption" muted style={{ marginTop: space.snug }}>
             {courseCode ? `${courseCode} · parsed` : "Parsed"} right here on
             your phone — the syllabus itself never leaves it.
           </AppText>
 
-          <View style={{ marginTop: 14 }}>
+          <View style={{ marginTop: space.card }}>
             <Field
               label="Paste your syllabus — the schedule section works best"
               value={text}
@@ -335,16 +335,16 @@ export default function SyllabusImportScreen() {
             icon={<Feather name="search" size={16} color={theme.foreground} />}
             disabled={text.trim() === "" || adding}
             onPress={handleParse}
-            style={{ marginTop: 12 }}
+            style={{ marginTop: space.close }}
           />
 
           {parsedEmpty ? (
             <Card
               style={{
-                marginTop: 14,
+                marginTop: space.card,
                 alignItems: "center",
-                gap: 6,
-                paddingVertical: 24,
+                gap: space.snug,
+                paddingVertical: space.chapter,
                 borderStyle: "dashed",
               }}
             >
@@ -362,7 +362,7 @@ export default function SyllabusImportScreen() {
           ) : null}
 
           {rows !== null && rows.length > 0 ? (
-            <View style={{ marginTop: 16, gap: 10 }}>
+            <View style={{ marginTop: space.card, gap: space.room }}>
               <AppText variant="caption" muted>
                 Found {count} {countNoun} — tap a chip to change what it is,
                 fix any titles, and drop anything that doesn't belong.
@@ -374,8 +374,8 @@ export default function SyllabusImportScreen() {
                   <Card
                     key={row.key}
                     style={{
-                      gap: 8,
-                      padding: 12,
+                      gap: space.cosy,
+                      padding: space.close,
                       ...(low
                         ? {
                             backgroundColor: theme.brandSoft,
@@ -388,7 +388,7 @@ export default function SyllabusImportScreen() {
                       style={{
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: 8,
+                        gap: space.cosy,
                       }}
                     >
                       <KindChip
@@ -434,8 +434,8 @@ export default function SyllabusImportScreen() {
                         borderColor: theme.border,
                         borderRadius: radius.control,
                         backgroundColor: theme.surface,
-                        paddingHorizontal: 12,
-                        paddingVertical: 8,
+                        paddingHorizontal: space.close,
+                        paddingVertical: space.cosy,
                         fontFamily: fonts.body,
                         fontSize: 14,
                         color: theme.foreground,
@@ -446,7 +446,7 @@ export default function SyllabusImportScreen() {
                         style={{
                           flexDirection: "row",
                           alignItems: "center",
-                          gap: 6,
+                          gap: space.snug,
                         }}
                       >
                         <Feather
@@ -480,7 +480,7 @@ export default function SyllabusImportScreen() {
                   <Feather name="calendar" size={16} color={theme.brandFg} />
                 }
                 onPress={() => void handleAdd()}
-                style={{ marginTop: 2 }}
+                style={{ marginTop: space.hair }}
               />
             </View>
           ) : null}

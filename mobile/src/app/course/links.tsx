@@ -90,7 +90,7 @@ function KindChip({ kind }: { kind: LinkKind }) {
   return (
     <View
       style={{
-        paddingHorizontal: 8,
+        paddingHorizontal: space.cosy,
         paddingVertical: 3,
         borderRadius: radius.full,
         backgroundColor: colors.bg,
@@ -160,8 +160,8 @@ function CenteredState({
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
-        padding: 28,
+        gap: space.room,
+        padding: space.rest,
       }}
     >
       <View
@@ -352,7 +352,7 @@ export default function CourseLinksScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 12 }}>
+      <View style={{ paddingHorizontal: space.close }}>
         <BackChevron onPress={goBack} />
       </View>
       {children}
@@ -378,7 +378,7 @@ export default function CourseLinksScreen() {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          gap: 12,
+          gap: space.close,
         }}
       >
         <ActivityIndicator size="large" color={theme.brand} />
@@ -421,7 +421,7 @@ export default function CourseLinksScreen() {
         keyExtractor={(link) => link.id}
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
         keyboardShouldPersistTaps="handled"
@@ -435,7 +435,7 @@ export default function CourseLinksScreen() {
           />
         }
         ListHeaderComponent={
-          <View style={{ gap: 4, marginBottom: 14 }}>
+          <View style={{ gap: space.tight, marginBottom: space.card }}>
             <AppText variant="display">
               {courseCode ? `${courseCode} links` : "Course links"}
             </AppText>
@@ -446,7 +446,7 @@ export default function CourseLinksScreen() {
             {error ? (
               <AppText
                 variant="caption"
-                style={{ color: theme.danger, marginTop: 4 }}
+                style={{ color: theme.danger, marginTop: space.tight }}
               >
                 {error}
               </AppText>
@@ -454,7 +454,7 @@ export default function CourseLinksScreen() {
             {actionError ? (
               <AppText
                 variant="caption"
-                style={{ color: theme.danger, marginTop: 4 }}
+                style={{ color: theme.danger, marginTop: space.tight }}
               >
                 {actionError}
               </AppText>
@@ -465,10 +465,10 @@ export default function CourseLinksScreen() {
           <Card
             style={{
               alignItems: "center",
-              gap: 6,
-              paddingVertical: 24,
+              gap: space.snug,
+              paddingVertical: space.chapter,
               borderStyle: "dashed",
-              marginBottom: 10,
+              marginBottom: space.room,
             }}
           >
             <View
@@ -479,7 +479,7 @@ export default function CourseLinksScreen() {
                 backgroundColor: theme.brandSoft,
                 alignItems: "center",
                 justifyContent: "center",
-                marginBottom: 2,
+                marginBottom: space.hair,
               }}
             >
               <Feather name="link" size={18} color={theme.brand} />
@@ -512,7 +512,7 @@ export default function CourseLinksScreen() {
               onLongPress={() => handleLongPress(item)}
               style={({ pressed }) => ({
                 opacity: pressed ? 0.7 : 1,
-                marginBottom: 10,
+                marginBottom: space.room,
               })}
             >
               <Card
@@ -520,8 +520,8 @@ export default function CourseLinksScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 12,
-                  padding: 12,
+                  gap: space.close,
+                  padding: space.close,
                   minHeight: 64,
                 }}
               >
@@ -541,12 +541,12 @@ export default function CourseLinksScreen() {
                     color={theme.brand}
                   />
                 </View>
-                <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+                <View style={{ flex: 1, minWidth: 0, gap: space.tight }}>
                   <View
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      gap: 6,
+                      gap: space.snug,
                     }}
                   >
                     <AppText
@@ -568,9 +568,13 @@ export default function CourseLinksScreen() {
           );
         }}
         ListFooterComponent={
-          <Card style={{ marginTop: 8, gap: 12 }}>
+          <Card style={{ marginTop: space.cosy, gap: space.close }}>
             <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.cosy,
+              }}
             >
               <Feather name="plus-circle" size={16} color={theme.brand} />
               <AppText variant="title">Add a link</AppText>
@@ -579,7 +583,13 @@ export default function CourseLinksScreen() {
               Anything the class keeps hunting for — pin it once and it's here
               for everyone.
             </AppText>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: space.cosy,
+              }}
+            >
               {KINDS.map((option) => {
                 const active = kind === option;
                 return (
@@ -592,8 +602,8 @@ export default function CourseLinksScreen() {
                     onPress={() => setKind(option)}
                     hitSlop={6}
                     style={({ pressed }) => ({
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
+                      paddingHorizontal: space.close,
+                      paddingVertical: space.cosy,
                       borderRadius: radius.full,
                       borderWidth: 1,
                       borderColor: active ? theme.brand : theme.border,

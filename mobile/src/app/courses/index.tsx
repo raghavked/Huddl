@@ -223,10 +223,10 @@ function CourseRow({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 4,
-          paddingLeft: 8,
-          paddingRight: 4,
-          paddingVertical: 12,
+          gap: space.tight,
+          paddingLeft: space.cosy,
+          paddingRight: space.tight,
+          paddingVertical: space.close,
           minHeight: 72,
         }}
       >
@@ -257,8 +257,8 @@ function CourseRow({
           onLongPress={busy ? undefined : onMenu}
           style={({ pressed }) => ({
             flex: 1,
-            gap: 3,
-            marginLeft: 2,
+            gap: space.tight,
+            marginLeft: space.hair,
             minHeight: 44,
             justifyContent: "center",
             opacity: pressed ? 0.7 : 1,
@@ -268,7 +268,7 @@ function CourseRow({
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 8,
+              gap: space.cosy,
               flexWrap: "wrap",
             }}
           >
@@ -338,9 +338,9 @@ function SemesterLink() {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 10,
-          paddingHorizontal: 12,
-          paddingVertical: 10,
+          gap: space.room,
+          paddingHorizontal: space.close,
+          paddingVertical: space.room,
           minHeight: 56,
         }}
       >
@@ -356,7 +356,7 @@ function SemesterLink() {
         >
           <Feather name="trending-up" size={15} color={theme.accent} />
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: space.hair }}>
           <AppText variant="bodySemi">This semester</AppText>
           <AppText variant="caption" muted numberOfLines={1}>
             Every class's estimate, and one number across them.
@@ -394,10 +394,10 @@ function ArchivedRow({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 4,
-          paddingLeft: 14,
-          paddingRight: 4,
-          paddingVertical: 8,
+          gap: space.tight,
+          paddingLeft: space.card,
+          paddingRight: space.tight,
+          paddingVertical: space.cosy,
           minHeight: 56,
           borderBottomWidth: last ? 0 : 1,
           borderBottomColor: theme.border,
@@ -415,7 +415,7 @@ function ArchivedRow({
           onLongPress={onMenu}
           style={({ pressed }) => ({
             flex: 1,
-            gap: 2,
+            gap: space.hair,
             minHeight: 44,
             justifyContent: "center",
             opacity: pressed ? 0.7 : 1,
@@ -479,7 +479,7 @@ function ColorSwatch({
       style={({ pressed }) => ({
         width: "33.333%",
         alignItems: "center",
-        gap: 6,
+        gap: space.snug,
         opacity: pressed ? 0.7 : 1,
       })}
     >
@@ -550,7 +550,7 @@ function ArchivedShelf({
   const count = courses.length;
 
   return (
-    <View style={{ marginTop: 6 }}>
+    <View style={{ marginTop: space.snug }}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
@@ -564,7 +564,7 @@ function ArchivedShelf({
         style={({ pressed }) => ({
           flexDirection: "row",
           alignItems: "center",
-          gap: 8,
+          gap: space.cosy,
           minHeight: 44,
           opacity: pressed ? 0.6 : 1,
         })}
@@ -592,7 +592,7 @@ function ArchivedShelf({
       {error ? (
         <AppText
           variant="caption"
-          style={{ color: theme.danger, marginTop: 2 }}
+          style={{ color: theme.danger, marginTop: space.hair }}
         >
           {error}
         </AppText>
@@ -612,7 +612,7 @@ function ArchivedShelf({
             ],
           }}
         >
-          <AppText variant="caption" muted style={{ marginTop: 4 }}>
+          <AppText variant="caption" muted style={{ marginTop: space.tight }}>
             These keep their chats and notes — they're just out of the way.
           </AppText>
           {groups.map((group, index) => (
@@ -948,7 +948,7 @@ export default function MyCoursesScreen() {
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          paddingHorizontal: 12,
+          paddingHorizontal: space.close,
         }}
       >
         <Pressable
@@ -983,14 +983,17 @@ export default function MyCoursesScreen() {
         </Pressable>
       </View>
 
-      <View style={{ flex: 1, paddingHorizontal: 20 }}>
-        <AppText variant="display" style={{ marginTop: 2, marginBottom: 16 }}>
+      <View style={{ flex: 1, paddingHorizontal: space.gutter }}>
+        <AppText
+          variant="display"
+          style={{ marginTop: space.hair, marginBottom: space.card }}
+        >
           My courses
         </AppText>
 
         {loading ? (
           <View>
-            <View style={{ marginBottom: 12 }}>{intro}</View>
+            <View style={{ marginBottom: space.close }}>{intro}</View>
             {[0, 1, 2, 3].map((index) => (
               <SkeletonRow key={index} avatar={false} lines={2} />
             ))}
@@ -1001,7 +1004,7 @@ export default function MyCoursesScreen() {
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
-              gap: 10,
+              gap: space.room,
               paddingBottom: 80,
             }}
           >
@@ -1043,7 +1046,10 @@ export default function MyCoursesScreen() {
                 {/* With classes on the list the semester row below brings its
                     own air; with none, the empty state needs it here. */}
                 <View
-                  style={{ gap: 6, marginBottom: active.length > 0 ? 0 : 12 }}
+                  style={{
+                    gap: space.snug,
+                    marginBottom: active.length > 0 ? 0 : 12,
+                  }}
                 >
                   {intro}
                   {error ? (
@@ -1062,7 +1068,7 @@ export default function MyCoursesScreen() {
                 {active.length > 0 ? (
                   <View
                     style={{
-                      marginTop: 12,
+                      marginTop: space.close,
                       marginBottom: hasShelf ? 0 : 12,
                     }}
                   >
@@ -1093,7 +1099,7 @@ export default function MyCoursesScreen() {
             }
             ListFooterComponent={shelf}
             renderItem={({ item }) => (
-              <View style={{ marginBottom: 10 }}>
+              <View style={{ marginBottom: space.room }}>
                 <CourseRow
                   course={item}
                   tint={tintFor(item)}
@@ -1131,10 +1137,14 @@ export default function MyCoursesScreen() {
         }
       >
         {sheetView === "colour" && sheetCourse !== null ? (
-          <View style={{ gap: 12, paddingTop: 4 }}>
+          <View style={{ gap: space.close, paddingTop: space.tight }}>
             <View
               accessibilityRole="radiogroup"
-              style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 14 }}
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                rowGap: space.card,
+              }}
             >
               {COURSE_TINT_KEYS.map((key) => (
                 <ColorSwatch
@@ -1168,10 +1178,12 @@ export default function MyCoursesScreen() {
               label="Archive course"
               onPress={runFromMenu((course) => void shelve(course))}
             />
+            {/* 46 lines this up with the row labels above it: Sheet.Row
+                draws a 36px icon tile and a 10 gap. */}
             <AppText
               variant="caption"
               muted
-              style={{ marginLeft: 46, marginBottom: 6 }}
+              style={{ marginLeft: 46, marginBottom: space.snug }}
             >
               Its chat and notes stay put — it just moves off this list.
             </AppText>

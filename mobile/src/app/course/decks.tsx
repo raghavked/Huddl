@@ -345,7 +345,7 @@ export default function CourseDecksScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 12 }}>
+      <View style={{ paddingHorizontal: space.close }}>
         <BackChevron onPress={goBack} />
       </View>
       {children}
@@ -358,8 +358,8 @@ export default function CourseDecksScreen() {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
-        padding: 28,
+        gap: space.room,
+        padding: space.rest,
       }}
     >
       {children}
@@ -446,7 +446,14 @@ export default function CourseDecksScreen() {
         danger
         onPress={runFromMenu(confirmDelete)}
       />
-      <AppText variant="caption" muted style={{ marginLeft: 46, marginTop: 2 }}>
+      {/* 46 lines this up with the row labels above rather than the sheet's
+          edge: Sheet.Row draws a 36px icon tile and a 10 gap. An alignment
+          taken from the primitive, not a spacing choice. */}
+      <AppText
+        variant="caption"
+        muted
+        style={{ marginLeft: 46, marginTop: space.hair }}
+      >
         Deleting takes it down for everyone in the class.
       </AppText>
     </Sheet>
@@ -462,7 +469,7 @@ export default function CourseDecksScreen() {
         keyExtractor={(deck) => deck.id}
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
         keyboardShouldPersistTaps="handled"
@@ -477,7 +484,7 @@ export default function CourseDecksScreen() {
           />
         }
         ListHeaderComponent={
-          <View style={{ gap: 4, marginBottom: 14 }}>
+          <View style={{ gap: space.tight, marginBottom: space.card }}>
             <AppText variant="display">
               {courseCode ? `${courseCode} flashcards` : "Flashcards"}
             </AppText>
@@ -488,7 +495,7 @@ export default function CourseDecksScreen() {
             {actionError ? (
               <AppText
                 variant="caption"
-                style={{ color: theme.danger, marginTop: 4 }}
+                style={{ color: theme.danger, marginTop: space.tight }}
               >
                 {actionError}
               </AppText>
@@ -499,10 +506,10 @@ export default function CourseDecksScreen() {
           <Card
             style={{
               alignItems: "center",
-              gap: 6,
-              paddingVertical: 24,
+              gap: space.snug,
+              paddingVertical: space.chapter,
               borderStyle: "dashed",
-              marginBottom: 10,
+              marginBottom: space.room,
             }}
           >
             <View
@@ -513,7 +520,7 @@ export default function CourseDecksScreen() {
                 backgroundColor: theme.brandSoft,
                 alignItems: "center",
                 justifyContent: "center",
-                marginBottom: 2,
+                marginBottom: space.hair,
               }}
             >
               <Feather name="layers" size={18} color={theme.brand} />
@@ -531,7 +538,7 @@ export default function CourseDecksScreen() {
         renderItem={({ item }) => {
           if (renamingId === item.id) {
             return (
-              <Card style={{ gap: 12, marginBottom: 10 }}>
+              <Card style={{ gap: space.close, marginBottom: space.room }}>
                 <AppText variant="title">Rename deck</AppText>
                 <Field
                   label="Deck title"
@@ -549,7 +556,7 @@ export default function CourseDecksScreen() {
                   style={{
                     flexDirection: "row",
                     justifyContent: "flex-end",
-                    gap: 8,
+                    gap: space.cosy,
                   }}
                 >
                   <Button
@@ -579,7 +586,7 @@ export default function CourseDecksScreen() {
               onLongPress={mine ? () => handleLongPress(item) : undefined}
               style={({ pressed }) => ({
                 opacity: pressed ? 0.85 : 1,
-                marginBottom: 10,
+                marginBottom: space.room,
               })}
             >
               <Card
@@ -587,9 +594,9 @@ export default function CourseDecksScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 12,
-                  paddingHorizontal: 14,
-                  paddingVertical: 12,
+                  gap: space.close,
+                  paddingHorizontal: space.card,
+                  paddingVertical: space.close,
                   minHeight: 64,
                 }}
               >
@@ -605,7 +612,7 @@ export default function CourseDecksScreen() {
                 >
                   <Feather name="layers" size={18} color={theme.brand} />
                 </View>
-                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
                   <AppText variant="bodySemi" numberOfLines={1}>
                     {item.title}
                   </AppText>
@@ -616,7 +623,7 @@ export default function CourseDecksScreen() {
                 {(meta.get(item.id)?.due ?? 0) > 0 ? (
                   <View
                     style={{
-                      paddingHorizontal: 8,
+                      paddingHorizontal: space.cosy,
                       paddingVertical: 3,
                       borderRadius: radius.full,
                       backgroundColor: theme.brandSoft,
@@ -636,8 +643,14 @@ export default function CourseDecksScreen() {
           );
         }}
         ListFooterComponent={
-          <Card style={{ marginTop: 8, gap: 12 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Card style={{ marginTop: space.cosy, gap: space.close }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.cosy,
+              }}
+            >
               <Feather name="plus-circle" size={16} color={theme.brand} />
               <AppText variant="title">New deck</AppText>
             </View>

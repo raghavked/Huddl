@@ -68,8 +68,8 @@ function CenteredState({
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
-        padding: 28,
+        gap: space.room,
+        padding: space.rest,
       }}
     >
       <View
@@ -230,7 +230,7 @@ export default function CourseRoomsScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 12 }}>
+      <View style={{ paddingHorizontal: space.close }}>
         <BackChevron onPress={goBack} />
       </View>
       {children}
@@ -256,7 +256,7 @@ export default function CourseRoomsScreen() {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          gap: 12,
+          gap: space.close,
         }}
       >
         <ActivityIndicator size="large" color={theme.brand} />
@@ -299,7 +299,7 @@ export default function CourseRoomsScreen() {
         keyExtractor={(room) => room.id}
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
         keyboardShouldPersistTaps="handled"
@@ -313,7 +313,7 @@ export default function CourseRoomsScreen() {
           />
         }
         ListHeaderComponent={
-          <View style={{ gap: 4, marginBottom: 14 }}>
+          <View style={{ gap: space.tight, marginBottom: space.card }}>
             <AppText variant="display">
               {courseCode ? `${courseCode} rooms` : "Course rooms"}
             </AppText>
@@ -324,7 +324,7 @@ export default function CourseRoomsScreen() {
             {error ? (
               <AppText
                 variant="caption"
-                style={{ color: theme.danger, marginTop: 4 }}
+                style={{ color: theme.danger, marginTop: space.tight }}
               >
                 {error}
               </AppText>
@@ -332,7 +332,7 @@ export default function CourseRoomsScreen() {
             {joinError ? (
               <AppText
                 variant="caption"
-                style={{ color: theme.danger, marginTop: 4 }}
+                style={{ color: theme.danger, marginTop: space.tight }}
               >
                 {joinError}
               </AppText>
@@ -343,10 +343,10 @@ export default function CourseRoomsScreen() {
           <Card
             style={{
               alignItems: "center",
-              gap: 6,
-              paddingVertical: 24,
+              gap: space.snug,
+              paddingVertical: space.chapter,
               borderStyle: "dashed",
-              marginBottom: 10,
+              marginBottom: space.room,
             }}
           >
             <View
@@ -357,7 +357,7 @@ export default function CourseRoomsScreen() {
                 backgroundColor: theme.brandSoft,
                 alignItems: "center",
                 justifyContent: "center",
-                marginBottom: 2,
+                marginBottom: space.hair,
               }}
             >
               <Feather name="home" size={18} color={theme.brand} />
@@ -384,9 +384,9 @@ export default function CourseRoomsScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 12,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
+                gap: space.close,
+                paddingHorizontal: space.card,
+                paddingVertical: space.close,
                 minHeight: 60,
               }}
             >
@@ -406,7 +406,7 @@ export default function CourseRoomsScreen() {
                   color={theme.brand}
                 />
               </View>
-              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
                 <AppText variant="bodySemi" numberOfLines={1}>
                   {title}
                 </AppText>
@@ -432,7 +432,7 @@ export default function CourseRoomsScreen() {
             </Card>
           );
           if (!isJoined) {
-            return <View style={{ marginBottom: 10 }}>{row}</View>;
+            return <View style={{ marginBottom: space.room }}>{row}</View>;
           }
           return (
             <Pressable
@@ -441,7 +441,7 @@ export default function CourseRoomsScreen() {
               onPress={() => router.push(`/channel/${item.id}`)}
               style={({ pressed }) => ({
                 opacity: pressed ? 0.85 : 1,
-                marginBottom: 10,
+                marginBottom: space.room,
               })}
             >
               {row}
@@ -449,8 +449,14 @@ export default function CourseRoomsScreen() {
           );
         }}
         ListFooterComponent={
-          <Card style={{ marginTop: 8, gap: 12 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Card style={{ marginTop: space.cosy, gap: space.close }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.cosy,
+              }}
+            >
               <Feather name="plus-circle" size={16} color={theme.brand} />
               <AppText variant="title">New room</AppText>
             </View>
@@ -458,7 +464,13 @@ export default function CourseRoomsScreen() {
               Side rooms keep the main chat tidy — one for lectures, one for
               your study group, whatever helps.
             </AppText>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: space.cosy,
+              }}
+            >
               {SUGGESTIONS.map((suggestion) => {
                 const active = name === suggestion;
                 return (
@@ -473,8 +485,8 @@ export default function CourseRoomsScreen() {
                     }}
                     hitSlop={6}
                     style={({ pressed }) => ({
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
+                      paddingHorizontal: space.close,
+                      paddingVertical: space.cosy,
                       borderRadius: radius.full,
                       borderWidth: 1,
                       borderColor: active ? theme.brand : theme.border,

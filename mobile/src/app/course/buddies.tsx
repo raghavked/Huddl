@@ -118,18 +118,18 @@ function PrivacyLine() {
       style={{
         flexDirection: "row",
         alignItems: "flex-start",
-        gap: 9,
-        padding: 12,
+        gap: space.room,
+        padding: space.close,
         borderRadius: radius.control,
         backgroundColor: theme.accentSoft,
-        marginTop: 24,
+        marginTop: space.chapter,
       }}
     >
       <Feather
         name="lock"
         size={14}
         color={theme.accent}
-        style={{ marginTop: 2 }}
+        style={{ marginTop: space.hair }}
       />
       <AppText variant="caption" style={{ flex: 1, lineHeight: 17 }}>
         Only people in this class can see this list, and stepping out removes
@@ -169,8 +169,13 @@ function BuddyRow({
   const shownName = buddy.locked ? `@${buddy.handle}` : buddy.display_name;
 
   return (
-    <Card padded={false} style={{ padding: 14, gap: 10, marginBottom: 10 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+    <Card
+      padded={false}
+      style={{ padding: space.card, gap: space.room, marginBottom: space.room }}
+    >
+      <View
+        style={{ flexDirection: "row", alignItems: "center", gap: space.close }}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Open ${shownName}'s profile`}
@@ -181,17 +186,21 @@ function BuddyRow({
             minHeight: 44,
             flexDirection: "row",
             alignItems: "center",
-            gap: 12,
+            gap: space.close,
             opacity: pressed ? 0.7 : 1,
           })}
         >
           <Avatar url={buddy.avatar_url} name={buddy.display_name} size={44} />
-          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
             <AppText variant="bodySemi" numberOfLines={1}>
               {shownName}
             </AppText>
             <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.tight,
+              }}
             >
               {buddy.locked ? (
                 <Feather name="lock" size={11} color={theme.muted} />
@@ -503,7 +512,7 @@ export default function StudyBuddiesScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 20 }}>
+      <View style={{ paddingHorizontal: space.gutter }}>
         <BackChevron onPress={goBack} />
       </View>
       {children}
@@ -511,12 +520,12 @@ export default function StudyBuddiesScreen() {
   );
 
   const header = (
-    <View style={{ marginBottom: 18 }}>
+    <View style={{ marginBottom: space.gutter }}>
       <View
         style={{
           flexDirection: "row",
           alignItems: "flex-end",
-          gap: 10,
+          gap: space.room,
           flexWrap: "wrap",
         }}
       >
@@ -526,11 +535,15 @@ export default function StudyBuddiesScreen() {
             label={courseCode}
             tone="brand"
             size="md"
-            style={{ marginBottom: 4 }}
+            style={{ marginBottom: space.tight }}
           />
         ) : null}
       </View>
-      <AppText variant="caption" muted style={{ marginTop: 6, lineHeight: 17 }}>
+      <AppText
+        variant="caption"
+        muted
+        style={{ marginTop: space.snug, lineHeight: 17 }}
+      >
         Classmates in {courseLabel} who are up for working through it together.
       </AppText>
     </View>
@@ -538,9 +551,11 @@ export default function StudyBuddiesScreen() {
 
   if (!id) {
     return scaffold(
-      <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
+      <View
+        style={{ paddingHorizontal: space.gutter, paddingTop: space.close }}
+      >
         <AppText variant="display">Study partners</AppText>
-        <View style={{ marginTop: 16 }}>
+        <View style={{ marginTop: space.card }}>
           <EmptyState
             icon="book-open"
             title="We lost track of the class"
@@ -557,12 +572,12 @@ export default function StudyBuddiesScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
       >
         {header}
-        <Card style={{ gap: 12 }}>
+        <Card style={{ gap: space.close }}>
           <Skeleton width="80%" height={18} radius={radius.full} />
           <Skeleton width="60%" height={11} radius={radius.full} />
           <Skeleton width="100%" height={72} />
@@ -583,7 +598,7 @@ export default function StudyBuddiesScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
       >
@@ -606,7 +621,7 @@ export default function StudyBuddiesScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
       >
@@ -639,7 +654,7 @@ export default function StudyBuddiesScreen() {
   /* The composer — the invitation when I'm not on the list, and the same
      field again when I'm editing the note that's already up there. */
   const composer = (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: space.close }}>
       <Field
         label="How you like to study (optional)"
         value={noteDraft}
@@ -659,7 +674,7 @@ export default function StudyBuddiesScreen() {
         </AppText>
       ) : null}
       <InlineError message={actionError} />
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.room }}>
         <Button
           label={mine === null ? "I am looking" : "Save note"}
           pending={saving}
@@ -691,7 +706,7 @@ export default function StudyBuddiesScreen() {
   /* Writing keeps the plain paper card — a tinted surface can't carry muted
      helper text, and the fern is for the settled state, not the draft. */
   const myStateCard = composerOpen ? (
-    <Card style={{ gap: 12 }}>
+    <Card style={{ gap: space.close }}>
       <AppText variant="title">
         {mine === null
           ? "Looking for someone to work through this with?"
@@ -707,12 +722,14 @@ export default function StudyBuddiesScreen() {
   ) : (
     <Card
       style={{
-        gap: 12,
+        gap: space.close,
         backgroundColor: theme.accentSoft,
         borderColor: theme.accent + "40",
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View
+        style={{ flexDirection: "row", alignItems: "center", gap: space.cosy }}
+      >
         <Feather name="check-circle" size={16} color={theme.accent} />
         <AppText variant="title">You're on the list</AppText>
       </View>
@@ -725,7 +742,7 @@ export default function StudyBuddiesScreen() {
         </AppText>
       )}
       <InlineError message={actionError} />
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.room }}>
         <Button
           label="Edit note"
           variant="secondary"
@@ -758,7 +775,7 @@ export default function StudyBuddiesScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + 40,
         }}
         keyboardShouldPersistTaps="handled"
@@ -776,7 +793,7 @@ export default function StudyBuddiesScreen() {
         {header}
 
         {error ? (
-          <View style={{ marginBottom: 12 }}>
+          <View style={{ marginBottom: space.close }}>
             <InlineError message={error} />
           </View>
         ) : null}

@@ -386,7 +386,7 @@ export default function AddSeriesScreen() {
           backgroundColor: theme.background,
           paddingTop: insets.top + space.close,
           justifyContent: "center",
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
         }}
       >
         <EmptyState
@@ -407,8 +407,8 @@ export default function AddSeriesScreen() {
           backgroundColor: theme.background,
           alignItems: "center",
           justifyContent: "center",
-          gap: 12,
-          padding: 28,
+          gap: space.close,
+          padding: space.rest,
         }}
       >
         <View
@@ -443,7 +443,7 @@ export default function AddSeriesScreen() {
      never replays it. */
   const previewCard =
     preview.state === "ready" ? (
-      <Card entrance={1} style={{ gap: 10 }}>
+      <Card entrance={1} style={{ gap: space.room }}>
         <AppText variant="title">{countPhrase(preview.drafts.length)}</AppText>
         {summary ? (
           <AppText variant="caption" muted>
@@ -454,7 +454,7 @@ export default function AddSeriesScreen() {
           style={{
             height: 1,
             backgroundColor: theme.border,
-            marginVertical: 2,
+            marginVertical: space.hair,
           }}
         />
         {sampleRows(preview.drafts).map((row) =>
@@ -463,14 +463,18 @@ export default function AddSeriesScreen() {
               key="gap"
               variant="caption"
               muted
-              style={{ marginLeft: 16 }}
+              style={{ marginLeft: space.card }}
             >
               + {row.hidden} more
             </AppText>
           ) : (
             <View
               key={row.iso}
-              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.room,
+              }}
             >
               <View
                 style={{
@@ -491,7 +495,7 @@ export default function AddSeriesScreen() {
         style={{
           flexDirection: "row",
           alignItems: "flex-start",
-          gap: 10,
+          gap: space.room,
           borderStyle: "dashed",
         }}
       >
@@ -499,7 +503,7 @@ export default function AddSeriesScreen() {
           name="alert-circle"
           size={16}
           color={theme.warning}
-          style={{ marginTop: 2 }}
+          style={{ marginTop: space.hair }}
         />
         <AppText variant="caption" style={{ color: theme.warning, flex: 1 }}>
           {preview.message}
@@ -515,7 +519,7 @@ export default function AddSeriesScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={{ flex: 1, paddingTop: insets.top + space.close }}>
-        <View style={{ paddingHorizontal: 12 }}>
+        <View style={{ paddingHorizontal: space.close }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back"
@@ -536,25 +540,31 @@ export default function AddSeriesScreen() {
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: space.gutter,
             paddingBottom: insets.bottom + space.rest,
           }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
-          <AppText variant="display" style={{ marginTop: 2 }}>
+          <AppText variant="display" style={{ marginTop: space.hair }}>
             Add a weekly pattern
           </AppText>
-          <AppText variant="caption" muted style={{ marginTop: 6 }}>
+          <AppText variant="caption" muted style={{ marginTop: space.snug }}>
             {courseCode ? `${courseCode} · set` : "Set"} it up once and every
             week of it lands on the class calendar.
           </AppText>
 
-          <Card entrance={0} style={{ gap: 16, marginTop: 16 }}>
-            <View style={{ gap: 8 }}>
+          <Card entrance={0} style={{ gap: space.card, marginTop: space.card }}>
+            <View style={{ gap: space.cosy }}>
               <AppText variant="label">What is it?</AppText>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: space.room,
+                }}
+              >
                 {PATTERNS.map((option) => (
                   <Chip
                     key={option.id}
@@ -585,9 +595,15 @@ export default function AddSeriesScreen() {
               editable={!pending}
             />
 
-            <View style={{ gap: 8 }}>
+            <View style={{ gap: space.cosy }}>
               <AppText variant="label">Which days?</AppText>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: space.room,
+                }}
+              >
                 {WEEKDAYS.map((day) => (
                   <Chip
                     key={day.index}
@@ -604,7 +620,7 @@ export default function AddSeriesScreen() {
               </View>
             </View>
 
-            <View style={{ gap: 6 }}>
+            <View style={{ gap: space.snug }}>
               <Field
                 label="Time"
                 value={timeText}
@@ -621,7 +637,7 @@ export default function AddSeriesScreen() {
               </AppText>
             </View>
 
-            <View style={{ flexDirection: "row", gap: 10 }}>
+            <View style={{ flexDirection: "row", gap: space.room }}>
               <View style={{ flex: 1 }}>
                 <Field
                   label="First date"
@@ -655,7 +671,7 @@ export default function AddSeriesScreen() {
           {saveError ? (
             <AppText
               variant="caption"
-              style={{ color: theme.danger, marginTop: 12 }}
+              style={{ color: theme.danger, marginTop: space.close }}
             >
               {saveError}
             </AppText>
@@ -667,12 +683,12 @@ export default function AddSeriesScreen() {
             disabled={pending || preview.state !== "ready"}
             icon={<Feather name="calendar" size={16} color={theme.brandFg} />}
             onPress={() => void handleAdd()}
-            style={{ marginTop: 16 }}
+            style={{ marginTop: space.card }}
           />
           <AppText
             variant="caption"
             muted
-            style={{ marginTop: 10, textAlign: "center" }}
+            style={{ marginTop: space.room, textAlign: "center" }}
           >
             These go on the shared calendar — everyone in{" "}
             {courseCode ?? "the class"} sees them, and each one can be removed

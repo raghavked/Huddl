@@ -185,8 +185,8 @@ function CenteredState({
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
-        padding: 28,
+        gap: space.room,
+        padding: space.rest,
         paddingBottom: 80,
       }}
     >
@@ -301,10 +301,10 @@ function TagPicker({
   }, [atCap, disabled, input, onChange, value]);
 
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: space.cosy }}>
       <AppText variant="label">Tags</AppText>
 
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.cosy }}>
         {options.map((tag) => {
           const on = hasTag(value, tag);
           return (
@@ -329,7 +329,13 @@ function TagPicker({
         })}
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-end",
+          gap: space.cosy,
+        }}
+      >
         <View style={{ flex: 1 }}>
           <Field
             label="Add your own"
@@ -817,7 +823,7 @@ export default function CourseNotesScreen() {
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          paddingHorizontal: 12,
+          paddingHorizontal: space.close,
         }}
       >
         <BackChevron onPress={goBack} />
@@ -829,7 +835,7 @@ export default function CourseNotesScreen() {
             pending={picking}
             icon={<Feather name="upload" size={14} color={theme.brandInk} />}
             onPress={() => void handlePickFile()}
-            style={{ marginRight: 8 }}
+            style={{ marginRight: space.cosy }}
           />
         ) : null}
       </View>
@@ -853,14 +859,14 @@ export default function CourseNotesScreen() {
     /* The room names itself while it fills: the title is true before the
        query lands, and the rows underneath are the shape they'll be. */
     return scaffold(
-      <View style={{ paddingHorizontal: 20 }}>
-        <AppText variant="display" style={{ marginTop: 2 }}>
+      <View style={{ paddingHorizontal: space.gutter }}>
+        <AppText variant="display" style={{ marginTop: space.hair }}>
           Shared notes
         </AppText>
         <AppText
           variant="caption"
           muted
-          style={{ marginTop: 6, marginBottom: 14 }}
+          style={{ marginTop: space.snug, marginBottom: space.card }}
         >
           {courseCode
             ? `Put up by everyone in ${courseCode}.`
@@ -905,11 +911,11 @@ export default function CourseNotesScreen() {
       : `${noteCount(visible.length)} with all ${selected.length} of these tags.`;
 
   const listHeader = (
-    <View style={{ marginBottom: 14 }}>
-      <AppText variant="display" style={{ marginTop: 2 }}>
+    <View style={{ marginBottom: space.card }}>
+      <AppText variant="display" style={{ marginTop: space.hair }}>
         Shared notes
       </AppText>
-      <AppText variant="caption" muted style={{ marginTop: 6 }}>
+      <AppText variant="caption" muted style={{ marginTop: space.snug }}>
         {courseCode
           ? `Put up by everyone in ${courseCode}.`
           : "Put up by your classmates."}{" "}
@@ -928,12 +934,12 @@ export default function CourseNotesScreen() {
             horizontal
             showsHorizontalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            style={{ marginHorizontal: -20, marginTop: 12 }}
+            style={{ marginHorizontal: -20, marginTop: space.close }}
             contentContainerStyle={{
               alignItems: "center",
-              gap: 8,
-              paddingHorizontal: 20,
-              paddingVertical: 2,
+              gap: space.cosy,
+              paddingHorizontal: space.gutter,
+              paddingVertical: space.hair,
             }}
           >
             <Chip
@@ -960,7 +966,7 @@ export default function CourseNotesScreen() {
             ))}
           </ScrollView>
           {filterSummary ? (
-            <AppText variant="caption" muted style={{ marginTop: 8 }}>
+            <AppText variant="caption" muted style={{ marginTop: space.cosy }}>
               {filterSummary}
             </AppText>
           ) : null}
@@ -974,13 +980,13 @@ export default function CourseNotesScreen() {
 
       {/* The share form, once a file has been picked. */}
       {pickedFile ? (
-        <Card style={{ gap: 12, marginTop: 12 }}>
+        <Card style={{ gap: space.close, marginTop: space.close }}>
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: 8,
+              gap: space.cosy,
             }}
           >
             <AppText variant="title">Share a note</AppText>
@@ -1004,7 +1010,13 @@ export default function CourseNotesScreen() {
             </Pressable>
           </View>
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.snug,
+            }}
+          >
             <Feather name="paperclip" size={13} color={theme.muted} />
             <AppText variant="caption" muted numberOfLines={1} style={{ flex: 1 }}>
               {pickedFile.name}
@@ -1044,7 +1056,11 @@ export default function CourseNotesScreen() {
           ) : null}
 
           <View
-            style={{ flexDirection: "row", justifyContent: "flex-end", gap: 8 }}
+            style={{
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              gap: space.cosy,
+            }}
           >
             <Button
               label="Cancel"
@@ -1063,18 +1079,27 @@ export default function CourseNotesScreen() {
           </View>
         </Card>
       ) : uploadError ? (
-        <AppText variant="caption" style={{ color: theme.danger, marginTop: 10 }}>
+        <AppText
+          variant="caption"
+          style={{ color: theme.danger, marginTop: space.room }}
+        >
           {uploadError}
         </AppText>
       ) : null}
 
       {openError ? (
-        <AppText variant="caption" style={{ color: theme.danger, marginTop: 10 }}>
+        <AppText
+          variant="caption"
+          style={{ color: theme.danger, marginTop: space.room }}
+        >
           {openError}
         </AppText>
       ) : null}
       {thanksError ? (
-        <AppText variant="caption" style={{ color: theme.danger, marginTop: 10 }}>
+        <AppText
+          variant="caption"
+          style={{ color: theme.danger, marginTop: space.room }}
+        >
           {thanksError}
         </AppText>
       ) : null}
@@ -1137,7 +1162,7 @@ export default function CourseNotesScreen() {
     const editing = editingId === note.id;
 
     return (
-      <View style={{ marginBottom: 10 }}>
+      <View style={{ marginBottom: space.room }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Open ${note.title}, shared by ${uploaderName}`}
@@ -1157,8 +1182,8 @@ export default function CourseNotesScreen() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 12,
-              padding: 12,
+              gap: space.close,
+              padding: space.close,
               minHeight: 64,
             }}
           >
@@ -1179,7 +1204,7 @@ export default function CourseNotesScreen() {
               />
             </View>
 
-            <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+            <View style={{ flex: 1, minWidth: 0, gap: space.tight }}>
               <AppText variant="bodySemi" numberOfLines={1}>
                 {note.title}
               </AppText>
@@ -1190,7 +1215,11 @@ export default function CourseNotesScreen() {
               ) : null}
               {note.tags.length > 0 ? (
                 <View
-                  style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: space.snug,
+                  }}
                 >
                   {note.tags.map((tag) => (
                     /* A tag that's part of the live filter wears the ember,
@@ -1226,7 +1255,7 @@ export default function CourseNotesScreen() {
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 4,
+                  gap: space.tight,
                 }}
               >
                 <Feather name="heart" size={16} color={theme.muted} />
@@ -1250,13 +1279,13 @@ export default function CourseNotesScreen() {
                   minWidth: 44,
                   height: 44,
                   marginVertical: -12,
-                  paddingHorizontal: 6,
+                  paddingHorizontal: space.snug,
                   borderRadius: radius.full,
                   backgroundColor: thanksEntry.mine ? theme.brandSoft : undefined,
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 4,
+                  gap: space.tight,
                   opacity: pressed ? 0.6 : 1,
                 })}
               >
@@ -1289,7 +1318,11 @@ export default function CourseNotesScreen() {
         {failure ? (
           <AppText
             variant="caption"
-            style={{ color: theme.danger, marginTop: 6, marginHorizontal: 4 }}
+            style={{
+              color: theme.danger,
+              marginTop: space.snug,
+              marginHorizontal: space.tight,
+            }}
           >
             {failure}
           </AppText>
@@ -1298,7 +1331,7 @@ export default function CourseNotesScreen() {
         {/* The tag editor opens under the note it belongs to, rather than in
             a sheet the keyboard would sit on top of. */}
         {editing ? (
-          <Card style={{ gap: 12, marginTop: 8 }}>
+          <Card style={{ gap: space.close, marginTop: space.cosy }}>
             <AppText variant="title">Tags for this note</AppText>
             <TagPicker
               value={editTags}
@@ -1310,7 +1343,7 @@ export default function CourseNotesScreen() {
               style={{
                 flexDirection: "row",
                 justifyContent: "flex-end",
-                gap: 8,
+                gap: space.cosy,
               }}
             >
               <Button
@@ -1344,7 +1377,7 @@ export default function CourseNotesScreen() {
         renderItem={({ item, index }) => renderNote(item, index)}
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
           flexGrow: 1,
         }}

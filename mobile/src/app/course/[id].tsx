@@ -234,7 +234,15 @@ function DoorwayTile({
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Card padded={false} style={{ flex: 1, padding: 12, minHeight: 92, gap: 8 }}>
+      <Card
+        padded={false}
+        style={{
+          flex: 1,
+          padding: space.close,
+          minHeight: 92,
+          gap: space.cosy,
+        }}
+      >
         <View
           style={{
             width: 34,
@@ -247,7 +255,7 @@ function DoorwayTile({
         >
           <Feather name={icon} size={16} color={colors.fg} />
         </View>
-        <View style={{ gap: 2 }}>
+        <View style={{ gap: space.hair }}>
           <AppText variant="bodySemi" numberOfLines={1}>
             {title}
           </AppText>
@@ -299,7 +307,7 @@ function CenteredState({
         flex: 1,
         alignItems: "stretch",
         justifyContent: "center",
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
         paddingBottom: 40,
       }}
     >
@@ -311,18 +319,28 @@ function CenteredState({
 /** The hub with the words not yet written — same bones, same order. */
 function HubSkeleton() {
   return (
-    <View style={{ paddingHorizontal: 20, paddingTop: 4, gap: 12 }}>
+    <View
+      style={{
+        paddingHorizontal: space.gutter,
+        paddingTop: space.tight,
+        gap: space.close,
+      }}
+    >
       <Skeleton width={128} height={28} radius={radius.full} />
       <Skeleton width="76%" height={15} radius={radius.full} />
-      <Skeleton height={44} radius={radius.full} style={{ marginTop: 4 }} />
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+      <Skeleton
+        height={44}
+        radius={radius.full}
+        style={{ marginTop: space.tight }}
+      />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.room }}>
         {[0, 1, 2, 3, 4, 5, 6, 7].map((slot) => (
           <View key={slot} style={{ flexBasis: "47%", flexGrow: 1 }}>
             <Skeleton height={92} radius={radius.card} />
           </View>
         ))}
       </View>
-      <View style={{ marginTop: 4 }}>
+      <View style={{ marginTop: space.tight }}>
         <SkeletonRow avatar={false} lines={2} />
         <SkeletonRow avatar={false} lines={1} />
       </View>
@@ -785,10 +803,10 @@ export default function CourseHubScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 12,
-            padding: 12,
+            gap: space.close,
+            padding: space.close,
             minHeight: 64,
-            marginBottom: 10,
+            marginBottom: space.room,
           }}
         >
           <View
@@ -807,7 +825,7 @@ export default function CourseHubScreen() {
               color={theme.brand}
             />
           </View>
-          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
             <AppText variant="bodySemi" numberOfLines={1}>
               {note.title}
             </AppText>
@@ -838,7 +856,7 @@ export default function CourseHubScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 4,
+                gap: space.tight,
               }}
             >
               <Feather name="heart" size={16} color={theme.muted} />
@@ -862,7 +880,7 @@ export default function CourseHubScreen() {
                 minWidth: 44,
                 height: 44,
                 marginVertical: -12,
-                paddingHorizontal: 6,
+                paddingHorizontal: space.snug,
                 borderRadius: radius.full,
                 backgroundColor: thanksEntry.mine
                   ? theme.brandSoft
@@ -870,7 +888,7 @@ export default function CourseHubScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 4,
+                gap: space.tight,
                 opacity: pressed ? 0.6 : 1,
               })}
             >
@@ -914,19 +932,19 @@ export default function CourseHubScreen() {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          padding: 12,
+          gap: space.close,
+          padding: space.close,
           minHeight: 64,
-          marginBottom: 10,
+          marginBottom: space.room,
         }}
       >
         <Avatar url={mate.profile?.avatar_url} name={name} size={40} />
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 6,
+              gap: space.snug,
               flexWrap: "wrap",
             }}
           >
@@ -964,7 +982,7 @@ export default function CourseHubScreen() {
       title={item.title}
       body={item.message}
       compact
-      style={{ marginBottom: 10 }}
+      style={{ marginBottom: space.room }}
     />
   );
 
@@ -983,16 +1001,16 @@ export default function CourseHubScreen() {
       <SectionLabel text={section.title} />
 
       {section.key === "notes" ? (
-        <View style={{ gap: 10, marginBottom: 10 }}>
+        <View style={{ gap: space.room, marginBottom: space.room }}>
           {isEnrolled ? (
             pickedFile ? (
-              <Card style={{ gap: 12 }}>
+              <Card style={{ gap: space.close }}>
                 <View
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    gap: 8,
+                    gap: space.cosy,
                   }}
                 >
                   <AppText variant="title">Share a note</AppText>
@@ -1019,7 +1037,7 @@ export default function CourseHubScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 6,
+                    gap: space.snug,
                   }}
                 >
                   <Feather name="paperclip" size={13} color={theme.muted} />
@@ -1055,7 +1073,7 @@ export default function CourseHubScreen() {
                   style={{
                     flexDirection: "row",
                     justifyContent: "flex-end",
-                    gap: 8,
+                    gap: space.cosy,
                   }}
                 >
                   <Button
@@ -1077,7 +1095,7 @@ export default function CourseHubScreen() {
                 </View>
               </Card>
             ) : (
-              <View style={{ gap: 8 }}>
+              <View style={{ gap: space.cosy }}>
                 <Button
                   label="Share notes"
                   variant="secondary"
@@ -1119,7 +1137,7 @@ export default function CourseHubScreen() {
           paddingTop: insets.top + space.close,
         }}
       >
-        <View style={{ paddingHorizontal: 12 }}>
+        <View style={{ paddingHorizontal: space.close }}>
           <BackChevron onPress={goBack} />
         </View>
         {status === "loading" ? (
@@ -1175,7 +1193,7 @@ export default function CourseHubScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 12 }}>
+      <View style={{ paddingHorizontal: space.close }}>
         <BackChevron onPress={goBack} />
       </View>
 
@@ -1189,7 +1207,7 @@ export default function CourseHubScreen() {
         keyboardDismissMode="on-drag"
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
         refreshControl={
@@ -1212,9 +1230,9 @@ export default function CourseHubScreen() {
               style={{
                 backgroundColor: tint.soft,
                 borderRadius: radius.card,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                gap: 4,
+                paddingHorizontal: space.card,
+                paddingVertical: space.close,
+                gap: space.tight,
               }}
             >
               <AppText variant="display" style={{ color: tint.ink }}>
@@ -1238,7 +1256,7 @@ export default function CourseHubScreen() {
                   />
                 }
                 onPress={() => router.push(`/channel/${channelId}`)}
-                style={{ marginTop: 12 }}
+                style={{ marginTop: space.close }}
               />
             ) : null}
             {!isEnrolled ? (
@@ -1247,9 +1265,9 @@ export default function CourseHubScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 10,
-                  padding: 12,
-                  marginTop: 12,
+                  gap: space.room,
+                  padding: space.close,
+                  marginTop: space.close,
                   backgroundColor: theme.surface2,
                 }}
               >
@@ -1270,7 +1288,10 @@ export default function CourseHubScreen() {
             {/* Who's heads-down in this class right now. It draws nothing at
                 all on a quiet day — no loading row, no empty state — so it
                 costs the hub nothing until it has something warm to say. */}
-            <FocusStrip courseId={courseId} style={{ marginTop: 12 }} />
+            <FocusStrip
+              courseId={courseId}
+              style={{ marginTop: space.close }}
+            />
 
             {/* Course details — who teaches it, when it meets, where.
                 Classmate-kept, like the course list itself. */}
@@ -1282,9 +1303,9 @@ export default function CourseHubScreen() {
                   : undefined
               }
             />
-            <View style={{ gap: 10 }}>
+            <View style={{ gap: space.room }}>
               {editingDetails ? (
-                <Card style={{ gap: 12 }}>
+                <Card style={{ gap: space.close }}>
                   <Field
                     label="Instructor"
                     value={draftInstructor}
@@ -1313,7 +1334,7 @@ export default function CourseHubScreen() {
                     style={{
                       flexDirection: "row",
                       justifyContent: "flex-end",
-                      gap: 8,
+                      gap: space.cosy,
                     }}
                   >
                     <Button
@@ -1339,9 +1360,9 @@ export default function CourseHubScreen() {
                       style={{
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: 10,
-                        paddingHorizontal: 14,
-                        paddingVertical: 10,
+                        gap: space.room,
+                        paddingHorizontal: space.card,
+                        paddingVertical: space.room,
                         minHeight: 48,
                         borderTopWidth: index === 0 ? 0 : 1,
                         borderTopColor: theme.border,
@@ -1390,8 +1411,8 @@ export default function CourseHubScreen() {
               style={{
                 flexDirection: "row",
                 flexWrap: "wrap",
-                gap: 10,
-                marginTop: 16,
+                gap: space.room,
+                marginTop: space.card,
               }}
             >
               <DoorwayTile
@@ -1506,7 +1527,7 @@ export default function CourseHubScreen() {
 
             {/* Class calendar — the next few shared dates, previewed. */}
             <SectionLabel text="Class calendar" />
-            <View style={{ gap: 10 }}>
+            <View style={{ gap: space.room }}>
               {upcoming.length > 0 ? (
                 <Card padded={false}>
                   {upcoming.map((item, index) => (
@@ -1515,9 +1536,9 @@ export default function CourseHubScreen() {
                       style={{
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: 10,
-                        paddingHorizontal: 14,
-                        paddingVertical: 10,
+                        gap: space.room,
+                        paddingHorizontal: space.card,
+                        paddingVertical: space.room,
                         minHeight: 48,
                         borderTopWidth: index === 0 ? 0 : 1,
                         borderTopColor: theme.border,
@@ -1567,7 +1588,7 @@ export default function CourseHubScreen() {
 
             {/* Study sessions — course-linked events, planned right here. */}
             <SectionLabel text="Study sessions" />
-            <View style={{ gap: 10 }}>
+            <View style={{ gap: space.room }}>
               {sessions.length > 0 ? (
                 <Card padded={false}>
                   {sessions.map((event, index) => (
@@ -1584,9 +1605,9 @@ export default function CourseHubScreen() {
                         style={{
                           flexDirection: "row",
                           alignItems: "center",
-                          gap: 10,
-                          paddingHorizontal: 14,
-                          paddingVertical: 10,
+                          gap: space.room,
+                          paddingHorizontal: space.card,
+                          paddingVertical: space.room,
                           minHeight: 48,
                           borderTopWidth: index === 0 ? 0 : 1,
                           borderTopColor: theme.border,

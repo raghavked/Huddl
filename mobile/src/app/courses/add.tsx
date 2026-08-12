@@ -137,20 +137,20 @@ function InlineBanner({
   return (
     <View
       style={{
-        gap: 2,
+        gap: space.hair,
         backgroundColor: bg,
         borderRadius: radius.control,
-        paddingHorizontal: 12,
+        paddingHorizontal: space.close,
         paddingVertical: action ? 6 : 10,
-        marginBottom: 10,
+        marginBottom: space.room,
       }}
     >
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 8,
-          ...(action ? { paddingVertical: 4 } : null),
+          gap: space.cosy,
+          ...(action ? { paddingVertical: space.tight } : null),
         }}
       >
         <Feather name={icon} size={16} color={fg} />
@@ -167,9 +167,9 @@ function InlineBanner({
           style={({ pressed }) => ({
             flexDirection: "row",
             alignItems: "center",
-            gap: 6,
+            gap: space.snug,
             minHeight: 44,
-            marginLeft: 24,
+            marginLeft: space.chapter,
             opacity: pressed ? 0.6 : 1,
           })}
         >
@@ -204,13 +204,13 @@ function ResultRow({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
+        gap: space.close,
+        paddingHorizontal: space.card,
+        paddingVertical: space.close,
         minHeight: 76,
       }}
     >
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: space.hair }}>
         <AppText variant="bodySemi" numberOfLines={1}>
           {item.code}
         </AppText>
@@ -229,9 +229,15 @@ function ResultRow({
           and the backend has allowed the add since migration 0017: "the
           catalog is a typeahead convenience, never a gate." So the caption
           says what the catalog knows and the button stays live either way. */}
-      <View style={{ alignItems: "flex-end", gap: 6 }}>
+      <View style={{ alignItems: "flex-end", gap: space.snug }}>
         {item.offered_now ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.snug,
+            }}
+          >
             <View
               style={{
                 width: 7,
@@ -258,9 +264,9 @@ function ResultRow({
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 5,
+              gap: space.snug,
               height: 38,
-              paddingHorizontal: 8,
+              paddingHorizontal: space.cosy,
             }}
             accessibilityLabel={`${item.code} added`}
           >
@@ -303,13 +309,15 @@ function PasteDraftRow({
   return (
     <View
       style={{
-        gap: 6,
-        paddingTop: 10,
+        gap: space.snug,
+        paddingTop: space.room,
         borderTopWidth: 1,
         borderTopColor: theme.border,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View
+        style={{ flexDirection: "row", alignItems: "center", gap: space.cosy }}
+      >
         <Chip label={row.code} tone="brand" />
         <TextInput
           accessibilityLabel={`Title for ${row.code}`}
@@ -328,8 +336,8 @@ function PasteDraftRow({
             borderColor: theme.border,
             borderRadius: radius.control,
             backgroundColor: theme.surface,
-            paddingHorizontal: 10,
-            paddingVertical: 8,
+            paddingHorizontal: space.room,
+            paddingVertical: space.cosy,
             fontFamily: fonts.body,
             fontSize: 14,
             color: theme.foreground,
@@ -354,7 +362,13 @@ function PasteDraftRow({
         </Pressable>
       </View>
       {row.confidence === "low" ? (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.snug,
+          }}
+        >
           <Feather name="alert-circle" size={12} color={theme.brandInk} />
           <AppText variant="caption" style={{ color: theme.brandInk, flex: 1 }}>
             just the code came through — add a title if you want one
@@ -863,7 +877,7 @@ export default function AddCoursesScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={{ flex: 1, paddingTop: insets.top + space.close }}>
-        <View style={{ paddingHorizontal: 12 }}>
+        <View style={{ paddingHorizontal: space.close }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back"
@@ -884,16 +898,16 @@ export default function AddCoursesScreen() {
           </Pressable>
         </View>
 
-        <View style={{ flex: 1, paddingHorizontal: 20 }}>
-          <AppText variant="display" style={{ marginTop: 2 }}>
+        <View style={{ flex: 1, paddingHorizontal: space.gutter }}>
+          <AppText variant="display" style={{ marginTop: space.hair }}>
             Add courses
           </AppText>
-          <AppText variant="caption" muted style={{ marginTop: 6 }}>
+          <AppText variant="caption" muted style={{ marginTop: space.snug }}>
             Your classes, your call — search the catalog to save some typing,
             or add any class by hand.
           </AppText>
 
-          <View style={{ marginTop: 14, marginBottom: 12 }}>
+          <View style={{ marginTop: space.card, marginBottom: space.close }}>
             <Field
               label="Search the catalog"
               value={query}
@@ -940,7 +954,7 @@ export default function AddCoursesScreen() {
                 {searchError ? (
                   <AppText
                     variant="caption"
-                    style={{ color: theme.danger, marginBottom: 10 }}
+                    style={{ color: theme.danger, marginBottom: space.room }}
                   >
                     We couldn't search the catalog just now — check your
                     connection and keep typing to retry.
@@ -953,7 +967,7 @@ export default function AddCoursesScreen() {
                   accessibilityLabel="Paste your schedule"
                   onPress={() => setPasteOpen(true)}
                   style={({ pressed }) => ({
-                    marginBottom: 12,
+                    marginBottom: space.close,
                     opacity: pressed ? 0.7 : 1,
                   })}
                 >
@@ -962,9 +976,9 @@ export default function AddCoursesScreen() {
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      gap: 12,
-                      paddingHorizontal: 14,
-                      paddingVertical: 12,
+                      gap: space.close,
+                      paddingHorizontal: space.card,
+                      paddingVertical: space.close,
                       minHeight: 64,
                     }}
                   >
@@ -984,7 +998,7 @@ export default function AddCoursesScreen() {
                         color={theme.brand}
                       />
                     </View>
-                    <View style={{ flex: 1, gap: 2 }}>
+                    <View style={{ flex: 1, gap: space.hair }}>
                       <AppText variant="bodySemi">Paste your schedule</AppText>
                       <AppText variant="caption" muted>
                         Copy it out of the registrar and drop the whole thing
@@ -1003,8 +1017,8 @@ export default function AddCoursesScreen() {
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      gap: 8,
-                      marginBottom: 10,
+                      gap: space.cosy,
+                      marginBottom: space.room,
                     }}
                   >
                     {searching ? (
@@ -1018,7 +1032,7 @@ export default function AddCoursesScreen() {
               </View>
             }
             renderItem={({ item }) => (
-              <View style={{ marginBottom: 10 }}>
+              <View style={{ marginBottom: space.room }}>
                 <ResultRow
                   item={item}
                   added={added.has(item.id)}
@@ -1029,9 +1043,13 @@ export default function AddCoursesScreen() {
               </View>
             )}
             ListFooterComponent={
-              <Card style={{ marginTop: 8, gap: 10 }}>
+              <Card style={{ marginTop: space.cosy, gap: space.room }}>
                 <View
-                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: space.cosy,
+                  }}
                 >
                   <Feather name="help-circle" size={16} color={theme.brand} />
                   <AppText variant="title">Can't find your class?</AppText>
@@ -1045,8 +1063,8 @@ export default function AddCoursesScreen() {
                   style={{
                     borderTopWidth: 1,
                     borderTopColor: theme.border,
-                    paddingTop: 12,
-                    gap: 10,
+                    paddingTop: space.close,
+                    gap: space.room,
                   }}
                 >
                   <Field
@@ -1075,12 +1093,12 @@ export default function AddCoursesScreen() {
                     </AppText>
                   ) : null}
                   {fbDone ? (
-                    <View style={{ gap: 2 }}>
+                    <View style={{ gap: space.hair }}>
                       <View
                         style={{
                           flexDirection: "row",
                           alignItems: "center",
-                          gap: 6,
+                          gap: space.snug,
                         }}
                       >
                         <Feather name="check" size={14} color={theme.success} />
@@ -1099,9 +1117,9 @@ export default function AddCoursesScreen() {
                           style={({ pressed }) => ({
                             flexDirection: "row",
                             alignItems: "center",
-                            gap: 6,
+                            gap: space.snug,
                             minHeight: 44,
-                            marginLeft: 20,
+                            marginLeft: space.gutter,
                             opacity: pressed ? 0.6 : 1,
                           })}
                         >
@@ -1143,7 +1161,10 @@ export default function AddCoursesScreen() {
       >
         <ScrollView
           style={{ flexShrink: 1 }}
-          contentContainerStyle={{ gap: 10, paddingBottom: 4 }}
+          contentContainerStyle={{
+            gap: space.room,
+            paddingBottom: space.tight,
+          }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -1185,7 +1206,7 @@ export default function AddCoursesScreen() {
           disabled={pasteBusy || draftCount === 0 || !ctx}
           icon={<Feather name="check" size={16} color={theme.brandFg} />}
           onPress={() => void addPasted()}
-          style={{ marginTop: 6 }}
+          style={{ marginTop: space.snug }}
         />
         <View style={{ height: keyboardLift }} />
       </Sheet>
