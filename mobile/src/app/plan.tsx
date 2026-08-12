@@ -1126,6 +1126,8 @@ export default function PlanScreen() {
                         onPress={() => pickLead(choice)}
                       />
                     </View>
+                    {/* 46 lines the warning up with the row labels above:
+                        Sheet.Row draws a 36px icon tile and a 10 gap. */}
                     {pastChoice === choice.minutes ? (
                       <AppText
                         variant="caption"
