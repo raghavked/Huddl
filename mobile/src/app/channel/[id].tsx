@@ -427,7 +427,21 @@ export default function ChannelRoomScreen() {
   >({});
   const reactionsRef = useRef(reactionsByMessage);
   reactionsRef.current = reactionsByMessage;
-  const [replyCounts, setReplyCounts] = useState<Record<string, number>>({});
+  /* Optimistic-write guards for reactions, the shape PollBubble uses for
+     votes: a fetch that overlapped one of our toggles came back with a
+     snapshot from before it, and landing that would erase the pill.
+     message_reactions isn't in the realtime publication, so nothing would
+     ever put the pill back — so an overlapped response is dropped, and the
+     read happens again once the write has settled. */
+  const reactionWritesRef = useRef(0);
+  const reactionWritesDoneRef = useRef(0);
+  const deferredReactionsRef = useRef(new Set<string>());
+  // Who replied, not how many: the badge has to drop blocked classmates the
+  // way the thread screen does, and `blocked` can change while the room is
+  // open — so the count is derived at render, from these author ids.
+  const [replyAuthors, setReplyAuthors] = useState<Record<string, string[]>>(
+    {}
+  );
   const countedRepliesRef = useRef(new Set<string>());
   const [actionsFor, setActionsFor] = useState<MessageRow | null>(null);
   const [selfName, setSelfName] = useState<string | null>(null);
@@ -582,37 +596,54 @@ export default function ChannelRoomScreen() {
   /** One batched fetch of reactions for a page of messages — web's pattern. */
   const loadReactions = useCallback(async (messageIds: string[]) => {
     if (messageIds.length === 0) return;
-    const { data } = await supabase
-      .from("message_reactions")
-      .select("*")
-      .in("message_id", messageIds);
-    if (!data) return;
-    setReactionsByMessage((prev) => {
-      const next = { ...prev };
-      for (const id of messageIds) next[id] = [];
-      for (const row of data as ReactionRow[]) {
-        (next[row.message_id] ??= []).push(row);
+    // Read until a snapshot comes back that none of our toggles moved
+    // underneath it — the updater below resets each message's list, so an
+    // older snapshot would erase an optimistic pill for good.
+    for (;;) {
+      const writesDone = reactionWritesDoneRef.current;
+      const { data } = await supabase
+        .from("message_reactions")
+        .select("*")
+        .in("message_id", messageIds);
+      if (!data) return;
+      if (reactionWritesRef.current > 0) {
+        // A toggle is still in the air; it re-reads these on its way out.
+        for (const id of messageIds) deferredReactionsRef.current.add(id);
+        return;
       }
-      return next;
-    });
+      // A toggle settled while this was in flight: the snapshot predates it,
+      // so ask again rather than land it.
+      if (reactionWritesDoneRef.current !== writesDone) continue;
+      setReactionsByMessage((prev) => {
+        const next = { ...prev };
+        for (const id of messageIds) next[id] = [];
+        for (const row of data as ReactionRow[]) {
+          (next[row.message_id] ??= []).push(row);
+        }
+        return next;
+      });
+      return;
+    }
   }, []);
 
-  /** One batched reply-count fetch, remembering each counted reply id so the
-      realtime bump below never double-counts an already-seen reply. */
+  /** One batched fetch of who replied to this page, remembering each counted
+      reply id so the realtime bump below never double-counts an already-seen
+      reply. */
   const loadReplyCounts = useCallback(async (messageIds: string[]) => {
     if (messageIds.length === 0) return;
     const { data } = await supabase
       .from("messages")
-      .select("id, parent_id")
+      .select("id, parent_id, author_id")
       .in("parent_id", messageIds)
       .is("deleted_at", null);
     if (!data) return;
-    const counts: Record<string, number> = {};
-    for (const row of data as { id: string; parent_id: string }[]) {
+    const authors: Record<string, string[]> = {};
+    const rows = data as { id: string; parent_id: string; author_id: string }[];
+    for (const row of rows) {
       countedRepliesRef.current.add(row.id);
-      counts[row.parent_id] = (counts[row.parent_id] ?? 0) + 1;
+      (authors[row.parent_id] ??= []).push(row.author_id);
     }
-    setReplyCounts(counts);
+    setReplyAuthors(authors);
   }, []);
 
   /** Which of these messages I've saved — one query per loaded page keeps
@@ -691,14 +722,17 @@ export default function ChannelRoomScreen() {
 
   /** Count each reply exactly once, whether it arrives via the initial batch
       load or a realtime echo (including our own sends from the thread screen). */
-  const bumpReplyCount = useCallback((parentId: string, replyId: string) => {
-    if (countedRepliesRef.current.has(replyId)) return;
-    countedRepliesRef.current.add(replyId);
-    setReplyCounts((prev) => ({
-      ...prev,
-      [parentId]: (prev[parentId] ?? 0) + 1,
-    }));
-  }, []);
+  const bumpReplyCount = useCallback(
+    (parentId: string, replyId: string, authorId: string) => {
+      if (countedRepliesRef.current.has(replyId)) return;
+      countedRepliesRef.current.add(replyId);
+      setReplyAuthors((prev) => ({
+        ...prev,
+        [parentId]: [...(prev[parentId] ?? []), authorId],
+      }));
+    },
+    []
+  );
 
   /** Optimistic toggle in message_reactions — the pill flips instantly, and
       anything but a double-tap race (23505) reverts to server truth. */
@@ -727,19 +761,39 @@ export default function ChannelRoomScreen() {
               ],
         };
       });
-      const { error: reactError } = mine
-        ? await supabase
-            .from("message_reactions")
-            .delete()
-            .eq("message_id", messageId)
-            .eq("user_id", userId)
-            .eq("emoji", emoji)
-        : await supabase
-            .from("message_reactions")
-            .insert({ message_id: messageId, user_id: userId, emoji });
+      reactionWritesRef.current += 1;
+      let reactError: { code: string } | null = null;
+      try {
+        const { error } = mine
+          ? await supabase
+              .from("message_reactions")
+              .delete()
+              .eq("message_id", messageId)
+              .eq("user_id", userId)
+              .eq("emoji", emoji)
+          : await supabase
+              .from("message_reactions")
+              .insert({ message_id: messageId, user_id: userId, emoji });
+        reactError = error;
+      } finally {
+        // In a finally so a thrown fetch can't leave the guard raised, which
+        // would hold every later fetch back for the life of the screen.
+        reactionWritesRef.current -= 1;
+        reactionWritesDoneRef.current += 1;
+      }
       if (reactError && reactError.code !== "23505") {
         await loadReactions([messageId]);
         setSendError("That reaction didn't save — give it another tap.");
+      }
+      // Whatever a fetch held back while we were writing gets its re-read now
+      // that the server has our row.
+      if (
+        reactionWritesRef.current === 0 &&
+        deferredReactionsRef.current.size > 0
+      ) {
+        const held = [...deferredReactionsRef.current];
+        deferredReactionsRef.current.clear();
+        void loadReactions(held);
       }
     },
     [userId, loadReactions]
@@ -1095,7 +1149,7 @@ export default function ChannelRoomScreen() {
           markRead();
           if (row.parent_id) {
             // Replies never join the main list — just bump the badge.
-            bumpReplyCount(row.parent_id, row.id);
+            bumpReplyCount(row.parent_id, row.id, row.author_id);
             return;
           }
           if (row.author_id === userId) return;
@@ -1275,34 +1329,50 @@ export default function ChannelRoomScreen() {
     setMessages((prev) => [optimistic, ...prev]);
     tapLight(); // the send lands with the optimistic bubble, not the round-trip
     setSending(true);
+    // Queue it first, then send the queue's own row. The point is the id: both
+    // attempts carry the same primary key, so a send that commits but never
+    // answers is retried as a unique violation the queue reads as "it already
+    // landed" — rather than as a second copy of the message. See
+    // QueuedMessage.id in drafts.ts.
+    let queued: QueuedMessage | null = null;
+    let queueError: unknown = null;
+    try {
+      queued = await enqueue({
+        key: conversationKey,
+        table: "messages",
+        payload: { channel_id: channelId, author_id: userId, content },
+      });
+    } catch (thrown) {
+      // The device wouldn't hold it. Still worth the wire — this one send
+      // just goes out with nothing behind it if it fails.
+      queueError = thrown;
+    }
     const { data, error: insertError } = await supabase
       .from("messages")
-      .insert({ channel_id: channelId, author_id: userId, content })
+      .insert(
+        queued?.payload ?? { channel_id: channelId, author_id: userId, content }
+      )
       .select(MESSAGE_SELECT)
       .single();
     setSending(false);
     if (insertError || !data) {
       noteConnectivity(!isLikelyOffline(insertError));
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      // Hold it rather than drop it: the optimistic bubble becomes a pending
-      // one, and the words stay in the room where they were typed.
-      try {
-        await enqueue({
-          key: conversationKey,
-          table: "messages",
-          payload: { channel_id: channelId, author_id: userId, content },
-        });
-        await refreshPending();
-        void runFlush();
-      } catch (queueError) {
-        // The device wouldn't hold it either — give the words back.
+      if (!queued) {
+        // Nothing is holding it — give the words back.
         setDraft(content);
         setSendError(
           queueError instanceof DraftError
             ? queueError.message
             : "Couldn't send that — check your connection and try again."
         );
+        return;
       }
+      // It's already queued under the id we just tried: the optimistic bubble
+      // becomes a pending one, and the words stay in the room where they were
+      // typed.
+      await refreshPending();
+      void runFlush();
       return;
     }
     noteConnectivity(true);
@@ -1314,6 +1384,13 @@ export default function ChannelRoomScreen() {
       ...prev.filter((m) => m.id !== tempId && m.id !== real.id),
     ]);
     markRead();
+    // The row is in the table, so the queue's copy has done its job. If this
+    // drop is the thing that fails, the next flush hits 23505 and reads it as
+    // sent anyway.
+    if (queued) {
+      await dropQueued(queued.id);
+      await refreshPending();
+    }
   }, [
     draft,
     sending,
@@ -1650,6 +1727,17 @@ export default function ChannelRoomScreen() {
     () => pinned.filter((m) => !blocked.has(m.author_id)),
     [pinned, blocked]
   );
+  // Same gate on the reply badge: the thread screen hides blocked classmates'
+  // replies, so counting them here would leave a pill that opens an empty
+  // thread — and quietly report that someone you blocked is still talking.
+  const replyCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const [parentId, authors] of Object.entries(replyAuthors)) {
+      const count = authors.filter((id) => !blocked.has(id)).length;
+      if (count > 0) counts[parentId] = count;
+    }
+    return counts;
+  }, [replyAuthors, blocked]);
 
   const renderMessage = useCallback(
     ({ item, index }: ListRenderItemInfo<MessageRow>) => {

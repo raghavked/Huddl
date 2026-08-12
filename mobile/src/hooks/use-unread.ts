@@ -32,17 +32,27 @@ export function useUnreadNotifications(): {
   const userId = session?.user.id ?? null;
   const [count, setCount] = useState(0);
 
+  // Two writers, one number: the head count below and the realtime INSERT
+  // handler. A notification that lands mid-flight used to be added to the
+  // badge and then wiped by the older count, leaving the bell dark until the
+  // student left the screen and came back. So every arrival is tallied here
+  // and the ones that landed during a count are added back on top of it.
+  const arrivals = useRef(0);
+
   const refresh = useCallback(async () => {
     if (!userId) {
       setCount(0);
       return;
     }
+    const arrivalsAtIssue = arrivals.current;
     const { count: unread, error } = await supabase
       .from("notifications")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .is("read_at", null);
-    if (!error && unread !== null) setCount(unread);
+    if (!error && unread !== null) {
+      setCount(unread + (arrivals.current - arrivalsAtIssue));
+    }
   }, [userId]);
 
   useEffect(() => {
@@ -78,7 +88,9 @@ export function useUnreadNotifications(): {
         },
         (payload: RealtimePostgresInsertPayload<UnreadRow>) => {
           // Rows are born unread, but stay defensive about the column.
-          if (!payload.new.read_at) setCount((c) => c + 1);
+          if (payload.new.read_at) return;
+          arrivals.current += 1;
+          setCount((c) => c + 1);
         }
       )
       .subscribe();

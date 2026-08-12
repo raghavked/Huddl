@@ -427,7 +427,20 @@ export default function DmRoomScreen() {
       setPeople(roster);
       setOther(otherProfile);
       const rows = (messagesRes.data ?? []) as DmMessage[];
-      setMessages(rows);
+      // The subscription is usually live before these two round trips
+      // finish, so a message can land while we're still fetching — and this
+      // snapshot predates it. Replacing outright would lose it for good:
+      // markRead below moves the cursor past it, so the Messages list won't
+      // flag it either. Keep whatever arrived and re-sort newest first.
+      setMessages((prev) => {
+        const fetched = new Set(rows.map((row) => row.id));
+        const late = prev.filter((m) => !fetched.has(m.id));
+        return late.length === 0
+          ? rows
+          : [...late, ...rows].sort((a, b) =>
+              b.created_at.localeCompare(a.created_at)
+            );
+      });
       void loadSaved(rows.map((m) => m.id));
       void loadForwardedNames(rows);
       // Mount: advance the read cursor once we're actually looking.
@@ -922,14 +935,16 @@ export default function DmRoomScreen() {
   // gate on the composer — their messages simply don't render.
   const otherBlocked = !isGroup && other !== null && blocked.has(other.id);
 
+  // A block hides their words everywhere, and a 1:1 is no exception — the
+  // insert policy only knows about participation, so nothing stops a blocked
+  // person typing on. The room is what keeps the promise, same as the web
+  // one. Unblocking brings them straight back: this filters at render.
   const visibleMessages = useMemo(
     () =>
-      isGroup
-        ? messages.filter(
-            (m) => m.author_id === userId || !blocked.has(m.author_id)
-          )
-        : messages,
-    [isGroup, messages, userId, blocked]
+      messages.filter(
+        (m) => m.author_id === userId || !blocked.has(m.author_id)
+      ),
+    [messages, userId, blocked]
   );
 
   const handleUnblock = useCallback(async () => {
@@ -1342,7 +1357,12 @@ export default function DmRoomScreen() {
         </View>
       ) : (
         <>
-          {visibleMessages.length === 0 && pending.length === 0 ? (
+          {/* A room emptied by a block isn't a fresh one — there's no
+              composer to say hi with, so the banner below explains the
+              quiet instead of inviting her to break it. */}
+          {visibleMessages.length === 0 &&
+          pending.length === 0 &&
+          !otherBlocked ? (
             <View
               style={{
                 flex: 1,
