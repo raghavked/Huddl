@@ -39,6 +39,7 @@ import {
   GROUP_MIN_PEOPLE,
   GROUP_TITLE_MAX,
   GroupDmError,
+  warmDmError,
   type ThreadPerson,
 } from "@/lib/group-dm";
 import { tapSuccess } from "@/lib/haptics";
@@ -556,9 +557,15 @@ export default function NewMessageScreen() {
       if (error || !threadId) throw error ?? new Error("No thread");
       tapSuccess(); // the conversation is open — that's a completion
       router.replace(`/dm/${threadId}`);
-    } catch {
+    } catch (err) {
+      // A dm_privacy wall (0040) is not a hiccup — telling a student to "give
+      // it another go" against a setting that won't move is the wrong story.
+      // warmDmError names the wall and falls back to the retry copy otherwise.
       setFormError(
-        "We couldn't open that conversation just now. Give it another go."
+        warmDmError(
+          err,
+          "We couldn't open that conversation just now. Give it another go."
+        )
       );
       setPending(false);
     }

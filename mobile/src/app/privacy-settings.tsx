@@ -18,28 +18,41 @@ import {
   Skeleton,
 } from "@/components/ui";
 import { radius, space } from "@/constants/theme";
-import { usePrivacyPrefs, type PrivacyPrefs } from "@/hooks/use-privacy-prefs";
+import {
+  DM_PRIVACY_OPTIONS,
+  usePrivacyPrefs,
+  type DmPrivacy,
+  type PrivacyPrefs,
+} from "@/hooks/use-privacy-prefs";
 import { useTheme } from "@/hooks/use-theme";
 
-/* Privacy — the reciprocal signal you can switch off, and a plain account of
-   what campus can and can't see about you.
+/* Privacy — the two controls a student can actually reach, and a plain
+   account of what campus can and can't see about them.
 
-   This screen is meant to reassure, not to administrate. A switch, one
-   sentence saying what it currently means, and then prose: the things
-   classmates can see, the things nobody can, and the two places a student
-   would go next. No counters, no percentages, no dashboard.
+   This screen is meant to reassure, not to administrate. A switch, a picker,
+   one sentence each saying what the current setting means, and then prose:
+   the things classmates can see, the things nobody can, and the two places a
+   student would go next. No counters, no percentages, no dashboard.
 
    Every sentence on this screen is a claim about a student's safety, so it
    has to be checkable against the code, not merely comforting. Two used not
    to be: a Read receipts switch that wrote a column nothing consulted (see
    `hooks/use-privacy-prefs.ts` for why it was removed rather than left
    inert), and "turn off Public profile and you leave the people directory
-   altogether", which was never how `is_public` worked. */
+   altogether", which was never how `is_public` worked.
+
+   That standard is why the DM picker's copy spends as many words on what it
+   does NOT do as on what it does. Migration 0040 binds the setting to the
+   moment a thread is created and nowhere else, so a student who reads
+   "Nobody new" and expects silence would be reading a promise the database
+   never made. Saying "the ones you're already in carry on" up front is
+   cheaper than the surprise. */
 
 /* ----------------------------- the switch ---------------------------- */
 
 type PrivacyToggle = {
-  key: keyof PrivacyPrefs;
+  /** Only the boolean preferences belong here; the picker is its own row. */
+  key: "shareTyping";
   icon: keyof typeof Feather.glyphMap;
   label: string;
   /** States the reciprocity in one sentence. Both halves, every time. */
@@ -55,6 +68,58 @@ const TOGGLES: PrivacyToggle[] = [
       "Turn this off and nobody sees you composing a message — and you stop seeing them, too.",
   },
 ];
+
+/* ----------------------------- the picker ---------------------------- */
+
+/**
+ * The three values of `profiles.dm_privacy`, said in a student's words.
+ *
+ * A `Record` rather than a list so a fourth value added to {@link DmPrivacy}
+ * fails the typecheck here instead of quietly rendering nothing; the order
+ * they're offered in is `DM_PRIVACY_OPTIONS`, widest first.
+ */
+const DM_OPTIONS: Record<
+  DmPrivacy,
+  { icon: keyof typeof Feather.glyphMap; label: string; caption: string }
+> = {
+  campus: {
+    icon: "globe",
+    label: "Anyone on campus",
+    caption:
+      "Anyone who can find your profile can start a conversation. This is how Huddl starts out.",
+  },
+  classmates: {
+    icon: "book-open",
+    label: "People in my classes",
+    caption:
+      "Only someone you share a course with — one you're in now, or one you took a term ago.",
+  },
+  nobody: {
+    icon: "lock",
+    label: "Nobody new",
+    caption:
+      "No new conversations. The ones you're already in carry on as they are.",
+  },
+};
+
+/**
+ * What the chosen option means, in one sentence under the card.
+ *
+ * Pure, like {@link sharingSentence}, and deliberately silent about who gets
+ * told what: on 'classmates' the refusal a stranger sees is the same vague
+ * line everyone else gets, because naming the reason would leak which of
+ * their courses you aren't in.
+ */
+function dmSentence(value: DmPrivacy): string {
+  switch (value) {
+    case "campus":
+      return "Anyone at your university can open a thread with you, which is what Huddl has always done. Narrowing it later never closes a conversation you're already in.";
+    case "classmates":
+      return "Someone who shares a course with you can start a thread or add you to a group chat. Everyone else is told you aren't taking new messages, and nothing more than that — not which classes you're in, and not that they were refused by name.";
+    case "nobody":
+      return "Nobody new can open a thread with you or add you to a group chat. You can still start one with anyone you like, and everything you're already in keeps running.";
+  }
+}
 
 /**
  * What the current setting actually means, in one sentence under the card.
@@ -134,8 +199,92 @@ function SwitchRow({
   );
 }
 
-/** The ghost of a SwitchRow, for the beat before the profile lands. */
-function SwitchRowSkeleton({ first }: { first: boolean }) {
+/**
+ * One option of the DM picker: the SwitchRow's shape with a trailing check
+ * instead of a switch, in `Sheet.Row`'s picker idiom — the mark on the
+ * trailing edge *and* `accessibilityState`, never the state spelled into the
+ * label.
+ */
+function OptionRow({
+  icon,
+  label,
+  caption,
+  first,
+  selected,
+  onPress,
+}: {
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+  caption: string;
+  first: boolean;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      // The caption is the difference between the three, so it's said too.
+      accessibilityLabel={`${label}. ${caption}`}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: 44,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: space.close,
+        paddingHorizontal: space.card,
+        paddingVertical: space.close,
+        borderTopWidth: first ? 0 : 1,
+        borderTopColor: theme.border,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: radius.control,
+          backgroundColor: selected ? theme.brandSoft : theme.surface2,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Feather
+          name={icon}
+          size={16}
+          color={selected ? theme.brand : theme.muted}
+        />
+      </View>
+      <View style={{ flex: 1, gap: space.hair }}>
+        <AppText variant="bodySemi">{label}</AppText>
+        <AppText variant="caption" muted>
+          {caption}
+        </AppText>
+      </View>
+      {/* Kept in the layout unselected so choosing doesn't shuffle the text
+          beside it by 18px. */}
+      <View style={{ width: 18, alignItems: "center" }}>
+        {selected ? (
+          <Feather name="check" size={18} color={theme.brand} />
+        ) : null}
+      </View>
+    </Pressable>
+  );
+}
+
+/**
+ * The ghost of a row, for the beat before the profile lands. `trailing` is
+ * which control sits on the right — a switch is a wide pill, a picker's
+ * check is a small mark.
+ */
+function RowSkeleton({
+  first,
+  trailing,
+}: {
+  first: boolean;
+  trailing: "switch" | "check";
+}) {
   const theme = useTheme();
   return (
     <View
@@ -155,7 +304,11 @@ function SwitchRowSkeleton({ first }: { first: boolean }) {
         <Skeleton width="46%" height={13} radius={radius.full} />
         <Skeleton width="86%" height={10} radius={radius.full} />
       </View>
-      <Skeleton width={44} height={26} radius={radius.full} />
+      {trailing === "switch" ? (
+        <Skeleton width={44} height={26} radius={radius.full} />
+      ) : (
+        <Skeleton width={18} height={18} radius={radius.full} />
+      )}
     </View>
   );
 }
@@ -290,8 +443,7 @@ export default function PrivacySettingsScreen() {
         Privacy
       </AppText>
       <AppText variant="caption" muted style={{ marginTop: space.tight, marginBottom: space.cosy }}>
-        One signal you can switch off, and a straight account of everything
-        else.
+        Two things you can set, and a straight account of everything else.
       </AppText>
 
       <ScrollView
@@ -310,6 +462,8 @@ export default function PrivacySettingsScreen() {
         <SectionLabel text="What you share" first />
 
         {error ? (
+          /* One failure, one retry: both controls read the same row, so
+             there is nothing to show for either until it lands. */
           <EmptyState
             icon="cloud-off"
             title="We couldn't reach your settings"
@@ -321,7 +475,11 @@ export default function PrivacySettingsScreen() {
             <Card padded={false}>
               {loading
                 ? TOGGLES.map((toggle, index) => (
-                    <SwitchRowSkeleton key={toggle.key} first={index === 0} />
+                    <RowSkeleton
+                      key={toggle.key}
+                      first={index === 0}
+                      trailing="switch"
+                    />
                   ))
                 : TOGGLES.map((toggle, index) => (
                     <SwitchRow
@@ -343,14 +501,88 @@ export default function PrivacySettingsScreen() {
                 {sharingSentence(prefs)}
               </AppText>
             )}
-            {saveError ? (
+            {saveError?.key === "shareTyping" ? (
               <AppText
                 variant="caption"
+                accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginTop: space.snug }}
               >
-                {saveError}
+                {saveError.message}
               </AppText>
             ) : null}
+
+            <SectionLabel text="Who can message you" />
+
+            <Card padded={false}>
+              <View
+                accessibilityRole="radiogroup"
+                accessibilityLabel="Who can start a conversation with you"
+              >
+                {loading
+                  ? DM_PRIVACY_OPTIONS.map((value, index) => (
+                      <RowSkeleton
+                        key={value}
+                        first={index === 0}
+                        trailing="check"
+                      />
+                    ))
+                  : DM_PRIVACY_OPTIONS.map((value, index) => (
+                      <OptionRow
+                        key={value}
+                        icon={DM_OPTIONS[value].icon}
+                        label={DM_OPTIONS[value].label}
+                        caption={DM_OPTIONS[value].caption}
+                        first={index === 0}
+                        selected={prefs.dmPrivacy === value}
+                        /* Re-picking the current option would spend a write
+                           to change nothing, and a failed one would put a
+                           red line under a setting that never moved. */
+                        onPress={() => {
+                          if (prefs.dmPrivacy === value) return;
+                          void setPref("dmPrivacy", value);
+                        }}
+                      />
+                    ))}
+              </View>
+            </Card>
+
+            {loading ? null : (
+              <AppText variant="caption" muted style={{ marginTop: space.room }}>
+                {dmSentence(prefs.dmPrivacy)}
+              </AppText>
+            )}
+            {saveError?.key === "dmPrivacy" ? (
+              <AppText
+                variant="caption"
+                accessibilityLiveRegion="polite"
+                style={{ color: theme.danger, marginTop: space.snug }}
+              >
+                {saveError.message}
+              </AppText>
+            ) : null}
+
+            {/* The three things the setting deliberately does NOT do. They
+                hold at every value, so they sit outside `dmSentence` — and
+                they are the whole reason this control can be shipped
+                honestly. Each one is a line of migration 0040. */}
+            <Card style={{ gap: space.close, marginTop: space.card }}>
+              <Fact icon="message-circle" tint={theme.accent}>
+                A conversation you're already in keeps working whatever you
+                pick. Its messages arrive, you can reply, and anyone you've
+                messaged before can write in that thread again.
+              </Fact>
+              <Fact icon="users" tint={theme.accent}>
+                A group chat counts as a new conversation — same inbox, same
+                notification — so someone who can't start a DM with you can't
+                add you to a group either. Nobody is ever removed from a group
+                they're already in.
+              </Fact>
+              <Fact icon="slash" tint={theme.accent}>
+                Blocking is the heavier, separate thing. It refuses even a
+                thread that already exists, and it wins over whatever you set
+                here.
+              </Fact>
+            </Card>
           </>
         )}
 
@@ -377,7 +609,8 @@ export default function PrivacySettingsScreen() {
           <Fact icon="clock" tint={theme.brand}>
             That you're studying, while a focus session is running — your
             name, your class and your note, to your whole campus. It leaves
-            the list the moment you stand up.
+            the list the moment you stand up, and you can pick "just me" when
+            you start one to keep it off the list entirely.
           </Fact>
         </Card>
 

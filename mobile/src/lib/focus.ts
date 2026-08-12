@@ -15,6 +15,14 @@ import { supabase } from "@/lib/supabase";
  * that university) and self-only writes. It's also in the realtime
  * publication, so {@link subscribeStudyingNow} works without any extra setup.
  *
+ * Two migrations have narrowed that read since. 0031 made CLOSED sessions
+ * private to their owner — a study history is nobody's business — and 0040
+ * added `is_private`, which keeps an OPEN one off the campus list too. Both
+ * are read-side only: a private session runs, ticks and counts toward the
+ * streak exactly like any other, it simply isn't in anyone else's query.
+ * Nothing in this file has to filter for either, because the SELECT policy
+ * already does — {@link fetchStudyingNow} never sees a row it shouldn't.
+ *
  * Everything here is either a query or a pure function — no React, no theme,
  * no navigation. The I/O functions read the clock; the pure ones take `now`
  * as an argument so a ticking screen and a unit test get the same answers.
@@ -40,6 +48,14 @@ export type FocusSession = {
   started_at: string;
   /** ISO timestamp they stood up, or null while the session is open. */
   ended_at: string | null;
+  /**
+   * True when this session is being timed off the campus list: nobody else
+   * ever sees the row, open or closed. The owner still does, and it still
+   * counts toward their streak. Always false on a row that reached you
+   * through {@link fetchStudyingNow} — a private session of somebody else's
+   * is not readable at all.
+   */
+  is_private: boolean;
 };
 
 /** Just enough of a person to render a row and an avatar. */
@@ -110,7 +126,7 @@ export const STUDYING_NOW_LIMIT = 50;
 
 /** Columns every focus query selects. Keep selects consistent. */
 export const FOCUS_SELECT =
-  "id, user_id, course_id, goal_minutes, note, started_at, ended_at";
+  "id, user_id, course_id, goal_minutes, note, started_at, ended_at, is_private";
 
 /**
  * {@link FOCUS_SELECT} plus the person and the course code, for the list.
@@ -168,6 +184,12 @@ function toFocusSession(raw: unknown): FocusSession | null {
     note: typeof note === "string" && note.length > 0 ? note : null,
     started_at: startedAt,
     ended_at: typeof endedAt === "string" && endedAt.length > 0 ? endedAt : null,
+    /* Only a literal `true` counts as private, so a select that forgot the
+       column reads as visible. That is the safe direction here and the
+       opposite of `toFocusPerson` above: this flag decides what the screen
+       TELLS a student about who can see them, and the lie that costs
+       something is "nobody can see this" over a row the campus can. */
+    is_private: record["is_private"] === true,
   };
 }
 
@@ -299,8 +321,9 @@ async function closeOpenSessions(userId: string, endedAt: string): Promise<void>
 
 /**
  * Sit down to study. Closes any session the caller left open, then opens a
- * fresh one — which is immediately visible to the whole campus in
- * {@link fetchStudyingNow}, so the copy around this button should say so.
+ * fresh one — which, unless `isPrivate` is set, is immediately visible to the
+ * whole campus in {@link fetchStudyingNow}, so the copy around this button
+ * should say so.
  *
  * The goal is rounded and clamped to 5-240 minutes and the note trimmed to
  * 80 characters before the insert, so the database's checks are a backstop
@@ -309,6 +332,10 @@ async function closeOpenSessions(userId: string, endedAt: string): Promise<void>
  * @param opts.courseId    The course they're working on, or omit for none.
  * @param opts.goalMinutes How long they mean to sit; defaults to 25.
  * @param opts.note        A one-line "what are you on?", up to 80 characters.
+ * @param opts.isPrivate   True times the session off the campus list: the
+ *   row stays the caller's alone, and their name, class and note never go
+ *   out. The timer and the streak are untouched. Defaults to false, which is
+ *   the column default and how every session behaved before 0040.
  * @returns The new open session — pass it straight to the timer helpers.
  * @throws {FocusError} With copy that's ready to render.
  */
@@ -316,10 +343,12 @@ export async function startFocus({
   courseId,
   goalMinutes,
   note,
+  isPrivate,
 }: {
   courseId?: string | null;
   goalMinutes?: number;
   note?: string | null;
+  isPrivate?: boolean;
 } = {}): Promise<FocusSession> {
   const userId = await requireUserId();
   await closeOpenSessions(userId, new Date().toISOString());
@@ -331,6 +360,10 @@ export async function startFocus({
       course_id: courseId ?? null,
       goal_minutes: cleanGoalMinutes(goalMinutes),
       note: cleanNote(note),
+      // Sent explicitly rather than left to the column default: a caller
+      // that asked for private and got a row without the column back should
+      // fail loudly here, not discover it on the campus list.
+      is_private: isPrivate === true,
     })
     .select(FOCUS_SELECT)
     .single();

@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import {
   Bell,
   CircleAlert,
-  Eye,
   PencilLine,
   ShieldCheck,
   type LucideIcon,
@@ -16,50 +15,75 @@ import { PageHeader, SectionHeader, cardClasses } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
+import { BlockedList } from "@/features/settings/blocked-list";
 import { PrivacyDashboard } from "@/features/schedule/privacy-dashboard";
 import type { ScheduleUpload, ScheduleUploadEvent } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Privacy",
   description:
-    "The two signals you can switch off, and the audit trail for any image you stored in the past.",
+    "The signal you can switch off, the people you've blocked, and the audit trail for any image you stored in the past.",
 };
 
-/* Privacy — the two reciprocal signals, then the receipts.
+/* Privacy — the signal, the people, then the receipts.
  *
- * The top half is a choice: read receipts and typing indicators, both on by
- * default (migration 0033, `not null default true`), and both RECIPROCAL by
- * design. Turning yours off stops your signal going out AND stops everyone
- * else's coming in. A one-sided view of who has read what is a trap, not a
- * feature, so every caption here says both halves out loud.
+ * The top of the page is a choice: typing indicators, on by default
+ * (migration 0033, `not null default true`) and RECIPROCAL by design.
+ * Turning yours off stops your signal going out AND stops everyone else's
+ * coming in. A one-sided view of who is composing is a trap, not a feature,
+ * so the caption says both halves out loud.
  *
- * The bottom half is the stored-image audit that has always lived here, and
- * it stays exactly as it was.
+ * The middle is the block list — the one privacy control whose effect the
+ * student can never observe, because blocking is silent by design. Nobody is
+ * told and nothing changes on their side, so the list is the only receipt
+ * there is.
  *
- * Both switches are plain forms posting to a server action, so they work
- * before a single byte of JavaScript arrives and there is no client state to
- * disagree with the row. A refusal comes back as `?error=sharing` and says so
- * in one warm line at the top. */
+ * The bottom is the stored-image audit that has always lived here, and it
+ * stays exactly as it was.
+ *
+ * ## Why there is no read-receipts switch
+ *
+ * There was one, right up there beside typing, and 0033 still carries the
+ * `profiles.share_read_receipts` column it wrote. It should never have
+ * shipped. Huddl draws no read receipt anywhere: no screen tells one person
+ * whether another has opened a message. The only thing the column could have
+ * gated is `channel_members.last_read_at` / `dm_participants.last_read_at`,
+ * which is the app's own unread cursor — the thing that decides whether YOUR
+ * rooms show a dot. Freezing it wouldn't hide a receipt nobody draws; it
+ * would light up every room you'd already read, forever, as the price of a
+ * privacy switch.
+ *
+ * So the switch is gone rather than left inert. A toggle that writes a column
+ * nothing consults, under a caption promising classmates "stop seeing when
+ * you've read a message", is a false statement to a student about their own
+ * privacy — and it quietly discredits the one beside it that genuinely works.
+ * The native app removed it first; see the long note at the top of
+ * `mobile/src/hooks/use-privacy-prefs.ts`.
+ *
+ * The column stays in the database. The day Huddl actually renders a receipt,
+ * the switch comes back here — gated at the surface that draws it, not at the
+ * cursor that tracks unread. Until then, don't re-add it.
+ *
+ * The switch is a plain form posting to a server action, so it works before a
+ * single byte of JavaScript arrives and there is no client state to disagree
+ * with the row. A refusal comes back as `?error=sharing` and says so in one
+ * warm line at the top. */
 
-/* ---------------------------- the two switches ---------------------------- */
+/* ------------------------------ the switch -------------------------------- */
 
 /** The column on `profiles`, and the exact sentence that goes under it. */
 type SharingToggle = {
-  column: "share_read_receipts" | "share_typing";
+  column: "share_typing";
   icon: LucideIcon;
   label: string;
   /** States the reciprocity in one sentence. Both halves, every time. */
   caption: string;
 };
 
+/* One entry, and a list anyway: a second honest signal would slot in here
+   without touching the markup. Read receipts were the other one — see above
+   for why they left and what has to be true before they come back. */
 const TOGGLES: readonly SharingToggle[] = [
-  {
-    column: "share_read_receipts",
-    icon: Eye,
-    label: "Read receipts",
-    caption:
-      "Turn this off and classmates stop seeing when you've read a message — and you stop seeing theirs.",
-  },
   {
     column: "share_typing",
     icon: PencilLine,
@@ -70,21 +94,15 @@ const TOGGLES: readonly SharingToggle[] = [
 ];
 
 /**
- * What the current pair actually means, in one sentence under the card.
- * Pure — it takes the two booleans and nothing else, so the copy can be read
- * (and changed) without chasing state around the page.
+ * What the current setting actually means, in one sentence under the card.
+ * Pure — it takes the boolean and nothing else, so the copy can be read (and
+ * changed) without chasing state around the page.
  */
-function sharingSentence(readReceipts: boolean, typing: boolean): string {
-  if (readReceipts && typing) {
-    return "Both are on, which is how Huddl starts out: classmates can tell when you're composing and when you've caught up, and you can tell the same about them.";
-  }
-  if (!readReceipts && !typing) {
-    return "Both are off. Nobody can tell whether you're typing or whether you've opened a message, and those signals are gone from your side of the conversation too. Your messages still send and arrive exactly the same.";
-  }
+function sharingSentence(typing: boolean): string {
   if (typing) {
-    return "Read receipts are off, so nobody can tell whether you've opened a message, and you won't see whether they have. Typing still shows both ways.";
+    return "It's on, which is how Huddl starts out: classmates can tell when you're composing a message, and you can tell the same about them.";
   }
-  return "Typing indicators are off, so nobody sees you composing, and you won't see them composing either. Read receipts still show both ways.";
+  return "It's off. Nobody sees you composing, and you won't see them composing either. Your messages still send and arrive exactly the same.";
 }
 
 /** What each `?error=` on this page says out loud. */
@@ -94,14 +112,18 @@ const ERRORS: Record<string, string> = {
 };
 
 /**
- * Flip one sharing preference. Both columns are `not null default true`, so
- * this only ever writes an explicit boolean — there is no "unset" to fall back
- * to and nothing to clean up when someone turns a signal back on.
+ * Flip one sharing preference. The column is `not null default true`, so this
+ * only ever writes an explicit boolean — there is no "unset" to fall back to
+ * and nothing to clean up when someone turns a signal back on.
+ *
+ * The allow-list is a single name today and stays an allow-list: `column`
+ * arrives from a form field and goes straight into an update, so it is never
+ * trusted, only recognised.
  */
 async function setSharing(formData: FormData) {
   "use server";
   const column = formData.get("column");
-  if (column !== "share_read_receipts" && column !== "share_typing") {
+  if (column !== "share_typing") {
     redirect("/settings/privacy");
   }
   const next = formData.get("next") === "on";
@@ -180,7 +202,7 @@ export default async function PrivacySettingsPage({
   const [sharingRes, uploadsRes] = await Promise.all([
     supabase
       .from("profiles")
-      .select("share_read_receipts, share_typing")
+      .select("share_typing")
       .eq("id", user.userId)
       .maybeSingle(),
     supabase
@@ -195,7 +217,6 @@ export default async function PrivacySettingsPage({
      row can't quietly opt someone out of something they never turned off. */
   const sharingRow = (sharingRes.data ?? {}) as Record<string, unknown>;
   const shares: Record<SharingToggle["column"], boolean> = {
-    share_read_receipts: sharingRow["share_read_receipts"] !== false,
     share_typing: sharingRow["share_typing"] !== false,
   };
 
@@ -219,7 +240,7 @@ export default async function PrivacySettingsPage({
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
         title="Privacy"
-        description="Two signals you can switch off, and a full receipt for anything you ever stored here."
+        description="A signal you can switch off, everyone you've blocked, and a full receipt for anything you ever stored here."
         backHref="/settings"
         backLabel="Settings"
       />
@@ -271,11 +292,18 @@ export default async function PrivacySettingsPage({
         </div>
 
         <p className="mt-3 px-1 text-xs text-muted text-pretty">
-          {sharingSentence(
-            shares.share_read_receipts,
-            shares.share_typing
-          )}
+          {sharingSentence(shares.share_typing)}
         </p>
+      </section>
+
+      <section aria-label="Blocked people" className="mt-8">
+        <SectionHeader title="Blocked people" />
+        <p className="mt-2 px-1 text-xs text-muted text-pretty">
+          They can&apos;t DM you, and their posts stay out of sight. They were
+          never told, so this list is the only place a block shows up.
+        </p>
+        {/* Loads itself — see the note in `blocked-list.tsx`. */}
+        <BlockedList userId={user.userId} />
       </section>
 
       <section aria-label="Stored images" className="mt-8">

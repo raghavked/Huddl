@@ -95,9 +95,16 @@ export class GroupDmError extends Error {
  * The RPCs raise plain lowercase sentences (`raise exception 'this group is
  * full at 16'`). PostgREST hands those back verbatim as `error.message`, so
  * we match on a distinctive fragment of each and swap in the warm version.
- * Fragment order matters only where two could both match — they don't today.
+ * Fragment order matters where two could both match: the first match wins.
  */
 const WARM_BY_FRAGMENT: readonly (readonly [string, string])[] = [
+  // Migration 0040's dm_privacy refusal. It sits ABOVE "someone in that
+  // list", because the group form of it — "someone in that list isn't taking
+  // new messages" — contains both fragments, and a privacy wall is a
+  // different thing to say than a block ("can't be added"): one is a setting
+  // the person chose, the other we never explain. First match wins, so the
+  // specific reason reaches the student instead of the generic one.
+  ["isn't taking new messages", "They're not taking new messages right now."],
   ["group names run", "Group names run 2 to 60 characters."],
   ["groups hold", "Groups hold 3 to 16 people including you."],
   ["on your campus", "Everyone in a group has to be on your campus."],
@@ -109,6 +116,18 @@ const WARM_BY_FRAGMENT: readonly (readonly [string, string])[] = [
   ["you can only leave a group", "You can only leave a group chat."],
   ["not signed in", "Sign in again to pick this back up."],
 ];
+
+/**
+ * Warm copy for a failure from ANY of the DM RPCs — the 1:1 create, the group
+ * create, the add. The 1:1 callers don't raise {@link GroupDmError} (they own
+ * their own flow) but they hit the same `create_dm_thread` refusals, so they
+ * import this to tell a dm_privacy wall ("not taking new messages") apart from
+ * a network hiccup ("give it another go"). One reason a student is refused
+ * lives in one place.
+ */
+export function warmDmError(raw: unknown, fallback: string): string {
+  return warmMessage(raw, fallback);
+}
 
 /** Map a raised database message to warm copy, or fall back to `fallback`. */
 function warmMessage(raw: unknown, fallback: string): string {

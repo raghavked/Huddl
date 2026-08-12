@@ -16,6 +16,7 @@ import { radius, space } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { blockUser, unblockUser } from "@/lib/blocks";
+import { warmDmError } from "@/lib/group-dm";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -401,8 +402,15 @@ export default function ProfileScreen() {
       }
 
       router.push(`/dm/${threadId}`);
-    } catch {
-      setMessageError("Couldn't start that conversation. Give it another try.");
+    } catch (err) {
+      // If they've set dm_privacy to keep new threads out (0040), say that —
+      // "give it another try" is wrong for a wall that won't move on a retry.
+      setMessageError(
+        warmDmError(
+          err,
+          "Couldn't start that conversation. Give it another try."
+        )
+      );
     } finally {
       setMessaging(false);
     }

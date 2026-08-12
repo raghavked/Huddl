@@ -8,10 +8,12 @@ import {
   ChevronRight,
   Download,
   Flag,
+  KeyRound,
   LogOut,
   ShieldCheck,
   Smartphone,
   SunMoon,
+  Trash2,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
@@ -78,6 +80,14 @@ export default async function SettingsPage() {
       trailing: null as React.ReactNode,
     },
     {
+      href: "/settings/security",
+      icon: KeyRound,
+      tile: "bg-brand-soft text-brand",
+      title: "Password and security",
+      description: "Your password, and the devices you're signed in on",
+      trailing: null as React.ReactNode,
+    },
+    {
       href: "/settings/phone",
       icon: Smartphone,
       tile: "bg-accent-soft text-accent",
@@ -113,7 +123,7 @@ export default async function SettingsPage() {
       icon: ShieldCheck,
       tile: "bg-accent-soft text-accent",
       title: "Privacy",
-      description: "Read receipts, typing indicators and stored images",
+      description: "Typing indicators, blocked people and stored images",
       trailing: null as React.ReactNode,
     },
     {
@@ -144,6 +154,20 @@ export default async function SettingsPage() {
           },
         ]
       : []),
+    /* Last, and the only danger tile in the list. It lands on the security
+       page's deletion section rather than a page of its own, because the
+       Terms and the privacy policy both send students to "Settings, then
+       Delete account" and a row they can't find is a promise we didn't
+       keep. Everything that makes this deliberate — the consequence spelled
+       out, the typed handle — lives where it arrives. */
+    {
+      href: "/settings/security#delete-account",
+      icon: Trash2,
+      tile: "bg-danger/10 text-danger",
+      title: "Delete account",
+      description: "Everything goes at once, and it can't be undone",
+      trailing: null as React.ReactNode,
+    },
   ];
 
   return (

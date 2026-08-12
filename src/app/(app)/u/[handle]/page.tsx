@@ -20,6 +20,7 @@ import {
   buttonClasses,
   cardClasses,
 } from "@/components/ui";
+import { BlockPersonButton } from "@/features/settings/blocked-list";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Channel, Course, Profile, University } from "@/lib/types";
@@ -85,7 +86,24 @@ export default async function ProfilePage({
   const universityName =
     profile.university?.short_name ?? user.university.short_name;
 
-  const messageButton = (
+  /* Have I blocked them? Read here, before either branch renders, so the hero
+     paints Message or Blocked on the first frame rather than flipping a beat
+     later. One row off a primary key, and RLS only ever shows you your own. */
+  let iBlocked = false;
+  if (!isMe) {
+    const { data: blockRow } = await supabase
+      .from("blocks")
+      .select("blocked_id")
+      .eq("blocker_id", user.userId)
+      .eq("blocked_id", profile.id)
+      .maybeSingle();
+    iBlocked = blockRow !== null;
+  }
+
+  /* A block shuts the DM door both ways — `create_dm_thread` refuses across
+     one — so offering Message here would be offering a dead end. Unblock sits
+     beside the badge instead, for whenever they want the door back. */
+  const messageButton = iBlocked ? null : (
     <Link
       href={`/messages/new?to=${profile.id}`}
       className={buttonClasses()}
@@ -93,6 +111,18 @@ export default async function ProfilePage({
       <MessageCircle className="size-4" aria-hidden />
       Message
     </Link>
+  );
+
+  /* A private profile withholds the display name, so anything that says this
+     person out loud — the block confirmation, the button's label — uses the
+     handle, which is the only name the viewer can actually see. */
+  const blockButton = isMe ? null : (
+    <BlockPersonButton
+      viewerId={user.userId}
+      personId={profile.id}
+      name={profile.is_public ? profile.display_name : `@${profile.handle}`}
+      initiallyBlocked={iBlocked}
+    />
   );
 
   /* Private profile viewed by someone else: handle + avatar only. Everything
@@ -119,12 +149,21 @@ export default async function ProfilePage({
               <Lock className="size-4" aria-hidden />
               This profile is private
             </p>
+            {/* "Say hi" is only true while the door is open — once you've
+                blocked them there's no Message button under this line. */}
             <p className="mt-1 max-w-sm text-sm text-muted text-pretty">
-              Only their handle and avatar are visible, but you can still say
-              hi.
+              {iBlocked
+                ? "Only their handle and avatar are visible, and you've blocked them, so nothing of theirs reaches you anyway."
+                : "Only their handle and avatar are visible, but you can still say hi."}
             </p>
           </div>
-          {messageButton}
+          {/* Blocking belongs here too, and arguably most of all: a private
+              profile is often the only page you have on someone who has
+              started bothering you. */}
+          <div className="flex flex-col items-center gap-3">
+            {messageButton}
+            {blockButton}
+          </div>
         </section>
       </div>
     );
@@ -250,7 +289,10 @@ export default async function ProfilePage({
                 </p>
               </div>
             ) : null}
-            <div className="mt-5 flex justify-center sm:justify-start">
+            {/* Message and Block sit on one line until the confirmation opens;
+                that panel is full-width, so it wraps onto its own row and the
+                question isn't crowded by the button that raised it. */}
+            <div className="mt-5 flex flex-wrap items-start justify-center gap-3 sm:justify-start">
               {isMe ? (
                 <Link
                   href="/settings/account"
@@ -260,7 +302,10 @@ export default async function ProfilePage({
                   Edit profile
                 </Link>
               ) : (
-                messageButton
+                <>
+                  {messageButton}
+                  {blockButton}
+                </>
               )}
             </div>
           </div>

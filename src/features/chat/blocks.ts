@@ -6,7 +6,29 @@ import { createClient } from "@/lib/supabase/client";
 /* Blocking (migration 0019) is one-way and private: the blocked person
    never finds out. The server refuses new DM threads across a block and
    silences notifications; hiding a blocked student's existing messages is
-   the client's job, driven by the id set below. */
+   the client's job, driven by the id set below.
+
+   For a long time this module could only take a block off. That meant a
+   student being hassled on their laptop had to pick up their phone to make
+   it stop, which is exactly the wrong moment to ask someone to change
+   devices — so `blockUser` is here now, same upsert the native app uses. */
+
+/**
+ * Block someone. Upsert rather than insert: the primary key is
+ * (blocker_id, blocked_id), so a second attempt on an already-blocked
+ * classmate is a no-op instead of a duplicate-key error a caller would have
+ * to decode. Blocking twice should feel like blocking once.
+ */
+export async function blockUser(blockerId: string, blockedId: string) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("blocks")
+    .upsert(
+      { blocker_id: blockerId, blocked_id: blockedId },
+      { onConflict: "blocker_id,blocked_id" }
+    );
+  if (error) throw error;
+}
 
 /** Everyone the given user has blocked, as a Set for O(1) filtering. */
 export async function fetchBlockedIds(userId: string): Promise<Set<string>> {

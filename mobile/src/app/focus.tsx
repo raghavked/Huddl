@@ -53,6 +53,12 @@ import { clampTextScale, useDisplay } from "@/providers/display-provider";
  * timer that takes over, with the "studying now" list still breathing
  * underneath so the room never feels empty.
  *
+ * The audience is the fourth thing you pick, and it is a real choice rather
+ * than a warning. Being on the list is the point of the feature — but the
+ * only way to want the timer without the audience used to be to not use the
+ * feature at all, which also cost you the streak. "Just me" (0040's
+ * `is_private`) is the same session with the row kept to yourself.
+ *
  * All the time math lives in `@/lib/focus` and takes a `now` — this screen
  * only decides how often to hand it one (once a second, while a session is
  * running and the screen is actually in front of you). */
@@ -282,10 +288,17 @@ export default function FocusScreen() {
   const [ending, setEnding] = useState(false);
   const [finished, setFinished] = useState<Finished | null>(null);
 
-  /* The idle form's draft. */
+  /* The idle form's draft. `isPrivate` starts false — the column default,
+     and what every session did before it was a choice. It deliberately
+     survives a finished session, so somebody who is having a private week
+     doesn't have to remember the switch each time they sit back down. It
+     does not survive leaving the screen: there is nowhere to keep it that
+     isn't a new column, and a remembered "private" that quietly wasn't would
+     be worse than asking again. */
   const [goal, setGoal] = useState<number>(FOCUS_GOAL_DEFAULT);
   const [courseId, setCourseId] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
 
   /* The clock the whole screen reads from. Only ticks while a session is
      running and this screen is in front of the student. */
@@ -387,7 +400,12 @@ export default function FocusScreen() {
     setFormError(null);
     setStarting(true);
     try {
-      const created = await startFocus({ courseId, goalMinutes: goal, note });
+      const created = await startFocus({
+        courseId,
+        goalMinutes: goal,
+        note,
+        isPrivate,
+      });
       tapLight();
       setFinished(null);
       setMine(created);
@@ -403,7 +421,7 @@ export default function FocusScreen() {
     } finally {
       setStarting(false);
     }
-  }, [starting, userId, courseId, goal, note, refreshStudying]);
+  }, [starting, userId, courseId, goal, note, isPrivate, refreshStudying]);
 
   /**
    * Stand up. Optimistic: the timer stops the moment you tap, and the
@@ -691,10 +709,27 @@ export default function FocusScreen() {
 
             <ProgressBar value={timer.value} />
 
-            {timer.courseCode || mine.note ? (
+            {timer.courseCode || mine.note || mine.is_private ? (
               <View style={{ alignItems: "center", gap: space.cosy }}>
-                {timer.courseCode ? (
-                  <Chip label={timer.courseCode} tone="brand" />
+                {timer.courseCode || mine.is_private ? (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: space.cosy,
+                    }}
+                  >
+                    {timer.courseCode ? (
+                      <Chip label={timer.courseCode} tone="brand" />
+                    ) : null}
+                    {/* The one thing a student can't check from the screen:
+                        their own row never appears in the list below, so
+                        without this the private session and the public one
+                        look identical from where they're sitting. */}
+                    {mine.is_private ? (
+                      <Chip label="Just you" tone="neutral" icon="eye-off" />
+                    ) : null}
+                  </View>
                 ) : null}
                 {mine.note ? (
                   <AppText
@@ -857,6 +892,39 @@ export default function FocusScreen() {
                 autoCapitalize="sentences"
               />
 
+              {/* Last thing in the form, because it is the answer to what is
+                  above it: the class you picked and the line you just typed
+                  are exactly what this decides the audience for. */}
+              <View style={{ gap: space.room }}>
+                <FormLabel text="Who sees it" />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: space.cosy,
+                  }}
+                >
+                  <Chip
+                    label="Everyone on campus"
+                    size="md"
+                    tone="brand"
+                    icon="users"
+                    selected={!isPrivate}
+                    accessibilityLabel="Everyone on campus sees this session"
+                    onPress={() => setIsPrivate(false)}
+                  />
+                  <Chip
+                    label="Just me"
+                    size="md"
+                    tone="brand"
+                    icon="eye-off"
+                    selected={isPrivate}
+                    accessibilityLabel="Just me — keep this session off the list"
+                    onPress={() => setIsPrivate(true)}
+                  />
+                </View>
+              </View>
+
               {formError ? (
                 <AppText
                   variant="caption"
@@ -872,7 +940,13 @@ export default function FocusScreen() {
                   label="Start"
                   size="lg"
                   pending={starting}
-                  accessibilityLabel={`Start a ${formatDuration(goal)} session`}
+                  /* The audience is half of what this button commits to, so
+                     it is said here rather than left to the chip above. */
+                  accessibilityLabel={
+                    isPrivate
+                      ? `Start a ${formatDuration(goal)} session, just for you`
+                      : `Start a ${formatDuration(goal)} session, visible to campus`
+                  }
                   accessibilityState={{ busy: starting, disabled: starting }}
                   style={{ alignSelf: "stretch" }}
                   onPress={() => void start()}
@@ -881,15 +955,22 @@ export default function FocusScreen() {
                     below draws the course chip and this free text next to
                     the person, campus-wide. Name it, or the box and the
                     audience disagree. (A private profile shows its handle
-                    here rather than a name — see `toFocusPerson`.) */}
+                    here rather than a name — see `toFocusPerson`.)
+
+                    The private version has to be as specific about what it
+                    keeps as about what it hides, because the fear it answers
+                    is "does opting out cost me the streak?". It doesn't:
+                    0040 hides the row from other people's reads and changes
+                    nothing else about it. */}
                 <AppText
                   variant="caption"
                   muted
+                  accessibilityLiveRegion="polite"
                   style={{ textAlign: "center" }}
                 >
-                  Your name, your class and this line show up below while
-                  you're sitting — to everyone at your university. That's the
-                  whole trick.
+                  {isPrivate
+                    ? "Nothing goes on the list below. You get the timer, the session still counts toward your streak, and nobody sees you sat down."
+                    : "Your name, your class and this line show up below while you're sitting — to everyone at your university. That's the whole trick."}
                 </AppText>
               </View>
             </Card>
