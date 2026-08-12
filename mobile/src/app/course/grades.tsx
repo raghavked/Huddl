@@ -308,7 +308,7 @@ function EstimateCard({
         style={{ flexDirection: "row", alignItems: "center", gap: space.room }}
       >
         <AppText
-          variant="display"
+          variant="title"
           style={{
             fontSize: Math.round(44 * textScale),
             lineHeight: Math.round(50 * textScale),

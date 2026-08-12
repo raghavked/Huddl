@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   View,
   type ListRenderItemInfo,
@@ -434,6 +435,16 @@ export function CampusPeoplePicker({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
+      // A classmate who joined since the last keystroke won't be in this
+      // list yet, so a pull re-asks campus for the same query.
+      refreshControl={
+        <RefreshControl
+          refreshing={searching}
+          onRefresh={retry}
+          tintColor={theme.brand}
+          colors={[theme.brand]}
+        />
+      }
       // The caller's form rides inside the list so the results always get
       // the rest of the screen, keyboard up or not.
       ListHeaderComponent={

@@ -397,8 +397,12 @@ export default function SyllabusImportScreen() {
                       />
                       <AppText
                         variant="caption"
-                        muted
-                        style={{ flex: 1, textAlign: "right" }}
+                        muted={!low}
+                        style={{
+                          flex: 1,
+                          textAlign: "right",
+                          ...(low ? { color: theme.brandInk } : null),
+                        }}
                       >
                         {shortDay(row.dueAt)}
                       </AppText>
@@ -417,7 +421,11 @@ export default function SyllabusImportScreen() {
                           opacity: pressed ? 0.6 : 1,
                         })}
                       >
-                        <Feather name="x" size={16} color={theme.muted} />
+                        <Feather
+                          name="x"
+                          size={16}
+                          color={low ? theme.brand : theme.muted}
+                        />
                       </Pressable>
                     </View>
                     <TextInput

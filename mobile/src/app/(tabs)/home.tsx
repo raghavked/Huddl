@@ -10,7 +10,6 @@ import {
   type ComponentType,
 } from "react";
 import {
-  AccessibilityInfo,
   Animated,
   AppState,
   FlatList,
@@ -23,8 +22,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FocusStrip } from "@/components/focus-strip";
 import { Mug, type IllustrationProps } from "@/components/illustrations";
-import { AppText, Button, Card, SectionLabel } from "@/components/ui";
-import { radius, space } from "@/constants/theme";
+import {
+  AppText,
+  Button,
+  Card,
+  SectionLabel,
+  useReducedMotion,
+} from "@/components/ui";
+import { motion, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useUnreadNotifications } from "@/hooks/use-unread";
 import { categoryInfo, fetchBoard, type BoardPost } from "@/lib/board";
@@ -776,6 +781,7 @@ export default function HomeScreen() {
   // One calm settle when the first data lands: opacity 0→1, translateY 8→0.
   const entrance = useRef(new Animated.Value(0)).current;
   const entranceRan = useRef(false);
+  const reduceMotion = useReducedMotion();
 
   const fetchHome = useCallback(async (): Promise<HomeData> => {
     if (!userId) throw new Error("Not signed in");
@@ -987,25 +993,19 @@ export default function HomeScreen() {
     void run("initial");
   }, [userId, run]);
 
-  // The entrance runs exactly once, on first data — and not at all when the
-  // system asks for reduced motion (content just appears, settled).
+  // The entrance runs exactly once, on first data. It's an arrival, so it
+  // lands on the out-curve — and lands there instantly when the student has
+  // asked the OS for less movement.
   useEffect(() => {
     if (!data || entranceRan.current) return;
     entranceRan.current = true;
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then((reduced) => {
-        if (reduced) {
-          entrance.setValue(1);
-          return;
-        }
-        Animated.timing(entrance, {
-          toValue: 1,
-          duration: 240,
-          useNativeDriver: true,
-        }).start();
-      })
-      .catch(() => entrance.setValue(1));
-  }, [data, entrance]);
+    Animated.timing(entrance, {
+      toValue: 1,
+      duration: reduceMotion ? motion.instant : motion.base,
+      easing: motion.easing.enter,
+      useNativeDriver: true,
+    }).start();
+  }, [data, entrance, reduceMotion]);
 
   /* The channel list, kept where a callback can reach it without being
      rebuilt every time Home's data changes. */

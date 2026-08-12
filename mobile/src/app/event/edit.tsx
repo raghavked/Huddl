@@ -287,7 +287,7 @@ export default function EditEventScreen() {
                 style={{
                   width: 52,
                   height: 52,
-                  borderRadius: 16,
+                  borderRadius: radius.control,
                   backgroundColor: theme.brandSoft,
                   alignItems: "center",
                   justifyContent: "center",
@@ -308,7 +308,7 @@ export default function EditEventScreen() {
                 style={{
                   width: 52,
                   height: 52,
-                  borderRadius: 16,
+                  borderRadius: radius.control,
                   backgroundColor: theme.brandSoft,
                   alignItems: "center",
                   justifyContent: "center",

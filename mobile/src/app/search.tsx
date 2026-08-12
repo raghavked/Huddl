@@ -10,6 +10,7 @@ import {
 import {
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   SectionList,
   View,
@@ -933,6 +934,17 @@ export default function SearchScreen() {
           stickySectionHeadersEnabled={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          /* Campus moves while you're reading — a club goes up, a classmate
+             joins, an event gets scheduled — so a pull asks the same
+             question again rather than making you retype it. */
+          refreshControl={
+            <RefreshControl
+              refreshing={searching}
+              onRefresh={retry}
+              tintColor={theme.brand}
+              colors={[theme.brand]}
+            />
+          }
           style={{ flex: 1, marginTop: space.tight }}
           contentContainerStyle={{
             paddingTop: filter === null ? 0 : 12,

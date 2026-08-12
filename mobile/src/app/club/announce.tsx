@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
-  Easing,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -65,7 +64,7 @@ function PostedNote() {
     Animated.timing(enter, {
       toValue: 1,
       duration: reduceMotion ? motion.instant : motion.base,
-      easing: Easing.out(Easing.cubic),
+      easing: motion.easing.enter,
       useNativeDriver: true,
     }).start();
   }, [enter, reduceMotion]);

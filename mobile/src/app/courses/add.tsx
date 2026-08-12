@@ -952,13 +952,33 @@ export default function AddCoursesScreen() {
                   <InlineBanner tone="danger" icon="alert-circle" text={addError} />
                 ) : null}
                 {searchError ? (
-                  <AppText
-                    variant="caption"
-                    style={{ color: theme.danger, marginBottom: space.room }}
+                  <View
+                    style={{
+                      alignItems: "center",
+                      gap: space.room,
+                      marginBottom: space.room,
+                    }}
                   >
-                    We couldn't search the catalog just now — check your
-                    connection and keep typing to retry.
-                  </AppText>
+                    <Feather name="wifi-off" size={28} color={theme.muted} />
+                    <AppText variant="bodySemi">Something hiccuped</AppText>
+                    <AppText
+                      variant="caption"
+                      muted
+                      style={{ textAlign: "center", maxWidth: 260 }}
+                    >
+                      We couldn't search the catalog just now. Check your
+                      connection and give it another go.
+                    </AppText>
+                    <Button
+                      label="Try again"
+                      variant="soft"
+                      size="sm"
+                      onPress={() => {
+                        setSearching(true);
+                        void runSearch(q);
+                      }}
+                    />
+                  </View>
                 ) : null}
                 {/* The third way in: one paste instead of six trips through
                     the form below. */}
