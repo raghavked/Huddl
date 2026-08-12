@@ -59,7 +59,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Can professors or administrators see my messages?",
-    a: "No. Huddl is a student space. Course channels are visible only to students enrolled in that course, campus channels only to verified students at your school, and DMs only to the two people in them.",
+    a: "No. Huddl is a student space. Course channels are visible only to students enrolled in that course, campus channels only to verified students at your school, and a direct message only to the people in that thread — the two of you, or everyone in a group you started together.",
   },
   {
     q: "How much does it cost?",

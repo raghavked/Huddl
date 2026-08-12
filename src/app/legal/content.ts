@@ -57,7 +57,7 @@ export const TERMS_OF_SERVICE: LegalDoc = {
     },
     {
       heading: "Leaving Huddl",
-      body: "You can delete your account any time from Settings in the app. Deletion is immediate and permanent: your profile, messages, files, courses, and everything else tied to your account are erased. There's no archive we quietly keep. One thing survives, and we'd rather say so than let you find out: if a classmate forwarded one of your messages, that forward is their message, in their room, and it keeps the text — it just stops being credited to you.",
+      body: "You can delete your account any time from Settings in the app. Deletion is immediate and permanent: your profile, messages, files, courses, and everything else tied to your account are erased. There's no archive we quietly keep. Two kinds of thing survive, and we'd rather say so than let you find out. If a classmate forwarded one of your messages, that forward is their message, in their room, and it keeps the text — it just stops being credited to you. And anything you made for a class or a club to share and keep using — a flashcard deck, a card in one, a deadline on a course calendar, a link you added, a club announcement, a club or a channel you started — stays where it is, with your name taken off it. Deleting your account shouldn't empty your study group's deck or wipe a deadline off everyone else's calendar. Everything that was yours alone — your profile, your messages, your files, your courses, your blocks, your push tokens — is gone.",
     },
     {
       heading: "Our service to you",
@@ -88,7 +88,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "What you give us",
-      body: "When you sign up we ask for your university email address, a password, and a display name. Your password is stored only in protected, encrypted form — we never see it. Your handle starts out as the part of your email address before the @, it's visible to your campus, and you can change it to anything you like in Account. Everything else on your profile is optional and up to you: major, graduation year, bio, photo.",
+      body: "When you sign up we ask for your university email address, a password, and a display name. Your password is stored only in protected, encrypted form — we never see it. Your handle starts out as the part of your email address before the @, it's visible to your campus, and you can change it to anything you like in Account. Everything else on your profile is optional and up to you: major, graduation year, bio, photo. You can also verify a phone number if you want the badge that comes with it; we keep the number so the badge means something, it is never shown on your profile, and you can skip the whole thing.",
     },
     {
       heading: "What you create",
@@ -96,7 +96,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "Safety and device data",
-      body: "If you report something or block someone, we keep a record so we can act on the report and keep the block working. If you turn on notifications, we store a push token — the delivery address your device gives us — which you can switch off any time. We also keep routine technical records, like the timestamps behind our rate limits, to keep Huddl healthy.",
+      body: "If you report something or block someone, we keep a record so we can act on the report and keep the block working. A report is read by a moderator, who at most schools is a student at your own — they see the message or profile you reported and who wrote it, and nothing else about your account. Blocks are never shown to anyone but you. If you turn on notifications, we store a push token — the delivery address your device gives us — which you can switch off any time. We also keep routine technical records, like the timestamps behind our rate limits, to keep Huddl healthy.",
     },
     {
       heading: "What we never collect",
@@ -104,7 +104,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "Who can see what",
-      body: "Course chats are visible only to classmates who added the same course. Campus channels are visible only to verified students at your school. Club spaces are for their members, and direct messages are for the two people in them. Your profile is visible to your campus; turn Public profile off and classmates see only your handle and your photo. Nothing you write on Huddl is reachable from the wider internet — the one exception is your profile photo, which is served from a public link, so anyone who has that link can open it without signing in. Someone you block can't message you, and the things they write — messages, board posts, the line on their study session — stay out of your view. They're never told, and nothing in Huddl will tell them.",
+      body: "Course chats are visible only to classmates who added the same course. Campus channels are visible only to verified students at your school. Club spaces are for their members, and direct messages are for the people in that thread — just the two of you, or, in a named group, everyone in it (up to 16). Your profile is visible to your campus; turn Public profile off and classmates see only your handle and your photo. Nothing you write on Huddl is reachable from the wider internet — the one exception is your profile photo, which is served from a public link, so anyone who has that link can open it without signing in. Someone you block can't message you, and the things they write — messages, board posts, the line on their study session — stay out of your view. They're never told, and nothing in Huddl will tell them.",
     },
     {
       heading: "How we use your data",
@@ -112,11 +112,11 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "Where your data lives",
-      body: "Huddl's database and uploaded files are hosted with Supabase, our infrastructure provider, in secured data centers. Data is encrypted in transit, and access rules are enforced at the database level — so a direct message, for example, can only ever be read by the two people in it.",
+      body: "Huddl's database and uploaded files are hosted with Supabase, our infrastructure provider, in secured data centers. Data is encrypted in transit, and access rules are enforced at the database level — so a direct message, for example, can only ever be read by the people in that thread — the two of you in a one-to-one, or everyone in a group.",
     },
     {
       heading: "When we share",
-      body: "We never sell your data, full stop. We share it only with the services that make Huddl run — Supabase for hosting and Expo for delivering push notifications — and only as needed for them to do that job. Beyond that, we would disclose data only if the law requires it or it's necessary to prevent serious harm to someone.",
+      body: "We never sell your data, full stop. We share it only with the services that make Huddl run — Supabase for hosting, Expo for delivering push notifications, and Twilio for sending the verification text if you choose to verify a phone number — and only as needed for them to do that job. Twilio receives the number and nothing else about you. Beyond that, we would disclose data only if the law requires it or it's necessary to prevent serious harm to someone.",
     },
     {
       heading: "Deleting your data",

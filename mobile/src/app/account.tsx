@@ -237,9 +237,25 @@ export default function AccountScreen() {
     setPhotoError(null);
     setPhotoBusy("remove");
 
-    const { error: fileError } = await supabase.storage
+    /* Empty the folder rather than name one key. This app writes a single
+       fixed name and overwrites it, so `${userId}/avatar.jpg` used to be the
+       whole story — but the web uploader writes a fresh timestamped name
+       every time, and a student who has ever changed their photo in a browser
+       has files here that naming one key walks straight past. Walking past
+       them means leaving old photos readable by anyone holding the link,
+       while telling the student they were deleted. */
+    const { data: existing, error: listError } = await supabase.storage
       .from("avatars")
-      .remove([`${userId}/avatar.jpg`]);
+      .list(userId, { limit: 100 });
+    if (listError) {
+      setPhotoBusy(null);
+      setPhotoError("Couldn't remove your photo. Give it another try.");
+      return;
+    }
+    const paths = (existing ?? []).map((entry) => `${userId}/${entry.name}`);
+    const { error: fileError } = paths.length
+      ? await supabase.storage.from("avatars").remove(paths)
+      : { error: null };
     if (fileError) {
       setPhotoBusy(null);
       setPhotoError("Couldn't remove your photo. Give it another try.");

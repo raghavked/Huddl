@@ -2,7 +2,7 @@
 
 import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Camera, Check, Loader2 } from "lucide-react";
+import { AlertCircle, Camera, Check, Loader2, Trash2 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import {
   Button,
@@ -13,6 +13,7 @@ import {
   Label,
   Textarea,
 } from "@/components/ui";
+import { clearAvatarFolder } from "@/lib/avatar-storage";
 import { IMAGE_ACCEPT_ATTR, isAcceptedImageType } from "@/lib/image-types";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -64,6 +65,7 @@ export function AccountForm({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [errors, setErrors] = useState<{
     displayName?: string;
     handle?: string;
@@ -114,9 +116,62 @@ export function AccountForm({
         return;
       }
       setAvatarUrl(data.publicUrl);
+      // Sweep the folder now that the profile points at the new key. Every
+      // upload here writes a fresh timestamped name, so without this the
+      // previous photo — and the one before that — stay live at their own
+      // public URLs forever. Last, and deliberately not fatal: the student's
+      // new picture is already set, and a sweep that failed is retried by the
+      // next change or by Remove.
+      void clearAvatarFolder(supabase, profile.id, path).catch(
+        () => undefined
+      );
       router.refresh();
     } finally {
       setUploading(false);
+    }
+  }
+
+  /**
+   * Take the photo down: the file, then the link to it, in that order.
+   *
+   * There was no way to do this on the web at all — the only way to stop
+   * showing a photo was to upload a different one, which left the first still
+   * sitting at a public URL. The Privacy Policy says removing a photo deletes
+   * the file rather than just the link; this is the browser half of making
+   * that true.
+   */
+  async function handleRemovePhoto() {
+    if (removing || uploading) return;
+    setErrors((e) => ({ ...e, avatar: undefined }));
+    setRemoving(true);
+    try {
+      const supabase = createClient();
+      try {
+        await clearAvatarFolder(supabase, profile.id);
+      } catch {
+        setErrors((e) => ({
+          ...e,
+          avatar: "Couldn't remove your photo. Please try again.",
+        }));
+        return;
+      }
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: null })
+        .eq("id", profile.id);
+      if (error) {
+        // The file is gone; the profile is the half still pointing at it.
+        setErrors((e) => ({
+          ...e,
+          avatar:
+            "Your photo is deleted, but your profile still points at it. Give Remove another tap.",
+        }));
+        return;
+      }
+      setAvatarUrl(null);
+      router.refresh();
+    } finally {
+      setRemoving(false);
     }
   }
 
@@ -223,6 +278,20 @@ export function AccountForm({
               )}
               {uploading ? "Uploading…" : "Change photo"}
             </Button>
+            {avatarUrl ? (
+              <Button
+                variant="ghost"
+                onClick={handleRemovePhoto}
+                disabled={uploading || removing}
+              >
+                {removing ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <Trash2 className="size-4" aria-hidden />
+                )}
+                {removing ? "Removing…" : "Remove photo"}
+              </Button>
+            ) : null}
             <Hint>JPG or PNG, up to 5 MB.</Hint>
             {errors.avatar ? (
               <ErrorLine id={`${uid}-avatar-error`} message={errors.avatar} />

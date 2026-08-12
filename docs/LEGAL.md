@@ -90,13 +90,51 @@ them true:
   storage folders (avatars, notes, schedules, chat-uploads) and deletes the
   auth user, cascading through profiles to every table. The docs describe
   this as immediate and permanent with no archive — keep it that way.
+  **What it deliberately does not erase**, and the Privacy Policy now says
+  so: twelve foreign keys onto `profiles` are `ON DELETE SET NULL` rather
+  than `CASCADE`, so shared artefacts outlive the account with the author's
+  name taken off — `decks`, `cards`, `course_calendar_items`, `course_links`,
+  `club_announcements`, `clubs`, `channels`, `dm_threads.created_by`,
+  `messages.pinned_by`, `reports.reported_user_id`, and the two
+  `forwarded_author_id` columns. That is the right design (deleting an
+  account should not empty a study group's deck or wipe a deadline off
+  everyone else's calendar) but it is a disclosure, not a detail. If a future
+  migration changes one of these to `CASCADE`, or adds a new `SET NULL`
+  reference, the "Leaving Huddl" and "Deleting your data" sections have to
+  move with it. Query to re-derive the list:
+
+  ```sql
+  select c.conrelid::regclass, a.attname, c.confdeltype
+  from pg_constraint c
+  join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+  where c.contype = 'f' and c.confrelid = 'public.profiles'::regclass
+    and c.confdeltype <> 'c';
+  ```
 
 ## Other factual claims to keep true
 
 - No ads, and student data is never sold.
 - No integration with university systems; course data is entered by users.
-- Everything posted is campus-scoped; nothing is public to the open internet.
+- Everything posted is campus-scoped and unreachable from the open internet,
+  **with one disclosed exception**: the `avatars` bucket is public, because a
+  profile photo is fetched by URL with no session. The Privacy Policy names
+  it. Changing or removing a photo empties the whole folder
+  (`src/lib/avatar-storage.ts`, and the native twin in `account.tsx`) so that
+  "removing your photo deletes the file" stays true — before that, the web
+  uploader wrote a new timestamped key each time and never removed the last,
+  leaving every photo a student had ever set live at its own public URL.
 - Push tokens are stored only for notification delivery and can be turned off.
+- **Phone numbers and Twilio.** A student may verify a phone number for the
+  badge. The number lives in `phone_verifications` (owner-readable, and since
+  0045 not owner-writable), never on the profile, and in production the
+  number is sent to Twilio Verify to deliver the SMS. Both facts are now
+  disclosed — Twilio in "When we share", the number itself in "What you give
+  us". Twilio is the only processor besides Supabase and Expo; adding another
+  means editing that sentence.
+- **Group DMs.** Threads hold 3–16 people (`create_group_thread`, 0028). The
+  documents used to say a direct message could "only ever be read by the two
+  people in it", which was false of every group thread and was also on the
+  marketing FAQ. All three now describe thread participants instead.
 - Contact address used throughout: **hello@huddl.app** — this mailbox must
   exist and be monitored before launch.
 - The guidelines reference the 988 Suicide & Crisis Lifeline (US).
@@ -106,4 +144,14 @@ them true:
 - [ ] Attorney review of all three documents (both copies updated in sync)
 - [ ] hello@huddl.app mailbox live and monitored
 - [ ] 24-hour report-review rotation actually staffed
-- [ ] Consider adding `/legal/*` to `src/app/sitemap.ts`
+- [x] `/legal/*` in `src/app/sitemap.ts` — done; the sitemap and robots.txt
+      are both built from `src/lib/protected-routes.ts`, so a page cannot be
+      advertised in one and forbidden in the other
+- [ ] **Known gap, still open:** the web report form files every report with
+      no category, so a web-filed report reaches the queue as "Something
+      else" even though the documents promise categories. Web also has no way
+      to report a direct message or a profile, and the web moderation queue
+      never calls `reported_content`, so a moderator on the web cannot read
+      the text of a reported DM. Native does all three correctly. Until this
+      is fixed the "in-app reporting with categories" promise is only true on
+      a phone.
