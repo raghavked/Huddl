@@ -310,16 +310,16 @@ export default function OnboardingScreen() {
     >
       <ScrollView
         contentContainerStyle={{
-          padding: 20,
+          padding: space.gutter,
           paddingTop: insets.top + space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <AppText variant="display" style={{ marginBottom: 6 }}>
+        <AppText variant="display" style={{ marginBottom: space.snug }}>
           {firstName ? `Welcome to Huddl, ${firstName}` : "Welcome to Huddl"}
         </AppText>
-        <AppText muted style={{ marginBottom: 8 }}>
+        <AppText muted style={{ marginBottom: space.cosy }}>
           Tell your classmates a little about yourself — you can change any of
           this later.
         </AppText>
@@ -328,13 +328,13 @@ export default function OnboardingScreen() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 6,
+              gap: space.snug,
               alignSelf: "flex-start",
               backgroundColor: theme.accentSoft,
               borderRadius: radius.full,
-              paddingHorizontal: 12,
-              paddingVertical: 5,
-              marginBottom: 16,
+              paddingHorizontal: space.close,
+              paddingVertical: space.snug,
+              marginBottom: space.card,
             }}
           >
             <Feather name="award" size={13} color={theme.accent} />
@@ -343,15 +343,21 @@ export default function OnboardingScreen() {
             </AppText>
           </View>
         ) : (
-          <View style={{ marginBottom: 8 }} />
+          <View style={{ marginBottom: space.cosy }} />
         )}
 
         {loading ? (
-          <Card style={{ alignItems: "center", paddingVertical: 32 }}>
+          <Card style={{ alignItems: "center", paddingVertical: space.rest }}>
             <ActivityIndicator color={theme.brand} />
           </Card>
         ) : loadError ? (
-          <Card style={{ alignItems: "center", gap: 10, paddingVertical: 24 }}>
+          <Card
+            style={{
+              alignItems: "center",
+              gap: space.room,
+              paddingVertical: space.chapter,
+            }}
+          >
             <AppText variant="bodySemi">Something went sideways</AppText>
             <AppText variant="caption" muted style={{ textAlign: "center" }}>
               {loadError}
@@ -364,24 +370,24 @@ export default function OnboardingScreen() {
             />
           </Card>
         ) : (
-          <Card style={{ gap: 16 }}>
+          <Card style={{ gap: space.card }}>
             {errors.form ? (
               <View
                 style={{
                   flexDirection: "row",
                   alignItems: "flex-start",
-                  gap: 8,
+                  gap: space.cosy,
                   backgroundColor: theme.surface2,
                   borderRadius: radius.control,
-                  paddingHorizontal: 14,
-                  paddingVertical: 12,
+                  paddingHorizontal: space.card,
+                  paddingVertical: space.close,
                 }}
               >
                 <Feather
                   name="alert-circle"
                   size={16}
                   color={theme.danger}
-                  style={{ marginTop: 2 }}
+                  style={{ marginTop: space.hair }}
                 />
                 <AppText
                   variant="body"
@@ -407,7 +413,7 @@ export default function OnboardingScreen() {
               error={errors.displayName ?? null}
             />
 
-            <View style={{ gap: 6 }}>
+            <View style={{ gap: space.snug }}>
               <Field
                 label="Handle"
                 placeholder="ada_lovelace"
@@ -430,7 +436,11 @@ export default function OnboardingScreen() {
                 </AppText>
               ) : handleStatus === "available" ? (
                 <View
-                  style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: space.snug,
+                  }}
                 >
                   <Feather
                     name="check-circle"
@@ -477,7 +487,7 @@ export default function OnboardingScreen() {
               error={errors.gradYear ?? null}
             />
 
-            <View style={{ gap: 6 }}>
+            <View style={{ gap: space.snug }}>
               <Field
                 label="Bio (optional)"
                 placeholder="Clubs, hobbies, what you're studying — anything classmates should know."

@@ -179,10 +179,10 @@ function Panel({
       importantForAccessibility={active ? "auto" : "no-hide-descendants"}
       style={{
         width,
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
+        gap: space.room,
       }}
     >
       <Illustration
@@ -192,7 +192,7 @@ function Panel({
       />
       <AppText
         variant="display"
-        style={{ textAlign: "center", marginTop: 14 }}
+        style={{ textAlign: "center", marginTop: space.card }}
       >
         {title}
       </AppText>
@@ -226,11 +226,11 @@ function StepRow({ step, onPress }: { step: StarterStep; onPress: () => void }) 
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
+          gap: space.close,
+          paddingHorizontal: space.card,
+          paddingVertical: space.close,
           minHeight: 68,
-          marginBottom: 10,
+          marginBottom: space.room,
         }}
       >
         <View
@@ -250,7 +250,7 @@ function StepRow({ step, onPress }: { step: StarterStep; onPress: () => void }) 
           ) : null}
         </View>
 
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: space.hair }}>
           <AppText
             variant="bodySemi"
             style={
@@ -375,7 +375,7 @@ export default function WelcomeScreen() {
       <View
         style={{
           paddingTop: insets.top + space.close,
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           alignItems: "flex-end",
         }}
       >
@@ -387,7 +387,7 @@ export default function WelcomeScreen() {
           style={({ pressed }) => ({
             height: 44,
             minWidth: 44,
-            paddingHorizontal: 6,
+            paddingHorizontal: space.snug,
             marginRight: -6,
             alignItems: "flex-end",
             justifyContent: "center",
@@ -431,7 +431,10 @@ export default function WelcomeScreen() {
         >
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8 }}
+            contentContainerStyle={{
+              paddingHorizontal: space.gutter,
+              paddingBottom: space.cosy,
+            }}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
@@ -443,7 +446,7 @@ export default function WelcomeScreen() {
             }
           >
             <AppText variant="display">A few things to set up</AppText>
-            <AppText variant="body" muted style={{ marginTop: 6 }}>
+            <AppText variant="body" muted style={{ marginTop: space.snug }}>
               None of it takes long, and you can come back to any of it from
               your account.
             </AppText>
@@ -456,7 +459,7 @@ export default function WelcomeScreen() {
                 icon={
                   progress.done === progress.total ? "check-circle" : undefined
                 }
-                style={{ marginTop: 12, marginBottom: 16 }}
+                style={{ marginTop: space.close, marginBottom: space.card }}
               />
             ) : (
               <View style={{ height: 16 }} />
@@ -472,7 +475,11 @@ export default function WelcomeScreen() {
               </>
             ) : error && starter === null ? (
               <Card
-                style={{ alignItems: "center", gap: 8, paddingVertical: 24 }}
+                style={{
+                  alignItems: "center",
+                  gap: space.cosy,
+                  paddingVertical: space.chapter,
+                }}
               >
                 <Feather name="cloud-off" size={26} color={theme.muted} />
                 <AppText variant="bodySemi">Something went sideways</AppText>
@@ -495,7 +502,7 @@ export default function WelcomeScreen() {
                 {error ? (
                   <AppText
                     variant="caption"
-                    style={{ color: theme.danger, marginBottom: 10 }}
+                    style={{ color: theme.danger, marginBottom: space.room }}
                   >
                     {error}
                   </AppText>
@@ -515,10 +522,10 @@ export default function WelcomeScreen() {
 
       <View
         style={{
-          paddingHorizontal: 20,
-          paddingTop: 16,
+          paddingHorizontal: space.gutter,
+          paddingTop: space.card,
           paddingBottom: insets.bottom + space.gutter,
-          gap: 16,
+          gap: space.card,
         }}
       >
         <View
@@ -528,7 +535,7 @@ export default function WelcomeScreen() {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            gap: 8,
+            gap: space.cosy,
           }}
         >
           {Array.from({ length: PAGE_COUNT }, (_, index) => (
@@ -537,7 +544,7 @@ export default function WelcomeScreen() {
         </View>
 
         {onChecklist && nothingDone ? (
-          <View style={{ gap: 8 }}>
+          <View style={{ gap: space.cosy }}>
             <Button
               label="Add my classes"
               size="lg"

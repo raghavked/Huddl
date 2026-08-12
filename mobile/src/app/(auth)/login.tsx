@@ -76,7 +76,7 @@ export default function LoginScreen() {
         contentContainerStyle={{
           flexGrow: 1,
           justifyContent: "center",
-          padding: 20,
+          padding: space.gutter,
           paddingTop: insets.top + space.chapter,
           paddingBottom: insets.bottom + space.chapter,
         }}
@@ -84,19 +84,19 @@ export default function LoginScreen() {
       >
         <AppText
           variant="display"
-          style={{ textAlign: "center", marginBottom: 6 }}
+          style={{ textAlign: "center", marginBottom: space.snug }}
         >
           huddl
         </AppText>
         <AppText
           muted
-          style={{ textAlign: "center", marginBottom: 24 }}
+          style={{ textAlign: "center", marginBottom: space.chapter }}
         >
           Your campus, in one huddle.
         </AppText>
 
-        <Card style={{ gap: 16 }}>
-          <View style={{ gap: 2 }}>
+        <Card style={{ gap: space.card }}>
+          <View style={{ gap: space.hair }}>
             <AppText variant="title">Welcome back</AppText>
             <AppText variant="caption" muted>
               Log in with your university email.
@@ -136,7 +136,7 @@ export default function LoginScreen() {
             minHeight: 44,
             alignItems: "center",
             justifyContent: "center",
-            marginTop: 12,
+            marginTop: space.close,
             opacity: pressed ? 0.6 : 1,
           })}
         >

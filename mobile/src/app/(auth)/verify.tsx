@@ -63,7 +63,7 @@ export default function VerifyScreen() {
       <View
         style={{
           paddingTop: insets.top + space.close,
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
         }}
       >
         <Pressable
@@ -87,11 +87,17 @@ export default function VerifyScreen() {
         contentContainerStyle={{
           flexGrow: 1,
           justifyContent: "center",
-          padding: 20,
+          padding: space.gutter,
           paddingBottom: insets.bottom + space.chapter,
         }}
       >
-        <Card style={{ alignItems: "center", gap: 12, paddingVertical: 28 }}>
+        <Card
+          style={{
+            alignItems: "center",
+            gap: space.close,
+            paddingVertical: space.rest,
+          }}
+        >
           <View
             style={{
               width: 48,
@@ -114,8 +120,8 @@ export default function VerifyScreen() {
               style={{
                 backgroundColor: theme.brandSoft,
                 borderRadius: radius.full,
-                paddingHorizontal: 14,
-                paddingVertical: 6,
+                paddingHorizontal: space.card,
+                paddingVertical: space.snug,
                 maxWidth: "100%",
               }}
             >
@@ -141,11 +147,11 @@ export default function VerifyScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "flex-start",
-                gap: 8,
+                gap: space.cosy,
                 backgroundColor: theme.surface2,
                 borderRadius: radius.control,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
+                paddingHorizontal: space.card,
+                paddingVertical: space.close,
                 alignSelf: "stretch",
               }}
             >
@@ -153,7 +159,7 @@ export default function VerifyScreen() {
                 name="alert-circle"
                 size={16}
                 color={theme.danger}
-                style={{ marginTop: 2 }}
+                style={{ marginTop: space.hair }}
               />
               <AppText variant="body" style={{ color: theme.danger, flex: 1 }}>
                 {error}
@@ -164,13 +170,17 @@ export default function VerifyScreen() {
           <Button
             label="I've confirmed — log me in"
             size="lg"
-            style={{ alignSelf: "stretch", marginTop: 4 }}
+            style={{ alignSelf: "stretch", marginTop: space.tight }}
             onPress={goToLogin}
           />
 
           {sent && cooldown > 0 ? (
             <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.snug,
+              }}
             >
               <Feather name="check-circle" size={14} color={theme.success} />
               <AppText variant="caption" style={{ color: theme.success }}>
@@ -212,7 +222,7 @@ export default function VerifyScreen() {
             minHeight: 44,
             alignItems: "center",
             justifyContent: "center",
-            marginTop: 12,
+            marginTop: space.close,
             opacity: pressed ? 0.6 : 1,
           })}
         >

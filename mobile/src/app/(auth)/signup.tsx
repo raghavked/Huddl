@@ -154,7 +154,7 @@ export default function SignupScreen() {
       <View
         style={{
           paddingTop: insets.top + space.close,
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
         }}
       >
         <Pressable
@@ -177,29 +177,29 @@ export default function SignupScreen() {
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
-          padding: 20,
-          paddingTop: 4,
+          padding: space.gutter,
+          paddingTop: space.tight,
           paddingBottom: insets.bottom + space.chapter,
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <AppText variant="display" style={{ marginBottom: 6 }}>
+        <AppText variant="display" style={{ marginBottom: space.snug }}>
           Join your campus
         </AppText>
-        <AppText muted style={{ marginBottom: 20 }}>
+        <AppText muted style={{ marginBottom: space.gutter }}>
           Sign up with your school email — that's how we keep Huddl
           campus-only.
         </AppText>
 
-        <Card style={{ gap: 16 }}>
+        <Card style={{ gap: space.card }}>
           {accountExists ? (
             <View
               style={{
                 backgroundColor: theme.accentSoft,
                 borderRadius: radius.control,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                gap: 10,
+                paddingHorizontal: space.card,
+                paddingVertical: space.close,
+                gap: space.room,
               }}
             >
               <AppText variant="body" style={{ color: theme.accent }}>
@@ -219,19 +219,23 @@ export default function SignupScreen() {
               style={{
                 backgroundColor: theme.surface2,
                 borderRadius: radius.control,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                gap: 8,
+                paddingHorizontal: space.card,
+                paddingVertical: space.close,
+                gap: space.cosy,
               }}
             >
               <View
-                style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  gap: space.cosy,
+                }}
               >
                 <Feather
                   name="alert-circle"
                   size={16}
                   color={theme.danger}
-                  style={{ marginTop: 2 }}
+                  style={{ marginTop: space.hair }}
                 />
                 <AppText
                   variant="body"
@@ -241,7 +245,7 @@ export default function SignupScreen() {
                 </AppText>
               </View>
               {isDomainError && universities && universities.length > 0 ? (
-                <View style={{ paddingLeft: 24, gap: 2 }}>
+                <View style={{ paddingLeft: space.chapter, gap: space.hair }}>
                   <AppText variant="bodySemi">Huddl is currently at:</AppText>
                   {universities.map((u) => (
                     <AppText key={u.id} variant="caption" muted>
@@ -253,7 +257,7 @@ export default function SignupScreen() {
             </View>
           ) : null}
 
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: space.snug }}>
             <Field
               label="University email"
               placeholder="you@school.edu"
@@ -266,7 +270,11 @@ export default function SignupScreen() {
             />
             {matched ? (
               <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: space.snug,
+                }}
               >
                 <Feather name="check-circle" size={14} color={theme.success} />
                 <AppText
@@ -278,7 +286,11 @@ export default function SignupScreen() {
               </View>
             ) : unsupportedDomain ? (
               <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: space.snug,
+                }}
               >
                 <Feather name="alert-circle" size={14} color={theme.danger} />
                 <AppText
@@ -295,7 +307,7 @@ export default function SignupScreen() {
             )}
           </View>
 
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: space.snug }}>
             <Field
               label="Password"
               placeholder="At least 8 characters"
@@ -361,7 +373,7 @@ export default function SignupScreen() {
             minHeight: 44,
             alignItems: "center",
             justifyContent: "center",
-            marginTop: 12,
+            marginTop: space.close,
             opacity: pressed ? 0.6 : 1,
           })}
         >
