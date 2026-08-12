@@ -16,6 +16,7 @@ import { AppText, Button, Card, EmptyState } from "@/components/ui";
 import { fonts, radius, space } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
+import { fetchBlockedIds } from "@/lib/blocks";
 import { threadDisplay } from "@/lib/group-dm";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -371,6 +372,16 @@ export default function MessagesScreen() {
     const threadIds = mine.map((row) => row.thread_id);
     if (threadIds.length === 0) return [];
 
+    // A group thread can hold someone you blocked, and the DM room drops
+    // their messages at render — so the newest message in the thread is not
+    // necessarily one you'd be shown if you opened it. The preview asks for
+    // the newest message you can actually read, which also makes the unread
+    // dot honest: it hangs off this same row, and used to light up for words
+    // the room itself refuses to draw. Fetched here rather than read off the
+    // `blocked` hook so the previews are cut against the same set the query
+    // used — the hook's refresh lands a tick later.
+    const hidden = [...(await fetchBlockedIds(userId))];
+
     // Everyone in each thread (me included, so a group's headcount is
     // honest) + the latest message per thread, all in parallel.
     const [peopleRes, latestResults] = await Promise.all([
@@ -381,15 +392,21 @@ export default function MessagesScreen() {
         )
         .in("thread_id", threadIds),
       Promise.all(
-        threadIds.map((id) =>
-          supabase
+        threadIds.map((id) => {
+          let query = supabase
             .from("dm_messages")
             .select("*")
-            .eq("thread_id", id)
+            .eq("thread_id", id);
+          // `not.in.()` isn't a filter PostgREST will take, so an empty block
+          // list simply doesn't add one.
+          if (hidden.length > 0) {
+            query = query.not("author_id", "in", `(${hidden.join(",")})`);
+          }
+          return query
             .order("created_at", { ascending: false })
             .limit(1)
-            .maybeSingle()
-        )
+            .maybeSingle();
+        })
       ),
     ]);
     if (peopleRes.error) throw peopleRes.error;

@@ -51,9 +51,17 @@ function PushGateway() {
   const userId = session?.user.id ?? null;
 
   // Register once per user per app run; harmless no-op off real devices.
+  // Cleared on the way out, because signing out deletes this device's token
+  // row (settings.tsx): without the reset, signing back in on the same run
+  // finds the ref still holding that id, skips the registration, and the
+  // student gets a session with no push at all until they kill the app.
   const registeredFor = useRef<string | null>(null);
   useEffect(() => {
-    if (!userId || registeredFor.current === userId) return;
+    if (!userId) {
+      registeredFor.current = null;
+      return;
+    }
+    if (registeredFor.current === userId) return;
     registeredFor.current = userId;
     void registerForPush(userId);
   }, [userId]);

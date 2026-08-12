@@ -714,44 +714,54 @@ export default function ThreadScreen() {
     };
     appendReply(optimistic);
     setSending(true);
+    // Queue it first, then send the queue's own row — same as the room screen.
+    // The point is the id: both attempts carry the same primary key, so a
+    // reply that commits but never answers is retried as a unique violation
+    // the queue reads as "it already landed", rather than posting the reply
+    // twice. See QueuedMessage.id in drafts.ts.
+    const payload = {
+      channel_id: channelId,
+      author_id: userId,
+      content,
+      parent_id: messageId,
+    };
+    let queued: QueuedMessage | null = null;
+    let queueError: unknown = null;
+    try {
+      queued = await enqueue({
+        key: conversationKey,
+        table: "messages",
+        payload,
+      });
+    } catch (thrown) {
+      // The device wouldn't hold it. Still worth the wire — this one reply
+      // just goes out with nothing behind it if it fails.
+      queueError = thrown;
+    }
     const { data, error: insertError } = await supabase
       .from("messages")
-      .insert({
-        channel_id: channelId,
-        author_id: userId,
-        content,
-        parent_id: messageId,
-      })
+      .insert(queued?.payload ?? payload)
       .select(MESSAGE_SELECT)
       .single();
     setSending(false);
     if (insertError || !data) {
       noteConnectivity(!isLikelyOffline(insertError));
       setReplies((prev) => prev.filter((m) => m.id !== tempId));
-      // Hold it rather than drop it: the optimistic bubble becomes a pending
-      // one, and the words stay in the thread where they were typed.
-      try {
-        await enqueue({
-          key: conversationKey,
-          table: "messages",
-          payload: {
-            channel_id: channelId,
-            author_id: userId,
-            content,
-            parent_id: messageId,
-          },
-        });
-        await refreshPending();
-        void runFlush();
-      } catch (queueError) {
-        // The device wouldn't hold it either — give the words back.
+      if (!queued) {
+        // Nothing is holding it — give the words back.
         setDraft(content);
         setSendError(
           queueError instanceof DraftError
             ? queueError.message
             : "Couldn't send that — check your connection and try again."
         );
+        return;
       }
+      // It's already queued under the id we just tried: the optimistic bubble
+      // becomes a pending one, and the words stay in the thread where they
+      // were typed.
+      await refreshPending();
+      void runFlush();
       return;
     }
     noteConnectivity(true);
@@ -763,6 +773,13 @@ export default function ThreadScreen() {
       real,
     ]);
     pendingScrollRef.current = true;
+    // The row is in the table, so the queue's copy has done its job. If this
+    // drop is the thing that fails, the next flush hits 23505 and reads it as
+    // sent anyway.
+    if (queued) {
+      await dropQueued(queued.id);
+      await refreshPending();
+    }
   }, [
     draft,
     sending,
