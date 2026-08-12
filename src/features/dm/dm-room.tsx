@@ -4,6 +4,7 @@ import {
   Fragment,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -15,6 +16,7 @@ import {
   Bookmark,
   BookmarkCheck,
   ChevronRight,
+  Flag,
   ImagePlus,
   Loader2,
   SendHorizontal,
@@ -24,6 +26,12 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { createClient } from "@/lib/supabase/client";
+import {
+  REPORT_CATEGORIES,
+  categoryLabel,
+  type ReportCategory,
+} from "@/lib/moderation";
+import { reportDmMessage } from "@/features/moderation/actions";
 import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
 import { useRealtimeUpdates } from "@/lib/hooks/use-realtime-updates";
 import { usePresence } from "@/lib/hooks/use-presence";
@@ -46,6 +54,12 @@ import { cn, formatMessageTime } from "@/lib/utils";
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 const PAGE_SIZE = 50;
 
+/** What `reports.reason` will take: 1–500 characters, per its check constraint. */
+const REASON_MAX = 500;
+
+/** How long the confirmation sits under a reported bubble before it bows out. */
+const REPORT_NOTICE_MS = 6000;
+
 /** DmMessage shaped for the realtime hook's Record constraint. */
 type DmMessageRow = DmMessage & Record<string, unknown>;
 
@@ -59,9 +73,12 @@ function dayKey(iso: string): string {
  */
 function SaveBubbleButton({
   saved,
+  revealed,
   onClick,
 }: {
   saved: boolean;
+  /** True when the row has been tapped — see {@link DmRoom}'s `tappedId`. */
+  revealed: boolean;
   onClick: () => void;
 }) {
   return (
@@ -72,6 +89,7 @@ function SaveBubbleButton({
       aria-label={saved ? "Remove from saved" : "Save message"}
       className={cn(
         "flex size-7 shrink-0 items-center justify-center self-center rounded-md transition-opacity hover:bg-surface-2 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand group-hover:opacity-100 group-focus-within:opacity-100",
+        revealed && "opacity-100",
         saved
           ? "text-brand"
           : "text-muted opacity-0 hover:text-foreground"
@@ -83,6 +101,179 @@ function SaveBubbleButton({
         <Bookmark className="size-4" aria-hidden />
       )}
     </button>
+  );
+}
+
+/**
+ * The bubble's report control, sitting with the save toggle and just as quiet
+ * until you hover the row. Reporting a direct message is promised by the
+ * Community Guidelines and has always been a long-press away on native
+ * (`mobile/src/app/dm/[id].tsx`); on the web it belongs with the affordance a
+ * student has already found rather than behind an interaction they'd have to
+ * discover.
+ *
+ * Only ever drawn on someone else's message. `reportDmMessage` refuses your
+ * own, and a control whose only answer is "you can't report yourself" is
+ * worse than no control at all.
+ */
+function ReportBubbleButton({
+  open,
+  revealed,
+  panelId,
+  onClick,
+}: {
+  open: boolean;
+  /** True when the row has been tapped — see {@link DmRoom}'s `tappedId`. */
+  revealed: boolean;
+  panelId: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Report message"
+      aria-expanded={open}
+      aria-controls={open ? panelId : undefined}
+      className={cn(
+        "flex size-7 shrink-0 items-center justify-center self-center rounded-md transition-opacity hover:bg-surface-2 hover:text-danger focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand group-hover:opacity-100 group-focus-within:opacity-100",
+        revealed && "opacity-100",
+        open ? "text-danger" : "text-muted opacity-0"
+      )}
+    >
+      <Flag className="size-4" aria-hidden />
+    </button>
+  );
+}
+
+/**
+ * The report form, under the bubble it's about rather than floating over it.
+ *
+ * A popover pinned to a 28px button would be clipped by the message list's
+ * own scroller or hang off the side of a phone, depending on how long the
+ * message it's anchored to happens to be. Sitting in the column costs nothing
+ * and keeps the words being reported on screen while the category is picked.
+ *
+ * Controlled: every value lives in {@link DmRoom} so only one of these is
+ * ever open, and so a report in flight isn't torn down by a realtime insert
+ * re-rendering the row it sits in.
+ */
+function ReportPanel({
+  panelId,
+  category,
+  onCategory,
+  detail,
+  onDetail,
+  pending,
+  error,
+  onSubmit,
+  onCancel,
+}: {
+  panelId: string;
+  category: ReportCategory | null;
+  onCategory: (category: ReportCategory) => void;
+  detail: string;
+  onDetail: (detail: string) => void;
+  pending: boolean;
+  error: string | null;
+  onSubmit: () => void;
+  onCancel: () => void;
+}) {
+  const uid = useId();
+  return (
+    <div
+      id={panelId}
+      role="group"
+      aria-labelledby={`${uid}-title`}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") onCancel();
+      }}
+      className="mt-1 w-full animate-scale-in rounded-xl border border-border bg-surface p-3 text-left shadow-soft"
+    >
+      <p id={`${uid}-title`} className="text-sm font-semibold">
+        Report this message
+      </p>
+      <p className="mt-0.5 text-xs text-muted text-pretty">
+        Reports are private — they won&apos;t know it was you. A person reads
+        every one within 24 hours.
+      </p>
+
+      <p
+        id={`${uid}-category`}
+        className="mt-3 text-[11px] font-bold uppercase tracking-widest text-muted"
+      >
+        What&apos;s going on?
+      </p>
+      <div
+        role="radiogroup"
+        aria-labelledby={`${uid}-category`}
+        className="mt-1.5 flex flex-wrap gap-1.5"
+      >
+        {REPORT_CATEGORIES.map((value) => {
+          const selected = category === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => onCategory(value)}
+              className={cn(
+                "inline-flex min-h-11 items-center rounded-full border px-3.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
+                selected
+                  ? "border-brand-ink bg-brand-soft text-brand-ink"
+                  : "border-border bg-surface text-muted hover:bg-surface-2 hover:text-foreground"
+              )}
+            >
+              {categoryLabel(value)}
+            </button>
+          );
+        })}
+      </div>
+
+      <label
+        htmlFor={`${uid}-detail`}
+        className="mt-3 block text-xs font-medium text-muted"
+      >
+        Anything to add? Optional.
+      </label>
+      <textarea
+        id={`${uid}-detail`}
+        value={detail}
+        onChange={(event) => onDetail(event.target.value)}
+        rows={2}
+        maxLength={REASON_MAX}
+        placeholder="A sentence is plenty."
+        className="mt-1 w-full resize-y rounded-lg border border-border bg-surface px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-muted/70 focus:border-brand focus:ring-[3px] focus:ring-brand/15"
+      />
+
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={onSubmit}
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-brand px-4 text-xs font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        >
+          {pending ? (
+            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+          ) : (
+            <Flag className="size-3.5" aria-hidden />
+          )}
+          {pending ? "Sending…" : "Send report"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="inline-flex min-h-11 items-center rounded-full px-3 text-xs font-semibold text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        >
+          Cancel
+        </button>
+      </div>
+      {error ? (
+        <p role="alert" className="mt-1.5 text-xs font-medium text-danger">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -139,6 +330,13 @@ export function DmRoom({
   // Saved messages: my private bookmarks among the loaded bubbles, so each
   // toggle can tell "Save message" from "Remove from saved".
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  /* Which row a tap has opened up. Tailwind compiles `group-hover` inside
+     `@media (hover: hover)`, so on a phone — where most direct messages are
+     read — hover never fires and the save and report buttons on a bubble
+     would simply never appear. There is no keyboard on a phone either, so
+     `group-focus-within` doesn't rescue it. The channel room solved this the
+     same way; this is the same fix on the surface that needed it more. */
+  const [tappedId, setTappedId] = useState<string | null>(null);
 
   // "New" divider: frozen from the server-rendered read cursor, so it doesn't
   // vanish the moment we advance last_read_at on mount.
@@ -305,6 +503,27 @@ export function DmRoom({
   });
   const online = usePresence(`dm:${threadId}`, userId);
   const otherOnline = other !== null && online.has(other.id);
+
+  // Reporting a message in this thread. All of it lives up here rather than
+  // in the bubble: only one panel should ever be open, and a report in flight
+  // has to outlive the re-render an incoming message causes underneath it.
+  const [reportFor, setReportFor] = useState<string | null>(null);
+  const [reportCategory, setReportCategory] = useState<ReportCategory | null>(
+    null
+  );
+  const [reportDetail, setReportDetail] = useState("");
+  const [reportPending, setReportPending] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [reportSentId, setReportSentId] = useState<string | null>(null);
+  const reportPanelId = useId();
+
+  // The confirmation has done its job once it's been read, and the report is
+  // filed either way.
+  useEffect(() => {
+    if (!reportSentId) return;
+    const timer = setTimeout(() => setReportSentId(null), REPORT_NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [reportSentId]);
 
   // One naming rule for both shapes, straight from the data layer: a group
   // shows its title and "N people", a 1:1 shows the other student. A 1:1
@@ -478,6 +697,72 @@ export function DmRoom({
       setMessages((prev) => prev.map((m) => (m.id === id ? previous : m)));
       setError("Couldn't delete the message. Try again.");
     }
+  }
+
+  /* Nothing moves the panel while a report is in flight — not closing it, not
+     opening another one. On a slow network the answer, sent or failed, has to
+     land somewhere the reporter is still looking. */
+  function openReport(messageId: string) {
+    if (reportPending) return;
+    if (reportFor !== messageId) {
+      // A different message is a different report; the last one's category
+      // and words don't belong on it.
+      setReportCategory(null);
+      setReportDetail("");
+    }
+    setReportFor(messageId);
+    setReportError(null);
+    setReportSentId(null);
+  }
+
+  /* Closing keeps what they picked and typed, so reopening the same message
+     picks up where they left off rather than starting the report again. */
+  function closeReport() {
+    if (reportPending) return;
+    setReportFor(null);
+    setReportError(null);
+  }
+
+  async function submitReport(messageId: string) {
+    if (reportPending) return;
+    if (reportCategory === null) {
+      setReportError("Pick the category that fits best.");
+      return;
+    }
+    setReportPending(true);
+    setReportError(null);
+    /* `reports.reason` is not nullable, and a student who picked a category
+       and had nothing to add has still said something — the category's own
+       words stand in rather than blocking the report on a second field. */
+    const words = reportDetail.trim();
+    /* A server action is an HTTP POST, so offline or a 500 REJECTS rather
+       than resolving `{ error }`. Unhandled, that rejection skips
+       setReportPending(false) and the panel is stuck on "Sending…" forever —
+       and because closing is guarded on `pending`, Cancel, Escape and the
+       trigger all stop responding too. The student is left with no error, no
+       retry and no way out but a reload, on the one flow where being unable
+       to finish matters most. */
+    let failure: string | undefined;
+    try {
+      const result = await reportDmMessage(
+        messageId,
+        reportCategory,
+        words.length > 0 ? words : categoryLabel(reportCategory)
+      );
+      failure = result.error;
+    } catch {
+      failure = "Couldn't send that report — check your connection and try again.";
+    } finally {
+      setReportPending(false);
+    }
+    if (failure) {
+      setReportError(failure);
+      return;
+    }
+    setReportFor(null);
+    setReportCategory(null);
+    setReportDetail("");
+    setReportSentId(messageId);
   }
 
   return (
@@ -673,6 +958,9 @@ export function DmRoom({
               ) : null}
 
               <div
+                onClick={() =>
+                  setTappedId((current) => (current === m.id ? null : m.id))
+                }
                 className={cn(
                   "group flex items-end gap-2 px-1",
                   own ? "justify-end" : "justify-start",
@@ -696,6 +984,7 @@ export function DmRoom({
                 {own && !m.deleted_at && !isTemp ? (
                   <SaveBubbleButton
                     saved={savedIds.has(m.id)}
+                    revealed={tappedId === m.id}
                     onClick={() =>
                       void handleToggleSaved(m.id, !savedIds.has(m.id))
                     }
@@ -760,13 +1049,55 @@ export function DmRoom({
                   <span className="sr-only">
                     {own ? " — sent by you" : ` — from ${authorName}`}
                   </span>
+
+                  {reportSentId === m.id ? (
+                    <p
+                      role="status"
+                      className="flex w-fit items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-medium text-success"
+                    >
+                      <Flag className="size-3 shrink-0" aria-hidden />
+                      Report sent — a person reads it within 24 hours.
+                    </p>
+                  ) : null}
+
+                  {reportFor === m.id ? (
+                    <ReportPanel
+                      panelId={reportPanelId}
+                      category={reportCategory}
+                      onCategory={(value) => {
+                        setReportCategory(value);
+                        setReportError(null);
+                      }}
+                      detail={reportDetail}
+                      onDetail={setReportDetail}
+                      pending={reportPending}
+                      error={reportError}
+                      onSubmit={() => void submitReport(m.id)}
+                      onCancel={closeReport}
+                    />
+                  ) : null}
                 </div>
 
                 {!own && !m.deleted_at && !isTemp ? (
                   <SaveBubbleButton
                     saved={savedIds.has(m.id)}
+                    revealed={tappedId === m.id}
                     onClick={() =>
                       void handleToggleSaved(m.id, !savedIds.has(m.id))
+                    }
+                  />
+                ) : null}
+
+                {/* Their message, so it's theirs to answer for. A deleted
+                    bubble has no words left to show a moderator, and a
+                    still-sending one has no row to point at yet. */}
+                {!own && !m.deleted_at && !isTemp ? (
+                  <ReportBubbleButton
+                    open={reportFor === m.id}
+                    revealed={tappedId === m.id}
+                    panelId={reportPanelId}
+                    onClick={() =>
+                      reportFor === m.id ? closeReport() : openReport(m.id)
                     }
                   />
                 ) : null}

@@ -14,6 +14,11 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui";
+import {
+  REPORT_CATEGORIES,
+  categoryLabel,
+  type ReportCategory,
+} from "@/lib/moderation";
 import { reportBoardPost } from "@/features/board/actions";
 import {
   BoardError,
@@ -39,8 +44,12 @@ import { cn } from "@/lib/utils";
  * written, and its confirmation names what is actually lost rather than
  * asking whether they're sure. */
 
-/** The two-tap report reasons — concrete, no free-text friction. */
-const REPORT_REASONS = ["Doesn't belong here", "Harassment or harm"] as const;
+/* The eight categories come from @/lib/moderation, which is the one place
+   they live — the schema's check constraint (0020), the moderation queue and
+   every picker all read the same list. This menu used to offer two invented
+   strings ("Doesn't belong here", "Harassment or harm") that matched nothing
+   in the schema, and filed them as free text with no category at all, so
+   every board report reached a moderator labelled "Something else". */
 
 /** How long a finished report sits there before the menu bows out. */
 const NOTICE_MS = 4000;
@@ -226,14 +235,28 @@ export function PostMenu({
     }
   }
 
-  async function submitReport(reason: string) {
+  async function submitReport(category: ReportCategory) {
     if (working) return;
     setError(null);
     setWorking(true);
-    const result = await reportBoardPost(post.id, reason);
-    setWorking(false);
-    if (result.error) {
-      setError(result.error);
+    /* A server action is an HTTP POST: offline or a 500 rejects rather than
+       resolving `{ error }`, and an unhandled rejection would leave the menu
+       stuck on its working state with no error and nothing to retry. */
+    let failure: string | undefined;
+    try {
+      const result = await reportBoardPost(
+        post.id,
+        category,
+        categoryLabel(category)
+      );
+      failure = result.error;
+    } catch {
+      failure = "Couldn't send that report — check your connection and try again.";
+    } finally {
+      setWorking(false);
+    }
+    if (failure) {
+      setError(failure);
       return;
     }
     setStep("menu");
@@ -309,15 +332,15 @@ export function PostMenu({
                 it.
               </p>
               <div className="mt-2 flex flex-col">
-                {REPORT_REASONS.map((reason) => (
+                {REPORT_CATEGORIES.map((category) => (
                   <button
-                    key={reason}
+                    key={category}
                     type="button"
                     disabled={working}
-                    onClick={() => void submitReport(reason)}
+                    onClick={() => void submitReport(category)}
                     className={MENU_ROW}
                   >
-                    {reason}
+                    {categoryLabel(category)}
                   </button>
                 ))}
               </div>

@@ -20,6 +20,7 @@ import {
   buttonClasses,
   cardClasses,
 } from "@/components/ui";
+import { ReportPersonButton } from "@/features/people/profile-actions";
 import { BlockPersonButton } from "@/features/settings/blocked-list";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -120,13 +121,27 @@ export default async function ProfilePage({
   );
 
   /* A private profile withholds the display name, so anything that says this
-     person out loud — the block confirmation, the button's label — uses the
-     handle, which is the only name the viewer can actually see. */
+     person out loud — the block confirmation, the report panel, either
+     button's label — uses the handle, which is the only name the viewer can
+     actually see. */
+  const visibleName = profile.is_public
+    ? profile.display_name
+    : `@${profile.handle}`;
+
+  /* Reporting and blocking are different acts and stay separately reachable:
+     one asks us to look at someone, the other is what a student does for
+     themselves in the meantime. Neither is a step inside the other, and a
+     block is never a condition of being heard — so both sit on the action row
+     regardless of which has already been used. */
+  const reportButton = isMe ? null : (
+    <ReportPersonButton personId={profile.id} name={visibleName} />
+  );
+
   const blockButton = isMe ? null : (
     <BlockPersonButton
       viewerId={user.userId}
       personId={profile.id}
-      name={profile.is_public ? profile.display_name : `@${profile.handle}`}
+      name={visibleName}
       initiallyBlocked={iBlocked}
     />
   );
@@ -163,11 +178,12 @@ export default async function ProfilePage({
                 : "Only their handle and avatar are visible, but you can still say hi."}
             </p>
           </div>
-          {/* Blocking belongs here too, and arguably most of all: a private
-              profile is often the only page you have on someone who has
-              started bothering you. */}
+          {/* Reporting and blocking belong here too, and arguably most of
+              all: a private profile is often the only page you have on
+              someone who has started bothering you. */}
           <div className="flex flex-col items-center gap-3">
             {messageButton}
+            {reportButton}
             {blockButton}
           </div>
         </section>
@@ -295,9 +311,10 @@ export default async function ProfilePage({
                 </p>
               </div>
             ) : null}
-            {/* Message and Block sit on one line until the confirmation opens;
-                that panel is full-width, so it wraps onto its own row and the
-                question isn't crowded by the button that raised it. */}
+            {/* Message, Report and Block sit on one line until one of the
+                panels opens; both are full-width, so they wrap onto their own
+                row and the question isn't crowded by the button that raised
+                it. */}
             <div className="mt-5 flex flex-wrap items-start justify-center gap-3 sm:justify-start">
               {isMe ? (
                 <Link
@@ -310,6 +327,7 @@ export default async function ProfilePage({
               ) : (
                 <>
                   {messageButton}
+                  {reportButton}
                   {blockButton}
                 </>
               )}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   Archive,
   CheckCircle2,
@@ -23,6 +23,7 @@ import {
   categoryLabel,
   fetchQueue,
   fetchQueueCounts,
+  fetchReportedContent,
   filedAgo,
   moveCount,
   reportSubject,
@@ -32,6 +33,7 @@ import {
   summarize,
   triageActions,
   type ModerationReport,
+  type ReportedContent,
   type ReportStatus,
 } from "@/lib/moderation";
 import { cn } from "@/lib/utils";
@@ -91,16 +93,166 @@ function WellLabel({ children }: { children: React.ReactNode }) {
 }
 
 /**
+ * Who said the reported words and when, for the line above them.
+ *
+ * `reported_content` hands back an author id rather than a person, and the
+ * only person this card can put a name to is the one the report was filed
+ * against — so the name is used only when those two ids are the same. Anyone
+ * else stays unnamed rather than guessed at, on a card whose whole job is
+ * deciding something about a named person.
+ */
+function byline(
+  content: ReportedContent,
+  report: ModerationReport,
+  now: Date
+): string {
+  const reported = report.reported;
+  const who =
+    reported !== null && content.author_id === reported.id
+      ? reported.display_name
+      : "Someone on campus";
+  if (content.created_at === null) return who;
+  return `${who} · ${filedAgo({ created_at: content.created_at }, now)}`;
+}
+
+/**
+ * A reported message the queue query couldn't carry — a channel this moderator
+ * isn't in, or a direct message, which no moderator is ever a participant of.
+ *
+ * Deliberately behind a click rather than loaded with the list. These are
+ * private words, and the difference between "a page that can show you a
+ * reported message" and "a page that pulls a hundred private messages out of
+ * the database to draw a list" is exactly this button.
+ */
+function HiddenMessage({
+  report,
+  note,
+  now,
+}: {
+  report: ModerationReport;
+  note: string;
+  /** The page's one moment, so "sent" and "filed" are measured from it. */
+  now: Date;
+}) {
+  const [content, setContent] = useState<ReportedContent | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [empty, setEmpty] = useState(false);
+  /* The button that asks for these words unmounts once they arrive, and in
+     Chrome and Firefox a removed element hands its focus to <body>. A
+     moderator working by keyboard would be thrown to the top of the page and
+     have to tab all the way back to the two triage buttons on the card they
+     were reading. So the revealed block takes the focus the button gave up. */
+  const revealedRef = useRef<HTMLDivElement>(null);
+
+  const load = useCallback(async () => {
+    if (loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const found = await fetchReportedContent(report.id);
+      if (found) setContent(found);
+      else setEmpty(true);
+      // After paint, so the target exists to receive it.
+      requestAnimationFrame(() => revealedRef.current?.focus());
+    } catch (caught) {
+      setError(
+        caught instanceof ModerationError
+          ? caught.message
+          : "We couldn't load what was reported. Give it another go."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [report.id, loading]);
+
+  return (
+    <div className="flex flex-col items-start gap-2">
+      {/* The button that asked for these words is gone by the time they land,
+          taking the reader's focus with it, so this region is mounted with the
+          card and swaps its contents in place — a live region that appears at
+          the same moment as its text is announced by nothing. */}
+      <div
+        ref={revealedRef}
+        tabIndex={-1}
+        aria-live="polite"
+        className="flex w-full flex-col gap-1.5 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
+        {content ? (
+          <>
+            <WellLabel>
+              {content.kind === "direct"
+                ? "The direct message"
+                : "What they said"}
+            </WellLabel>
+            <Well>
+              <p className="text-xs text-muted">
+                {byline(content, report, now)}
+              </p>
+              <p className="text-sm break-words whitespace-pre-wrap">
+                {content.content}
+              </p>
+              {content.deleted_at ? (
+                <p className="text-xs text-muted">
+                  The author has taken this down since.
+                </p>
+              ) : null}
+            </Well>
+          </>
+        ) : (
+          <p className="flex items-start gap-2 text-xs text-muted">
+            <EyeOff className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            {empty
+              ? "That message has been deleted outright. The report is all that's left."
+              : note}
+          </p>
+        )}
+      </div>
+
+      {/* A report whose words are gone is still a report to decide, so the
+          only thing that leaves with them is the button. */}
+      {content || empty ? null : (
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={loading}
+          onClick={() => void load()}
+        >
+          {loading ? (
+            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+          ) : null}
+          Read the message
+        </Button>
+      )}
+
+      {error ? (
+        <p role="alert" className="text-xs font-medium text-danger">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
  * What was reported, quoted — or a sentence saying where it went.
  *
  * A soft-deleted message keeps its content here on purpose: "they took it down
  * after being reported" is the most useful thing a moderator can know, and
  * hiding the words would leave them deciding on nothing.
  */
-function Subject({ report }: { report: ModerationReport }) {
+function Subject({ report, now }: { report: ModerationReport; now: Date }) {
   const subject = reportSubject(report);
 
   if (subject.kind === "gone") {
+    /* A message we can't embed isn't necessarily a message we can't read.
+       `messages` is channel-member-only and `dm_messages` is participant-only,
+       so a moderator triaging a channel they never joined — or any DM at all —
+       used to be judging words they couldn't see. `reported_content()` is the
+       one narrow way through, so offer it rather than the shrug. */
+    if (subject.was === "message") {
+      return <HiddenMessage report={report} note={subject.note} now={now} />;
+    }
     return (
       <p className="flex items-start gap-2 text-xs text-muted">
         <EyeOff className="mt-0.5 size-3.5 shrink-0" aria-hidden />
@@ -254,7 +406,7 @@ function ReportCard({
           {report.reason}
         </p>
 
-        <Subject report={report} />
+        <Subject report={report} now={now} />
       </div>
 
       <div className="grid grid-cols-2 gap-2 border-t border-border p-3">

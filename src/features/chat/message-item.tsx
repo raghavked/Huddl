@@ -4,6 +4,7 @@ import {
   Fragment,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -22,6 +23,11 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { createClient } from "@/lib/supabase/client";
+import {
+  REPORT_CATEGORIES,
+  categoryLabel,
+  type ReportCategory,
+} from "@/lib/moderation";
 import { reportMessage } from "@/features/moderation/actions";
 import { AttachmentImage } from "@/features/chat/attachment-image";
 import { splitMentions } from "@/features/chat/mentions";
@@ -29,11 +35,10 @@ import { PollBubble } from "@/features/polls/poll-bubble";
 import type { MessageReaction, MessageWithAuthor } from "@/lib/types";
 import { cn, formatMessageTime } from "@/lib/utils";
 
-/** The reaction set Huddl supports — kept tiny and student-flavored. */
 export const REACTION_EMOJI = ["👍", "❤️", "😂", "🔥", "📚", "✅"] as const;
 
-/** The two-tap report reasons — concrete, no free-text friction. */
-const REPORT_REASONS = ["Doesn't belong here", "Harassment or harm"] as const;
+/** What `reports.reason` will take: 1–500 characters, per its check constraint. */
+const REASON_MAX = 500;
 
 const TOOL_BUTTON =
   "flex size-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand";
@@ -160,18 +165,24 @@ export function MessageItem({
   // Tap-to-reveal for touch screens, where :hover never fires.
   const [tapped, setTapped] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportCategory, setReportCategory] = useState<ReportCategory | null>(
+    null
+  );
+  const [reportDetail, setReportDetail] = useState("");
   const [reportPending, setReportPending] = useState(false);
-  const [reportNotice, setReportNotice] = useState<{
-    tone: "success" | "error";
-    text: string;
-  } | null>(null);
+  // A failed report is answered inside the panel, never as a notice that
+  // fades: the pick and the words have to still be there to send again.
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [reportSent, setReportSent] = useState(false);
+  const reportUid = useId();
 
-  // Report feedback fades on its own; a fresh submit restarts the timer.
+  // The confirmation has done its job once it's been read; the report is on
+  // the queue whether or not this is still on screen.
   useEffect(() => {
-    if (!reportNotice) return;
-    const timer = setTimeout(() => setReportNotice(null), 5000);
+    if (!reportSent) return;
+    const timer = setTimeout(() => setReportSent(false), 6000);
     return () => clearTimeout(timer);
-  }, [reportNotice]);
+  }, [reportSent]);
 
   const reactionGroups = useMemo(() => {
     const map = new Map<string, { count: number; mine: boolean }>();
@@ -216,18 +227,55 @@ export function MessageItem({
     setTapped(false);
   }
 
-  async function submitReport(reason: string) {
+  /**
+   * Nothing closes the panel while a report is in flight — on a slow network
+   * the answer, sent or failed, has to land somewhere the reporter is still
+   * looking. The draft survives an ordinary close, so reopening the flag
+   * picks up where they left off rather than starting the report again.
+   */
+  function closeReport() {
     if (reportPending) return;
-    setReportPending(true);
-    const { error } = await reportMessage(message.id, reason);
-    setReportPending(false);
     setReportOpen(false);
+    setReportError(null);
+  }
+
+  async function submitReport() {
+    if (reportPending) return;
+    if (reportCategory === null) {
+      setReportError("Pick the category that fits best.");
+      return;
+    }
+    setReportPending(true);
+    setReportError(null);
+    // `reports.reason` is not nullable, and a student who picked a category
+    // and had nothing to add has still said something — send the words they
+    // chose rather than making the note compulsory.
+    const detail = reportDetail.trim();
+    // A server action is an HTTP POST: offline or a 500 rejects rather than
+    // resolving `{ error }`, and an unhandled rejection would leave this
+    // stuck on "Sending…" with no error and nothing to retry.
+    let failure: string | undefined;
+    try {
+      const result = await reportMessage(
+        message.id,
+        reportCategory,
+        detail.length > 0 ? detail : categoryLabel(reportCategory)
+      );
+      failure = result.error;
+    } catch {
+      failure = "Couldn't send that report — check your connection and try again.";
+    } finally {
+      setReportPending(false);
+    }
+    if (failure) {
+      setReportError(failure);
+      return;
+    }
+    setReportOpen(false);
+    setReportCategory(null);
+    setReportDetail("");
     setTapped(false);
-    setReportNotice(
-      error
-        ? { tone: "error", text: error }
-        : { tone: "success", text: "Reported — thanks for looking out" }
-    );
+    setReportSent(true);
   }
 
   function saveEdit() {
@@ -418,18 +466,13 @@ export function MessageItem({
           </button>
         ) : null}
 
-        {reportNotice ? (
+        {reportSent ? (
           <p
-            role={reportNotice.tone === "error" ? "alert" : "status"}
-            className={cn(
-              "mt-1 flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-              reportNotice.tone === "success"
-                ? "bg-success/10 text-success"
-                : "bg-danger/10 text-danger"
-            )}
+            role="status"
+            className="mt-1 flex w-fit items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-medium text-success"
           >
             <Flag className="size-3" aria-hidden />
-            {reportNotice.text}
+            Report sent — a person reads it within 24 hours.
           </p>
         ) : null}
       </div>
@@ -561,7 +604,9 @@ export function MessageItem({
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setReportOpen((v) => !v)}
+                onClick={() =>
+                  reportOpen ? closeReport() : setReportOpen(true)
+                }
                 aria-label="Report message"
                 aria-expanded={reportOpen}
                 className={cn(TOOL_BUTTON, "hover:text-danger")}
@@ -573,38 +618,112 @@ export function MessageItem({
                   <button
                     type="button"
                     aria-label="Close report options"
-                    onClick={() => setReportOpen(false)}
+                    onClick={closeReport}
                     className="fixed inset-0 z-10 cursor-default"
                     tabIndex={-1}
                   />
                   <div
                     role="group"
-                    aria-label="Report this message"
-                    className="absolute bottom-full right-0 z-20 mb-1 w-56 animate-scale-in rounded-xl border border-border bg-surface p-1.5 shadow-lift"
+                    aria-labelledby={`${reportUid}-title`}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Escape") return;
+                      // Don't let Escape bubble up and close the thread panel.
+                      e.preventDefault();
+                      e.stopPropagation();
+                      closeReport();
+                    }}
+                    className="absolute bottom-full right-0 z-20 mb-1 max-h-[70vh] w-72 animate-scale-in overflow-y-auto rounded-xl border border-border bg-surface p-2.5 shadow-lift"
                   >
-                    <p className="px-2 pb-1 pt-0.5 text-xs font-semibold">
-                      Report this message?
+                    <p
+                      id={`${reportUid}-title`}
+                      className="text-xs font-semibold"
+                    >
+                      Report this message
                     </p>
-                    {reportPending ? (
-                      <p className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted">
-                        <Loader2
-                          className="size-3.5 animate-spin"
-                          aria-hidden
-                        />
-                        Sending report…
+                    <p className="mt-0.5 text-[11px] leading-snug text-muted">
+                      Reports are private — they won&apos;t know it was you. A
+                      person reads every one within 24 hours.
+                    </p>
+
+                    <p
+                      id={`${reportUid}-category`}
+                      className="mt-2.5 text-[11px] font-bold uppercase tracking-widest text-muted"
+                    >
+                      What&apos;s going on?
+                    </p>
+                    <div
+                      role="radiogroup"
+                      aria-labelledby={`${reportUid}-category`}
+                      className="mt-1.5 flex flex-wrap gap-1"
+                    >
+                      {REPORT_CATEGORIES.map((category) => {
+                        const selected = reportCategory === category;
+                        return (
+                          <button
+                            key={category}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            onClick={() => {
+                              setReportCategory(category);
+                              setReportError(null);
+                            }}
+                            className={cn(
+                              "rounded-full border px-2.5 py-1.5 text-[11px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
+                              selected
+                                ? "border-brand-ink bg-brand-soft text-brand-ink"
+                                : "border-border bg-surface text-muted hover:bg-surface-2 hover:text-foreground"
+                            )}
+                          >
+                            {categoryLabel(category)}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <label
+                      htmlFor={`${reportUid}-detail`}
+                      className="mt-2.5 block text-[11px] font-medium text-muted"
+                    >
+                      Anything to add? Optional.
+                    </label>
+                    <textarea
+                      id={`${reportUid}-detail`}
+                      value={reportDetail}
+                      onChange={(e) => setReportDetail(e.target.value)}
+                      rows={2}
+                      maxLength={REASON_MAX}
+                      placeholder="A sentence is plenty."
+                      className="mt-1 w-full resize-none rounded-lg border border-border bg-surface px-2 py-1.5 text-xs outline-none transition-colors focus:border-brand focus:ring-[3px] focus:ring-brand/15"
+                    />
+
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void submitReport()}
+                        className="flex items-center gap-1.5 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-brand-fg transition-colors hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                      >
+                        {reportPending ? (
+                          <Loader2 className="size-3 animate-spin" aria-hidden />
+                        ) : null}
+                        {reportPending ? "Sending…" : "Send report"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={closeReport}
+                        className="rounded-full px-2.5 py-1 text-xs font-semibold text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {reportError ? (
+                      <p
+                        role="alert"
+                        className="mt-1.5 text-[11px] font-medium text-danger"
+                      >
+                        {reportError}
                       </p>
-                    ) : (
-                      REPORT_REASONS.map((reason) => (
-                        <button
-                          key={reason}
-                          type="button"
-                          onClick={() => submitReport(reason)}
-                          className="w-full rounded-lg px-2 py-1.5 text-left text-xs font-medium transition-colors hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
-                        >
-                          {reason}
-                        </button>
-                      ))
-                    )}
+                    ) : null}
                   </div>
                 </>
               ) : null}

@@ -37,6 +37,10 @@ import { createClient } from "@/lib/supabase/client";
  *   · A message the author "deleted" is a soft delete: `deleted_at` is stamped
  *     and the content stays. Moderation is exactly the place that should still
  *     read it, so this module hands the content over and flags the deletion.
+ *   · A reported direct message never has an embed at all. `dm_messages` is
+ *     readable only to the two people in the thread and a moderator is never
+ *     one of them, so `dm_message_id` arrives on its own and the words come
+ *     from {@link fetchReportedContent}, one report at a time.
  *
  * So every screen has to be able to say "this isn't here" instead of drawing a
  * blank card. {@link reportSubject} decides which of those cases a report is
@@ -104,6 +108,45 @@ const CATEGORY_LABELS: Record<ReportCategory, string> = {
   academic_dishonesty: "Academic dishonesty",
   other: "Something else",
 };
+
+/**
+ * The eight categories in the order a reporter is offered them — worst first,
+ * "Something else" last — matching the native report screen.
+ *
+ * Exported because every picker needs it, and each one that keeps its own
+ * copy is another place to forget when the check constraint changes. There
+ * were four such copies before this: the constraint in 0020, the two
+ * CATEGORY_LABELS maps, and a hand-written array in the chat report popover,
+ * each with a comment claiming it was one of two.
+ */
+export const REPORT_CATEGORIES: readonly ReportCategory[] = [
+  "harassment",
+  "hate",
+  "sexual_content",
+  "self_harm",
+  "impersonation",
+  "spam",
+  "academic_dishonesty",
+  "other",
+];
+
+/**
+ * Whether an arbitrary string is one of the eight.
+ *
+ * `hasOwnProperty` rather than a truthiness check on the label, because a
+ * server action is an HTTP endpoint and the `ReportCategory` type is only a
+ * caller's promise. A hand-rolled POST sending `"constructor"`, `"toString"`
+ * or `"__proto__"` reads a truthy value straight off Object.prototype, so a
+ * guard written as `if (!categoryLabel(c))` waves it through — and the
+ * student who tripped it gets told to try again, about the one failure
+ * retrying can never fix.
+ */
+export function isReportCategory(raw: unknown): raw is ReportCategory {
+  return (
+    typeof raw === "string" &&
+    Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, raw)
+  );
+}
 
 /* ══════════════════════════════ shapes ═══════════════════════════════ */
 
@@ -212,6 +255,14 @@ export type ModerationReport = {
   message_id: string | null;
   /** Raw `reports.board_post_id` — same story as `message_id`. */
   board_post_id: string | null;
+  /**
+   * Raw `reports.dm_message_id` (migration 0038). There is deliberately NO
+   * embedded `dm_message` beside it: `dm_messages` is readable only to the
+   * two people in the thread, and a moderator is by definition not one of
+   * them. A reported DM resolves through {@link fetchReportedContent}, which
+   * is the only path to those words and is scoped to this one report.
+   */
+  dm_message_id: string | null;
   /** Raw `reports.reported_user_id`. */
   reported_user_id: string | null;
 };
@@ -247,7 +298,7 @@ export const QUEUE_LIMIT = 100;
 
 /** Columns every queue query selects. Keep selects consistent. */
 export const REPORT_SELECT =
-  "id, status, category, reason, created_at, message_id, board_post_id, reported_user_id, " +
+  "id, status, category, reason, created_at, message_id, dm_message_id, board_post_id, reported_user_id, " +
   // Two foreign keys point at `profiles`, so both embeds need naming.
   "reporter:profiles!reports_reporter_id_fkey(id, handle, display_name, avatar_url), " +
   "reported:profiles!reports_reported_user_id_fkey(id, handle, display_name, avatar_url, bio), " +
@@ -416,6 +467,7 @@ function toReport(raw: unknown): ModerationReport | null {
     post: toPost(record["post"]),
     message_id: text(record["message_id"]),
     board_post_id: text(record["board_post_id"]),
+    dm_message_id: text(record["dm_message_id"]),
     reported_user_id: text(record["reported_user_id"]),
   };
 }
@@ -598,9 +650,17 @@ export function statusLabel(status: ReportStatus): string {
   return "Open";
 }
 
-/** What the reporter picked, in the same words they picked it. Pure. */
+/**
+ * What the reporter picked, in the same words they picked it. Pure.
+ *
+ * Own-property read, for the same reason {@link isReportCategory} exists: a
+ * bare index returns an inherited function for `"toString"` and friends, and
+ * this label ends up in a moderator's queue.
+ */
 export function categoryLabel(category: ReportCategory): string {
-  return CATEGORY_LABELS[category];
+  return Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, category)
+    ? CATEGORY_LABELS[category]
+    : CATEGORY_LABELS.other;
 }
 
 /**
@@ -629,11 +689,15 @@ export function triageActions(
 /**
  * What a report is about, and whether it's still there to look at.
  *
- * Precedence is message → board post → profile, which matches how reports are
- * filed: a message report also records its author (so the report keeps a
- * subject after the message goes), and the message is the more specific of the
- * two. A report whose subject columns have all nulled out still resolves — to
- * `gone`, with a sentence saying so.
+ * Precedence is message → direct message → board post → profile, which matches
+ * how reports are filed: a message report also records its author (so the
+ * report keeps a subject after the message goes), and the message is the more
+ * specific of the two. A report whose subject columns have all nulled out still
+ * resolves — to `gone`, with a sentence saying so.
+ *
+ * A reported DM always resolves to `gone` with `was: "message"`, because there
+ * is no embed to resolve it to — its words come from
+ * {@link fetchReportedContent} and only when a moderator asks for them.
  *
  * Pure.
  */
@@ -645,7 +709,14 @@ export function reportSubject(report: ModerationReport): ReportSubject {
     return {
       kind: "gone",
       was: "message",
-      note: "That message is in a channel you haven't joined, so it isn't shown here.",
+      note: "That message is in a channel you haven't joined, so it isn't loaded with the queue.",
+    };
+  }
+  if (report.dm_message_id !== null) {
+    return {
+      kind: "gone",
+      was: "message",
+      note: "A direct message, so the words aren't loaded with the queue.",
     };
   }
   if (report.post !== null) return { kind: "post", post: report.post };
@@ -796,5 +867,78 @@ export function moveCount(
     ...counts,
     [from]: Math.max(0, counts[from] - 1),
     [to]: counts[to] + 1,
+  };
+}
+
+/* ═════════════════════════ the words behind it ═══════════════════════ */
+
+/** What {@link fetchReportedContent} hands back. */
+export type ReportedContent = {
+  /** Which surface it was said on — a room, or a one-to-one thread. */
+  kind: "channel" | "direct";
+  /** The words. Never truncated on the way through here. */
+  content: string;
+  /** Who said them, or null if the row no longer names an author. */
+  author_id: string | null;
+  /** ISO timestamp it was sent, or null. */
+  created_at: string | null;
+  /**
+   * Set if it has been taken down since. The content is still here — a soft
+   * delete hides a message from the room, not from triage.
+   */
+  deleted_at: string | null;
+};
+
+/**
+ * The reported message itself, for the one report a moderator has open.
+ *
+ * This exists because triage was blind. `messages` is readable only to
+ * channel members and `dm_messages` only to the two people in the thread —
+ * both correct, and both meaning a moderator was being asked to judge words
+ * they could not read. Migration 0038 added `reported_content()`, a
+ * security-definer function that returns the text of the ONE message a given
+ * report names, for a moderator on that report's own campus.
+ *
+ * It is deliberately not part of {@link REPORT_SELECT}. One call per opened
+ * report, never one per row: a queue screen should not be pulling a hundred
+ * private messages out of the database to draw a list.
+ *
+ * @param reportId The report being triaged.
+ * @returns The words and who said them, or null when the subject is a person
+ *   or a board post (both already readable), or when the message has since
+ *   been hard-deleted — in which case the report stands on its own.
+ * @throws {ModerationError} With copy that's ready to render.
+ */
+export async function fetchReportedContent(
+  reportId: string,
+  ctx?: ModerationCtx
+): Promise<ReportedContent | null> {
+  const { data, error } = await db(ctx).rpc("reported_content", {
+    p_report_id: reportId,
+  });
+  if (error) {
+    if (error.message.includes("not a moderator")) {
+      throw new ModerationError(
+        "You're not a moderator any more, so this report isn't yours to read."
+      );
+    }
+    if (error.message.includes("not your campus")) {
+      throw new ModerationError("That report belongs to another campus.");
+    }
+    throw new ModerationError(
+      "We couldn't load what was reported. Give it another go."
+    );
+  }
+  const record = embedded(data);
+  if (!record) return null;
+  const content = text(record["content"]);
+  if (content === null) return null;
+  const kind = text(record["kind"]);
+  return {
+    kind: kind === "direct" ? "direct" : "channel",
+    content,
+    author_id: text(record["author_id"]),
+    created_at: text(record["created_at"]),
+    deleted_at: text(record["deleted_at"]),
   };
 }

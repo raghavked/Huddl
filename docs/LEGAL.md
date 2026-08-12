@@ -147,11 +147,13 @@ them true:
 - [x] `/legal/*` in `src/app/sitemap.ts` — done; the sitemap and robots.txt
       are both built from `src/lib/protected-routes.ts`, so a page cannot be
       advertised in one and forbidden in the other
-- [ ] **Known gap, still open:** the web report form files every report with
-      no category, so a web-filed report reaches the queue as "Something
-      else" even though the documents promise categories. Web also has no way
-      to report a direct message or a profile, and the web moderation queue
-      never calls `reported_content`, so a moderator on the web cannot read
-      the text of a reported DM. Native does all three correctly. Until this
-      is fixed the "in-app reporting with categories" promise is only true on
-      a phone.
+- [x] **In-app reporting with categories, on both clients** — closed. The web
+      report form used to file every report with no `category` at all, so
+      everything a browser sent reached the queue as "Something else"; a
+      direct message and a profile could not be reported from the web; and
+      the web moderation queue never called `reported_content`, so a
+      moderator in a browser was asked to judge words they could not read.
+      All four web surfaces (channel message, direct message, profile, board
+      post) now file one of the eight categories from
+      `src/lib/moderation.ts`, which is the single list the check constraint,
+      the queue and every picker read
