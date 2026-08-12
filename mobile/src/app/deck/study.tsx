@@ -22,7 +22,11 @@ import { useAuth } from "@/providers/auth-provider";
 /* The study session: one card at a time, tap to flip, three honest buttons.
    The flip is a real one — two faces on one card, turning in 3D — and every
    grade saves before the next card comes up, so backing out mid-stack loses
-   nothing. The queue just picks up where it left off next time. */
+   nothing. The queue just picks up where it left off next time.
+
+   One exception, arriving as `cram=1`: the deck screen offers a lap through
+   the whole deck when nothing is due, and that lap writes no reviews at all.
+   Everything else about the session is the same. */
 
 /* Minimal local row shapes — the web app's types live outside this tsconfig. */
 type CardRow = {
@@ -60,6 +64,7 @@ function intervalPreview(
 function GradeButton({
   label,
   sublabel,
+  hint,
   tone,
   pending,
   disabled,
@@ -67,6 +72,8 @@ function GradeButton({
 }: {
   label: string;
   sublabel: string;
+  /** The sublabel spoken in full — a chip reads differently out loud. */
+  hint: string;
   tone: "again" | "good" | "easy";
   pending: boolean;
   disabled: boolean;
@@ -86,7 +93,7 @@ function GradeButton({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${label} — next look in ${sublabel}`}
+      accessibilityLabel={hint}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
@@ -130,8 +137,15 @@ export default function StudySessionScreen() {
   const insets = useSafeAreaInsets();
   const { session, ready } = useAuth();
   const userId = session?.user.id ?? null;
-  const { deckId } = useLocalSearchParams<{ deckId?: string }>();
+  const { deckId, cram } = useLocalSearchParams<{
+    deckId?: string;
+    cram?: string;
+  }>();
   const id = deckId ?? "";
+  /* The night-before lap the deck screen opens when nothing is due: the whole
+     deck in deck order, and not one `card_reviews` row written. That promise
+     is made on the button that sends us here, so it's kept here. */
+  const cramming = cram === "1";
 
   const [status, setStatus] = useState<Status>("loading");
   const [deckTitle, setDeckTitle] = useState("");
@@ -227,8 +241,10 @@ export default function StudySessionScreen() {
     }
     setDeckTitle(deck.title);
     setReviews(reviewMap);
-    // New cards first, then oldest-due — capped so it stays one sitting.
-    setQueue(buildQueue(cards, reviewMap, new Date()));
+    // New cards first, then oldest-due — capped so it stays one sitting. A
+    // cram lap skips the schedule entirely: nothing is due, so the queue the
+    // student asked for is the deck itself, front to back.
+    setQueue(cramming ? cards : buildQueue(cards, reviewMap, new Date()));
     setIndex(0);
     flipAnim.setValue(0);
     setRevealed(false);
@@ -236,7 +252,7 @@ export default function StudySessionScreen() {
     setAgainIds([]);
     setSessionError(null);
     setStatus("ready");
-  }, [userId, id, flipAnim]);
+  }, [userId, id, flipAnim, cramming]);
 
   useEffect(() => {
     void load();
@@ -263,35 +279,43 @@ export default function StudySessionScreen() {
     async (grade: Grade) => {
       const card = queue[index];
       if (!card || !userId || grading) return;
-      const now = new Date();
-      const prevState = reviews.get(card.id) ?? null;
-      const next = nextReview(
-        prevState ? { streak: prevState.streak } : null,
-        grade,
-        now
-      );
       setSessionError(null);
-      setGrading(grade);
-      // Save first, advance after — so leaving mid-stack never loses a grade.
-      const { error } = await supabase.from("card_reviews").upsert(
-        {
-          user_id: userId,
-          card_id: card.id,
-          streak: next.streak,
-          last_grade: grade,
-          due_at: next.dueAt.toISOString(),
-          updated_at: now.toISOString(),
-        },
-        { onConflict: "user_id,card_id" }
-      );
-      setGrading(null);
-      if (error) {
-        setSessionError("That grade didn't save — give the button another tap.");
-        return;
+      // A cram lap saves nothing on purpose — the spacing a student earned
+      // over three weeks shouldn't be rewritten by a panic run the night
+      // before. The grade only tallies, and an "again" still comes back
+      // around at the end of the lap.
+      if (!cramming) {
+        const now = new Date();
+        const prevState = reviews.get(card.id) ?? null;
+        const next = nextReview(
+          prevState ? { streak: prevState.streak } : null,
+          grade,
+          now
+        );
+        setGrading(grade);
+        // Save first, advance after — leaving mid-stack loses no grade.
+        const { error } = await supabase.from("card_reviews").upsert(
+          {
+            user_id: userId,
+            card_id: card.id,
+            streak: next.streak,
+            last_grade: grade,
+            due_at: next.dueAt.toISOString(),
+            updated_at: now.toISOString(),
+          },
+          { onConflict: "user_id,card_id" }
+        );
+        setGrading(null);
+        if (error) {
+          setSessionError(
+            "That grade didn't save — give the button another tap."
+          );
+          return;
+        }
+        setReviews((prev) =>
+          new Map(prev).set(card.id, { streak: next.streak, dueAt: next.dueAt })
+        );
       }
-      setReviews((prev) =>
-        new Map(prev).set(card.id, { streak: next.streak, dueAt: next.dueAt })
-      );
       setCounts((prev) => ({
         again: prev.again + (grade === "again" ? 1 : 0),
         good: prev.good + (grade === "good" ? 1 : 0),
@@ -307,7 +331,7 @@ export default function StudySessionScreen() {
       setRevealed(false);
       setIndex((prev) => prev + 1);
     },
-    [queue, index, userId, grading, reviews, flipAnim]
+    [queue, index, userId, grading, reviews, flipAnim, cramming]
   );
 
   /** Re-run just the cards graded "again" — they're due back in minutes. */
@@ -592,6 +616,25 @@ export default function StudySessionScreen() {
   const prevState = card ? reviews.get(card.id) ?? null : null;
   const prevStreak = prevState ? { streak: prevState.streak } : null;
 
+  /* The two lines on a grade button. A cram lap writes no review, so it has
+     no interval to offer — "1 day" under a button that changes nothing is
+     exactly the promise this lap exists to keep. */
+  const gradeCopy = (grade: Grade, label: string) => {
+    if (cramming) {
+      return {
+        label,
+        sublabel: "no change",
+        hint: `${label} — nothing saved this lap`,
+      };
+    }
+    const preview = intervalPreview(prevStreak, grade, now);
+    return {
+      label,
+      sublabel: preview,
+      hint: `${label} — next look in ${preview}`,
+    };
+  };
+
   // 0 → 1 turns the front away (0° → 180°) as the back arrives (180° → 360°).
   const frontRotate = flipAnim.interpolate({
     inputRange: [0, 1],
@@ -744,24 +787,21 @@ export default function StudySessionScreen() {
             <View style={{ gap: space.room, marginTop: space.card }}>
               <View style={{ flexDirection: "row", gap: space.room }}>
                 <GradeButton
-                  label="Again"
-                  sublabel={intervalPreview(prevStreak, "again", now)}
+                  {...gradeCopy("again", "Again")}
                   tone="again"
                   pending={grading === "again"}
                   disabled={grading !== null}
                   onPress={() => void handleGrade("again")}
                 />
                 <GradeButton
-                  label="Good"
-                  sublabel={intervalPreview(prevStreak, "good", now)}
+                  {...gradeCopy("good", "Good")}
                   tone="good"
                   pending={grading === "good"}
                   disabled={grading !== null}
                   onPress={() => void handleGrade("good")}
                 />
                 <GradeButton
-                  label="Easy"
-                  sublabel={intervalPreview(prevStreak, "easy", now)}
+                  {...gradeCopy("easy", "Easy")}
                   tone="easy"
                   pending={grading === "easy"}
                   disabled={grading !== null}
@@ -784,7 +824,9 @@ export default function StudySessionScreen() {
             muted
             style={{ textAlign: "center", marginTop: space.card }}
           >
-            Leave anytime — every grade saves as you go.
+            {cramming
+              ? "A cram lap — nothing here changes when these come back."
+              : "Leave anytime — every grade saves as you go."}
           </AppText>
         </>
       ) : null}

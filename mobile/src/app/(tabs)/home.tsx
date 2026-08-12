@@ -32,6 +32,7 @@ import {
 import { motion, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useUnreadNotifications } from "@/hooks/use-unread";
+import { fetchBlockedIds } from "@/lib/blocks";
 import { categoryInfo, fetchBoard, type BoardPost } from "@/lib/board";
 import { buildPlan, toPlanKind, type PlanItem } from "@/lib/study-plan";
 import { supabase } from "@/lib/supabase";
@@ -125,6 +126,11 @@ type HomeData = {
       only piece of Home that's allowed to come back missing instead of
       failing the screen. */
   board: BoardPost[] | null;
+  /** Everyone I've blocked. It travels with the rest of the data because
+      hiding their content is the client's job (see `lib/blocks`), and the
+      previews were fetched against this exact set — keeping the two apart is
+      how the front door ends up quoting someone the rooms already hide. */
+  blocked: Set<string>;
 };
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
@@ -702,20 +708,34 @@ function BoardCard({ posts }: { posts: BoardPost[] }) {
  * back into view, which is what makes an unread dot able to APPEAR rather
  * than only to clear. A channel with nothing in it is simply absent.
  *
+ * "Readable" includes the block list: a blocked classmate is excluded in the
+ * query rather than dropped from the answer, so the row falls back to the
+ * newest message you can actually read instead of going quiet — and the
+ * unread dot, which hangs off this same preview, stops lighting up for
+ * someone whose messages the room itself won't show you.
+ *
  * Failures are silent per channel: a preview that didn't come back leaves the
  * row without a subtitle, which is not worth an error state on the front door.
  */
 async function fetchPreviews(
-  channels: readonly ChannelRow[]
+  channels: readonly ChannelRow[],
+  blocked: ReadonlySet<string>
 ): Promise<Record<string, MessagePreview>> {
+  const hidden = [...blocked];
   const previews: Record<string, MessagePreview> = {};
   await Promise.all(
     channels.map(async (channel) => {
-      const { data: preview } = await supabase
+      let query = supabase
         .from("messages")
         .select("content, created_at, author_id, author:profiles(display_name)")
         .eq("channel_id", channel.id)
-        .is("deleted_at", null)
+        .is("deleted_at", null);
+      // `not.in.()` is not a filter PostgREST will take, so an empty block
+      // list simply doesn't add one.
+      if (hidden.length > 0) {
+        query = query.not("author_id", "in", `(${hidden.join(",")})`);
+      }
+      const { data: preview } = await query
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -786,23 +806,30 @@ export default function HomeScreen() {
   const fetchHome = useCallback(async (): Promise<HomeData> => {
     if (!userId) throw new Error("Not signed in");
 
-    const [profileRes, membershipRes, enrollmentRes] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("display_name, handle, university_id")
-        .eq("id", userId)
-        .single(),
-      supabase
-        .from("channel_members")
-        .select(
-          "channel_id, last_read_at, muted, channel:channels(id, kind, name, slug, course:courses(id, code, title))"
-        )
-        .eq("user_id", userId),
-      supabase
-        .from("enrollments")
-        .select("archived_at, course:courses(id, code)")
-        .eq("user_id", userId),
-    ]);
+    // The block list rides in the opening trip because both the previews and
+    // the board preview are cut against it. It is the one piece here that
+    // must not fail soft: an empty set would quietly put a blocked classmate
+    // back on the front door, and a trip that couldn't reach `blocks` is a
+    // trip where "try again" is the honest answer anyway.
+    const [profileRes, membershipRes, enrollmentRes, blocked] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select("display_name, handle, university_id")
+          .eq("id", userId)
+          .single(),
+        supabase
+          .from("channel_members")
+          .select(
+            "channel_id, last_read_at, muted, channel:channels(id, kind, name, slug, course:courses(id, code, title))"
+          )
+          .eq("user_id", userId),
+        supabase
+          .from("enrollments")
+          .select("archived_at, course:courses(id, code)")
+          .eq("user_id", userId),
+        fetchBlockedIds(userId),
+      ]);
     if (profileRes.error) throw profileRes.error;
     if (membershipRes.error) throw membershipRes.error;
     if (enrollmentRes.error) throw enrollmentRes.error;
@@ -948,7 +975,10 @@ export default function HomeScreen() {
       };
     }
 
-    const previews = await fetchPreviews([...campusChannels, ...courseChannels]);
+    const previews = await fetchPreviews(
+      [...campusChannels, ...courseChannels],
+      blocked
+    );
 
     const firstName =
       profile.display_name.trim().split(/\s+/)[0] || profile.handle;
@@ -963,6 +993,7 @@ export default function HomeScreen() {
       plan,
       today,
       board,
+      blocked,
     };
   }, [userId]);
 
@@ -1024,18 +1055,25 @@ export default function HomeScreen() {
    * message — the dot could clear but could never appear. Opening a channel
    * bumps `last_read_at` (the room screen's job) and messages arrive while
    * Home sits there, so both sides have to come back from the same trip.
+   *
+   * The block list comes along for the same reason the board screen re-pulls
+   * it on focus: a block made from someone's profile has to take hold the
+   * moment you step back here, and the previews have to be asked for against
+   * the set they'll be rendered under. A trip that didn't come back leaves
+   * Home exactly as it was.
    */
   const refreshUnreadDots = useCallback(async () => {
     if (!userId) return;
     const channels = channelsRef.current;
-    const [metaRes, previews] = await Promise.all([
+    const [metaRes, blocked] = await Promise.all([
       supabase
         .from("channel_members")
         .select("channel_id, last_read_at, muted")
         .eq("user_id", userId),
-      fetchPreviews(channels),
+      fetchBlockedIds(userId).catch((): Set<string> | null => null),
     ]);
-    if (metaRes.error) return;
+    if (metaRes.error || !blocked) return;
+    const previews = await fetchPreviews(channels, blocked);
     const memberMeta: Record<string, MemberMeta> = {};
     for (const row of (metaRes.data ?? []) as unknown as MemberMetaRow[]) {
       memberMeta[row.channel_id] = {
@@ -1047,8 +1085,8 @@ export default function HomeScreen() {
       if (!prev) return prev;
       // The first focus can land before the first load, with no channels to
       // ask about yet — don't let that empty answer erase real previews.
-      if (channels.length === 0) return { ...prev, memberMeta };
-      return { ...prev, memberMeta, previews };
+      if (channels.length === 0) return { ...prev, memberMeta, blocked };
+      return { ...prev, memberMeta, previews, blocked };
     });
   }, [userId]);
 
@@ -1181,7 +1219,15 @@ export default function HomeScreen() {
         text: "Campus board",
         action: { label: "See all", onPress: () => router.push("/board") },
       });
-      out.push({ type: "board", key: "board", posts: data.board });
+      // Same cut the board screen makes: somebody you blocked doesn't get a
+      // slot on the front door either. Dropping their post can leave the
+      // preview short, or empty — and empty is the card's warm line, which is
+      // the right thing to read.
+      out.push({
+        type: "board",
+        key: "board",
+        posts: data.board.filter((post) => !data.blocked.has(post.author_id)),
+      });
     }
 
     return out;
