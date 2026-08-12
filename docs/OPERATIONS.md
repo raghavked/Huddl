@@ -286,6 +286,26 @@ things in.
 
 ---
 
+## 3c. One setting the migrations can't reach
+
+**Turn on leaked-password protection before launch.** Supabase Auth can check
+every new password against HaveIBeenPwned and refuse the ones that appear in a
+known breach. It is off, and it is the only security advisor still open at
+WARN that isn't a deliberate choice. There is no migration and no API for it —
+it is a toggle in the dashboard, under *Authentication → Sign In / Providers →
+Password protection*. Flip it once, per project, and note the date here.
+
+It matters more than it sounds because of what it catches that we can't. Both
+clients run `lib/password.ts` on every signup and password change: it enforces
+8–72 characters, refuses passwords built out of the student's own email, and
+scores strength as they type. What it cannot know is whether a strong-looking
+password is already sitting in a credential-stuffing list — and a `.edu`
+address reused from a breached forum is the single likeliest way an account
+here gets taken. The check is server-side, costs nothing, and needs no client
+change: the refusal comes back as an ordinary sign-up error.
+
+---
+
 ## 4. Growth loops
 
 The product grows itself when the loops are healthy; ops exists to keep them
