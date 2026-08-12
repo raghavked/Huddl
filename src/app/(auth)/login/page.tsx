@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui";
+import { safeNextPath } from "@/lib/safe-next";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { LoginForm } from "@/features/auth/login-form";
 
@@ -9,19 +10,15 @@ export const metadata: Metadata = {
   title: "Log in",
 };
 
-/** Only allow same-origin path redirects (never protocol-relative URLs). */
-function safePath(path: string | undefined): string | null {
-  if (path && path.startsWith("/") && !path.startsWith("//")) return path;
-  return null;
-}
-
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const params = await searchParams;
-  const next = safePath(params.next);
+  // Same-origin paths only — a protocol-relative or backslash-tricked `next`
+  // would redirect an already-signed-in student off-site. See safeNextPath.
+  const next = safeNextPath(params.next);
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();

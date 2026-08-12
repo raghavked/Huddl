@@ -7,6 +7,8 @@ import {
   BookOpen,
   Calendar,
   CornerDownRight,
+  Heart,
+  Megaphone,
   MessageCircle,
   Moon,
   Sunrise,
@@ -38,8 +40,10 @@ type PushKind =
   | "dm"
   | "mention"
   | "thread_reply"
+  | "thanks"
   | "course_calendar"
   | "event"
+  | "club_post"
   | "system";
 
 const PUSH_KINDS: {
@@ -67,6 +71,12 @@ const PUSH_KINDS: {
     caption: "Replies in threads you're part of.",
   },
   {
+    kind: "thanks",
+    icon: Heart,
+    label: "Thanks on your notes",
+    caption: "When a classmate says thanks for notes you uploaded.",
+  },
+  {
     kind: "course_calendar",
     icon: BookOpen,
     label: "Class calendar",
@@ -77,6 +87,12 @@ const PUSH_KINDS: {
     icon: Calendar,
     label: "Events",
     caption: "Updates to events you're going to.",
+  },
+  {
+    kind: "club_post",
+    icon: Megaphone,
+    label: "Club announcements",
+    caption: "When an officer posts in a club you've joined.",
   },
   {
     kind: "system",

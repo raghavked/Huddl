@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
+import { safeNextPath } from "@/lib/safe-next";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 /**
@@ -26,10 +27,7 @@ export async function GET(request: Request) {
   const type = url.searchParams.get("type") as EmailOtpType | null;
   const code = url.searchParams.get("code");
   const nextParam = url.searchParams.get("next");
-  const next =
-    nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
-      ? nextParam
-      : null;
+  const next = safeNextPath(nextParam);
 
   // Recovery has its own dead end: telling someone whose reset link expired to
   // "log in to request a fresh one" is exactly the thing they can't do.

@@ -53,6 +53,9 @@
     "typecheck": "tsc --noEmit",
     "bundle:ios": "expo export --platform ios",
     "prebuild": "expo prebuild --clean",
+    "simulator": "expo run:ios",
+    "simulator:release": "expo run:ios --configuration Release",
+    "preflight": "bash ./scripts/preflight.sh",
     "device": "expo run:ios --device",
     "device:release": "expo run:ios --device --configuration Release",
     "device:android": "expo run:android --device"

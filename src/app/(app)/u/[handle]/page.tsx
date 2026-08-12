@@ -73,11 +73,17 @@ export default async function ProfilePage({
   if (!user) redirect("/login");
 
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("*, university:universities(short_name)")
     .eq("handle", handle)
     .maybeSingle();
+
+  // A query error is a connection blip, not a missing person. Throwing hands
+  // it to the route error boundary (src/app/error.tsx), which offers a real
+  // Try again — where notFound() would brand a retryable failure as a
+  // permanent "this handle doesn't exist" and dead-end the reader.
+  if (error) throw error;
 
   const profile = data as ProfileRow | null;
   if (!profile) notFound();

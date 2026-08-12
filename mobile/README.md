@@ -110,6 +110,39 @@ optimised, no dev overlay, no Metro):
 npm run device:release
 ```
 
+## Run in the iOS simulator
+
+No cable, no signing, no paid Apple account — the fastest way to click
+through the whole app. **Still a Mac**, because the binary is compiled by
+Xcode either way.
+
+```bash
+cd mobile
+cp .env.example .env    # same Supabase project as the web app
+npm install
+npm run preflight       # typecheck + bundle; catches a broken app before Xcode does
+npm run simulator       # builds and boots on the default simulator
+```
+
+`npm run simulator` wraps `expo run:ios` with no `--device`, so it picks a
+booted simulator (or boots the last-used one). To choose a specific device,
+open Xcode's device menu first, or pass it through: `npx expo run:ios
+--device "iPhone 16 Pro"`. `npm run simulator:release` does the same with the
+optimised Hermes build, for an honest look at performance.
+
+**Run `npm run preflight` first, every time.** It is the platform-independent
+half of a simulator run — `tsc` plus the iOS bundle — so it turns a red screen
+you'd otherwise hit two minutes into an Xcode build into a one-line failure
+here. It runs anywhere, including CI, and exits non-zero on the first problem.
+
+If the build fails at the native step (pods, signing, a stale
+`ios/` directory) rather than in preflight, reset the native project:
+
+```bash
+npm run prebuild        # regenerates ios/ and android/ from app.json, then re-pods
+npm run simulator
+```
+
 ## What's in the app
 
 The full product: signup + email verification + onboarding straight into

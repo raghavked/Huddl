@@ -369,37 +369,19 @@ export default function ProfileScreen() {
     setMessageError(null);
     setMessaging(true);
     try {
-      const mine = await supabase
-        .from("dm_participants")
-        .select("thread_id")
-        .eq("user_id", userId);
-      if (mine.error) throw mine.error;
-      const myThreadIds = (
-        (mine.data ?? []) as { thread_id: string }[]
-      ).map((r) => r.thread_id);
-
-      let threadId: string | null = null;
-      if (myThreadIds.length > 0) {
-        const existing = await supabase
-          .from("dm_participants")
-          .select("thread_id")
-          .eq("user_id", profile.id)
-          .in("thread_id", myThreadIds)
-          .limit(1)
-          .maybeSingle();
-        if (existing.error) throw existing.error;
-        threadId =
-          (existing.data as { thread_id: string } | null)?.thread_id ?? null;
-      }
-
-      if (!threadId) {
-        const { data: created, error: rpcError } = await supabase.rpc(
-          "create_dm_thread",
-          { other_user: profile.id }
-        );
-        if (rpcError || !created) throw rpcError ?? new Error("No thread");
-        threadId = created as string;
-      }
+      // Just the RPC — no client-side thread lookup first. create_dm_thread is
+      // find-or-create AND scoped `and not t.is_group`, so it reuses an
+      // existing 1:1 and never a group. The lookup this used to do searched
+      // dm_participants without excluding groups, so sharing a group chat with
+      // someone but no 1:1 would open the GROUP here instead of a private DM —
+      // the exact thing the RPC exists to prevent. It also enforces
+      // dm_privacy (0040), which a raw participant read cannot.
+      const { data: created, error: rpcError } = await supabase.rpc(
+        "create_dm_thread",
+        { other_user: profile.id }
+      );
+      if (rpcError || !created) throw rpcError ?? new Error("No thread");
+      const threadId = created as string;
 
       router.push(`/dm/${threadId}`);
     } catch (err) {
