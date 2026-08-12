@@ -1,3 +1,4 @@
+import Feather from "@expo/vector-icons/Feather";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -9,9 +10,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Field } from "@/components/ui";
-import { fonts, space } from "@/constants/theme";
+import { fonts, radius, space } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/hooks/use-theme";
+
+const RESEND_COOLDOWN_S = 30;
 
 export default function LoginScreen() {
   const theme = useTheme();
@@ -20,7 +23,16 @@ export default function LoginScreen() {
   const [email, setEmail] = useState(params.email?.trim() ?? "");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Three failures, three homes. A wrong password belongs on the password
+  // field, because that is where the fix is. An unconfirmed address isn't a
+  // typo at all — it's an unfinished signup, and it gets a panel with the way
+  // out. Anything else is a one-line notice above the form.
+  const [credentialError, setCredentialError] = useState<string | null>(null);
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
   // Signup/verify hand the email over so it's ready to go.
   useEffect(() => {
@@ -28,8 +40,21 @@ export default function LoginScreen() {
     if (prefill) setEmail(prefill);
   }, [params.email]);
 
+  // Tick the resend cooldown down one second at a time — same shape as
+  // (auth)/verify.tsx, because auth email is rate-limited and a resend button
+  // with no wait on it just spends a student's next three attempts.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
   async function handleLogin() {
-    setError(null);
+    if (pending) return;
+    setCredentialError(null);
+    setFormError(null);
+    setUnconfirmed(false);
+    setResent(false);
     setPending(true);
     const { data, error: signInError } =
       await supabase.auth.signInWithPassword({
@@ -38,7 +63,32 @@ export default function LoginScreen() {
       });
     if (signInError) {
       setPending(false);
-      setError("That email and password don't match. Give it another try.");
+      // A student who signed up on their phone and never opened the email
+      // gets the same "wrong password" from Supabase as someone who actually
+      // mistyped it, and telling them to try the password again strands them
+      // for good. The web app branches here too — see
+      // src/features/auth/login-form.tsx — on the code, with a message test
+      // behind it for the older self-hosted error shape.
+      if (
+        signInError.code === "email_not_confirmed" ||
+        /not confirmed/i.test(signInError.message)
+      ) {
+        setUnconfirmed(true);
+      } else if (
+        signInError.code === "invalid_credentials" ||
+        /invalid login credentials/i.test(signInError.message)
+      ) {
+        setCredentialError(
+          "That email and password don't match. Give it another try."
+        );
+      } else {
+        // The web app shows Supabase's own sentence in this branch. Native
+        // doesn't: a raw API string is the one voice in the product nobody
+        // wrote, and the next move is the same whatever it says.
+        setFormError(
+          "We couldn't log you in just now. Check your connection and give it another go."
+        );
+      }
       return;
     }
 
@@ -66,6 +116,34 @@ export default function LoginScreen() {
     // welcome on this device still gets it — on this launch, not the next one.
     router.replace("/");
   }
+
+  async function handleResendConfirmation() {
+    const address = email.trim();
+    if (!address || resending || cooldown > 0) return;
+    setResending(true);
+    setFormError(null);
+    // No emailRedirectTo on native, exactly as in signup.tsx: the link opens
+    // the web app's /auth/confirm, and the student comes back here to log in.
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email: address,
+    });
+    setResending(false);
+    if (resendError) {
+      setFormError(
+        "That resend didn't go through — give it a moment and try again."
+      );
+      return;
+    }
+    setResent(true);
+    setCooldown(RESEND_COOLDOWN_S);
+  }
+
+  const resendLabel = resending
+    ? "Resending…"
+    : cooldown > 0
+      ? `Resend in ${cooldown}s`
+      : "Resend the confirmation email";
 
   return (
     <KeyboardAvoidingView
@@ -102,6 +180,85 @@ export default function LoginScreen() {
               Log in with your university email.
             </AppText>
           </View>
+
+          {unconfirmed ? (
+            <View
+              style={{
+                backgroundColor: theme.accentSoft,
+                borderRadius: radius.control,
+                paddingHorizontal: space.card,
+                paddingVertical: space.close,
+                gap: space.room,
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  gap: space.cosy,
+                }}
+              >
+                <Feather
+                  name="mail"
+                  size={16}
+                  color={theme.accent}
+                  style={{ marginTop: space.hair }}
+                />
+                <AppText variant="body" style={{ color: theme.accent, flex: 1 }}>
+                  Your email isn't confirmed yet. We sent a link to{" "}
+                  {email.trim() || "your school email"} — open it in your
+                  browser, then come back and log in.
+                </AppText>
+              </View>
+              {resent && cooldown > 0 ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: space.snug,
+                  }}
+                >
+                  <Feather name="check-circle" size={14} color={theme.success} />
+                  <AppText variant="caption" style={{ color: theme.success }}>
+                    Sent — check your inbox (and spam).
+                  </AppText>
+                </View>
+              ) : null}
+              <Button
+                label={resendLabel}
+                variant="soft"
+                size="sm"
+                pending={resending}
+                disabled={!email.trim() || resending || cooldown > 0}
+                onPress={handleResendConfirmation}
+              />
+            </View>
+          ) : null}
+
+          {formError ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: space.cosy,
+                backgroundColor: theme.surface2,
+                borderRadius: radius.control,
+                paddingHorizontal: space.card,
+                paddingVertical: space.close,
+              }}
+            >
+              <Feather
+                name="alert-circle"
+                size={16}
+                color={theme.danger}
+                style={{ marginTop: space.hair }}
+              />
+              <AppText variant="body" style={{ color: theme.danger, flex: 1 }}>
+                {formError}
+              </AppText>
+            </View>
+          ) : null}
+
           <Field
             label="University email"
             placeholder="you@school.edu"
@@ -109,7 +266,13 @@ export default function LoginScreen() {
             autoComplete="email"
             keyboardType="email-address"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(next) => {
+              setEmail(next);
+              // A new address makes the last verdict stale — including the
+              // unconfirmed panel, which names the address it was about.
+              if (unconfirmed) setUnconfirmed(false);
+              if (credentialError) setCredentialError(null);
+            }}
           />
           <Field
             label="Password"
@@ -117,8 +280,11 @@ export default function LoginScreen() {
             secureTextEntry
             autoComplete="current-password"
             value={password}
-            onChangeText={setPassword}
-            error={error}
+            onChangeText={(next) => {
+              setPassword(next);
+              if (credentialError) setCredentialError(null);
+            }}
+            error={credentialError}
           />
           <Button
             label={pending ? "Logging in…" : "Log in"}
@@ -127,6 +293,31 @@ export default function LoginScreen() {
             disabled={!email.trim() || !password}
             onPress={handleLogin}
           />
+
+          {/* Caption text draws 16px tall, so it takes 14 of slop above and
+              below to reach a 44px target. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Forgot your password?"
+            hitSlop={{ top: 14, bottom: 14 }}
+            onPress={() =>
+              router.push({
+                pathname: "/(auth)/forgot-password",
+                params: email.trim() ? { email: email.trim() } : {},
+              })
+            }
+            style={({ pressed }) => ({
+              alignSelf: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <AppText
+              variant="caption"
+              style={{ color: theme.brand, fontFamily: fonts.bodySemi }}
+            >
+              Forgot your password?
+            </AppText>
+          </Pressable>
         </Card>
 
         <Pressable

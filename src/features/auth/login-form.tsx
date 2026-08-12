@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
@@ -29,7 +30,14 @@ export function LoginForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(initialError);
   const [unconfirmed, setUnconfirmed] = useState(false);
+  const [wrongCredentials, setWrongCredentials] = useState(false);
   const [resendState, setResendState] = useState<ResendState>("idle");
+
+  // Carry whatever they've typed over to the reset screen — nobody should have
+  // to type their own address twice in a row to get back into their account.
+  const forgotHref = email.trim()
+    ? `/forgot-password?email=${encodeURIComponent(email.trim())}`
+    : "/forgot-password";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -37,6 +45,7 @@ export function LoginForm({
     setPending(true);
     setError(null);
     setUnconfirmed(false);
+    setWrongCredentials(false);
     setResendState("idle");
 
     const supabase = createClient();
@@ -56,9 +65,14 @@ export function LoginForm({
         signInError.code === "invalid_credentials" ||
         /invalid login credentials/i.test(signInError.message)
       ) {
-        setError("That email and password don't match. Give it another try.");
+        // Its own state, not a plain string: this is the one failure where the
+        // next move is a reset link, so the alert has to carry that link.
+        setWrongCredentials(true);
+      } else if (signInError.status === 429) {
+        setError("That's a lot of tries in a row — wait a minute, then go again.");
       } else {
-        setError(signInError.message);
+        // Never the raw API sentence — a student can't do anything with it.
+        setError("We couldn't log you in just now. Give it another go in a moment.");
       }
       return;
     }
@@ -80,7 +94,9 @@ export function LoginForm({
     });
     if (resendError) {
       setResendState("idle");
-      setError(resendError.message);
+      setError(
+        "That resend didn't go through — give it a minute, then try again."
+      );
       return;
     }
     setResendState("sent");
@@ -100,6 +116,25 @@ export function LoginForm({
         >
           <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
           {error}
+        </p>
+      ) : null}
+
+      {wrongCredentials ? (
+        <p
+          role="alert"
+          className="flex items-start gap-2 rounded-xl bg-danger/10 px-3.5 py-2.5 text-sm text-danger"
+        >
+          <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>
+            That email and password don&apos;t match. Give it another try, or{" "}
+            <Link
+              href={forgotHref}
+              className="font-semibold underline underline-offset-2"
+            >
+              reset your password
+            </Link>
+            .
+          </span>
         </p>
       ) : null}
 
@@ -151,7 +186,15 @@ export function LoginForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="login-password">Password</Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="login-password">Password</Label>
+          <Link
+            href={forgotHref}
+            className="-my-2 rounded-sm py-2 text-sm font-semibold text-brand underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            Forgot your password?
+          </Link>
+        </div>
         <div className="relative">
           <Input
             id="login-password"
