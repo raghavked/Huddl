@@ -29,9 +29,14 @@ export interface Profile {
   bio: string | null;
   major: string | null;
   grad_year: number | null;
-  // The verified phone number itself is never exposed on this world-readable
-  // row; it lives in phone_verifications (owner-only). Only the badge remains.
-  phone_verified_at: string | null;
+  /**
+   * When this student last satisfied both halves of the verified badge: a
+   * confirmed university email and a complete profile. Maintained by the
+   * `sync_profile_verified` trigger (migration 0047) and outside the
+   * authenticated column grant, so it cannot be self-awarded. Null means not
+   * verified — the client works out which half is missing.
+   */
+  verified_at: string | null;
   is_public: boolean;
   // What you're into (migration 0034) — up to eight short tags. A trigger
   // trims, lowercases, dedupes and keeps the first eight, so clients send

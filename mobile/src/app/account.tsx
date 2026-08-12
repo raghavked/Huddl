@@ -17,6 +17,11 @@ import { AppText, Button, Card, Chip, Field } from "@/components/ui";
 import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
+import {
+  describeGap,
+  verificationGaps,
+  type VerificationGap,
+} from "@/lib/verification";
 import { useAuth } from "@/providers/auth-provider";
 
 /* Same rules as the web account form — one brand, one validation story. */
@@ -76,6 +81,70 @@ type FieldErrors = {
 };
 
 /**
+ * Where the verified badge stands, and what is left to earn it.
+ *
+ * Sits at the top of the account screen because everything it asks for is on
+ * this screen — except confirming the email, which is a link in an inbox. It
+ * is a checklist rather than a bare "not verified" because the badge is the
+ * one thing on a profile a student cannot simply switch on, and being told
+ * only that you have failed is no use.
+ *
+ * The database decides (migration 0047): `verified_at` is recomputed on every
+ * profile write. So this list going empty and the badge appearing are the
+ * same event, and the student sees it happen as they save.
+ */
+function VerifiedCard({ gaps }: { gaps: readonly VerificationGap[] }) {
+  const theme = useTheme();
+  const done = gaps.length === 0;
+  return (
+    <Card style={{ gap: space.cosy }}>
+      <View
+        style={{ flexDirection: "row", alignItems: "center", gap: space.snug }}
+      >
+        <Feather
+          name={done ? "check-circle" : "shield"}
+          size={16}
+          color={done ? theme.accent : theme.muted}
+        />
+        <AppText variant="bodySemi">
+          {done ? "Verified student" : "Get verified"}
+        </AppText>
+      </View>
+      <AppText variant="caption" muted>
+        {done
+          ? "Your campus email is confirmed and your profile is complete, so classmates can see you're a real student here."
+          : "Classmates see a badge on your profile once your campus email is confirmed and your profile is filled in."}
+      </AppText>
+      {done ? null : (
+        <View
+          style={{ gap: space.tight }}
+          accessibilityLabel={`${gaps.length} steps left: ${gaps
+            .map(describeGap)
+            .join(", ")}`}
+        >
+          {gaps.map((gap) => (
+            <View
+              key={gap}
+              // The row reads as one thing; the list above says it all once.
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.snug,
+              }}
+            >
+              <Feather name="circle" size={13} color={theme.muted} />
+              <AppText variant="caption">{describeGap(gap)}</AppText>
+            </View>
+          ))}
+        </View>
+      )}
+    </Card>
+  );
+}
+
+/**
  * A field's error, said as part of the field rather than only drawn in red
  * beside it. `Field` puts its own `label` on the input and lets a passed
  * `accessibilityLabel` win, so this is where the two get spoken together.
@@ -90,6 +159,9 @@ export default function AccountScreen() {
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
   const email = session?.user.email ?? null;
+  /* Half of the verified badge lives on the auth user rather than the
+     profile, and only this student's own session can see it. */
+  const emailConfirmed = Boolean(session?.user.email_confirmed_at);
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -532,6 +604,17 @@ export default function AccountScreen() {
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
           >
+            <VerifiedCard
+              gaps={verificationGaps({
+                displayName,
+                handle,
+                avatarUrl,
+                major,
+                gradYear,
+                emailConfirmed,
+              })}
+            />
+
             <Card style={{ gap: space.close }}>
               <View
                 style={{

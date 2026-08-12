@@ -4,8 +4,6 @@ import {
   formatFileSize,
   formatMessageTime,
   initials,
-  isValidPhone,
-  normalizePhone,
 } from "@/lib/utils";
 
 describe("initials", () => {
@@ -58,51 +56,6 @@ describe("formatFileSize", () => {
     // rounding lands on 1024.0 at the seam.
     expect(formatFileSize(1024 * 1024 - 1)).toBe("1024.0 KB");
     expect(formatFileSize(1024 * 1024)).toBe("1.0 MB");
-  });
-});
-
-describe("phone helpers", () => {
-  it("accepts common US formats", () => {
-    expect(isValidPhone("+14155551234")).toBe(true);
-    expect(isValidPhone("(415) 555-1234")).toBe(true);
-    expect(isValidPhone("415555")).toBe(false);
-    expect(isValidPhone("not a phone")).toBe(false);
-  });
-
-  it("normalizes to E.164, defaulting to +1", () => {
-    expect(normalizePhone("(415) 555-1234")).toBe("+14155551234");
-    expect(normalizePhone("+447911123456")).toBe("+447911123456");
-  });
-
-  it("enforces 8–15 digit length after stripping formatting", () => {
-    expect(isValidPhone("1234567")).toBe(false); // 7 digits — too short
-    expect(isValidPhone("12345678")).toBe(true); // 8 digits — shortest allowed
-    expect(isValidPhone("123456789012345")).toBe(true); // 15 — longest allowed
-    expect(isValidPhone("1234567890123456")).toBe(false); // 16 — too long
-  });
-
-  it("rejects a leading zero, with or without +", () => {
-    expect(isValidPhone("0123456789")).toBe(false);
-    expect(isValidPhone("+0123456789")).toBe(false);
-  });
-
-  it("strips spaces, parens and dashes but not dots", () => {
-    expect(isValidPhone("+44 7911 123456")).toBe(true);
-    expect(isValidPhone("415-555-1234")).toBe(true);
-    expect(isValidPhone("415.555.1234")).toBe(false);
-  });
-
-  it("only allows + at the very start", () => {
-    expect(isValidPhone("4155+551234")).toBe(false);
-  });
-
-  it("normalizes separators out of non-US numbers", () => {
-    expect(normalizePhone("+44 7911 123456")).toBe("+447911123456");
-    expect(normalizePhone("415-555-1234")).toBe("+14155551234");
-  });
-
-  it("leaves an already-normalized number alone", () => {
-    expect(normalizePhone("+14155551234")).toBe("+14155551234");
   });
 });
 

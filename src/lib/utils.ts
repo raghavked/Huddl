@@ -59,12 +59,3 @@ export function initials(name: string): string {
     .join("");
 }
 
-/** Loose E.164 check used by the phone verification UI. */
-export function isValidPhone(phone: string): boolean {
-  return /^\+?[1-9]\d{7,14}$/.test(phone.replace(/[\s()-]/g, ""));
-}
-
-export function normalizePhone(phone: string): string {
-  const digits = phone.replace(/[\s()-]/g, "");
-  return digits.startsWith("+") ? digits : `+1${digits}`;
-}

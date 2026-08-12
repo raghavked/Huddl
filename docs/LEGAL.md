@@ -124,13 +124,19 @@ them true:
   uploader wrote a new timestamped key each time and never removed the last,
   leaving every photo a student had ever set live at its own public URL.
 - Push tokens are stored only for notification delivery and can be turned off.
-- **Phone numbers and Twilio.** A student may verify a phone number for the
-  badge. The number lives in `phone_verifications` (owner-readable, and since
-  0045 not owner-writable), never on the profile, and in production the
-  number is sent to Twilio Verify to deliver the SMS. Both facts are now
-  disclosed — Twilio in "When we share", the number itself in "What you give
-  us". Twilio is the only processor besides Supabase and Expo; adding another
-  means editing that sentence.
+- **The verified badge — no phone, no SMS, no third party.** Migration 0047
+  retired the phone badge and replaced it with one earned from things Huddl
+  already holds: a confirmed university email plus a complete profile
+  (`profile_is_complete` — display name distinct from the auto-generated
+  handle, photo, major, graduation year). `profiles.verified_at` is recomputed
+  by a trigger on every profile write and on email confirmation, is outside
+  the authenticated UPDATE grant, and so cannot be self-awarded. The old
+  apparatus is gone: `phone_verifications`, `has_verified_phone()` and
+  `profiles.phone_verified_at` were dropped, and no phone number is collected
+  or shared with anyone. **Supabase and Expo are now the only two processors**
+  — if that ever changes, the "When we share" sentence changes with it.
+  The badge's honesty depends on email confirmation actually working, which
+  depends on custom SMTP (docs/OPERATIONS.md §3c) being configured.
 - **Group DMs.** Threads hold 3–16 people (`create_group_thread`, 0028). The
   documents used to say a direct message could "only ever be read by the two
   people in it", which was false of every group thread and was also on the

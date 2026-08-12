@@ -159,7 +159,7 @@ export default async function ChannelPage({
     supabase
       .from("messages")
       .select(
-        "*, author:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+        "*, author:profiles(id, handle, display_name, avatar_url, verified_at, major, grad_year, is_public, university_id)"
       )
       .eq("channel_id", channelId)
       .is("parent_id", null)

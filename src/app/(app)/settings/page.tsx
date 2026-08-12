@@ -11,7 +11,6 @@ import {
   KeyRound,
   LogOut,
   ShieldCheck,
-  Smartphone,
   SunMoon,
   Trash2,
   UserRound,
@@ -27,11 +26,12 @@ import {
 import { getCurrentUser } from "@/lib/auth";
 import { amIModerator } from "@/lib/moderation";
 import { createClient } from "@/lib/supabase/server";
+import { summariseGaps, verificationGaps } from "@/lib/verification";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Settings",
-  description: "Manage your Huddl account, phone verification and privacy.",
+  description: "Manage your Huddl account, profile and privacy.",
 };
 
 async function signOut() {
@@ -54,8 +54,12 @@ type SettingsRow = {
 export default async function SettingsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const { profile, university, email } = user;
-  const phoneVerified = Boolean(profile.phone_verified_at);
+  const { profile, university, email, emailConfirmed } = user;
+  /* The badge is the database's decision (migration 0047); this is only how
+     we explain it. A student who hasn't earned it gets told what's missing
+     rather than being left to guess what "verified" wants from them. */
+  const verified = Boolean(profile.verified_at);
+  const gaps = verificationGaps(profile, emailConfirmed);
 
   /* The moderation row only exists for the handful of students who look after
      campus. `profiles.is_moderator` is set through the service role and can't
@@ -88,18 +92,20 @@ export default async function SettingsPage() {
       trailing: null as React.ReactNode,
     },
     {
-      href: "/settings/phone",
-      icon: Smartphone,
+      href: "/settings/account",
+      icon: BadgeCheck,
       tile: "bg-accent-soft text-accent",
-      title: "Phone verification",
-      description: "Optional trust badge — your number stays private",
-      trailing: phoneVerified ? (
+      title: "Verified student",
+      description: verified
+        ? "Your campus email is confirmed and your profile is complete"
+        : summariseGaps(gaps),
+      trailing: verified ? (
         <Badge tone="success">
           <BadgeCheck className="size-3.5" aria-hidden />
           Verified
         </Badge>
       ) : (
-        <Badge tone="brand">Add</Badge>
+        <Badge tone="brand">{gaps.length} left</Badge>
       ),
     },
     {
@@ -174,7 +180,7 @@ export default async function SettingsPage() {
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
         title="Settings"
-        description="Your profile, trust badge and privacy — all in one place."
+        description="Your profile, your badge and your privacy — all in one place."
       />
 
       <section
@@ -192,10 +198,10 @@ export default async function SettingsPage() {
               <span className="truncate text-lg font-bold tracking-tight">
                 {profile.display_name}
               </span>
-              {phoneVerified ? (
+              {verified ? (
                 <Badge tone="success">
                   <BadgeCheck className="size-3.5" aria-hidden />
-                  Phone verified
+                  Verified
                 </Badge>
               ) : null}
             </p>

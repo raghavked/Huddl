@@ -264,7 +264,7 @@ export default async function ProfilePage({
               <h1 className="text-2xl font-bold tracking-tight">
                 {profile.display_name}
               </h1>
-              {profile.phone_verified_at ? (
+              {profile.verified_at ? (
                 <Badge tone="success" title="Phone number verified">
                   <BadgeCheck className="size-3.5" aria-hidden />
                   Verified

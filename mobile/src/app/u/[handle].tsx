@@ -34,7 +34,7 @@ type ProfileRow = {
   grad_year: number | null;
   interests: string[] | null;
   looking_for: string | null;
-  phone_verified_at: string | null;
+  verified_at: string | null;
   is_public: boolean;
   university: { short_name: string } | null;
 };
@@ -60,7 +60,7 @@ type MemberChannelRow = { channel: SharedChannel | null };
 type Status = "loading" | "error" | "notFound" | "ready";
 
 const OPEN_PROFILE_SELECT =
-  "id, handle, display_name, avatar_url, bio, major, grad_year, interests, looking_for, phone_verified_at, is_public, university:universities(short_name)";
+  "id, handle, display_name, avatar_url, bio, major, grad_year, interests, looking_for, verified_at, is_public, university:universities(short_name)";
 
 /** Handle and avatar, and not one column more. */
 const LIMITED_PROFILE_SELECT = "id, handle, avatar_url";
@@ -270,7 +270,7 @@ export default function ProfileScreen() {
         grad_year: null,
         interests: null,
         looking_for: null,
-        phone_verified_at: null,
+        verified_at: null,
         is_public: false,
         university: null,
       });
@@ -860,7 +860,7 @@ export default function ProfileScreen() {
                 @{profile.handle}
                 {universityName ? ` · ${universityName}` : ""}
               </AppText>
-              {profile.phone_verified_at || (isMe && !profile.is_public) ? (
+              {profile.verified_at || (isMe && !profile.is_public) ? (
                 <View
                   style={{
                     flexDirection: "row",
@@ -869,7 +869,7 @@ export default function ProfileScreen() {
                     marginTop: space.hair,
                   }}
                 >
-                  {profile.phone_verified_at ? (
+                  {profile.verified_at ? (
                     <Chip label="Verified" icon="check-circle" tone="accent" />
                   ) : null}
                   {isMe && !profile.is_public ? (

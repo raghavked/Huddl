@@ -138,7 +138,7 @@ roster and events.
 1. Create a Supabase project and run each file in `supabase/migrations/` in
    order, then `supabase/seed.sql` (SQL editor or `supabase db push`).
 2. `cp .env.example .env.local` and fill in the project URL and publishable
-   key. Phone verification runs in `stub` mode without Twilio credentials.
+   key. No other service is needed to run the app locally.
 3. **Supabase auth configuration** — in the Supabase dashboard (Authentication →
    URL Configuration) set the **Site URL** to your `${SITE_URL}` and add both
    `${SITE_URL}/auth/confirm` and `${SITE_URL}/auth/callback` to the redirect

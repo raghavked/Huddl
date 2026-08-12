@@ -219,14 +219,14 @@ export default async function CoursePage({
     supabase
       .from("notes")
       .select(
-        "*, uploader:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+        "*, uploader:profiles(id, handle, display_name, avatar_url, verified_at, major, grad_year, is_public, university_id)"
       )
       .eq("course_id", course.id)
       .order("created_at", { ascending: false }),
     supabase
       .from("enrollments")
       .select(
-        "*, profile:profiles(id, handle, display_name, avatar_url, phone_verified_at, major, grad_year, is_public, university_id)"
+        "*, profile:profiles(id, handle, display_name, avatar_url, verified_at, major, grad_year, is_public, university_id)"
       )
       .eq("course_id", course.id),
     // Pinned course links (0024) — RLS keeps them classmate-only.

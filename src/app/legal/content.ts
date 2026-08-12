@@ -88,7 +88,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "What you give us",
-      body: "When you sign up we ask for your university email address, a password, and a display name. Your password is stored only in protected, encrypted form — we never see it. Your handle starts out as the part of your email address before the @, it's visible to your campus, and you can change it to anything you like in Account. Everything else on your profile is optional and up to you: major, graduation year, bio, photo. You can also verify a phone number if you want the badge that comes with it; we keep the number so the badge means something, it is never shown on your profile, and you can skip the whole thing.",
+      body: "When you sign up we ask for your university email address, a password, and a display name. Your password is stored only in protected, encrypted form — we never see it. Your handle starts out as the part of your email address before the @, it's visible to your campus, and you can change it to anything you like in Account. Everything else on your profile is optional and up to you: major, graduation year, bio, photo. We never ask for your phone number.",
     },
     {
       heading: "What you create",
@@ -116,7 +116,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "When we share",
-      body: "We never sell your data, full stop. We share it only with the services that make Huddl run — Supabase for hosting, Expo for delivering push notifications, and Twilio for sending the verification text if you choose to verify a phone number — and only as needed for them to do that job. Twilio receives the number and nothing else about you. Beyond that, we would disclose data only if the law requires it or it's necessary to prevent serious harm to someone.",
+      body: "We never sell your data, full stop. We share it only with the services that make Huddl run — Supabase for hosting and Expo for delivering push notifications — and only as needed for them to do that job. Beyond that, we would disclose data only if the law requires it or it's necessary to prevent serious harm to someone.",
     },
     {
       heading: "Deleting your data",
