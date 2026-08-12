@@ -284,6 +284,34 @@ its access check, so filtering channel messages would stop a student reporting
 somebody they had already blocked, which is the ordinary order to do those two
 things in.
 
+**0043 takes away three privileges RLS was never able to restrain.** Supabase's
+default grant hands `anon` and `authenticated` TRUNCATE, REFERENCES and TRIGGER
+on every table in `public`. TRUNCATE is the one that matters: it is **not
+filtered by row-level security at all**. Demonstrated on a throwaway copy of
+this schema — a student who could read zero rows of `blocks` (RLS working, and
+`DELETE` correctly removing nothing) emptied the entire table with one
+TRUNCATE. Nothing reaches it today, because PostgREST speaks four verbs and
+TRUNCATE is not among them, so this is not a live hole. It becomes one the
+moment anything else can speak SQL as `authenticated` — a pooler connection
+handed to a BI tool, an admin surface, a third-party integration given the
+key. Run this after any migration that creates a table:
+
+```sql
+select grantee, privilege_type, count(*)
+from information_schema.role_table_grants
+where table_schema = 'public'
+  and grantee in ('anon', 'authenticated')
+  and privilege_type in ('TRUNCATE', 'REFERENCES', 'TRIGGER')
+group by 1, 2;
+```
+
+Zero rows is the expected answer. The `alter default privileges` line in 0043
+binds to `postgres`, which is the role migrations run as, so migration-created
+tables are covered; the schema's second default ACL is owned by
+`supabase_admin` and still grants all three, so a table created by Supabase
+itself would arrive needing the revoke repeated. Hence the query rather than
+trust.
+
 ---
 
 ## 3c. One setting the migrations can't reach
