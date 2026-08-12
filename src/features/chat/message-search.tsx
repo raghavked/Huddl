@@ -9,16 +9,50 @@ import { formatMessageTime } from "@/lib/utils";
 const MIN_QUERY_LENGTH = 2;
 const DEBOUNCE_MS = 300;
 
+/**
+ * `is_public` rides along because nothing in the database withholds a private
+ * student's name — see {@link authorName}, which is the whole of the
+ * redaction on this surface.
+ */
+const RESULT_SELECT =
+  "id, content, created_at, author:profiles(id, handle, display_name, is_public)";
+
 type SearchResult = {
   id: string;
   content: string;
   created_at: string;
-  author: { display_name: string } | null;
+  author: {
+    id: string;
+    handle: string;
+    display_name: string;
+    is_public: boolean;
+  } | null;
 };
 
 /** Literal `%`, `_`, and `\` in the query shouldn't act as ilike wildcards. */
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
+
+/**
+ * What to call whoever wrote the hit. A classmate with Public profile off
+ * stands under their handle here, the same way the board, the people
+ * directory and the command palette read them, and it fails closed —
+ * anything other than an explicit `is_public: true` counts as private, so a
+ * select that loses the column redacts rather than leaks.
+ *
+ * You always see yourself in full, which is what `viewerId` is for. It comes
+ * down as a prop from the channel page, which already has it — resolving it
+ * here with a second `auth.getUser()` would cost a round trip per mount and
+ * would redact a private student's own name back at them until it landed.
+ */
+function authorName(
+  author: SearchResult["author"],
+  viewerId: string
+): string {
+  if (!author) return "A classmate";
+  const locked = author.id !== viewerId && author.is_public !== true;
+  return locked ? author.handle : author.display_name || author.handle;
 }
 
 /**
@@ -28,7 +62,14 @@ function escapeLike(value: string): string {
  * full width. Results are read-only rows for now; jumping to a message is a
  * follow-up.
  */
-export function MessageSearch({ channelId }: { channelId: string }) {
+export function MessageSearch({
+  channelId,
+  viewerId,
+}: {
+  channelId: string;
+  /** The signed-in student, so the redaction can spare them their own name. */
+  viewerId: string;
+}) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -41,8 +82,32 @@ export function MessageSearch({ channelId }: { channelId: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestSeqRef = useRef(0);
+  const blockedRef = useRef<Promise<string[]> | null>(null);
   const panelId = useId();
   const inputId = useId();
+
+  /**
+   * Everyone the student has blocked, read once and shared by every search in
+   * this panel. RLS pins `blocks` to the caller, so there is no id to pass.
+   * A rejection is deliberately not cached: the next search retries instead of
+   * being stuck failing for the life of the page.
+   */
+  const loadBlockedIds = useCallback(async (): Promise<string[]> => {
+    if (!blockedRef.current) {
+      blockedRef.current = (async () => {
+        const { data, error } = await createClient()
+          .from("blocks")
+          .select("blocked_id");
+        if (error) throw error;
+        const rows = (data ?? []) as { blocked_id: string }[];
+        return rows.map((r) => r.blocked_id);
+      })().catch((err: unknown) => {
+        blockedRef.current = null;
+        throw err;
+      });
+    }
+    return blockedRef.current;
+  }, []);
 
   const runSearch = useCallback(
     async (raw: string) => {
@@ -57,14 +122,39 @@ export function MessageSearch({ channelId }: { channelId: string }) {
       }
       setLoading(true);
       setFailed(false);
+
+      // The block list has to be in hand before the query goes out, because
+      // the exclusion belongs in the query: a blocked classmate's messages
+      // would otherwise eat into the 20 we ask for and the panel would report
+      // fewer hits than the channel holds. Searching is also the one place
+      // someone could go looking for exactly what the room won't show them,
+      // so a list we couldn't read fails the search rather than running it
+      // unfiltered.
+      let hidden: string[];
+      try {
+        hidden = await loadBlockedIds();
+      } catch {
+        if (seq !== requestSeqRef.current) return;
+        setLoading(false);
+        setFailed(true);
+        return;
+      }
+      if (seq !== requestSeqRef.current) return;
+
       const supabase = createClient();
       // RLS already scopes messages to channels the student belongs to.
-      const { data, error } = await supabase
+      let query = supabase
         .from("messages")
-        .select("id, content, created_at, author:profiles(display_name)")
+        .select(RESULT_SELECT)
         .eq("channel_id", channelId)
         .is("deleted_at", null)
-        .ilike("content", `%${escapeLike(q)}%`)
+        .ilike("content", `%${escapeLike(q)}%`);
+      // `not.in.()` is not a filter PostgREST will take, so an empty block
+      // list simply doesn't add one.
+      if (hidden.length > 0) {
+        query = query.not("author_id", "in", `(${hidden.join(",")})`);
+      }
+      const { data, error } = await query
         .order("created_at", { ascending: false })
         .limit(20);
       if (seq !== requestSeqRef.current) return; // a newer search superseded this one
@@ -76,7 +166,7 @@ export function MessageSearch({ channelId }: { channelId: string }) {
       setResults((data ?? []) as unknown as SearchResult[]);
       setSearched(true);
     },
-    [channelId]
+    [channelId, loadBlockedIds]
   );
 
   const close = useCallback((restoreFocus: boolean) => {
@@ -222,7 +312,7 @@ export function MessageSearch({ channelId }: { channelId: string }) {
                     <li key={result.id} className="rounded-xl px-3 py-2">
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="truncate text-sm font-semibold">
-                          {result.author?.display_name ?? "A classmate"}
+                          {authorName(result.author, viewerId)}
                         </span>
                         <time
                           dateTime={result.created_at}

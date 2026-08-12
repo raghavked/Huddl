@@ -455,10 +455,48 @@ export async function fetchMyOpenSession(
 }
 
 /**
+ * The ids of everyone the caller has blocked, for keeping them out of
+ * {@link fetchStudyingNow}.
+ *
+ * A block list is private to the blocker, and the `blocks` SELECT policy
+ * (migration 0019) narrows this to the caller's own rows — but the filter is
+ * written out anyway, the way every other block read in the web app writes
+ * it. `FocusCtx.client` is a bare SupabaseClient, and this codebase ships a
+ * service client that bypasses RLS; handed one of those, an unpinned read
+ * would return every block row on the platform and quietly drop unrelated
+ * students out of "studying now". One `eq` costs nothing and makes the query
+ * mean what it says. `@/features/chat/blocks` runs the same query, but that
+ * module is `"use client"` and this one also runs in a server component.
+ *
+ * @throws {FocusError} Carrying the list's own failure copy: a list we can't
+ *   filter is a list we mustn't show, and from the student's side that's one
+ *   failure, not two.
+ */
+async function fetchBlockedIds(ctx?: FocusCtx): Promise<string[]> {
+  const me = await requireUserId(ctx);
+  const { data, error } = await db(ctx)
+    .from("blocks")
+    .select("blocked_id")
+    .eq("blocker_id", me);
+  if (error) {
+    throw new FocusError("We couldn't see who's studying right now.");
+  }
+  const rows = (data ?? []) as { blocked_id: string }[];
+  return rows.map((row) => row.blocked_id);
+}
+
+/**
  * Everyone on campus who's studying right now — open sessions only, newest
  * first, capped at 50, each with the student's profile and their course code
  * attached. RLS already limits this to your university, so there's no campus
  * filter to pass.
+ *
+ * Students you've blocked are not in it — nor is the line they wrote on their
+ * session, which the privacy policy calls out by name. Reading the block list
+ * costs a round trip ahead of this one, and that is what buys the exclusion a
+ * place in the query rather than a pass over the answer: a blocked classmate
+ * never takes up one of the 50 places, so the list is as long as it would
+ * have been if you'd never blocked anyone.
  *
  * @param courseIds Optionally narrow to these courses (e.g. the student's own
  *   enrolments, for a "your classes" tab). Sessions with no course are
@@ -472,12 +510,19 @@ export async function fetchStudyingNow(
 ): Promise<StudyingNow[]> {
   if (courseIds !== undefined && courseIds.length === 0) return [];
 
+  const blocked = await fetchBlockedIds(ctx);
+
   let query = db(ctx)
     .from("focus_sessions")
     .select(STUDYING_NOW_SELECT)
     .is("ended_at", null);
   if (courseIds !== undefined) {
     query = query.in("course_id", [...courseIds]);
+  }
+  // `not.in.()` is not a filter PostgREST will take, so an empty block list
+  // simply doesn't add one.
+  if (blocked.length > 0) {
+    query = query.not("user_id", "in", `(${blocked.join(",")})`);
   }
 
   const { data, error } = await query
@@ -507,6 +552,11 @@ let channelSeq = 0;
  * `focus_sessions`. The table is in the realtime publication and its SELECT
  * policy is campus-scoped, so the socket only ever delivers rows the caller
  * is already allowed to read — no filter needed here.
+ *
+ * Blocking is not part of that guarantee: a blocked classmate sitting down
+ * still fires an event here, because the database has no idea who you've
+ * blocked. Refetching is what keeps them out of the list —
+ * {@link fetchStudyingNow} filters, this channel doesn't.
  *
  * Browser only, and payloads are bare table rows with no profile or course
  * attached. The simplest correct listener refetches:

@@ -95,10 +95,35 @@ export default async function BoardPage({
   let posts: BoardPost[] = [];
   let loadError: string | null = null;
   try {
-    posts = await fetchBoard(
-      { category: active, includeClosed: true },
-      { client: supabase, userId: user.userId }
+    /* The block list travels with the posts rather than after them: one extra
+       round trip on a page that already makes one, and RLS on `blocks` scopes
+       it to the reader, so `blocker_id` is the only filter it needs.
+
+       It is the half that must not fail soft. An empty set would quietly put a
+       blocked classmate back on the board, so a `blocks` read that didn't land
+       throws into the same catch as a board read that didn't — the reader gets
+       the error card and a retry, not a board with the wrong people on it. */
+    const [board, blocks] = await Promise.all([
+      fetchBoard(
+        { category: active, includeClosed: true },
+        { client: supabase, userId: user.userId }
+      ),
+      supabase
+        .from("blocks")
+        .select("blocked_id")
+        .eq("blocker_id", user.userId),
+    ]);
+    if (blocks.error) throw blocks.error;
+    const blocked = new Set(
+      ((blocks.data ?? []) as { blocked_id: string }[]).map(
+        (row) => row.blocked_id
+      )
     );
+    /* Dropped here rather than excluded in the query, because `fetchBoard`
+       takes no author filter — which means a reader who has blocked someone
+       sees fewer than the hundred rows the cap allows, on the rare board
+       that's over it. Trimming the tail is the safe direction to be wrong in. */
+    posts = board.filter((post) => !blocked.has(post.author_id));
   } catch (caught) {
     loadError =
       caught instanceof BoardError

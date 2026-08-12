@@ -5,8 +5,9 @@ import { createClient } from "@/lib/supabase/client";
  *
  * Uploading and downloading a note already live in the notes feature
  * (`src/features/notes/note-upload.tsx` writes the row, `notes-section.tsx`
- * signs the URL). This module owns only what migration 0032 added on top:
- * `notes.tags`.
+ * signs the URL). This module owns what migration 0032 added on top —
+ * `notes.tags` — and, since a note is never shown without a byline, the one
+ * pure rule that byline has to obey: {@link noteUploaderName}.
  *
  * THE DATABASE OWNS NORMALIZATION, AND THAT IS DELIBERATE.
  * 0032 put a BEFORE INSERT/UPDATE trigger on the column that trims,
@@ -262,4 +263,50 @@ export function tagKey(tag: string): string {
 export function hasTag(tags: readonly string[], tag: string): boolean {
   const key = tagKey(tag);
   return tags.some((existing) => tagKey(existing) === key);
+}
+
+/* ══════════════════════════════ credit ══════════════════════════════ */
+
+/**
+ * The bits of an uploader's profile a byline reads. A whole `Profile` fits.
+ *
+ * `is_public` is optional because the embed is only as good as the select that
+ * asked for it, and a row that arrived without the column has to be treated as
+ * private — see {@link noteUploaderName}.
+ */
+export type NoteUploaderRef = {
+  id: string;
+  handle: string;
+  display_name: string;
+  is_public?: boolean | null;
+};
+
+/**
+ * What to credit a note's uploader as.
+ *
+ * A classmate with Public profile off is credited by their handle. Sharing a
+ * study guide with the class is not consent to publish the profile they
+ * deliberately closed, and no policy stops it: migration 0012 left this to the
+ * app. It's the same redaction the classmate list one tab over
+ * (`features/notes/classmates.tsx`), the board and `@/lib/focus` apply, down
+ * to keeping the avatar — the note still has a face on it, just not a name.
+ *
+ * It fails closed: anything other than an explicit `is_public: true` counts as
+ * private, so a select that forgets the column redacts rather than leaks.
+ *
+ * You always see yourself in full. `viewerId` may be null while the session is
+ * still resolving, in which case nothing counts as yours.
+ *
+ * @returns The name to print, already carrying its `@` when it's a handle. A
+ *   note whose uploader profile didn't come back is credited to "Classmate" —
+ *   an unreadable byline is still a byline.
+ */
+export function noteUploaderName(
+  uploader: NoteUploaderRef | null | undefined,
+  viewerId: string | null
+): string {
+  if (!uploader) return "Classmate";
+  const locked = uploader.id !== viewerId && uploader.is_public !== true;
+  if (locked) return `@${uploader.handle}`;
+  return uploader.display_name || uploader.handle;
 }

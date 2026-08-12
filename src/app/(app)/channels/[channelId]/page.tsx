@@ -198,7 +198,7 @@ export default async function ChannelPage({
             <p className="truncate text-xs text-muted">{channel.description}</p>
           ) : null}
         </div>
-        <MessageSearch channelId={channel.id} />
+        <MessageSearch channelId={channel.id} viewerId={user.userId} />
         <Badge tone="neutral" title={`${memberCount ?? 0} members`}>
           <Users className="size-3.5" aria-hidden />
           {memberCount ?? 0}

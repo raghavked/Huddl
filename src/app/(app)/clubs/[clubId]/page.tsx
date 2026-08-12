@@ -274,7 +274,10 @@ export default async function ClubPage({
           </div>
         ) : (
           <div className="mt-3">
-            <Roster members={roster} />
+            {/* The roster redacts a private member down to their handle, and
+                has to know who is reading to make the one exception: you
+                always see yourself in full. */}
+            <Roster members={roster} currentUserId={user.userId} />
           </div>
         )}
       </section>

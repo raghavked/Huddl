@@ -39,20 +39,31 @@ export default async function FocusPage() {
   const now = new Date();
   const since = new Date(now.getTime() - STREAK_WINDOW_DAYS * DAY_MS);
 
-  let mine: FocusSession | null = null;
-  let studying: StudyingNow[] = [];
-  let loadError: string | null = null;
-  try {
-    [mine, studying] = await Promise.all([
-      fetchMyOpenSession(ctx),
-      fetchStudyingNow(undefined, ctx),
-    ]);
-  } catch (caught) {
-    loadError =
-      caught instanceof FocusError
-        ? caught.message
-        : "We couldn't open focus just now.";
-  }
+  /* Settled independently rather than through one Promise.all, because these
+     are not the same failure. The campus list refuses to draw if it can't
+     read the reader's block list — a list we can't filter is a list we
+     mustn't show. But your own running session has nothing to do with anyone
+     else's block list, and a student mid-session shouldn't lose their timer
+     because the campus list had a bad minute. */
+  const [mineResult, studyingResult] = await Promise.allSettled([
+    fetchMyOpenSession(ctx),
+    fetchStudyingNow(undefined, ctx),
+  ]);
+
+  const mine: FocusSession | null =
+    mineResult.status === "fulfilled" ? mineResult.value : null;
+  const studying: StudyingNow[] =
+    studyingResult.status === "fulfilled" ? studyingResult.value : [];
+
+  const rejection = [mineResult, studyingResult].find(
+    (result) => result.status === "rejected"
+  );
+  const loadError: string | null =
+    rejection && rejection.status === "rejected"
+      ? rejection.reason instanceof FocusError
+        ? rejection.reason.message
+        : "We couldn't open focus just now."
+      : null;
 
   // Secondary data — a failure in either is a missing chip or a missing
   // streak, never a page that won't draw.

@@ -21,10 +21,12 @@ import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
 import { NotesScene } from "@/components/illustrations";
 import { Button, buttonClasses, cardClasses } from "@/components/ui";
+import { useBlockedIds } from "@/features/chat/blocks";
 import { NoteUpload, type UploadedNote } from "@/features/notes/note-upload";
 import { TagPicker } from "@/features/notes/tag-picker";
 import {
   NotesError,
+  noteUploaderName,
   setNoteTags,
   tallyTags,
   toTagList,
@@ -78,6 +80,10 @@ function fileTypeIcon(mime: string | null, fileName: string): LucideIcon {
  * Notes tab of a course page: upload affordance + the shared-notes list.
  * The server page passes the RLS-scoped notes; uploads are shown optimistically
  * (merged by id once router.refresh() brings the server copy back).
+ *
+ * An uploader who turned Public profile off is credited by their handle — see
+ * {@link noteUploaderName}. Their note stays up and their avatar stays on it;
+ * only the name goes.
  */
 export function NotesSection({
   courseId,
@@ -108,13 +114,36 @@ export function NotesSection({
   // "midterm" plus "cheatsheet" means notes wearing both.
   const [selected, setSelected] = useState<string[]>([]);
 
+  /* Blocking hides what a person writes, and a shared note is a thing they
+     wrote. This is the same set the chat rooms filter through, so a classmate
+     you blocked is not still handing you coursework on the course page — with
+     their name, their avatar, and a working "Say thanks" button.
+
+     Like every other block filter in the web client, it resolves a beat after
+     the first paint: the notes arrive server-rendered and the block list is a
+     client fetch, so a blocked uploader is visible for one frame and stays
+     visible if that fetch fails. That is exactly what chat, threads and DMs
+     do today. Making this one surface stricter than the room beside it would
+     be a difference nobody could explain; if that window is ever worth
+     closing, it should close for all of them at once, in
+     features/chat/blocks.ts. */
+  const { blockedIds } = useBlockedIds(currentUser.id);
+
+  /* The filter belongs here rather than at the render, because the tag rail
+     and the empty state are both counted off `visible`. Applied any later, a
+     course whose only notes came from a blocked classmate would show
+     "midterm · 3" above an empty list and would never reach its empty state. */
   const visible = useMemo(() => {
     const known = new Set(notes.map((note) => note.id));
     const removed = new Set(removedIds);
-    return [...extraNotes.filter((note) => !known.has(note.id)), ...notes].filter(
-      (note) => !removed.has(note.id)
-    );
-  }, [notes, extraNotes, removedIds]);
+    return [...extraNotes.filter((note) => !known.has(note.id)), ...notes]
+      .filter((note) => !removed.has(note.id))
+      .filter(
+        (note) =>
+          note.uploader_id === currentUser.id ||
+          !blockedIds.has(note.uploader_id)
+      );
+  }, [notes, extraNotes, removedIds, blockedIds, currentUser.id]);
 
   /** The tags one note is wearing right now — an unsaved edit wins. */
   const tagsOf = useMemo(() => {
@@ -466,7 +495,9 @@ export function NotesSection({
             const noteTags = tagsOf(note);
             const editingTags = editingTagsId === note.id;
             const mine = note.uploader_id === currentUser.id;
-            const uploaderName = note.uploader?.display_name ?? "Classmate";
+            /* Also what the avatar's initials come from, so a private
+               uploader's row doesn't spell out the name the byline withholds. */
+            const uploaderName = noteUploaderName(note.uploader, currentUser.id);
             const thanksEntry = thanks[note.id] ?? NO_THANKS;
             return (
               <li

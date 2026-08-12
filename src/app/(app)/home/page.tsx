@@ -34,11 +34,39 @@ type ChannelRow = Channel & {
   course: Pick<Course, "id" | "code" | "title"> | null;
 };
 
+/**
+ * `is_public` rides along because nothing in the database withholds a private
+ * student's name — see {@link authorFirstName}, which is the whole of the
+ * redaction on this surface.
+ */
 type MessagePreview = {
   content: string;
   created_at: string;
-  author: { display_name: string } | null;
+  author: {
+    id: string;
+    handle: string;
+    display_name: string;
+    is_public: boolean;
+  } | null;
 };
+
+/**
+ * The one word a preview line calls whoever spoke last. A classmate with
+ * Public profile off stands under their handle here, the same way the board,
+ * the people directory and in-channel search read them, and it fails closed —
+ * anything other than an explicit `is_public: true` counts as private, so a
+ * select that loses the column redacts rather than leaks. You always see
+ * yourself in full.
+ */
+function authorFirstName(
+  author: MessagePreview["author"],
+  viewerId: string
+): string {
+  if (!author) return "Someone";
+  const locked = author.id !== viewerId && author.is_public !== true;
+  if (locked) return author.handle;
+  return author.display_name.trim().split(/\s+/)[0] || author.handle;
+}
 
 export default async function HomePage() {
   const user = await getCurrentUser();
@@ -47,30 +75,39 @@ export default async function HomePage() {
   const supabase = await createClient();
   const nowIso = new Date().toISOString();
 
-  const [membershipRes, eventsRes, topicsRes, enrollRes] = await Promise.all([
-    supabase
-      .from("channel_members")
-      .select("channel:channels(*, course:courses(id, code, title))")
-      .eq("user_id", user.userId),
-    supabase
-      .from("events")
-      .select("*")
-      .eq("university_id", user.university.id)
-      .gte("starts_at", nowIso)
-      .order("starts_at", { ascending: true })
-      .limit(4),
-    supabase
-      .from("channels")
-      .select("*")
-      .eq("university_id", user.university.id)
-      .eq("kind", "topic")
-      .order("created_at", { ascending: false })
-      .limit(30),
-    supabase
-      .from("enrollments")
-      .select("course:courses(id, code)")
-      .eq("user_id", user.userId),
-  ]);
+  const [membershipRes, eventsRes, topicsRes, enrollRes, blocksRes] =
+    await Promise.all([
+      supabase
+        .from("channel_members")
+        .select("channel:channels(*, course:courses(id, code, title))")
+        .eq("user_id", user.userId),
+      supabase
+        .from("events")
+        .select("*")
+        .eq("university_id", user.university.id)
+        .gte("starts_at", nowIso)
+        .order("starts_at", { ascending: true })
+        .limit(4),
+      supabase
+        .from("channels")
+        .select("*")
+        .eq("university_id", user.university.id)
+        .eq("kind", "topic")
+        .order("created_at", { ascending: false })
+        .limit(30),
+      supabase
+        .from("enrollments")
+        .select("course:courses(id, code)")
+        .eq("user_id", user.userId),
+      // Everyone this student has blocked. It travels with the opening trip
+      // because the channel previews are asked for against it, and RLS on
+      // `blocks` scopes the read to the reader, so `blocker_id` is the only
+      // filter it needs.
+      supabase
+        .from("blocks")
+        .select("blocked_id")
+        .eq("blocker_id", user.userId),
+    ]);
 
   // The study-plan card: shared class calendars + private check-offs,
   // crunched by the same pure lib the /plan page uses. Same one-week-back
@@ -155,22 +192,49 @@ export default async function HomePage() {
     .filter((c) => !joinedIds.has(c.id))
     .slice(0, 5);
 
-  // Latest message per campus/course channel: one tiny indexed lookup each
-  // (messages has a (channel_id, created_at desc) index), run in parallel.
-  const previews = new Map<string, MessagePreview>();
-  await Promise.all(
-    [...campusChannels, ...courseChannels].map(async (channel) => {
-      const { data } = await supabase
-        .from("messages")
-        .select("content, created_at, author:profiles(display_name)")
-        .eq("channel_id", channel.id)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (data) previews.set(channel.id, data as unknown as MessagePreview);
-    })
-  );
+  /* Latest readable message per campus/course channel: one tiny indexed
+     lookup each (messages has a (channel_id, created_at desc) index), run in
+     parallel.
+
+     "Readable" includes the block list, and a blocked classmate is excluded
+     IN the query rather than dropped from the answer — so a channel whose
+     newest message is theirs falls back to the newest one this student can
+     actually see, instead of the row going quiet.
+
+     A `blocks` read that didn't land leaves this null rather than empty: with
+     no set to cut against, any preview could be quoting someone the rooms
+     themselves hide. The rows then carry no second line at all, which is the
+     one honest option — "No messages yet" would be a claim about a channel we
+     never looked in. */
+  let previews: Map<string, MessagePreview> | null = null;
+  if (!blocksRes.error) {
+    const hidden = ((blocksRes.data ?? []) as { blocked_id: string }[]).map(
+      (row) => row.blocked_id
+    );
+    const found = new Map<string, MessagePreview>();
+    await Promise.all(
+      [...campusChannels, ...courseChannels].map(async (channel) => {
+        let query = supabase
+          .from("messages")
+          .select(
+            "content, created_at, author:profiles(id, handle, display_name, is_public)"
+          )
+          .eq("channel_id", channel.id)
+          .is("deleted_at", null);
+        // `not.in.()` is not a filter PostgREST will take, so an empty block
+        // list simply doesn't add one.
+        if (hidden.length > 0) {
+          query = query.not("author_id", "in", `(${hidden.join(",")})`);
+        }
+        const { data } = await query
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data) found.set(channel.id, data as unknown as MessagePreview);
+      })
+    );
+    previews = found;
+  }
 
   const firstName =
     user.profile.display_name.trim().split(/\s+/)[0] || user.profile.handle;
@@ -255,10 +319,10 @@ export default async function HomePage() {
         ) : (
           <ul className="mt-3 flex flex-col gap-2.5">
             {campusChannels.map((channel) => {
-              const preview = previews.get(channel.id);
-              const authorFirst =
-                preview?.author?.display_name.trim().split(/\s+/)[0] ??
-                "Someone";
+              const preview = previews?.get(channel.id);
+              const authorFirst = preview
+                ? authorFirstName(preview.author, user.userId)
+                : null;
               return (
                 <li key={channel.id}>
                   <Link
@@ -291,9 +355,9 @@ export default async function HomePage() {
                             </span>{" "}
                             {preview.content}
                           </>
-                        ) : (
+                        ) : previews ? (
                           "No messages yet — say hi!"
-                        )}
+                        ) : null}
                       </span>
                     </span>
                   </Link>
@@ -323,7 +387,7 @@ export default async function HomePage() {
         ) : (
           <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {courseChannels.map((channel) => {
-              const preview = previews.get(channel.id);
+              const preview = previews?.get(channel.id);
               return (
                 <li key={channel.id}>
                   <Link
@@ -351,7 +415,9 @@ export default async function HomePage() {
                     <span className="mt-auto pt-1 text-xs text-muted">
                       {preview
                         ? `Active ${formatMessageTime(preview.created_at)}`
-                        : "No messages yet"}
+                        : previews
+                          ? "No messages yet"
+                          : null}
                     </span>
                   </Link>
                 </li>
