@@ -1,7 +1,14 @@
 import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
-import { Animated, Pressable, ScrollView, View } from "react-native";
+import {
+  Animated,
+  Platform,
+  Pressable,
+  ScrollView,
+  Switch,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Lantern } from "@/components/illustrations";
 import {
@@ -28,11 +35,19 @@ import {
   type DisplayMode,
 } from "@/providers/display-provider";
 
-/* Look and feel — appearance and type size, both of them local to this
-   phone. Everything here applies on the tap: there is nothing to save, no
-   server round trip, and so no loading or error state to render. The whole
-   screen is its own preview — choose dark and the page you are standing on
-   goes dark under your finger. */
+/* Look and feel — appearance, type size, and the tick you feel, all three of
+   them local to this phone. Everything here applies on the tap: there is
+   nothing to save, no server round trip, and so no loading or error state to
+   render. The only read that can fail is the provider's one pass at
+   AsyncStorage on launch, which answers failure with the defaults behind the
+   splash screen, so by the time this screen can be reached the three
+   preferences are known and `ready` is long since true. The whole screen is
+   its own preview — choose dark and the page you are standing on goes dark
+   under your finger, and switch the tick on and it ticks.
+
+   Haptics belong here rather than under Notifications: that screen is about
+   what Huddl sends you, this one is about how it comes across in your hand,
+   and "feel" was the half of the title nothing on the screen was honouring. */
 
 /* ------------------------------ appearance ------------------------------ */
 
@@ -274,12 +289,118 @@ function SizeStep({
   );
 }
 
+/* -------------------------------- haptics -------------------------------- */
+
+/* A browser has nothing to buzz, and `@/lib/haptics` already no-ops there.
+   The row still gets drawn rather than hidden, so the setting is where a
+   student went looking for it — it just says why it is doing nothing. */
+const CAN_BUZZ = Platform.OS !== "web";
+
+/**
+ * What the switch currently means, in a sentence under the card — the same
+ * shape privacy-settings uses, and for the same reason: a switch says on or
+ * off, it does not say what that bought you.
+ */
+function hapticsSentence(enabled: boolean): string {
+  if (!CAN_BUZZ) {
+    return "Huddl only taps back on a phone, so there's nothing here for this switch to quiet.";
+  }
+  if (enabled) {
+    return "It's on, which is how Huddl starts out. The tick only ever marks something finishing — never a keystroke, never a tab, never twice for the same thing.";
+  }
+  return "It's off. Your phone stays still, and nothing else changes — messages send, check-offs save, and notifications arrive exactly as you set them.";
+}
+
+/**
+ * Icon tile + label + caption + a switch, in the push-settings idiom.
+ *
+ * That makes three hand-rolled copies of this row — push-settings,
+ * privacy-settings, here — which by §8 of the design language is the moment
+ * it should become a `SwitchRow` primitive. It is not one yet because
+ * promoting it means editing `components/ui` and rewriting two other screens
+ * on top of a one-setting change. Whoever writes the fourth: stop and lift
+ * it instead.
+ */
+function HapticsRow({
+  value,
+  onValueChange,
+}: {
+  value: boolean;
+  onValueChange: (next: boolean) => void;
+}) {
+  const theme = useTheme();
+  /* Where there is nothing to buzz the row dims and the switch stops taking
+     taps, but it still shows the stored preference rather than a flat off:
+     the setting is real, it is simply not this device's to exercise. */
+  return (
+    <View
+      style={{
+        minHeight: 44,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: space.close,
+        paddingHorizontal: space.card,
+        paddingVertical: space.close,
+        opacity: CAN_BUZZ ? 1 : 0.5,
+      }}
+    >
+      <View
+        // The switch's own label says all of this, and says the state too.
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: space.close,
+        }}
+      >
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: radius.control,
+            backgroundColor: value ? theme.brandSoft : theme.surface2,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Feather
+            name="smartphone"
+            size={16}
+            color={value ? theme.brand : theme.muted}
+          />
+        </View>
+        <View style={{ flex: 1, gap: space.hair }}>
+          <AppText variant="bodySemi">Haptic taps</AppText>
+          <AppText variant="caption" muted>
+            A short tick at the end of something — a message sent, a task
+            checked off.
+          </AppText>
+        </View>
+      </View>
+      <Switch
+        accessibilityRole="switch"
+        accessibilityLabel="Haptic taps. A short tick at the end of something — a message sent, a task checked off."
+        accessibilityState={{ checked: value, disabled: !CAN_BUZZ }}
+        disabled={!CAN_BUZZ}
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: theme.surface3, true: theme.brand }}
+        thumbColor={theme.onSolid}
+        ios_backgroundColor={theme.surface3}
+      />
+    </View>
+  );
+}
+
 /* -------------------------------- screen -------------------------------- */
 
 export default function DisplaySettingsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { mode, setMode, textScale, setTextScale } = useDisplay();
+  const { mode, setMode, textScale, setTextScale, haptics, setHaptics } =
+    useDisplay();
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -302,6 +423,20 @@ export default function DisplaySettingsScreen() {
       setTextScale(next);
     },
     [textScale, setTextScale]
+  );
+
+  const chooseHaptics = useCallback(
+    (next: boolean) => {
+      setHaptics(next);
+      /* Turning them on is the one choice on this screen that can answer in
+         the medium it just switched on, so it ticks once — the setting
+         demonstrating itself, not a new haptic moment. Turning them off
+         answers with silence, which is the only honest confirmation there
+         is. The order matters: `setHaptics` writes the preference through to
+         `@/lib/haptics` synchronously, so by this line the tap is allowed. */
+      if (next) tapLight();
+    },
+    [setHaptics]
   );
 
   const isDefaultScale = sameScale(textScale, TEXT_SCALE_DEFAULT);
@@ -346,8 +481,8 @@ export default function DisplaySettingsScreen() {
         Look and feel
       </AppText>
       <AppText variant="caption" muted style={{ marginTop: space.tight }}>
-        Set the appearance and the type size. Both take hold the moment you
-        tap.
+        Set the appearance, the type size, and whether Huddl taps back. All
+        three take hold the moment you tap.
       </AppText>
 
       <ScrollView
@@ -453,6 +588,16 @@ export default function DisplaySettingsScreen() {
           </AppText>
         </Card>
 
+        <SectionLabel text="Haptics" />
+
+        <Card padded={false}>
+          <HapticsRow value={haptics} onValueChange={chooseHaptics} />
+        </Card>
+
+        <AppText variant="caption" muted style={{ marginTop: space.room }}>
+          {hapticsSentence(haptics)}
+        </AppText>
+
         <View style={{ alignItems: "center", gap: space.cosy, marginTop: space.rest }}>
           <View
             accessibilityElementsHidden
@@ -465,9 +610,9 @@ export default function DisplaySettingsScreen() {
             muted
             style={{ textAlign: "center", maxWidth: 300 }}
           >
-            Both settings stay on this phone and change nothing but how Huddl
-            looks to you — not your profile, not your classes, and not a thing
-            anyone else sees.
+            All three stay on this phone and change nothing but how Huddl
+            looks and feels to you — not your profile, not your classes, and
+            not a thing anyone else sees.
           </AppText>
         </View>
       </ScrollView>

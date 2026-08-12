@@ -5,7 +5,7 @@ import {
   useLocalSearchParams,
   useRouter,
 } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -46,7 +46,9 @@ import { useAuth } from "@/providers/auth-provider";
    and the door to the chat.
    Joining inserts the club_members row — a DB trigger mirrors membership
    into the club's channel, exactly like the web app. Leaving deletes it
-   (same trigger cleans up the chat); owners can't leave, only disband. */
+   (same trigger cleans up the chat); owners can't leave, only disband —
+   which, with the rest of the club's details, lives behind the gear in the
+   header and is only drawn for the officers who can actually use it. */
 
 type ClubCategory =
   | "academic"
@@ -388,17 +390,15 @@ export default function ClubHomeScreen() {
     }
   }, [clubId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  // Refetch the board on every focus, so a notice written on the composer is
-  // already here when it hands you back.
+  /* Both loads run on focus rather than on mount, so anything done on a
+     screen we pushed is already true when it hands us back: a notice written
+     in the composer, a rename saved in settings, an event just planned. */
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
+      void load();
       void loadAnnouncements();
-    }, [userId, loadAnnouncements])
+    }, [userId, load, loadAnnouncements])
   );
 
   const onRefresh = useCallback(() => {
@@ -413,6 +413,14 @@ export default function ClubHomeScreen() {
   const myRole = me?.role ?? null;
   const isMember = myRole !== null;
   const isOfficer = canPostAnnouncements(myRole);
+
+  /* Officers and the owner get the gear. Both can edit the club's details;
+     the disband half of that screen is the owner's alone, and it decides
+     that for itself off the same roster row. */
+  const openSettings = useCallback(() => {
+    if (!club) return;
+    router.push({ pathname: "/club/settings", params: { clubId: club.id } });
+  }, [router, club]);
 
   const openComposer = useCallback(() => {
     if (!club) return;
@@ -692,8 +700,33 @@ export default function ClubHomeScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: space.close }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: space.close,
+        }}
+      >
         <BackChevron onPress={goBack} />
+        {isOfficer ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Club settings"
+            accessibilityHint="Edit the club's name, category and description"
+            onPress={openSettings}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Feather name="settings" size={20} color={theme.foreground} />
+          </Pressable>
+        ) : null}
       </View>
 
       <FlatList

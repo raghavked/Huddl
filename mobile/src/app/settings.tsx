@@ -381,6 +381,15 @@ export default function SettingsScreen() {
             first
             onPress={() => router.push("/account")}
           />
+          {/* Sits right under Account because it is the other half of it:
+              who you are, then what keeps it yours. `key` rather than `lock`
+              — lock is already Privacy two groups down, and one glyph doing
+              two jobs makes them read as the same row. */}
+          <SettingsLink
+            icon="key"
+            label="Security"
+            onPress={() => router.push("/security")}
+          />
           {/* Appearance sits high — it changes every other screen. */}
           <SettingsLink
             icon="sliders"

@@ -46,6 +46,13 @@ import {
   NotesError,
   type NoteRow,
 } from "@/lib/notes";
+import {
+  SemesterError,
+  UNITS_MAX,
+  UNITS_MIN,
+  setCourseUnits,
+  unitsFrom,
+} from "@/lib/semester";
 import { buddyCountLabel, countBuddies } from "@/lib/study-buddy";
 import { supabase } from "@/lib/supabase";
 import { kindLabel, type CalendarKind } from "@/lib/syllabus";
@@ -64,6 +71,12 @@ type CourseRow = {
   instructor: string | null;
   meeting_info: string | null;
   location: string | null;
+  /**
+   * `courses.units`. A `numeric` column, so PostgREST hands it back as a
+   * number or as a string depending on the driver — read it through
+   * {@link unitsOf} rather than trusting the shape.
+   */
+  units: number | string | null;
 };
 
 type ClassmateRole = "student" | "ta" | "instructor";
@@ -200,6 +213,42 @@ function titleFromFileName(name: string): string {
     .replace(/[-_]+/g, " ")
     .trim()
     .slice(0, 120);
+}
+
+/**
+ * `courses.units` as a number the screen can trust, or null for "nobody has
+ * filled this in". Zero and negatives read as unknown too, exactly the way
+ * `@/lib/semester` reads them — a course worth no units is not a thing, so
+ * treating it as one would put a silent zero into somebody's GPA.
+ */
+function unitsOf(raw: number | string | null): number | null {
+  const value = typeof raw === "string" ? Number(raw) : raw;
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  return Math.round(value * 100) / 100;
+}
+
+/**
+ * The units the column can actually hold. `courses.units` is `numeric(3,1)`
+ * (migration 0032), so Postgres rounds a second decimal on the way in — a
+ * student who typed 1.25 would watch the card say 1.3 after the next load.
+ * Round here instead, so what they're shown is what the class got. The field
+ * says "to one decimal place" before they type, so this is the stated rule
+ * rather than a quiet correction.
+ */
+function toStorablePrecision(units: number | null): number | null {
+  return units === null ? null : Math.round(units * 10) / 10;
+}
+
+/** "4 units", "1 unit", "0.5 units". */
+function unitsText(units: number): string {
+  return `${units} ${units === 1 ? "unit" : "units"}`;
+}
+
+/** What the units field starts with: the number as typed, or empty. */
+function unitsDraft(units: number | null): string {
+  return units === null ? "" : String(units);
 }
 
 /* --------------------------- tiny pieces ---------------------------- */
@@ -382,8 +431,11 @@ export default function CourseHubScreen() {
   const [draftInstructor, setDraftInstructor] = useState("");
   const [draftMeeting, setDraftMeeting] = useState("");
   const [draftLocation, setDraftLocation] = useState("");
+  const [draftUnits, setDraftUnits] = useState("");
   const [savingDetails, setSavingDetails] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
+  /** Sits on the units field itself — a bad number never leaves the form. */
+  const [unitsError, setUnitsError] = useState<string | null>(null);
 
   // Opening a note (signed URL -> browser/viewer).
   const [openingId, setOpeningId] = useState<string | null>(null);
@@ -427,7 +479,7 @@ export default function CourseHubScreen() {
           supabase
             .from("courses")
             .select(
-              "id, code, title, instructor, meeting_info, location, term:terms(name)"
+              "id, code, title, instructor, meeting_info, location, units, term:terms(name)"
             )
             .eq("id", courseId)
             .maybeSingle(),
@@ -566,17 +618,37 @@ export default function CourseHubScreen() {
     setDraftInstructor(course.instructor ?? "");
     setDraftMeeting(course.meeting_info ?? "");
     setDraftLocation(course.location ?? "");
+    setDraftUnits(unitsDraft(unitsOf(course.units)));
     setDetailsError(null);
+    setUnitsError(null);
     setEditingDetails(true);
   }, [course]);
 
   const closeDetailsEditor = useCallback(() => {
     setEditingDetails(false);
     setDetailsError(null);
+    setUnitsError(null);
   }, []);
 
   const handleSaveDetails = useCallback(async () => {
     if (!course || savingDetails) return;
+
+    // Units are read before anything is written. `unitsFrom` throws copy that
+    // names the range, so a typo'd 500 stops the save at the field instead of
+    // being quietly clamped into the whole class's GPA.
+    let nextUnits: number | null;
+    try {
+      nextUnits = toStorablePrecision(unitsFrom(draftUnits));
+    } catch (caught) {
+      setUnitsError(
+        caught instanceof SemesterError
+          ? caught.message
+          : `Units run ${UNITS_MIN} to ${UNITS_MAX}.`
+      );
+      return;
+    }
+    setUnitsError(null);
+
     const next = {
       instructor: draftInstructor.trim() || null,
       meeting_info: draftMeeting.trim() || null,
@@ -587,10 +659,12 @@ export default function CourseHubScreen() {
       meeting_info: course.meeting_info,
       location: course.location,
     };
+    const previousUnits = unitsOf(course.units);
+    const unitsChanged = nextUnits !== previousUnits;
     setDetailsError(null);
     setSavingDetails(true);
     // Optimistic: the card updates right away; a failure rolls it back.
-    setCourse((cur) => (cur ? { ...cur, ...next } : cur));
+    setCourse((cur) => (cur ? { ...cur, ...next, units: nextUnits } : cur));
     setEditingDetails(false);
     const { error: rpcError } = await supabase.rpc("update_course_details", {
       p_course_id: course.id,
@@ -598,16 +672,43 @@ export default function CourseHubScreen() {
       p_meeting_info: next.meeting_info,
       p_location: next.location,
     });
-    setSavingDetails(false);
     if (rpcError) {
-      setCourse((cur) => (cur ? { ...cur, ...previous } : cur));
+      setSavingDetails(false);
+      setCourse((cur) =>
+        cur ? { ...cur, ...previous, units: previousUnits } : cur
+      );
       setDetailsError(
         rpcError.message.includes("join the course")
           ? "Details are kept by classmates — add this course to your classes first."
           : "Couldn't save those details just now. Give it another try."
       );
+      return;
     }
-  }, [course, savingDetails, draftInstructor, draftMeeting, draftLocation]);
+    // Units ride their own RPC, and only when the field actually moved.
+    // Migration 0036 split them off the details save on purpose: a classmate
+    // fixing a room number must never be able to blank the number every
+    // student's semester GPA is weighted by. Its own write, its own rollback.
+    if (unitsChanged) {
+      try {
+        await setCourseUnits(course.id, nextUnits);
+      } catch (caught) {
+        setCourse((cur) => (cur ? { ...cur, units: previousUnits } : cur));
+        setDetailsError(
+          caught instanceof SemesterError
+            ? caught.message
+            : "Couldn't save those units just now. Give it another try."
+        );
+      }
+    }
+    setSavingDetails(false);
+  }, [
+    course,
+    savingDetails,
+    draftInstructor,
+    draftMeeting,
+    draftLocation,
+    draftUnits,
+  ]);
 
   const handleOpenNote = useCallback(async (note: NoteRow) => {
     setOpenError(null);
@@ -1174,7 +1275,13 @@ export default function CourseHubScreen() {
      reading the same hub may well see a different band. */
   const tint = tints[colorForCourse(myColor, course.code)];
 
-  const detailRows: { key: string; icon: FeatherName; value: string }[] = [];
+  const detailRows: {
+    key: string;
+    icon: FeatherName;
+    value: string;
+    /** A line standing in for a fact nobody has filled in yet. */
+    pending?: boolean;
+  }[] = [];
   if (course.instructor) {
     detailRows.push({ key: "instructor", icon: "user", value: course.instructor });
   }
@@ -1183,6 +1290,29 @@ export default function CourseHubScreen() {
   }
   if (course.location) {
     detailRows.push({ key: "location", icon: "map-pin", value: course.location });
+  }
+  /* Units come last: the first three say where to be, this one only matters
+     later, on the semester screen, where it decides how much this class
+     weighs against the others. */
+  const courseUnits = unitsOf(course.units);
+  if (courseUnits !== null) {
+    detailRows.push({
+      key: "units",
+      icon: "hash",
+      value: unitsText(courseUnits),
+    });
+  } else if (isEnrolled && detailRows.length > 0) {
+    /* Unset units get a line of their own, but only on a card that's already
+       being drawn for someone who can fix it. The semester screen sends
+       students here to fill this in, and a card that never mentions units
+       would be a dead end at the end of that trip. Never the only row —
+       one lonely "not set" line is what the empty state below is for. */
+    detailRows.push({
+      key: "units",
+      icon: "hash",
+      value: "Units not set",
+      pending: true,
+    });
   }
 
   return (
@@ -1293,8 +1423,9 @@ export default function CourseHubScreen() {
               style={{ marginTop: space.close }}
             />
 
-            {/* Course details — who teaches it, when it meets, where.
-                Classmate-kept, like the course list itself. */}
+            {/* Course details — who teaches it, when it meets, where, and
+                what it's worth in units. Classmate-kept, like the course list
+                itself: one row for the whole class, edited by anyone in it. */}
             <SectionLabel
               text="Course details"
               action={
@@ -1330,6 +1461,31 @@ export default function CourseHubScreen() {
                     maxLength={120}
                     editable={!savingDetails}
                   />
+                  {/* The one field on this card that changes a number
+                      elsewhere. It sits under the room and carries its own
+                      sentence, because "units" on its own doesn't say what
+                      filling it in actually does for anyone. */}
+                  <View style={{ gap: space.snug }}>
+                    <Field
+                      label="Units"
+                      value={draftUnits}
+                      onChangeText={(value) => {
+                        setDraftUnits(value);
+                        setUnitsError(null);
+                      }}
+                      placeholder="4"
+                      keyboardType="decimal-pad"
+                      maxLength={5}
+                      editable={!savingDetails}
+                      error={unitsError}
+                    />
+                    <AppText variant="caption" muted style={{ lineHeight: 17 }}>
+                      Units weight your semester estimate, so a 5-unit lab
+                      counts for more than a 1-unit seminar. Anything from{" "}
+                      {UNITS_MIN} to {UNITS_MAX}, to one decimal place — or
+                      leave it blank if you're not sure.
+                    </AppText>
+                  </View>
                   <View
                     style={{
                       flexDirection: "row",
@@ -1368,8 +1524,16 @@ export default function CourseHubScreen() {
                         borderTopColor: theme.border,
                       }}
                     >
-                      <Feather name={row.icon} size={15} color={theme.brand} />
-                      <AppText variant="bodyMedium" style={{ flex: 1 }}>
+                      <Feather
+                        name={row.icon}
+                        size={15}
+                        color={row.pending ? theme.muted : theme.brand}
+                      />
+                      <AppText
+                        variant="bodyMedium"
+                        muted={row.pending}
+                        style={{ flex: 1 }}
+                      >
                         {row.value}
                       </AppText>
                     </View>
@@ -1380,7 +1544,7 @@ export default function CourseHubScreen() {
                   compact
                   icon="info"
                   title="No details yet"
-                  body="Who teaches it, when it meets, where — fill it in for the class."
+                  body="Who teaches it, when it meets, where, how many units — fill it in for the class."
                 />
               )}
               {detailsError ? (

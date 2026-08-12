@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WallCalendar } from "@/components/illustrations";
 import {
   AppText,
+  Button,
   Card,
   EmptyState,
   SectionLabel,
@@ -60,11 +61,18 @@ function pctText(value: number): string {
   return String(Math.round(value * 10) / 10);
 }
 
+/**
+ * Units the average can actually be weighted by: finite and above zero. The
+ * same reading `@/lib/semester` does — null, zero and a negative are all
+ * "nobody has said", which is a different thing from "worth nothing".
+ */
+function knownUnits(units: number | null): units is number {
+  return typeof units === "number" && Number.isFinite(units) && units > 0;
+}
+
 /** "4 units", "1 unit", or the plain truth when nobody has filled them in. */
 function unitsText(units: number | null): string {
-  if (units === null || !Number.isFinite(units) || units <= 0) {
-    return "Units not set";
-  }
+  if (!knownUnits(units)) return "Units not set";
   const value = Math.round(units * 100) / 100;
   return `${value} ${value === 1 ? "unit" : "units"}`;
 }
@@ -76,12 +84,7 @@ function unitsText(units: number | null): string {
  * leave the line out — the summary note already says which classes are short.
  */
 function unitsLine(courses: readonly SemesterCourse[]): string | null {
-  const known = courses.every(
-    (course) =>
-      typeof course.units === "number" &&
-      Number.isFinite(course.units) &&
-      course.units > 0
-  );
+  const known = courses.every((course) => knownUnits(course.units));
   if (!known) return null;
   const total = totalUnits(courses);
   return total === null ? null : unitsText(total);
@@ -104,6 +107,37 @@ function recruitCourse(
 ): SemesterCourse | null {
   const noGradebook = courses.find((course) => course.categoryCount === 0);
   return noGradebook ?? courses[0] ?? null;
+}
+
+/**
+ * The class to point at when the average had to fall back to a plain mean:
+ * the first one carrying a grade but no units. Null when filling one in
+ * wouldn't move the number.
+ *
+ * The weighting itself is entirely `@/lib/semester`'s — it already weights by
+ * units whenever every graded class has them, and says so in `summary.note`
+ * when it can't. All this screen adds is the door to the missing input, which
+ * until now existed nowhere in the app.
+ *
+ * Two conditions, and the second is the subtle one. `unweighted` is also true
+ * for a single graded class with no units, but weighting one number by
+ * anything gives back the same number — so offering "add units" there would
+ * promise a change that can't happen. It takes two classes for units to mean
+ * anything, and the note already names the single-class case in words.
+ *
+ * One class at a time, even when several are short: the fix is one number in
+ * one place, and `summary.note` is already counting how many are left.
+ */
+function unitsFixCourse(
+  summary: SemesterEstimate,
+  courses: readonly SemesterCourse[]
+): SemesterCourse | null {
+  if (!summary.unweighted || summary.graded < 2) return null;
+  return (
+    courses.find(
+      (course) => course.estimate.pct !== null && !knownUnits(course.units)
+    ) ?? null
+  );
 }
 
 /**
@@ -468,6 +502,13 @@ export default function SemesterScreen() {
     });
   }, []);
 
+  /* The course hub, which is where units are kept — they're a shared course
+     fact like the instructor and the room, not a private one like the scores
+     on this screen. */
+  const openCourse = useCallback((course: SemesterCourse) => {
+    router.push(`/course/${course.courseId}`);
+  }, []);
+
   /* ------------------------------ scaffold ----------------------------- */
 
   // A deep link can land here signed out — send them to a proper door.
@@ -552,6 +593,10 @@ export default function SemesterScreen() {
   const courses = data?.courses ?? [];
   const summary = data?.summary ?? null;
   const recruit = recruitCourse(courses);
+  /* The class whose missing units are the reason the number above is a plain
+     average — null when the average is already weighted, or when weighting
+     wouldn't change it. */
+  const unitsFix = summary === null ? null : unitsFixCourse(summary, courses);
 
   return scaffold(
     <ScrollView
@@ -589,7 +634,27 @@ export default function SemesterScreen() {
       ) : (
         <>
           {summary.gpa !== null ? (
-            <SummaryCard summary={summary} units={unitsLine(courses)} />
+            <>
+              <SummaryCard summary={summary} units={unitsLine(courses)} />
+              {/* The note in the card says the average is a plain one and how
+                  many classes are short; this is the way out of that, and the
+                  only place in the app that leads to the units field. Soft
+                  rather than ember — the number is already there, this only
+                  sharpens it. */}
+              {unitsFix !== null ? (
+                <Button
+                  label={`Add units to ${unitsFix.code}`}
+                  variant="soft"
+                  size="sm"
+                  icon={
+                    <Feather name="hash" size={14} color={theme.brandInk} />
+                  }
+                  accessibilityHint="Opens the class, where anyone enrolled can set its units"
+                  onPress={() => openCourse(unitsFix)}
+                  style={{ alignSelf: "flex-start", marginTop: space.close }}
+                />
+              ) : null}
+            </>
           ) : recruit !== null ? (
             <RecruitCard course={recruit} onOpen={() => openGrades(recruit)} />
           ) : null}

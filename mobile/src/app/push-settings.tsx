@@ -48,10 +48,21 @@ type PushKind =
   | "dm"
   | "mention"
   | "thread_reply"
+  | "thanks"
   | "course_calendar"
   | "event"
+  | "club_post"
   | "system";
 
+/* Every kind the push trigger can send, in the order a student thinks about
+   them: people talking to you, then your week, then Huddl itself. The gate
+   in push_notification() is generic — it reads
+   `notification_prefs ->> kind` for whatever kind is on the row — so this
+   list is not a server contract, it is a promise that anything which can
+   actually buzz your phone has a switch here. A kind that fires with no row
+   in this list leaves the student no way out short of quitting the thing it
+   came from — which is what `club_post` and `thanks` did until they were
+   added. */
 const PUSH_KINDS: {
   kind: PushKind;
   icon: keyof typeof Feather.glyphMap;
@@ -77,6 +88,12 @@ const PUSH_KINDS: {
     caption: "Replies in threads you're part of.",
   },
   {
+    kind: "thanks",
+    icon: "heart",
+    label: "Thanks on your notes",
+    caption: "When a classmate says thanks for notes you uploaded.",
+  },
+  {
     kind: "course_calendar",
     icon: "book-open",
     label: "Class calendar",
@@ -87,6 +104,13 @@ const PUSH_KINDS: {
     icon: "calendar",
     label: "Events",
     caption: "Updates to events you're going to.",
+  },
+  {
+    kind: "club_post",
+    // Feather has no megaphone; volume-2 is this app's, in the inbox too.
+    icon: "volume-2",
+    label: "Club announcements",
+    caption: "When an officer posts in a club you've joined.",
   },
   {
     kind: "system",
@@ -179,6 +203,44 @@ function quietSentence(quiet: QuietHours | null): string {
 
 const DIGEST_NOTE =
   "When a class channel gets going, Huddl rolls the pile into one nudge — the “4 new notifications” kind — instead of buzzing twelve times. Tapping it opens your inbox with all of them in it.";
+
+/* ------------------------------ saving ------------------------------- */
+
+/**
+ * One write to your own profiles row, and an honest answer about whether it
+ * landed.
+ *
+ * A refused write arrives one of two ways. A column the grant does not name
+ * raises a privilege error; a row the policy will not match raises nothing
+ * at all — PostgREST answers a zero-row UPDATE with a 204 and an empty body.
+ * Reading `error` alone catches the first and takes the second for success,
+ * which on a settings screen means a switch that sits where you left it on
+ * top of a phone that behaves exactly as it did before.
+ *
+ * `profiles` is the table where that has actually bitten. 0034 traded the
+ * blanket UPDATE for an explicit column list so nobody could hand themselves
+ * a moderator flag, and quiet_hours was missing from that list from the day
+ * 0035 added the column until 0039 put it back — a whole shipped setting
+ * whose every write was refused. So ask for the row back and believe the
+ * row, not the status code: false means nothing changed, whatever the
+ * reason, and the caller owes the student a sentence saying so.
+ *
+ * It reads back `id` rather than the column it just wrote, on purpose. The
+ * value we sent is the value that is there, and adopting a re-read would let
+ * a slow first write land on top of a faster second one.
+ */
+async function saveProfileSettings(
+  userId: string,
+  patch: Record<string, unknown>
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(patch)
+    .eq("id", userId)
+    .select("id")
+    .maybeSingle();
+  return !error && data !== null;
+}
 
 /* ------------------------------- rows -------------------------------- */
 
@@ -437,11 +499,10 @@ export default function PushSettingsScreen() {
       if (next) delete updated[kind];
       else updated[kind] = "off";
       setPrefs(updated);
-      const { error } = await supabase
-        .from("profiles")
-        .update({ notification_prefs: updated })
-        .eq("id", userId);
-      if (error) {
+      const saved = await saveProfileSettings(userId, {
+        notification_prefs: updated,
+      });
+      if (!saved) {
         // Roll just this switch back — other flips since stay put.
         setPrefs((current) => {
           if (current === null) return current;
@@ -458,20 +519,26 @@ export default function PushSettingsScreen() {
     [userId, prefs]
   );
 
-  /** Optimistic, like every other write here: the row moves, then syncs. */
+  /**
+   * Optimistic, like every other write here: the row moves, then syncs.
+   *
+   * A refused write puts the old window straight back and says so. Silence
+   * would be the worst outcome on this particular setting — a student who
+   * thinks they set quiet hours stops expecting the 2am buzz, and finds out
+   * they were wrong at 2am.
+   */
   const saveQuiet = useCallback(
     async (next: QuietHours | null) => {
       if (!userId) return;
       const previous = quiet;
       setQuietError(null);
       setQuiet(next);
-      const { error } = await supabase
-        .from("profiles")
+      const saved = await saveProfileSettings(userId, {
         // Off is an empty object, not a null and not a missing row — that is
         // what in_quiet_hours() reads as "never quiet".
-        .update({ quiet_hours: next ?? {} })
-        .eq("id", userId);
-      if (error) {
+        quiet_hours: next ?? {},
+      });
+      if (!saved) {
         setQuiet(previous);
         setQuietError(
           "That didn't save — your quiet hours are still the old ones. Give it another go."
