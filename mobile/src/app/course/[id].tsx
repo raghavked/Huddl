@@ -92,8 +92,38 @@ type ClassmateRow = {
     display_name: string;
     avatar_url: string | null;
     major: string | null;
+    /** Whether they let the campus see them by name — see {@link mateName}. */
+    is_public: boolean;
   } | null;
 };
+
+/**
+ * What to call a classmate on this list, and whether to say anything else
+ * about them.
+ *
+ * A student who turned Public profile off stands under their handle, with no
+ * major beside it — the same redaction the people directory, the board, study
+ * buddies and the web's own classmates tab apply. Sharing a lecture hall is
+ * not consent to have your name and your major read off a class list, and no
+ * policy stops it: migration 0012 left this to the app, which means every
+ * list that forgets is a leak. You always see yourself in full.
+ *
+ * Fails closed: anything other than a literal `true` reads as private, so a
+ * select that loses the column redacts rather than leaks.
+ */
+function mateName(
+  profile: ClassmateRow["profile"],
+  isMe: boolean
+): { name: string; caption: string | null } {
+  if (!profile) return { name: "A classmate", caption: null };
+  if (!isMe && profile.is_public !== true) {
+    return { name: `@${profile.handle}`, caption: "Private profile" };
+  }
+  return {
+    name: profile.display_name,
+    caption: `@${profile.handle}${profile.major ? ` · ${profile.major}` : ""}`,
+  };
+}
 
 /**
  * The enrollment row as it actually arrives, tint included.
@@ -494,7 +524,7 @@ export default function CourseHubScreen() {
           supabase
             .from("enrollments")
             .select(
-              "id, user_id, role, catalog_course_id, color, profile:profiles(id, handle, display_name, avatar_url, major)"
+              "id, user_id, role, catalog_course_id, color, profile:profiles(id, handle, display_name, avatar_url, major, is_public)"
             )
             .eq("course_id", courseId),
           supabase
@@ -585,11 +615,14 @@ export default function CourseHubScreen() {
       setMyColor(
         enrollmentRows.find((row) => row.user_id === userId)?.color ?? null
       );
+      // Alphabetised by the name the list actually prints. Sorting on
+      // `display_name` would order a private classmate by a name we refuse to
+      // show, giving it away a letter at a time.
       const sortedMates = enrollmentRows.sort(
         (a, b) =>
           ROLE_WEIGHT[a.role] - ROLE_WEIGHT[b.role] ||
-          (a.profile?.display_name ?? "").localeCompare(
-            b.profile?.display_name ?? ""
+          mateName(a.profile, a.user_id === userId).name.localeCompare(
+            mateName(b.profile, b.user_id === userId).name
           )
       );
       setMates(sortedMates);
@@ -1021,12 +1054,11 @@ export default function CourseHubScreen() {
   };
 
   const renderMateRow = (mate: ClassmateRow) => {
-    const name = mate.profile?.display_name ?? "A classmate";
     const isMe = mate.user_id === userId;
     const fromCatalog = mate.catalog_course_id !== null;
-    const caption = mate.profile
-      ? `@${mate.profile.handle}${mate.profile.major ? ` · ${mate.profile.major}` : ""}`
-      : null;
+    // `name` feeds the Avatar too, so a private classmate's initials can't
+    // spell out the name the caption just withheld.
+    const { name, caption } = mateName(mate.profile, isMe);
     return (
       <Card
         padded={false}
