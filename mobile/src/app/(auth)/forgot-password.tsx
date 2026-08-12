@@ -43,17 +43,32 @@ const RESEND_COOLDOWN_S = 30;
    bundle time so a dev build can point at a laptop; production is the
    fallback.
 
-   It goes to /auth/confirm, not straight to /reset-password, and that detail
-   is load-bearing: the confirm route is what exchanges the recovery code for
-   a session (server-side, setting the cookies), and only then redirects on to
-   the reset page. /reset-password itself only READS the session — it does not
-   exchange — so a link that skipped confirm would arrive with nothing signed
-   in and dead-end the student. This is the exact same entry the web app's own
-   forgot-password form uses, so both flows go through one door. */
+   It goes STRAIGHT to /reset-password, and deliberately not through
+   /auth/confirm the way the web app's own forgot-password form does. The two
+   apps genuinely need different doors, because they are on different auth
+   flows:
+
+     - The web form runs on @supabase/ssr's browser client, which is PKCE. Its
+       recovery link comes back carrying `?code=`, a query parameter, and
+       /auth/confirm is the server route that exchanges it for cookies.
+     - This app runs supabase-js with its default `flowType: 'implicit'` (see
+       lib/supabase.ts — nothing overrides it). An implicit recovery link comes
+       back carrying `#access_token=…`, a URL *fragment*, which by definition
+       never reaches a server. Sending it to /auth/confirm would hand the
+       server a request with no code and no token_hash, and the student would
+       be told their link was invalid.
+
+   Landing directly on /reset-password is what works: that page's browser
+   client has `detectSessionInUrl` on by default, so it reads the fragment on
+   load and the recovery session is established client-side.
+
+   Switching this app to PKCE would NOT let both share the door — PKCE binds
+   the exchange to the client that started it, and the phone is not the
+   browser that finishes it. Two flows, two entrances, on purpose. */
 const WEB_ORIGIN = (
   process.env.EXPO_PUBLIC_WEB_URL ?? "https://huddl.app"
 ).replace(/\/+$/, "");
-const RESET_URL = `${WEB_ORIGIN}/auth/confirm?next=/reset-password`;
+const RESET_URL = `${WEB_ORIGIN}/reset-password`;
 
 /** Enough of a check to catch a fat-fingered address, and no more — the real
     verdict is the inbox, and we're not in the business of rejecting valid

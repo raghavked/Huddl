@@ -128,7 +128,9 @@ export type PrivacyPrefsApi = {
   /**
    * Change one preference. Optimistic: the control moves immediately, and
    * rolls back with {@link PrivacyPrefsApi.saveError} set if the row
-   * disagrees. Resolves true when it stuck.
+   * disagrees. Resolves true when it stuck — false when it didn't, which
+   * includes a newer change to the same control overtaking this one before it
+   * was sent.
    */
   setPref: <K extends PrivacyPrefKey>(
     key: K,
@@ -181,6 +183,15 @@ let store: Store = {
   error: null,
   saveError: null,
 };
+
+/**
+ * What the row is known to hold: the values a load read, advanced only by a
+ * write the database accepted. `store.prefs` runs ahead of this while a write
+ * is in flight, which is the point — a rollback aims here rather than at
+ * whatever the store held a moment earlier, because that may itself have been
+ * an optimistic guess from a tap that never reached the row.
+ */
+let confirmed: PrivacyPrefs = DEFAULT_PREFS;
 
 const listeners = new Set<() => void>();
 
@@ -264,6 +275,9 @@ let inflightFor: string | null = null;
 function load(userId: string): Promise<void> {
   if (inflight !== null && inflightFor === userId) return inflight;
 
+  // A different student's row is not evidence about this one's.
+  if (store.userId !== userId) confirmed = DEFAULT_PREFS;
+
   patch({
     userId,
     // A refresh for the same student keeps what's on screen so the switches
@@ -285,7 +299,8 @@ function load(userId: string): Promise<void> {
       patch({ status: "error", error: LOAD_ERROR });
       return;
     }
-    patch({ prefs: prefsFromRow(data), status: "ready", error: null });
+    confirmed = prefsFromRow(data);
+    patch({ prefs: confirmed, status: "ready", error: null });
   };
 
   inflightFor = userId;
@@ -312,6 +327,7 @@ function ensureLoaded(userId: string): void {
 /** Sign-out: forget the cached row rather than lend it to the next account. */
 function reset(): void {
   if (store.userId === null && store.status === "idle") return;
+  confirmed = DEFAULT_PREFS;
   publish({
     userId: null,
     prefs: DEFAULT_PREFS,
@@ -323,32 +339,76 @@ function reset(): void {
 
 /* ------------------------------ writing ------------------------------ */
 
+/* Two taps on the SAME control inside one round trip used to fight each
+ * other. Both UPDATEs went out at once, so PostgREST was free to apply them
+ * in either order, and the first one to fail rolled its own now-stale idea of
+ * "previous" over the second tap's value. Either way the picker could end up
+ * ticking a choice the student never made — and, for `dm_privacy`, promising
+ * a lockdown the row isn't enforcing. Two things stop that, per key:
+ *
+ * `generation` is bumped by every tap, so a write can tell whether it is
+ * still the student's latest intent for that control. Only the latest one may
+ * roll back or raise an error; an overtaken one bows out silently, because
+ * the tap that overtook it owns the column now.
+ *
+ * `queue` chains the requests, so two writes to one column are never in
+ * flight together and the row can't be settled by the older of them. The
+ * optimistic patch still happens immediately — it's the request that waits,
+ * not the switch.
+ */
+const generation: Record<PrivacyPrefKey, number> = {
+  shareTyping: 0,
+  dmPrivacy: 0,
+};
+
+const queue: Record<PrivacyPrefKey, Promise<unknown>> = {
+  shareTyping: Promise.resolve(),
+  dmPrivacy: Promise.resolve(),
+};
+
 /** Optimistic single-key write; rolls back that key alone on failure. */
 async function writePref<K extends PrivacyPrefKey>(
   userId: string,
   key: K,
   next: PrivacyPrefs[K]
 ): Promise<boolean> {
-  const previous = store.prefs[key];
+  const mine = ++generation[key];
   patch({ prefs: withPref(store.prefs, key, next), saveError: null });
 
-  const { error } = await supabase
-    .from("profiles")
-    .update({ [COLUMN[key]]: next })
-    .eq("id", userId);
+  const send = async (): Promise<boolean> => {
+    // Overtaken while queued, or signed out: the value we were sent to write
+    // is nobody's intent any more, so don't spend a round trip on it.
+    if (generation[key] !== mine || store.userId !== userId) return false;
 
-  if (error) {
-    // Roll back this key only — a change to the other control in the meantime
-    // is the student's intent too, and shouldn't be undone by this failure.
-    if (store.userId === userId) {
-      patch({
-        prefs: withPref(store.prefs, key, previous),
-        saveError: { key, message: SAVE_ERROR[key] },
-      });
+    const { error } = await supabase
+      .from("profiles")
+      .update({ [COLUMN[key]]: next })
+      .eq("id", userId);
+
+    if (error) {
+      // Roll back this key only — a change to the other control in the
+      // meantime is the student's intent too, and shouldn't be undone by this
+      // failure. Aim at the value the row is known to hold, not at whatever
+      // was on screen when this write started, so the caption under the
+      // control ("you're still on the option that was already set") is true.
+      if (store.userId === userId && generation[key] === mine) {
+        patch({
+          prefs: withPref(store.prefs, key, confirmed[key]),
+          saveError: { key, message: SAVE_ERROR[key] },
+        });
+      }
+      return false;
     }
-    return false;
-  }
-  return true;
+
+    confirmed = withPref(confirmed, key, next);
+    return true;
+  };
+
+  // Both arms of `then` run the write: an earlier tap failing is exactly the
+  // case this one exists to recover from, so it must not break the chain.
+  const settled = queue[key].then(send, send);
+  queue[key] = settled.catch(() => false);
+  return settled;
 }
 
 /* ------------------------------- hooks ------------------------------- */

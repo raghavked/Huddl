@@ -13,8 +13,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, SectionLabel } from "@/components/ui";
 import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { clearAllDrafts, clearQueue } from "@/lib/drafts";
 import { resetFirstRun } from "@/lib/first-run";
 import { amIModerator } from "@/lib/moderation";
+import { unregisterPush } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -154,15 +156,31 @@ export default function SettingsScreen() {
     };
   }, [userId]);
 
+  /* Signing out is a handover, not just a token being dropped: this phone
+     may well be the next person's phone. Three things leave with the
+     student — the push row, the drafts, and the offline queue — and the
+     order matters. The token row goes first, while the session RLS checks
+     against is still alive; the device-local halves go after the sign-out
+     actually lands, so a sign-out that fails doesn't also eat the
+     half-written message the student is still sitting in front of. */
+
   async function handleSignOut() {
     setSignOutError(null);
     setSigningOut(true);
+    /* `userId` is the id we came into this tap with, which is the one the
+       token row is filed under; a no-op when this run never registered. */
+    if (userId) await unregisterPush(userId);
     const { error: signOutErr } = await supabase.auth.signOut();
     if (signOutErr) {
       setSigningOut(false);
       setSignOutError("Sign out didn't go through — give it another try.");
       return;
     }
+    /* Drafts and queued sends are keyed by conversation, never by account,
+       so whoever signs in next would otherwise open #general and find the
+       last student's unsent sentence waiting in their composer. */
+    await clearAllDrafts();
+    await clearQueue();
     router.replace("/(auth)/login");
   }
 
@@ -187,6 +205,11 @@ export default function SettingsScreen() {
     } catch {
       // Ignore — the session is dead either way.
     }
+    /* The RPC can only reach rows; drafts and the offline queue sit in this
+       phone's storage under a conversation key, so nothing server-side ever
+       touches them. A deleted account should leave nothing behind here. */
+    await clearAllDrafts();
+    await clearQueue();
     router.replace("/(auth)/login");
   }
 
