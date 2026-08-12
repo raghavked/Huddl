@@ -13,11 +13,19 @@ import {
   Label,
   Textarea,
 } from "@/components/ui";
+import { IMAGE_ACCEPT_ATTR, isAcceptedImageType } from "@/lib/image-types";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
 
 const HANDLE_RE = /^[a-z0-9_]{3,24}$/;
+/**
+ * A profile photo has to clear two bars: a type from `lib/image-types` and
+ * this size. Both are enforced again on the bucket by migration 0044 — see
+ * that file for why the type list names formats instead of saying "image/*",
+ * and why it matters more here than anywhere else (avatars is the one public
+ * bucket).
+ */
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const MAX_BIO_LENGTH = 280;
 
@@ -70,7 +78,7 @@ export function AccountForm({
     const file = event.target.files?.[0];
     event.target.value = ""; // allow picking the same file again
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
+    if (!isAcceptedImageType(file.type)) {
       setErrors((e) => ({ ...e, avatar: "Choose an image file (JPG or PNG)." }));
       return;
     }
@@ -197,7 +205,7 @@ export function AccountForm({
               ref={fileInputRef}
               id={`${uid}-avatar`}
               type="file"
-              accept="image/*"
+              accept={IMAGE_ACCEPT_ATTR}
               aria-label="Choose a profile photo"
               className="sr-only"
               onChange={handleAvatarChange}

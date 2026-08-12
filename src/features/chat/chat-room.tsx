@@ -38,6 +38,10 @@ import {
 } from "@/features/chat/attachments";
 import { useBlockedIds } from "@/features/chat/blocks";
 import {
+  IMAGE_ACCEPT_ATTR,
+  isAcceptedImageType,
+} from "@/lib/image-types";
+import {
   filterMentionCandidates,
   insertMention,
   mentionQuery,
@@ -471,7 +475,7 @@ export function ChatRoom({
     const file = event.target.files?.[0];
     event.target.value = ""; // picking the same file twice should still fire
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
+    if (!isAcceptedImageType(file.type)) {
       setError("Photos only here — pick an image file.");
       return;
     }
@@ -765,7 +769,7 @@ export function ChatRoom({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept={IMAGE_ACCEPT_ATTR}
             tabIndex={-1}
             onChange={(e) => void handleAttachmentPick(e)}
             className="hidden"
