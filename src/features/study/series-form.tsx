@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Check, CircleAlert, Loader2 } from "lucide-react";
 import { Button, Card, Input, Label, Hint } from "@/components/ui";
@@ -264,6 +264,21 @@ export function SeriesForm({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [done, setDone] = useState<{ count: number; line: string } | null>(null);
 
+  const calendarHref = `/courses/${courseId}/calendar`;
+
+  // The confirmation is meant to be read, not dismissed — it sits for a beat
+  // and then the calendar is where they left it, with the dates on it. The
+  // cleanup matters: if they navigate somewhere else inside that beat, the
+  // push would land after they'd already chosen a different page.
+  useEffect(() => {
+    if (done === null) return;
+    const timer = setTimeout(() => {
+      router.push(calendarHref);
+      router.refresh();
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [done, router, calendarHref]);
+
   function pickPattern(next: Pattern) {
     setPattern(next);
     setSaveError(null);
@@ -365,12 +380,6 @@ export function SeriesForm({
           saved ? `, through ${monthDay(saved.due_at)}` : ""
         }.`,
       });
-      // The confirmation is meant to be read, not dismissed — it sits for a
-      // beat and then the calendar is where they left it, with the dates on it.
-      setTimeout(() => {
-        router.push(`/courses/${courseId}/calendar`);
-        router.refresh();
-      }, 1800);
     } catch (caught) {
       setSaveError(
         caught instanceof SeriesError
