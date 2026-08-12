@@ -1,6 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// One entry per top-level route under app/(app). The layout there redirects
+// signed-out students too, but bare — only this list carries `?next=`, so a
+// route missing here survives login by dumping the student on /home instead
+// of the board post or /plan link they actually followed.
 const PROTECTED_PREFIXES = [
   "/home",
   "/channels",
@@ -9,6 +13,14 @@ const PROTECTED_PREFIXES = [
   "/people",
   "/clubs",
   "/courses",
+  "/board",
+  "/saved",
+  "/focus",
+  "/plan",
+  "/semester",
+  "/calendar",
+  "/decks",
+  "/moderation",
   "/setup",
   "/notifications",
   "/settings",

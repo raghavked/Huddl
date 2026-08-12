@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { isValidPhone, normalizePhone } from "@/lib/utils";
 import { getVerifier, sha256Hex } from "@/lib/phone/provider";
 
@@ -13,8 +13,9 @@ function jsonError(message: string, status: number) {
  * POST { phone, code } — confirm a verification code. Looks up the newest
  * unexpired, unverified phone_verifications row for this user+phone with
  * attempts remaining. Stub rows are checked by sha256 comparison; rows marked
- * 'twilio' are checked against Twilio Verify. Success stamps verified_at and
- * writes phone + phone_verified_at onto the profile (the trust badge).
+ * 'twilio' are checked against Twilio Verify. Success writes
+ * phone_verified_at onto the profile (the trust badge) and then stamps
+ * verified_at on the verification row.
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -87,13 +88,23 @@ export async function POST(request: Request) {
   }
 
   const now = new Date().toISOString();
-  // The verified number stays in phone_verifications (owner-only). profiles
-  // only gets the badge timestamp — the number is never on the public row.
-  await supabase
-    .from("phone_verifications")
-    .update({ verified_at: now })
-    .eq("id", row.id);
-  const { error: profileError } = await supabase
+  // phone_verified_at is outside the `authenticated` column grant on profiles
+  // on purpose (0039: a badge you can set yourself is a lie), so the student's
+  // own session cannot write it — not even here. This route is "the
+  // verification flow" that grant reserves the column for, so it makes the one
+  // badge write with the service client.
+  let admin;
+  try {
+    admin = createServiceClient();
+  } catch {
+    // No service key configured — the badge is unwritable, so say so rather
+    // than burning the code on a write that cannot land.
+    return jsonError(
+      "Phone verification is temporarily unavailable. Please try again later.",
+      503
+    );
+  }
+  const { error: profileError } = await admin
     .from("profiles")
     .update({ phone_verified_at: now })
     .eq("id", user.id);
@@ -103,6 +114,16 @@ export async function POST(request: Request) {
       500
     );
   }
+
+  // The verified number stays in phone_verifications (owner-only). profiles
+  // only gets the badge timestamp — the number is never on the public row.
+  // Stamped last, after the badge is on: any failure above has to leave the
+  // row unverified, or the correct code is spent and every retry reads as
+  // expired.
+  await supabase
+    .from("phone_verifications")
+    .update({ verified_at: now })
+    .eq("id", row.id);
 
   return NextResponse.json({ ok: true });
 }
