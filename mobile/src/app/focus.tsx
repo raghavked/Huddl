@@ -20,7 +20,7 @@ import {
   Field,
   SectionLabel,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import {
@@ -520,7 +520,7 @@ export default function FocusScreen() {
         style={{
           flex: 1,
           backgroundColor: theme.background,
-          paddingTop: insets.top + 8,
+          paddingTop: insets.top + space.close,
         }}
       >
         {header}
@@ -553,7 +553,7 @@ export default function FocusScreen() {
         style={{
           flex: 1,
           backgroundColor: theme.background,
-          paddingTop: insets.top + 8,
+          paddingTop: insets.top + space.close,
         }}
       >
         {header}
@@ -600,7 +600,7 @@ export default function FocusScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       {header}

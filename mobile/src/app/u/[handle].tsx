@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
 import { AppText, Button, Card, Chip, Sheet } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { blockUser, unblockUser } from "@/lib/blocks";
@@ -590,7 +590,7 @@ export default function ProfileScreen() {
         style={{
           flex: 1,
           backgroundColor: theme.background,
-          paddingTop: insets.top + 8,
+          paddingTop: insets.top + space.close,
           paddingHorizontal: 20,
         }}
       >
@@ -725,7 +725,7 @@ export default function ProfileScreen() {
         style={{
           flex: 1,
           backgroundColor: theme.background,
-          paddingTop: insets.top + 8,
+          paddingTop: insets.top + space.close,
           paddingHorizontal: 20,
         }}
       >
@@ -790,7 +790,7 @@ export default function ProfileScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View
@@ -808,7 +808,7 @@ export default function ProfileScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingBottom: insets.bottom + 32,
+          paddingBottom: insets.bottom + space.rest,
         }}
         refreshControl={
           <RefreshControl

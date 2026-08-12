@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/ui";
+import { space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { PRIVACY_POLICY } from "@/lib/legal-content";
 
@@ -25,7 +26,7 @@ export default function PrivacyScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View style={{ paddingHorizontal: 20 }}>

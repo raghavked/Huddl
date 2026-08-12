@@ -32,7 +32,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
 import { AppText, Button, Card, Sheet } from "@/components/ui";
-import { fonts, palettes, radius } from "@/constants/theme";
+import { fonts, palettes, radius, space } from "@/constants/theme";
 import { AvailabilityBubble, AvailabilityComposer } from "@/features/availability";
 import {
   ForwardedFrom,
@@ -1932,7 +1932,7 @@ export default function ChannelRoomScreen() {
         style={{
           flex: 1,
           backgroundColor: theme.background,
-          paddingTop: insets.top + 8,
+          paddingTop: insets.top + space.close,
         }}
       >
         <View style={{ paddingHorizontal: 12 }}>
@@ -2110,7 +2110,7 @@ export default function ChannelRoomScreen() {
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <View
         style={{
-          paddingTop: insets.top + 8,
+          paddingTop: insets.top + space.close,
           paddingBottom: 10,
           paddingHorizontal: 12,
           flexDirection: "row",

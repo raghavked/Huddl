@@ -18,7 +18,7 @@ import {
   Field,
   Skeleton,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   BOARD_BODY_MAX,
@@ -235,7 +235,7 @@ export default function BoardComposerScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={{ flex: 1, paddingTop: insets.top + 8 }}>
+      <View style={{ flex: 1, paddingTop: insets.top + space.close }}>
         <View style={{ paddingHorizontal: 12 }}>
           <Pressable
             accessibilityRole="button"
@@ -354,7 +354,7 @@ export default function BoardComposerScreen() {
       style={{ flex: 1 }}
       contentContainerStyle={{
         paddingHorizontal: 20,
-        paddingBottom: insets.bottom + 32,
+        paddingBottom: insets.bottom + space.rest,
         gap: 14,
       }}
       keyboardShouldPersistTaps="handled"

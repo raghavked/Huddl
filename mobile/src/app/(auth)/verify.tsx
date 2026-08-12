@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 
@@ -60,7 +60,12 @@ export default function VerifyScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20 }}>
+      <View
+        style={{
+          paddingTop: insets.top + space.close,
+          paddingHorizontal: 20,
+        }}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
@@ -83,7 +88,7 @@ export default function VerifyScreen() {
           flexGrow: 1,
           justifyContent: "center",
           padding: 20,
-          paddingBottom: insets.bottom + 24,
+          paddingBottom: insets.bottom + space.chapter,
         }}
       >
         <Card style={{ alignItems: "center", gap: 12, paddingVertical: 28 }}>

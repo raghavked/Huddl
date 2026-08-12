@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card } from "@/components/ui";
-import { fonts, radius } from "@/constants/theme";
+import { fonts, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapLight } from "@/lib/haptics";
 import { buildQueue, nextReview, type Grade } from "@/lib/srs";
@@ -339,7 +339,7 @@ export default function StudySessionScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View
@@ -641,7 +641,7 @@ export default function StudySessionScreen() {
         justifyContent: "center",
         paddingHorizontal: 20,
         paddingTop: 12,
-        paddingBottom: insets.bottom + 24,
+        paddingBottom: insets.bottom + space.chapter,
       }}
       showsVerticalScrollIndicator={false}
     >

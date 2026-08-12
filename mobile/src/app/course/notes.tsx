@@ -38,7 +38,7 @@ import {
   Sheet,
   SkeletonRow,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapLight, tapSuccess } from "@/lib/haptics";
 import {
@@ -809,7 +809,7 @@ export default function CourseNotesScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View
@@ -1345,7 +1345,7 @@ export default function CourseNotesScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingBottom: insets.bottom + 32,
+          paddingBottom: insets.bottom + space.rest,
           flexGrow: 1,
         }}
         showsVerticalScrollIndicator={false}

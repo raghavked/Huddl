@@ -19,7 +19,7 @@ import {
   SectionLabel,
   Sheet,
 } from "@/components/ui";
-import { fonts, radius } from "@/constants/theme";
+import { fonts, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -467,7 +467,7 @@ export default function EventDetailScreen() {
         style={{
           flex: 1,
           backgroundColor: theme.background,
-          paddingTop: insets.top + 8,
+          paddingTop: insets.top + space.close,
         }}
       >
         <View style={{ paddingHorizontal: 12 }}>
@@ -559,7 +559,7 @@ export default function EventDetailScreen() {
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <View
         style={{
-          paddingTop: insets.top + 8,
+          paddingTop: insets.top + space.close,
           paddingHorizontal: 12,
           flexDirection: "row",
           alignItems: "center",
@@ -599,7 +599,7 @@ export default function EventDetailScreen() {
         contentContainerStyle={{
           paddingHorizontal: 20,
           paddingTop: 4,
-          paddingBottom: insets.bottom + 32,
+          paddingBottom: insets.bottom + space.rest,
         }}
         showsVerticalScrollIndicator={false}
         refreshControl={

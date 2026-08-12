@@ -22,7 +22,7 @@ import {
   Field,
   SectionLabel,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   addToGroupThread,
@@ -370,7 +370,7 @@ export default function GroupInfoScreen() {
         <View
           style={{
             flex: 1,
-            paddingTop: insets.top + 8,
+            paddingTop: insets.top + space.close,
             paddingHorizontal: 20,
           }}
         >
@@ -424,7 +424,7 @@ export default function GroupInfoScreen() {
                 onPick={pickToAdd}
                 pendingId={addingId}
                 autoFocus
-                paddingBottom={insets.bottom + 24}
+                paddingBottom={insets.bottom + space.chapter}
                 header={
                   <AppText variant="caption" muted style={{ marginBottom: 12 }}>
                     Everyone in {display.title} is on your campus — that's the
@@ -445,7 +445,11 @@ export default function GroupInfoScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View
-        style={{ flex: 1, paddingTop: insets.top + 8, paddingHorizontal: 20 }}
+        style={{
+          flex: 1,
+          paddingTop: insets.top + space.close,
+          paddingHorizontal: 20,
+        }}
       >
         {backButton}
 
@@ -523,7 +527,9 @@ export default function GroupInfoScreen() {
         ) : (
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+            contentContainerStyle={{
+              paddingBottom: insets.bottom + space.rest,
+            }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"

@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Field } from "@/components/ui";
-import { fonts, radius } from "@/constants/theme";
+import { fonts, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -311,8 +311,8 @@ export default function OnboardingScreen() {
       <ScrollView
         contentContainerStyle={{
           padding: 20,
-          paddingTop: insets.top + 20,
-          paddingBottom: insets.bottom + 32,
+          paddingTop: insets.top + space.gutter,
+          paddingBottom: insets.bottom + space.rest,
         }}
         keyboardShouldPersistTaps="handled"
       >

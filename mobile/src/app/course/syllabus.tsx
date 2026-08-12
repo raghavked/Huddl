@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Field } from "@/components/ui";
-import { fonts, radius, type Palette } from "@/constants/theme";
+import { fonts, radius, space, type Palette } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   CALENDAR_KINDS,
@@ -218,7 +218,7 @@ export default function SyllabusImportScreen() {
         style={{
           flex: 1,
           backgroundColor: theme.background,
-          paddingTop: insets.top + 8,
+          paddingTop: insets.top + space.close,
           alignItems: "center",
           justifyContent: "center",
           gap: 10,
@@ -278,7 +278,7 @@ export default function SyllabusImportScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={{ flex: 1, paddingTop: insets.top + 8 }}>
+      <View style={{ flex: 1, paddingTop: insets.top + space.close }}>
         <View style={{ paddingHorizontal: 12 }}>
           <Pressable
             accessibilityRole="button"
@@ -301,7 +301,7 @@ export default function SyllabusImportScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={{
             paddingHorizontal: 20,
-            paddingBottom: insets.bottom + 32,
+            paddingBottom: insets.bottom + space.rest,
           }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"

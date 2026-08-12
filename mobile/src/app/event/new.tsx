@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Field } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -273,7 +273,7 @@ export default function NewEventScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={{ flex: 1, paddingTop: insets.top + 8 }}>
+      <View style={{ flex: 1, paddingTop: insets.top + space.close }}>
         <View style={{ paddingHorizontal: 12 }}>
           <Pressable
             accessibilityRole="button"
@@ -296,7 +296,7 @@ export default function NewEventScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={{
             paddingHorizontal: 20,
-            paddingBottom: insets.bottom + 32,
+            paddingBottom: insets.bottom + space.rest,
             gap: 14,
           }}
           keyboardShouldPersistTaps="handled"

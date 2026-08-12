@@ -28,7 +28,7 @@ import {
   SkeletonRow,
   useReducedMotion,
 } from "@/components/ui";
-import { motion, radius } from "@/constants/theme";
+import { motion, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   FirstRunError,
@@ -374,7 +374,7 @@ export default function WelcomeScreen() {
           one tap away, including from the checklist. */}
       <View
         style={{
-          paddingTop: insets.top + 8,
+          paddingTop: insets.top + space.close,
           paddingHorizontal: 20,
           alignItems: "flex-end",
         }}
@@ -517,7 +517,7 @@ export default function WelcomeScreen() {
         style={{
           paddingHorizontal: 20,
           paddingTop: 16,
-          paddingBottom: insets.bottom + 20,
+          paddingBottom: insets.bottom + space.gutter,
           gap: 16,
         }}
       >

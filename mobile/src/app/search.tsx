@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
 import { Lantern } from "@/components/illustrations";
 import { AppText, Button, Card, Chip, Field, SectionLabel } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import {
@@ -702,7 +702,7 @@ export default function SearchScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
         paddingHorizontal: 20,
       }}
     >
@@ -835,7 +835,9 @@ export default function SearchScreen() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             style={{ flex: 1, marginTop: 4 }}
-            contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+            contentContainerStyle={{
+              paddingBottom: insets.bottom + space.rest,
+            }}
             showsVerticalScrollIndicator={false}
           >
             <View
@@ -921,7 +923,7 @@ export default function SearchScreen() {
           style={{ flex: 1, marginTop: 4 }}
           contentContainerStyle={{
             paddingTop: filter === null ? 0 : 12,
-            paddingBottom: insets.bottom + 32,
+            paddingBottom: insets.bottom + space.rest,
           }}
           showsVerticalScrollIndicator={false}
         />

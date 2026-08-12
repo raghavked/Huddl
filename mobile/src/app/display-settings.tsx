@@ -12,7 +12,13 @@ import {
   SectionLabel,
   useReducedMotion,
 } from "@/components/ui";
-import { motion, palettes, radius, space, type Palette } from "@/constants/theme";
+import {
+  motion,
+  palettes,
+  radius,
+  space,
+  type Palette,
+} from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapLight } from "@/lib/haptics";
 import {
@@ -305,7 +311,7 @@ export default function DisplaySettingsScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
         paddingHorizontal: space.gutter,
       }}
     >

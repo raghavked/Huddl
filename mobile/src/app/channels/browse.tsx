@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Pennant } from "@/components/illustrations";
 import { AppText, Button, Card, EmptyState } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -173,7 +173,7 @@ export default function BrowseChannelsScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View
@@ -257,7 +257,7 @@ export default function BrowseChannelsScreen() {
       style={{ flex: 1 }}
       contentContainerStyle={{
         paddingHorizontal: 20,
-        paddingBottom: insets.bottom + 32,
+        paddingBottom: insets.bottom + space.rest,
         flexGrow: 1,
       }}
       refreshControl={

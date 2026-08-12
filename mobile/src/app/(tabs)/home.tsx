@@ -24,7 +24,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FocusStrip } from "@/components/focus-strip";
 import { Mug, type IllustrationProps } from "@/components/illustrations";
 import { AppText, Button, Card, SectionLabel } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useUnreadNotifications } from "@/hooks/use-unread";
 import { categoryInfo, fetchBoard, type BoardPost } from "@/lib/board";
@@ -1260,7 +1260,7 @@ export default function HomeScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 12,
+        paddingTop: insets.top + space.close,
         paddingHorizontal: 20,
       }}
     >

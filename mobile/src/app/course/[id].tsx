@@ -33,7 +33,7 @@ import {
   SkeletonRow,
   type ChipTone,
 } from "@/components/ui";
-import { courseTintsFor, radius } from "@/constants/theme";
+import { courseTintsFor, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { colorForCourse } from "@/lib/course-color";
 import { tapLight } from "@/lib/haptics";
@@ -1116,7 +1116,7 @@ export default function CourseHubScreen() {
         style={{
           flex: 1,
           backgroundColor: theme.background,
-          paddingTop: insets.top + 8,
+          paddingTop: insets.top + space.close,
         }}
       >
         <View style={{ paddingHorizontal: 12 }}>
@@ -1172,7 +1172,7 @@ export default function CourseHubScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View style={{ paddingHorizontal: 12 }}>
@@ -1190,7 +1190,7 @@ export default function CourseHubScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingBottom: insets.bottom + 32,
+          paddingBottom: insets.bottom + space.rest,
         }}
         refreshControl={
           <RefreshControl

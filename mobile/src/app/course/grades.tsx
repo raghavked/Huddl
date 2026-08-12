@@ -22,7 +22,7 @@ import {
   Sheet,
   Skeleton,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   CATEGORY_NAME_MAX,
@@ -1299,7 +1299,7 @@ export default function CourseGradesScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View style={{ paddingHorizontal: 20 }}>
@@ -1355,7 +1355,7 @@ export default function CourseGradesScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingBottom: insets.bottom + 32,
+          paddingBottom: insets.bottom + space.rest,
         }}
       >
         {header}
@@ -1382,7 +1382,7 @@ export default function CourseGradesScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingBottom: insets.bottom + 32,
+          paddingBottom: insets.bottom + space.rest,
         }}
       >
         {header}

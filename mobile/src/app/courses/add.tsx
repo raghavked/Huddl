@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Chip, Field, Sheet } from "@/components/ui";
-import { fonts, radius } from "@/constants/theme";
+import { fonts, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapSuccess } from "@/lib/haptics";
 import {
@@ -862,7 +862,7 @@ export default function AddCoursesScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={{ flex: 1, paddingTop: insets.top + 8 }}>
+      <View style={{ flex: 1, paddingTop: insets.top + space.close }}>
         <View style={{ paddingHorizontal: 12 }}>
           <Pressable
             accessibilityRole="button"
@@ -910,7 +910,9 @@ export default function AddCoursesScreen() {
             data={results ?? []}
             keyExtractor={(row) => row.id}
             style={{ flex: 1 }}
-            contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+            contentContainerStyle={{
+              paddingBottom: insets.bottom + space.rest,
+            }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"

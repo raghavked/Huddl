@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Field, Sheet } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapSuccess } from "@/lib/haptics";
 import { buildQueue } from "@/lib/srs";
@@ -477,7 +477,7 @@ export default function DeckHomeScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View style={{ paddingHorizontal: 12 }}>
@@ -740,7 +740,7 @@ export default function DeckHomeScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingBottom: insets.bottom + 32,
+          paddingBottom: insets.bottom + space.rest,
         }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"

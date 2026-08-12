@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Field } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { blockUser } from "@/lib/blocks";
@@ -285,7 +285,7 @@ export default function ReportScreen() {
         style={{
           flex: 1,
           backgroundColor: theme.background,
-          paddingTop: insets.top + 8,
+          paddingTop: insets.top + space.close,
           paddingHorizontal: 20,
         }}
       >
@@ -318,7 +318,7 @@ export default function ReportScreen() {
         style={{
           flex: 1,
           backgroundColor: theme.background,
-          paddingTop: insets.top + 8,
+          paddingTop: insets.top + space.close,
           paddingHorizontal: 20,
         }}
       >
@@ -400,7 +400,7 @@ export default function ReportScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View style={{ paddingHorizontal: 20 }}>{backChevron}</View>
@@ -408,7 +408,7 @@ export default function ReportScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingBottom: insets.bottom + 32,
+          paddingBottom: insets.bottom + space.rest,
         }}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"

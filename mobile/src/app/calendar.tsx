@@ -7,6 +7,7 @@ import { AppText, Button, Card } from "@/components/ui";
 import {
   courseTintsFor,
   radius,
+  space,
   type CourseTintColors,
   type Palette,
 } from "@/constants/theme";
@@ -733,7 +734,7 @@ export default function YourCalendarScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View style={{ paddingHorizontal: 12 }}>
@@ -803,7 +804,9 @@ export default function YourCalendarScreen() {
         ) : (
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+            contentContainerStyle={{
+              paddingBottom: insets.bottom + space.rest,
+            }}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl

@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PaperPlane } from "@/components/illustrations";
 import { AppText, Button, Card, Chip, EmptyState } from "@/components/ui";
-import { fonts } from "@/constants/theme";
+import { fonts, space } from "@/constants/theme";
 import { MentionText } from "@/features/mentions";
 import { useTheme } from "@/hooks/use-theme";
 import { tapLight } from "@/lib/haptics";
@@ -406,7 +406,7 @@ export default function SavedMessagesScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
         paddingHorizontal: 20,
       }}
     >
@@ -513,7 +513,7 @@ export default function SavedMessagesScreen() {
           renderItem={renderItem}
           style={{ flex: 1 }}
           contentContainerStyle={{
-            paddingBottom: insets.bottom + 32,
+            paddingBottom: insets.bottom + space.rest,
             flexGrow: 1,
           }}
           showsVerticalScrollIndicator={false}

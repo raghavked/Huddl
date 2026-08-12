@@ -413,7 +413,7 @@ export default function AccountScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View style={{ paddingHorizontal: space.gutter }}>
@@ -498,7 +498,7 @@ export default function AccountScreen() {
             style={{ flex: 1 }}
             contentContainerStyle={{
               paddingHorizontal: space.gutter,
-              paddingBottom: insets.bottom + 32,
+              paddingBottom: insets.bottom + space.rest,
               gap: space.card,
             }}
             keyboardDismissMode="on-drag"

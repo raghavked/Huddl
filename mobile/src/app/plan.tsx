@@ -27,6 +27,7 @@ import {
   courseTintsFor,
   motion,
   radius,
+  space,
   type CourseTintColors,
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -1163,7 +1164,7 @@ export default function PlanScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View style={{ paddingHorizontal: 12 }}>
@@ -1252,7 +1253,7 @@ export default function PlanScreen() {
             renderItem={renderItem}
             style={{ flex: 1 }}
             contentContainerStyle={{
-              paddingBottom: insets.bottom + 32,
+              paddingBottom: insets.bottom + space.rest,
               flexGrow: 1,
             }}
             showsVerticalScrollIndicator={false}

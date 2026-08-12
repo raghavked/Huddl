@@ -19,6 +19,7 @@ import {
   EmptyState,
   SkeletonRow,
 } from "@/components/ui";
+import { space } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import {
@@ -326,7 +327,7 @@ export default function CampusBoardScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View
@@ -449,7 +450,7 @@ export default function CampusBoardScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={{
             paddingHorizontal: 20,
-            paddingBottom: insets.bottom + 32,
+            paddingBottom: insets.bottom + space.rest,
           }}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={

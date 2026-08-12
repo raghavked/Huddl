@@ -21,7 +21,7 @@ import {
   Sheet,
   Skeleton,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import {
@@ -318,7 +318,7 @@ export default function BoardPostScreen() {
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <View
         style={{
-          paddingTop: insets.top + 8,
+          paddingTop: insets.top + space.close,
           paddingHorizontal: 12,
           flexDirection: "row",
           alignItems: "center",
@@ -478,7 +478,7 @@ export default function BoardPostScreen() {
           contentContainerStyle={{
             paddingHorizontal: 20,
             paddingTop: 4,
-            paddingBottom: insets.bottom + 32,
+            paddingBottom: insets.bottom + space.rest,
           }}
           showsVerticalScrollIndicator={false}
           refreshControl={

@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Field } from "@/components/ui";
-import { fonts } from "@/constants/theme";
+import { fonts, space } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -77,8 +77,8 @@ export default function LoginScreen() {
           flexGrow: 1,
           justifyContent: "center",
           padding: 20,
-          paddingTop: insets.top + 24,
-          paddingBottom: insets.bottom + 24,
+          paddingTop: insets.top + space.chapter,
+          paddingBottom: insets.bottom + space.chapter,
         }}
         keyboardShouldPersistTaps="handled"
       >

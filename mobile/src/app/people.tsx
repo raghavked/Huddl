@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
 import { AppText, Button, Card, Chip } from "@/components/ui";
-import { fonts, radius } from "@/constants/theme";
+import { fonts, radius, space } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
@@ -429,7 +429,7 @@ export default function PeopleScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
         paddingHorizontal: 20,
       }}
     >
@@ -624,7 +624,7 @@ export default function PeopleScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + space.rest }}
           showsVerticalScrollIndicator={false}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"

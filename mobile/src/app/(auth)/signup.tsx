@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Field } from "@/components/ui";
-import { fonts, radius } from "@/constants/theme";
+import { fonts, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 
@@ -151,7 +151,12 @@ export default function SignupScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1, backgroundColor: theme.background }}
     >
-      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20 }}>
+      <View
+        style={{
+          paddingTop: insets.top + space.close,
+          paddingHorizontal: 20,
+        }}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
@@ -174,7 +179,7 @@ export default function SignupScreen() {
           flexGrow: 1,
           padding: 20,
           paddingTop: 4,
-          paddingBottom: insets.bottom + 24,
+          paddingBottom: insets.bottom + space.chapter,
         }}
         keyboardShouldPersistTaps="handled"
       >

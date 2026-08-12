@@ -34,7 +34,7 @@ import {
   SkeletonRow,
   useReducedMotion,
 } from "@/components/ui";
-import { motion, radius } from "@/constants/theme";
+import { motion, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapLight } from "@/lib/haptics";
 import {
@@ -668,7 +668,7 @@ export default function ModerationScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View style={{ paddingHorizontal: 20 }}>
@@ -805,7 +805,7 @@ export default function ModerationScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={{
             paddingHorizontal: 20,
-            paddingBottom: insets.bottom + 32,
+            paddingBottom: insets.bottom + space.rest,
           }}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={

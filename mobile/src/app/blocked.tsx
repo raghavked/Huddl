@@ -245,7 +245,7 @@ export default function BlockedPeopleScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
         paddingHorizontal: space.gutter,
       }}
     >
@@ -331,7 +331,7 @@ export default function BlockedPeopleScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + space.rest }}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
             rowError || error ? (

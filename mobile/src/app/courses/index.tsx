@@ -27,6 +27,7 @@ import {
   courseTintsFor,
   motion,
   radius,
+  space,
   type CourseTintColors,
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -939,7 +940,7 @@ export default function MyCoursesScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
       }}
     >
       <View
@@ -1033,7 +1034,7 @@ export default function MyCoursesScreen() {
             keyExtractor={(course) => course.enrollment_id}
             style={{ flex: 1 }}
             contentContainerStyle={{
-              paddingBottom: insets.bottom + 32,
+              paddingBottom: insets.bottom + space.rest,
               flexGrow: 1,
             }}
             showsVerticalScrollIndicator={false}

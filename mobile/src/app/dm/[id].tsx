@@ -21,7 +21,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
 import { AppText, Button, Sheet } from "@/components/ui";
-import { fonts, palettes, radius } from "@/constants/theme";
+import { fonts, palettes, radius, space } from "@/constants/theme";
 import {
   ForwardedFrom,
   ForwardPicker,
@@ -1166,7 +1166,7 @@ export default function DmRoomScreen() {
       {/* Header: back affordance + the other person's name. */}
       <View
         style={{
-          paddingTop: insets.top + 4,
+          paddingTop: insets.top + space.tight,
           paddingHorizontal: 10,
           paddingBottom: 8,
           flexDirection: "row",
@@ -1604,7 +1604,7 @@ export default function DmRoomScreen() {
               gap: 8,
               paddingHorizontal: 16,
               paddingTop: 8,
-              paddingBottom: insets.bottom + 12,
+              paddingBottom: insets.bottom + space.close,
               borderTopWidth: 1,
               borderTopColor: theme.border,
             }}

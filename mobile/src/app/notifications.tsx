@@ -19,7 +19,7 @@ import {
   EmptyState,
   SkeletonRow,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { routeForLink } from "@/lib/notification-links";
 import { supabase } from "@/lib/supabase";
@@ -326,7 +326,7 @@ export default function NotificationsScreen() {
       style={{
         flex: 1,
         backgroundColor: theme.background,
-        paddingTop: insets.top + 8,
+        paddingTop: insets.top + space.close,
         paddingHorizontal: 20,
       }}
     >
@@ -479,7 +479,7 @@ export default function NotificationsScreen() {
           renderItem={renderItem}
           style={{ flex: 1 }}
           contentContainerStyle={{
-            paddingBottom: insets.bottom + 32,
+            paddingBottom: insets.bottom + space.rest,
             flexGrow: 1,
           }}
           showsVerticalScrollIndicator={false}

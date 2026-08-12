@@ -26,7 +26,7 @@ import {
   useReducedMotion,
   type ChipTone,
 } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { tapLight, tapSuccess } from "@/lib/haptics";
 import {
@@ -1038,7 +1038,7 @@ export default function ClassCalendarScreen() {
       style={{ flex: 1, backgroundColor: theme.background }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={{ flex: 1, paddingTop: insets.top + 8 }}>
+      <View style={{ flex: 1, paddingTop: insets.top + space.close }}>
         <View
           style={{
             flexDirection: "row",
@@ -1154,7 +1154,7 @@ export default function ClassCalendarScreen() {
               keyboardDismissMode="on-drag"
               style={{ flex: 1 }}
               contentContainerStyle={{
-                paddingBottom: insets.bottom + 32,
+                paddingBottom: insets.bottom + space.rest,
                 flexGrow: 1,
               }}
               showsVerticalScrollIndicator={false}
