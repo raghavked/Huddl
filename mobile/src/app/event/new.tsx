@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Field } from "@/components/ui";
 import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { attachEvent } from "@/lib/availability";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -56,11 +57,24 @@ export default function NewEventScreen() {
   const insets = useSafeAreaInsets();
   const { session, ready } = useAuth();
   const userId = session?.user.id ?? null;
-  const { courseId, courseCode, clubId, clubName } = useLocalSearchParams<{
+  const {
+    courseId,
+    courseCode,
+    clubId,
+    clubName,
+    title: titleParam,
+    date: dateParam,
+    startTime: startTimeParam,
+    availabilityPollId,
+  } = useLocalSearchParams<{
     courseId?: string;
     courseCode?: string;
     clubId?: string;
     clubName?: string;
+    title?: string;
+    date?: string;
+    startTime?: string;
+    availabilityPollId?: string;
   }>();
 
   // The course link arrives via params and can be quietly dropped.
@@ -76,11 +90,14 @@ export default function NewEventScreen() {
   const [kind, setKind] = useState<EventKind>(
     clubId ? "meetup" : "study_session"
   );
-  const [title, setTitle] = useState("");
+  // "Make it an event" on a closed availability poll arrives with the title
+  // and the winning time already decided — the whole point of the poll — so
+  // the form opens holding them instead of asking for them a second time.
+  const [title, setTitle] = useState(titleParam ?? "");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
-  const [date, setDate] = useState("");
-  const [startTime, setStartTime] = useState("");
+  const [date, setDate] = useState(dateParam ?? "");
+  const [startTime, setStartTime] = useState(startTimeParam ?? "");
   const [endTime, setEndTime] = useState("");
   const [capacity, setCapacity] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -129,10 +146,12 @@ export default function NewEventScreen() {
         setFormError("End times look like HH:MM — try 17:00, or leave it blank.");
         return;
       }
+      // One date field, two times: an end that lands at or before the start
+      // is an overnight session, not a mistake. Roll it into the next day
+      // rather than refusing a plan this form has no way to express.
       endsAt = new Date(year, month - 1, day, end.hours, end.minutes);
       if (endsAt.getTime() <= startsAt.getTime()) {
-        setFormError("The end time needs to land after the start.");
-        return;
+        endsAt = new Date(year, month - 1, day + 1, end.hours, end.minutes);
       }
     }
 
@@ -197,6 +216,18 @@ export default function NewEventScreen() {
         { onConflict: "event_id,user_id" }
       );
 
+    // A plan that came out of an availability poll points back at it, so the
+    // bubble in the chat reads "open the study session" instead of sitting
+    // there closed and unresolved. Best-effort on purpose — a link that
+    // didn't take shouldn't cost the student the plan they just made.
+    if (availabilityPollId) {
+      try {
+        await attachEvent(availabilityPollId, eventId);
+      } catch {
+        // Someone else's poll, or a hiccup — either way, carry on.
+      }
+    }
+
     // Course-linked plans get a quiet heads-up in the class's front room.
     // Best-effort on purpose — a chat hiccup shouldn't eat the event.
     if (linkedCourseId) {
@@ -255,6 +286,7 @@ export default function NewEventScreen() {
     startTime,
     endTime,
     capacity,
+    availabilityPollId,
     linkedCourseId,
     linkedClubId,
     kind,

@@ -70,6 +70,27 @@ function toTimeInput(iso: string): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Whole local days from the start's calendar day to the end's — 0 for an
+ * afternoon, 1 for a session that runs past midnight, more for a weekend.
+ * The web form has two datetime inputs and makes these freely; this screen
+ * has one date field, so the span has to ride along rather than be re-guessed
+ * from the two times. Rounding absorbs the 23- and 25-hour days.
+ */
+function dayGap(startIso: string, endIso: string): number {
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  const startDay = new Date(
+    start.getFullYear(),
+    start.getMonth(),
+    start.getDate()
+  );
+  const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  return Math.round((endDay.getTime() - startDay.getTime()) / DAY_MS);
+}
+
 export default function EditEventScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -89,6 +110,10 @@ export default function EditEventScreen() {
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  // How many days after the start day the end lands. Not a field — the
+  // event's own span, carried across the save so editing the location can't
+  // quietly shorten a two-day plan back to one afternoon.
+  const [endDayOffset, setEndDayOffset] = useState(0);
   const [capacity, setCapacity] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -134,6 +159,7 @@ export default function EditEventScreen() {
     setDate(toDateInput(row.starts_at));
     setStartTime(toTimeInput(row.starts_at));
     setEndTime(row.ends_at ? toTimeInput(row.ends_at) : "");
+    setEndDayOffset(row.ends_at ? dayGap(row.starts_at, row.ends_at) : 0);
     setCapacity(row.capacity !== null ? String(row.capacity) : "");
     setStatus("ready");
   }, [id, userId, goBack]);
@@ -180,10 +206,24 @@ export default function EditEventScreen() {
         setFormError("End times look like HH:MM — try 17:00, or leave it blank.");
         return;
       }
-      endsAt = new Date(year, month - 1, day, end.hours, end.minutes);
+      // The end keeps the span it came in with, and an end that still lands
+      // at or before the start is an overnight session — roll it forward
+      // rather than dead-ending on a field this screen doesn't have.
+      endsAt = new Date(
+        year,
+        month - 1,
+        day + endDayOffset,
+        end.hours,
+        end.minutes
+      );
       if (endsAt.getTime() <= startsAt.getTime()) {
-        setFormError("The end time needs to land after the start.");
-        return;
+        endsAt = new Date(
+          year,
+          month - 1,
+          day + endDayOffset + 1,
+          end.hours,
+          end.minutes
+        );
       }
     }
 
@@ -230,6 +270,7 @@ export default function EditEventScreen() {
     date,
     startTime,
     endTime,
+    endDayOffset,
     capacity,
     kind,
     description,
@@ -498,31 +539,41 @@ export default function EditEventScreen() {
             keyboardType="numbers-and-punctuation"
             editable={!pending}
           />
-          <View style={{ flexDirection: "row", gap: space.room }}>
-            <View style={{ flex: 1 }}>
-              <Field
-                label="Starts"
-                value={startTime}
-                onChangeText={setStartTime}
-                placeholder="15:00"
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="numbers-and-punctuation"
-                editable={!pending}
-              />
+          <View style={{ gap: space.snug }}>
+            <View style={{ flexDirection: "row", gap: space.room }}>
+              <View style={{ flex: 1 }}>
+                <Field
+                  label="Starts"
+                  value={startTime}
+                  onChangeText={setStartTime}
+                  placeholder="15:00"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="numbers-and-punctuation"
+                  editable={!pending}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Field
+                  label="Ends (optional)"
+                  value={endTime}
+                  onChangeText={setEndTime}
+                  placeholder="17:00"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="numbers-and-punctuation"
+                  editable={!pending}
+                />
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Field
-                label="Ends (optional)"
-                value={endTime}
-                onChangeText={setEndTime}
-                placeholder="17:00"
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="numbers-and-punctuation"
-                editable={!pending}
-              />
-            </View>
+            {endDayOffset > 0 && endTime.trim() !== "" ? (
+              /* One date field can't show an end that isn't on the start
+                 day, so it says so instead of letting the span vanish. */
+              <AppText variant="caption" muted>
+                The end time lands on a later day — saving keeps this one
+                running past midnight.
+              </AppText>
+            ) : null}
           </View>
           <View style={{ gap: space.snug }}>
             <Field

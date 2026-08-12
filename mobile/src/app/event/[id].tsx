@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState, type ComponentProps } from "react";
+import { useCallback, useRef, useState, type ComponentProps } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -319,11 +319,21 @@ export default function EventDetailScreen() {
     else router.replace("/(tabs)/events");
   }, [router]);
 
+  /**
+   * Which read the screen is currently listening to. The focus effect and
+   * pull-to-refresh both reload over content that stays tappable, so a reply
+   * can come back describing a moment that has already been overtaken — by a
+   * newer load, or by an RSVP written while it was in the air. Bumping the
+   * token retires everything older; a stale reply drops itself on the floor.
+   */
+  const requestRef = useRef(0);
+
   const load = useCallback(async () => {
     if (!eventId) {
       setStatus("notFound");
       return;
     }
+    const token = ++requestRef.current;
     const [eventRes, rsvpRes] = await Promise.all([
       supabase
         .from("events")
@@ -342,6 +352,7 @@ export default function EventDetailScreen() {
         )
         .eq("event_id", eventId),
     ]);
+    if (token !== requestRef.current) return;
     if (eventRes.error) {
       setStatus("error");
       return;
@@ -443,6 +454,9 @@ export default function EventDetailScreen() {
         }
       }
       setPendingStatus(next);
+      // Your answer outranks any read already in flight: a snapshot taken
+      // before this upsert would land after it and put the old chip back.
+      requestRef.current += 1;
       const { error: upsertError } = await supabase
         .from("event_rsvps")
         .upsert(
