@@ -31,7 +31,14 @@ The copy exists in exactly two places, and they must stay identical:
     `/legal/guidelines`.
 - **Web (duplicated strings):** `src/app/legal/content.ts` — the web tsconfig
   cannot import from `mobile/`, so the strings are duplicated verbatim; both
-  files carry a comment saying so. Any wording change is a two-file change.
+  files carry a comment saying so. Any wording change is a two-file change,
+  and `src/app/legal/content.test.ts` now fails the build if only one side
+  gets it. That test exists because the two copies *had* silently come apart:
+  the native text had been revised to disclose the public avatar link, the
+  survival of a forwarded message, and the one-way nature of a block, while
+  the web privacy policy still told students that someone they blocked
+  "can't message you or see your posts" — a sentence whose second half was
+  never true on either client.
   - Pages: `src/app/legal/terms/page.tsx`, `privacy/page.tsx`,
     `guidelines/page.tsx` — public server components (not in the middleware's
     protected prefixes) sharing the shell in `src/app/legal/legal-page.tsx`,
@@ -64,9 +71,16 @@ them true:
   academic_dishonesty, other.
 - **Human review within 24 hours** of every report. (Also promised in the
   report screen's confirmation copy — the docs and the app agree.)
-- **Blocking:** instant, silent, mutual invisibility (`blocks` +
-  `is_blocked_either`, migration 0019), managed under Settings → Blocked
-  people.
+- **Blocking:** instant and silent, managed under Settings → Blocked people.
+  It is **one-way, not mutual**, and the copy has to keep saying so. What a
+  block does: no new DM thread can be opened in either direction
+  (`is_blocked_either`, 0019), their notifications to you are silenced, and
+  since 0042 their direct messages are dropped from your reads by the
+  `dm_messages` SELECT policy. What it deliberately does not do: refuse their
+  send, or hide *your* messages from *them*. Both would tell them they'd been
+  blocked, which is the one thing all three documents promise never happens.
+  Their other content — channel messages, board posts — is filtered by the
+  clients off the block list.
 - **Removal and bans:** content removal, warnings, suspension, or permanent
   ban for violations; immediate ban for hate, threats, or sexualizing minors.
 - **Rate limits:** the docs mention "gentle rate limits" — backed by the

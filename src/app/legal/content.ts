@@ -57,7 +57,7 @@ export const TERMS_OF_SERVICE: LegalDoc = {
     },
     {
       heading: "Leaving Huddl",
-      body: "You can delete your account any time from Settings in the app. Deletion is immediate and permanent: your profile, messages, files, courses, and everything else tied to your account are erased. There's no archive we quietly keep.",
+      body: "You can delete your account any time from Settings in the app. Deletion is immediate and permanent: your profile, messages, files, courses, and everything else tied to your account are erased. There's no archive we quietly keep. One thing survives, and we'd rather say so than let you find out: if a classmate forwarded one of your messages, that forward is their message, in their room, and it keeps the text — it just stops being credited to you.",
     },
     {
       heading: "Our service to you",
@@ -88,7 +88,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "What you give us",
-      body: "When you sign up we ask for your university email address, a password, and a display name. Your password is stored only in protected, encrypted form — we never see it. Everything else on your profile is optional and up to you: handle, major, graduation year, bio, photo.",
+      body: "When you sign up we ask for your university email address, a password, and a display name. Your password is stored only in protected, encrypted form — we never see it. Your handle starts out as the part of your email address before the @, it's visible to your campus, and you can change it to anything you like in Account. Everything else on your profile is optional and up to you: major, graduation year, bio, photo.",
     },
     {
       heading: "What you create",
@@ -104,7 +104,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "Who can see what",
-      body: "Course chats are visible only to classmates who added the same course. Campus channels are visible only to verified students at your school. Club spaces are for their members, and direct messages are for the two people in them. Your profile is visible to your campus. Nothing you post is public to the wider internet, and people you block can't message you or see your posts.",
+      body: "Course chats are visible only to classmates who added the same course. Campus channels are visible only to verified students at your school. Club spaces are for their members, and direct messages are for the two people in them. Your profile is visible to your campus; turn Public profile off and classmates see only your handle and your photo. Nothing you write on Huddl is reachable from the wider internet — the one exception is your profile photo, which is served from a public link, so anyone who has that link can open it without signing in. Someone you block can't message you, and the things they write — messages, board posts, the line on their study session — stay out of your view. They're never told, and nothing in Huddl will tell them.",
     },
     {
       heading: "How we use your data",
@@ -120,7 +120,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "Deleting your data",
-      body: "You're in control: edit or clear your profile any time, drop courses, and leave channels whenever you like. Deleting your account — Settings, then Delete account — removes everything at once: profile, messages, files, courses, blocks, and push tokens, immediately and permanently. There's no recovery window and no archive.",
+      body: "You're in control: edit or clear your profile any time, drop courses, and leave channels whenever you like. Removing your profile photo deletes the file, not just the link to it. Deleting your account — Settings, then Delete account — removes everything at once: profile, messages, files, courses, blocks, and push tokens, immediately and permanently. There's no recovery window and no archive. The one thing that outlives it is a message of yours a classmate forwarded somewhere else: that copy is their message now, and it keeps the text with your name taken off it.",
     },
     {
       heading: "Age",
