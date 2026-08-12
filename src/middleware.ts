@@ -1,32 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isProtectedPath } from "@/lib/protected-routes";
 
-// One entry per top-level route under app/(app). The layout there redirects
-// signed-out students too, but bare — only this list carries `?next=`, so a
-// route missing here survives login by dumping the student on /home instead
-// of the board post or /plan link they actually followed.
-const PROTECTED_PREFIXES = [
-  "/home",
-  "/channels",
-  "/messages",
-  "/events",
-  "/people",
-  "/clubs",
-  "/courses",
-  "/board",
-  "/saved",
-  "/focus",
-  "/plan",
-  "/semester",
-  "/calendar",
-  "/decks",
-  "/moderation",
-  "/setup",
-  "/notifications",
-  "/settings",
-  "/onboarding",
-  "/u/",
-];
+// The list this used to keep itself now lives in lib/protected-routes, shared
+// with robots.ts — see the note there for why one copy beat three. This is the
+// only one of the three that carries `?next=`, so a route missing from the
+// list survives login by dumping the student on /home instead of the board
+// post or /plan link they actually followed.
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -63,8 +43,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isProtected = PROTECTED_PREFIXES.some((p) => path.startsWith(p));
-  if (!user && isProtected) {
+  if (!user && isProtectedPath(path)) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("next", path);
