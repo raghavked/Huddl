@@ -98,7 +98,7 @@ function GradeButton({
         backgroundColor: palette.bg,
         alignItems: "center",
         justifyContent: "center",
-        gap: 2,
+        gap: space.hair,
         opacity: disabled && !pending ? 0.6 : pressed ? 0.85 : 1,
       })}
     >
@@ -346,7 +346,7 @@ export default function StudySessionScreen() {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          paddingHorizontal: 12,
+          paddingHorizontal: space.close,
         }}
       >
         <Pressable
@@ -364,7 +364,7 @@ export default function StudySessionScreen() {
         >
           <Feather name="chevron-left" size={26} color={theme.foreground} />
         </Pressable>
-        <View style={{ flex: 1, alignItems: "center", gap: 2 }}>
+        <View style={{ flex: 1, alignItems: "center", gap: space.hair }}>
           {status === "ready" && !finished && queue.length > 0 ? (
             <>
               <AppText variant="bodySemi">
@@ -388,8 +388,8 @@ export default function StudySessionScreen() {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
-        padding: 28,
+        gap: space.room,
+        padding: space.rest,
       }}
     >
       {children}
@@ -517,7 +517,13 @@ export default function StudySessionScreen() {
             {handled === 1 ? "1 card" : `${handled} cards`} handled. Come back
             when they're due.
           </AppText>
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              gap: space.cosy,
+              marginTop: space.tight,
+            }}
+          >
             {(
               [
                 ["Again", counts.again, theme.danger + "1a", theme.danger],
@@ -528,8 +534,8 @@ export default function StudySessionScreen() {
               <View
                 key={label}
                 style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
+                  paddingHorizontal: space.room,
+                  paddingVertical: space.snug,
                   borderRadius: radius.full,
                   backgroundColor: bg,
                 }}
@@ -540,7 +546,13 @@ export default function StudySessionScreen() {
               </View>
             ))}
           </View>
-          <View style={{ gap: 8, marginTop: 10, alignItems: "center" }}>
+          <View
+            style={{
+              gap: space.cosy,
+              marginTop: space.room,
+              alignItems: "center",
+            }}
+          >
             {againIds.length > 0 ? (
               <>
                 <Button
@@ -599,10 +611,10 @@ export default function StudySessionScreen() {
   const face = (side: "front" | "back", fill: boolean, row: CardRow) => (
     <Card
       style={{
-        padding: 24,
+        padding: space.chapter,
         alignItems: "center",
         justifyContent: "center",
-        gap: 18,
+        gap: space.gutter,
         ...(fill ? { flex: 1 } : { minHeight: MIN_CARD_HEIGHT }),
       }}
     >
@@ -639,8 +651,8 @@ export default function StudySessionScreen() {
       contentContainerStyle={{
         flexGrow: 1,
         justifyContent: "center",
-        paddingHorizontal: 20,
-        paddingTop: 12,
+        paddingHorizontal: space.gutter,
+        paddingTop: space.close,
         paddingBottom: insets.bottom + space.chapter,
       }}
       showsVerticalScrollIndicator={false}
@@ -729,8 +741,8 @@ export default function StudySessionScreen() {
           </Pressable>
 
           {revealed ? (
-            <View style={{ gap: 10, marginTop: 16 }}>
-              <View style={{ flexDirection: "row", gap: 10 }}>
+            <View style={{ gap: space.room, marginTop: space.card }}>
+              <View style={{ flexDirection: "row", gap: space.room }}>
                 <GradeButton
                   label="Again"
                   sublabel={intervalPreview(prevStreak, "again", now)}
@@ -770,7 +782,7 @@ export default function StudySessionScreen() {
           <AppText
             variant="caption"
             muted
-            style={{ textAlign: "center", marginTop: 16 }}
+            style={{ textAlign: "center", marginTop: space.card }}
           >
             Leave anytime — every grade saves as you go.
           </AppText>

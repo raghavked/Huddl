@@ -226,7 +226,7 @@ function CourseChip({ code, tint }: { code: string; tint: CourseTintColors }) {
       importantForAccessibility="no-hide-descendants"
       style={{
         alignSelf: "flex-start",
-        paddingHorizontal: 8,
+        paddingHorizontal: space.cosy,
         paddingVertical: 3,
         borderRadius: radius.full,
         backgroundColor: tint.soft,
@@ -291,10 +291,10 @@ function EntryRow({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 2,
-        paddingLeft: 4,
+        gap: space.hair,
+        paddingLeft: space.tight,
         paddingRight: showBell ? 2 : 14,
-        paddingVertical: 12,
+        paddingVertical: space.close,
         minHeight: 68,
       }}
     >
@@ -354,11 +354,17 @@ function EntryRow({
         onPress={canOpenCourse ? onOpenCourse : undefined}
         style={({ pressed }) => ({
           flex: 1,
-          gap: 4,
+          gap: space.tight,
           opacity: pressed && canOpenCourse ? 0.7 : 1,
         })}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.snug,
+          }}
+        >
           <CourseChip code={entry.courseCode} tint={tint} />
           <Chip label={kindLabel(entry.kind)} tone={kindTone(entry.kind)} />
         </View>
@@ -444,11 +450,11 @@ function BlockRow({ block }: { block: StudyBlock }) {
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 10,
+        gap: space.room,
         backgroundColor: theme.surface2,
         borderRadius: radius.control,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingHorizontal: space.close,
+        paddingVertical: space.room,
       }}
     >
       <Feather
@@ -458,7 +464,7 @@ function BlockRow({ block }: { block: StudyBlock }) {
         size={15}
         color={theme.accent}
       />
-      <View style={{ flex: 1, gap: 1 }}>
+      <View style={{ flex: 1, gap: space.hair }}>
         <AppText variant="label" numberOfLines={2}>
           {block.label}
         </AppText>
@@ -534,7 +540,7 @@ function PlanProgress({
       accessible
       accessibilityLabel={label}
       accessibilityLiveRegion="polite"
-      style={{ gap: 10 }}
+      style={{ gap: space.room }}
     >
       <AppText variant="title">{headline}</AppText>
       {quietWeek ? null : (
@@ -992,7 +998,7 @@ export default function PlanScreen() {
           );
         case "entry":
           return (
-            <View style={{ marginBottom: 8 }}>
+            <View style={{ marginBottom: space.cosy }}>
               <EntryRow
                 entry={item.entry}
                 tint={tintFor(item.entry.courseCode)}
@@ -1010,7 +1016,7 @@ export default function PlanScreen() {
           );
         case "block":
           return (
-            <View style={{ marginBottom: 8 }}>
+            <View style={{ marginBottom: space.cosy }}>
               <BlockRow block={item.block} />
             </View>
           );
@@ -1035,7 +1041,7 @@ export default function PlanScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, paddingVertical: 2 }}
+        contentContainerStyle={{ gap: space.cosy, paddingVertical: space.hair }}
       >
         <Chip
           label="All"
@@ -1076,7 +1082,7 @@ export default function PlanScreen() {
       title={sheet?.entry.title ?? "Reminder"}
     >
       {sheet ? (
-        <AppText variant="caption" muted style={{ marginBottom: 6 }}>
+        <AppText variant="caption" muted style={{ marginBottom: space.snug }}>
           {/* Loose on purpose: the sweep ticks hourly, so a nudge lands near
               the moment they picked, not on the minute. */}
           {`Due ${formatDayTime(sheet.entry.dueAt)}.${
@@ -1087,7 +1093,7 @@ export default function PlanScreen() {
       {sheetTooLate ? (
         <AppText
           variant="caption"
-          style={{ color: theme.warning, marginBottom: 6 }}
+          style={{ color: theme.warning, marginBottom: space.snug }}
         >
           This one's due too soon — even the closest reminder would land after
           the deadline.
@@ -1095,7 +1101,7 @@ export default function PlanScreen() {
       ) : (
         <ScrollView
           style={{ flexShrink: 1 }}
-          contentContainerStyle={{ gap: 4 }}
+          contentContainerStyle={{ gap: space.tight }}
           showsVerticalScrollIndicator={false}
         >
           {sheet
@@ -1126,7 +1132,7 @@ export default function PlanScreen() {
                         style={{
                           color: theme.warning,
                           marginLeft: 46,
-                          marginBottom: 4,
+                          marginBottom: space.tight,
                         }}
                       >
                         That moment has passed — pick something closer in.
@@ -1144,8 +1150,8 @@ export default function PlanScreen() {
             style={{
               height: 1,
               backgroundColor: theme.border,
-              marginTop: 6,
-              marginBottom: 8,
+              marginTop: space.snug,
+              marginBottom: space.cosy,
             }}
           />
           <Sheet.Row
@@ -1167,7 +1173,7 @@ export default function PlanScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 12 }}>
+      <View style={{ paddingHorizontal: space.close }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
@@ -1188,11 +1194,11 @@ export default function PlanScreen() {
         </Pressable>
       </View>
 
-      <View style={{ flex: 1, paddingHorizontal: 20 }}>
+      <View style={{ flex: 1, paddingHorizontal: space.gutter }}>
         <AppText
           variant="display"
           accessibilityRole="header"
-          style={{ marginTop: 2, marginBottom: 16 }}
+          style={{ marginTop: space.hair, marginBottom: space.card }}
         >
           Your plan
         </AppText>
@@ -1203,7 +1209,7 @@ export default function PlanScreen() {
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
-              gap: 12,
+              gap: space.close,
               paddingBottom: 80,
             }}
           >
@@ -1218,7 +1224,7 @@ export default function PlanScreen() {
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
-              gap: 10,
+              gap: space.room,
               paddingBottom: 80,
             }}
           >
@@ -1266,7 +1272,7 @@ export default function PlanScreen() {
               />
             }
             ListHeaderComponent={
-              <View style={{ gap: 10, marginBottom: 6 }}>
+              <View style={{ gap: space.room, marginBottom: space.snug }}>
                 {stats && stats.total > 0 ? (
                   <PlanProgress
                     handled={stats.weekHandled}

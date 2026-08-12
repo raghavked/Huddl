@@ -480,7 +480,7 @@ export default function DeckHomeScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 12 }}>
+      <View style={{ paddingHorizontal: space.close }}>
         <BackChevron onPress={goBack} />
       </View>
       {children}
@@ -493,8 +493,8 @@ export default function DeckHomeScreen() {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
-        padding: 28,
+        gap: space.room,
+        padding: space.rest,
       }}
     >
       {children}
@@ -572,13 +572,13 @@ export default function DeckHomeScreen() {
 
   const composerSection =
     composer === "single" ? (
-      <Card style={{ gap: 12 }}>
+      <Card style={{ gap: space.close }}>
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 8,
+            gap: space.cosy,
           }}
         >
           <AppText variant="title">Add a card</AppText>
@@ -637,13 +637,13 @@ export default function DeckHomeScreen() {
         />
       </Card>
     ) : composer === "paste" ? (
-      <Card style={{ gap: 12 }}>
+      <Card style={{ gap: space.close }}>
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 8,
+            gap: space.cosy,
           }}
         >
           <AppText variant="title">Paste cards</AppText>
@@ -711,7 +711,7 @@ export default function DeckHomeScreen() {
         />
       </Card>
     ) : (
-      <View style={{ flexDirection: "row", gap: 10 }}>
+      <View style={{ flexDirection: "row", gap: space.room }}>
         <Button
           label="Add a card"
           variant="secondary"
@@ -739,7 +739,7 @@ export default function DeckHomeScreen() {
         keyExtractor={(card) => card.id}
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
         keyboardShouldPersistTaps="handled"
@@ -754,22 +754,22 @@ export default function DeckHomeScreen() {
           />
         }
         ListHeaderComponent={
-          <View style={{ gap: 12, marginBottom: 14 }}>
-            <View style={{ gap: 4 }}>
+          <View style={{ gap: space.close, marginBottom: space.card }}>
+            <View style={{ gap: space.tight }}>
               <AppText variant="display">{deck.title}</AppText>
               <AppText variant="caption" muted>
                 {deck.course ? `${deck.course.code} · ` : ""}
                 {cardsLabel} ·{" "}
                 {due > 0 ? `${due} due for you` : "nothing due for you"}
               </AppText>
-              <View style={{ flexDirection: "row", marginTop: 2 }}>
+              <View style={{ flexDirection: "row", marginTop: space.hair }}>
                 <View
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 5,
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
+                    gap: space.snug,
+                    paddingHorizontal: space.room,
+                    paddingVertical: space.tight,
                     borderRadius: radius.full,
                     backgroundColor: theme.surface2,
                   }}
@@ -792,7 +792,7 @@ export default function DeckHomeScreen() {
                 With nothing due, the door opens a cram lap — the whole deck,
                 no grading, no `card_reviews` written — so a panic run the
                 night before an exam can't wreck the real spacing. */}
-            <View style={{ gap: 6 }}>
+            <View style={{ gap: space.snug }}>
               <Button
                 label={cram ? "Study anyway" : "Study"}
                 size="lg"
@@ -827,7 +827,7 @@ export default function DeckHomeScreen() {
               ) : null}
             </View>
 
-            <AppText variant="title" style={{ marginTop: 2 }}>
+            <AppText variant="title" style={{ marginTop: space.hair }}>
               Cards
             </AppText>
             {composerSection}
@@ -842,8 +842,8 @@ export default function DeckHomeScreen() {
           <Card
             style={{
               alignItems: "center",
-              gap: 6,
-              paddingVertical: 24,
+              gap: space.snug,
+              paddingVertical: space.chapter,
               borderStyle: "dashed",
             }}
           >
@@ -855,7 +855,7 @@ export default function DeckHomeScreen() {
                 backgroundColor: theme.brandSoft,
                 alignItems: "center",
                 justifyContent: "center",
-                marginBottom: 2,
+                marginBottom: space.hair,
               }}
             >
               <Feather name="file-text" size={18} color={theme.brand} />
@@ -873,7 +873,7 @@ export default function DeckHomeScreen() {
         renderItem={({ item }) => {
           if (editingId === item.id) {
             return (
-              <Card style={{ gap: 12, marginBottom: 10 }}>
+              <Card style={{ gap: space.close, marginBottom: space.room }}>
                 <AppText variant="title">Edit card</AppText>
                 <Field
                   label="Front"
@@ -901,7 +901,7 @@ export default function DeckHomeScreen() {
                   style={{
                     flexDirection: "row",
                     justifyContent: "flex-end",
-                    gap: 8,
+                    gap: space.cosy,
                   }}
                 >
                   <Button
@@ -933,7 +933,7 @@ export default function DeckHomeScreen() {
               onLongPress={mine ? () => handleLongPress(item) : undefined}
               style={({ pressed }) => ({
                 opacity: mine && pressed ? 0.85 : 1,
-                marginBottom: 10,
+                marginBottom: space.room,
               })}
             >
               <Card
@@ -941,9 +941,9 @@ export default function DeckHomeScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 12,
-                  paddingHorizontal: 14,
-                  paddingVertical: 12,
+                  gap: space.close,
+                  paddingHorizontal: space.card,
+                  paddingVertical: space.close,
                   minHeight: 52,
                 }}
               >

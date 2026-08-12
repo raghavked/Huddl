@@ -55,8 +55,8 @@ function CenteredState({
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
-        padding: 28,
+        gap: space.room,
+        padding: space.rest,
       }}
     >
       <View
@@ -181,7 +181,7 @@ export default function BrowseChannelsScreen() {
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          paddingHorizontal: 12,
+          paddingHorizontal: space.close,
         }}
       >
         <Pressable
@@ -205,7 +205,7 @@ export default function BrowseChannelsScreen() {
           size="sm"
           icon={<Feather name="plus" size={14} color={theme.brandInk} />}
           onPress={() => router.push("/channels/new")}
-          style={{ marginRight: 8 }}
+          style={{ marginRight: space.cosy }}
         />
       </View>
       {children}
@@ -219,7 +219,7 @@ export default function BrowseChannelsScreen() {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          gap: 12,
+          gap: space.close,
         }}
       >
         <ActivityIndicator size="large" color={theme.brand} />
@@ -256,7 +256,7 @@ export default function BrowseChannelsScreen() {
       keyExtractor={(channel) => channel.id}
       style={{ flex: 1 }}
       contentContainerStyle={{
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
         paddingBottom: insets.bottom + space.rest,
         flexGrow: 1,
       }}
@@ -269,7 +269,7 @@ export default function BrowseChannelsScreen() {
         />
       }
       ListHeaderComponent={
-        <View style={{ gap: 4, marginBottom: 14 }}>
+        <View style={{ gap: space.tight, marginBottom: space.card }}>
           <AppText variant="display">Browse channels</AppText>
           <AppText variant="caption" muted>
             Every campus and topic channel at your school — join the ones that
@@ -278,7 +278,7 @@ export default function BrowseChannelsScreen() {
           {error ? (
             <AppText
               variant="caption"
-              style={{ color: theme.danger, marginTop: 4 }}
+              style={{ color: theme.danger, marginTop: space.tight }}
             >
               {error}
             </AppText>
@@ -286,7 +286,7 @@ export default function BrowseChannelsScreen() {
           {joinError ? (
             <AppText
               variant="caption"
-              style={{ color: theme.danger, marginTop: 4 }}
+              style={{ color: theme.danger, marginTop: space.tight }}
             >
               {joinError}
             </AppText>
@@ -300,7 +300,7 @@ export default function BrowseChannelsScreen() {
                 label: "Start a channel",
                 onPress: () => router.push("/channels/new"),
               }}
-              style={{ marginTop: 8 }}
+              style={{ marginTop: space.cosy }}
             />
           ) : null}
         </View>
@@ -330,9 +330,9 @@ export default function BrowseChannelsScreen() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 12,
-              paddingHorizontal: 14,
-              paddingVertical: 12,
+              gap: space.close,
+              paddingHorizontal: space.card,
+              paddingVertical: space.close,
               minHeight: 60,
             }}
           >
@@ -352,7 +352,7 @@ export default function BrowseChannelsScreen() {
                 color={theme.brand}
               />
             </View>
-            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
               <AppText variant="bodySemi" numberOfLines={1}>
                 {title}
               </AppText>
@@ -362,7 +362,11 @@ export default function BrowseChannelsScreen() {
             </View>
             {isJoined ? (
               <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: space.snug,
+                }}
               >
                 <AppText variant="caption" muted>
                   Joined
@@ -383,7 +387,7 @@ export default function BrowseChannelsScreen() {
           </Card>
         );
         if (!isJoined) {
-          return <View style={{ marginBottom: 10 }}>{row}</View>;
+          return <View style={{ marginBottom: space.room }}>{row}</View>;
         }
         return (
           <Pressable
@@ -392,7 +396,7 @@ export default function BrowseChannelsScreen() {
             onPress={() => router.push(`/channel/${item.id}`)}
             style={({ pressed }) => ({
               opacity: pressed ? 0.85 : 1,
-              marginBottom: 10,
+              marginBottom: space.room,
             })}
           >
             {row}

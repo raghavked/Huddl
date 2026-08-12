@@ -19,7 +19,7 @@ import {
 import { Doorway } from "@/components/illustrations";
 import { Screen } from "@/components/screen";
 import { AppText, Button, Card, Sheet } from "@/components/ui";
-import { radius } from "@/constants/theme";
+import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -369,7 +369,7 @@ export default function ChannelsScreen() {
         label={menuMuted ? "Turn notifications back on" : "Mute this channel"}
         onPress={() => void toggleMuted()}
       />
-      <AppText variant="caption" muted style={{ marginTop: 4 }}>
+      <AppText variant="caption" muted style={{ marginTop: space.tight }}>
         {menuMuted
           ? "You'll hear about new messages here again."
           : "It stays in your list — you just won't be notified about it."}
@@ -424,8 +424,8 @@ export default function ChannelsScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
-            padding: 24,
+            gap: space.room,
+            padding: space.chapter,
           }}
         >
           <View
@@ -463,7 +463,7 @@ export default function ChannelsScreen() {
           sections={sections}
           keyExtractor={(item) => item.key}
           stickySectionHeadersEnabled={false}
-          contentContainerStyle={{ paddingBottom: 32, flexGrow: 1 }}
+          contentContainerStyle={{ paddingBottom: space.rest, flexGrow: 1 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -477,7 +477,7 @@ export default function ChannelsScreen() {
               <AppText
                 variant="caption"
                 accessibilityLiveRegion="polite"
-                style={{ color: theme.danger, marginBottom: 8 }}
+                style={{ color: theme.danger, marginBottom: space.cosy }}
               >
                 {error}
               </AppText>
@@ -489,8 +489,8 @@ export default function ChannelsScreen() {
                 flex: 1,
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 10,
-                padding: 24,
+                gap: space.room,
+                padding: space.chapter,
               }}
             >
               <View
@@ -520,9 +520,9 @@ export default function ChannelsScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 6,
-                marginTop: 18,
-                marginBottom: 8,
+                gap: space.snug,
+                marginTop: space.gutter,
+                marginBottom: space.cosy,
               }}
             >
               <Feather
@@ -555,8 +555,8 @@ export default function ChannelsScreen() {
                   onLongPress={() => onLongPressChannel(room)}
                   style={({ pressed }) => ({
                     opacity: pressed ? 0.85 : 1,
-                    marginLeft: 24,
-                    marginBottom: 8,
+                    marginLeft: space.chapter,
+                    marginBottom: space.cosy,
                   })}
                 >
                   <Card
@@ -567,9 +567,9 @@ export default function ChannelsScreen() {
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      gap: 10,
-                      paddingHorizontal: 12,
-                      paddingVertical: 10,
+                      gap: space.room,
+                      paddingHorizontal: space.close,
+                      paddingVertical: space.room,
                       minHeight: 48,
                     }}
                   >
@@ -584,7 +584,7 @@ export default function ChannelsScreen() {
                         minWidth: 0,
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: 6,
+                        gap: space.snug,
                       }}
                     >
                       <AppText
@@ -625,12 +625,12 @@ export default function ChannelsScreen() {
                   style={({ pressed }) => ({
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 6,
+                    gap: space.snug,
                     alignSelf: "flex-start",
-                    marginLeft: 24,
-                    marginBottom: 12,
-                    paddingHorizontal: 6,
-                    paddingVertical: 4,
+                    marginLeft: space.chapter,
+                    marginBottom: space.close,
+                    paddingHorizontal: space.snug,
+                    paddingVertical: space.tight,
                     opacity: pressed ? 0.6 : 1,
                   })}
                 >
@@ -662,7 +662,7 @@ export default function ChannelsScreen() {
                 onLongPress={() => onLongPressChannel(channel)}
                 style={({ pressed }) => ({
                   opacity: pressed ? 0.85 : 1,
-                  marginBottom: 10,
+                  marginBottom: space.room,
                 })}
               >
                 <Card
@@ -673,9 +673,9 @@ export default function ChannelsScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 12,
-                    paddingHorizontal: 14,
-                    paddingVertical: 12,
+                    gap: space.close,
+                    paddingHorizontal: space.card,
+                    paddingVertical: space.close,
                     minHeight: 60,
                   }}
                 >
@@ -703,7 +703,7 @@ export default function ChannelsScreen() {
                       style={{
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: 6,
+                        gap: space.snug,
                       }}
                     >
                       <AppText

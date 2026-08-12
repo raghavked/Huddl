@@ -175,7 +175,7 @@ function SavedRow({
       style={{
         flexDirection: "row",
         alignItems: "flex-start",
-        marginBottom: 10,
+        marginBottom: space.room,
         opacity: removing ? 0.6 : 1,
       }}
     >
@@ -185,10 +185,10 @@ function SavedRow({
         onPress={onOpen}
         style={({ pressed }) => ({
           flex: 1,
-          gap: 6,
-          paddingLeft: 14,
-          paddingRight: 4,
-          paddingVertical: 14,
+          gap: space.snug,
+          paddingLeft: space.card,
+          paddingRight: space.tight,
+          paddingVertical: space.card,
           minHeight: 68,
           opacity: pressed ? 0.7 : 1,
         })}
@@ -197,7 +197,7 @@ function SavedRow({
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 8,
+            gap: space.cosy,
           }}
         >
           <AppText variant="bodySemi" numberOfLines={1} style={{ flexShrink: 1 }}>
@@ -240,8 +240,8 @@ function SavedRow({
         style={({ pressed }) => ({
           width: 44,
           height: 44,
-          marginRight: 4,
-          marginTop: 10,
+          marginRight: space.tight,
+          marginTop: space.room,
           alignItems: "center",
           justifyContent: "center",
           opacity: pressed ? 0.6 : 1,
@@ -407,7 +407,7 @@ export default function SavedMessagesScreen() {
         flex: 1,
         backgroundColor: theme.background,
         paddingTop: insets.top + space.close,
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
       }}
     >
       <Pressable
@@ -436,7 +436,7 @@ export default function SavedMessagesScreen() {
       <AppText
         variant="display"
         accessibilityRole="header"
-        style={{ marginTop: 2 }}
+        style={{ marginTop: space.hair }}
       >
         Saved messages
       </AppText>
@@ -445,7 +445,7 @@ export default function SavedMessagesScreen() {
         variant="caption"
         muted
         accessibilityLiveRegion="polite"
-        style={{ marginTop: 4, marginBottom: 16 }}
+        style={{ marginTop: space.tight, marginBottom: space.card }}
       >
         {count === 0
           ? "Your private shelf — only you can see what's here."
@@ -458,7 +458,7 @@ export default function SavedMessagesScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 12,
+            gap: space.close,
             paddingBottom: 80,
           }}
         >
@@ -478,7 +478,7 @@ export default function SavedMessagesScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
+            gap: space.room,
             paddingBottom: 80,
           }}
         >
@@ -522,7 +522,7 @@ export default function SavedMessagesScreen() {
               <AppText
                 variant="caption"
                 accessibilityLiveRegion="polite"
-                style={{ color: theme.danger, marginBottom: 10 }}
+                style={{ color: theme.danger, marginBottom: space.room }}
               >
                 {rowError ??
                   "We couldn't refresh just now — pull down to try again."}
@@ -541,7 +541,7 @@ export default function SavedMessagesScreen() {
               <AppText
                 variant="caption"
                 muted
-                style={{ textAlign: "center", marginTop: 4 }}
+                style={{ textAlign: "center", marginTop: space.tight }}
               >
                 Showing your {SAVED_LIMIT} most recent saves.
               </AppText>

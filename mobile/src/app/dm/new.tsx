@@ -175,7 +175,7 @@ function PickerRow({
       onPress={onPress}
       style={({ pressed }) => ({
         opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
-        marginBottom: 10,
+        marginBottom: space.room,
       })}
     >
       <Card
@@ -183,9 +183,9 @@ function PickerRow({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
+          gap: space.close,
+          paddingHorizontal: space.card,
+          paddingVertical: space.close,
           minHeight: 68,
         }}
       >
@@ -194,11 +194,17 @@ function PickerRow({
           name={person.display_name}
           size={40}
         />
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
           <AppText variant="bodySemi" numberOfLines={1}>
             {shownName}
           </AppText>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.tight,
+            }}
+          >
             {person.locked ? (
               <Feather name="lock" size={11} color={theme.muted} />
             ) : null}
@@ -431,7 +437,7 @@ export function CampusPeoplePicker({
       // The caller's form rides inside the list so the results always get
       // the rest of the screen, keyboard up or not.
       ListHeaderComponent={
-        <View style={{ marginBottom: 10 }}>
+        <View style={{ marginBottom: space.room }}>
           {header}
           <Field
             label={label}
@@ -631,7 +637,7 @@ export default function NewMessageScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={{ flex: 1, paddingTop: insets.top + space.close }}>
-        <View style={{ paddingHorizontal: 12 }}>
+        <View style={{ paddingHorizontal: space.close }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back"
@@ -649,7 +655,7 @@ export default function NewMessageScreen() {
           </Pressable>
         </View>
 
-        <View style={{ flex: 1, paddingHorizontal: 20 }}>
+        <View style={{ flex: 1, paddingHorizontal: space.gutter }}>
           <CampusPeoplePicker
             label="Add classmates"
             placeholder="Search your campus by name or handle"
@@ -659,18 +665,22 @@ export default function NewMessageScreen() {
             paddingBottom={16}
             addLabel={ADD_TO_CONVERSATION}
             header={
-              <View style={{ marginBottom: 4 }}>
-                <AppText variant="display" style={{ marginTop: 2 }}>
+              <View style={{ marginBottom: space.tight }}>
+                <AppText variant="display" style={{ marginTop: space.hair }}>
                   {heading}
                 </AppText>
-                <AppText variant="caption" muted style={{ marginTop: 4 }}>
+                <AppText
+                  variant="caption"
+                  muted
+                  style={{ marginTop: space.tight }}
+                >
                   {blurb}
                 </AppText>
 
                 {/* Only a group needs a name — a 1:1 is named after the
                     person you're talking to. */}
                 {isGroup ? (
-                  <View style={{ marginTop: 16 }}>
+                  <View style={{ marginTop: space.card }}>
                     <Field
                       label="Group name"
                       value={title}
@@ -696,11 +706,11 @@ export default function NewMessageScreen() {
                       showsHorizontalScrollIndicator={false}
                       keyboardShouldPersistTaps="handled"
                       contentContainerStyle={{
-                        gap: 8,
+                        gap: space.cosy,
                         alignItems: "center",
-                        paddingRight: 8,
+                        paddingRight: space.cosy,
                       }}
-                      style={{ marginBottom: 8 }}
+                      style={{ marginBottom: space.cosy }}
                     >
                       {isGroup ? (
                         <Chip
@@ -730,7 +740,7 @@ export default function NewMessageScreen() {
                   muted
                   style={{
                     marginTop: selected.length > 0 ? 0 : 10,
-                    marginBottom: 12,
+                    marginBottom: space.close,
                   }}
                 >
                   {hint}
@@ -742,10 +752,10 @@ export default function NewMessageScreen() {
 
         <View
           style={{
-            paddingHorizontal: 20,
-            paddingTop: 10,
+            paddingHorizontal: space.gutter,
+            paddingTop: space.room,
             paddingBottom: insets.bottom + space.close,
-            gap: 8,
+            gap: space.cosy,
             borderTopWidth: 1,
             borderTopColor: theme.border,
           }}
@@ -755,9 +765,9 @@ export default function NewMessageScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 8,
-                paddingHorizontal: 12,
-                paddingVertical: 8,
+                gap: space.cosy,
+                paddingHorizontal: space.close,
+                paddingVertical: space.cosy,
                 borderRadius: radius.control,
                 backgroundColor: theme.surface2,
               }}

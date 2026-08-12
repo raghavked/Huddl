@@ -86,7 +86,13 @@ function timeAgo(iso: string, now: Date): string {
 function MetaRow({ icon, children }: { icon: FeatherName; children: ReactNode }) {
   const theme = useTheme();
   return (
-    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: space.room,
+      }}
+    >
       <View
         style={{
           width: 28,
@@ -99,7 +105,9 @@ function MetaRow({ icon, children }: { icon: FeatherName; children: ReactNode })
       >
         <Feather name={icon} size={14} color={theme.brand} />
       </View>
-      <View style={{ flex: 1, minWidth: 0, gap: 2, paddingTop: 3 }}>
+      {/* The 3 is optical — it sits the first text line level with the
+          middle of the icon tile beside it, not on a rung. */}
+      <View style={{ flex: 1, minWidth: 0, gap: space.hair, paddingTop: 3 }}>
         {children}
       </View>
     </View>
@@ -319,7 +327,7 @@ export default function BoardPostScreen() {
       <View
         style={{
           paddingTop: insets.top + space.close,
-          paddingHorizontal: 12,
+          paddingHorizontal: space.close,
           flexDirection: "row",
           alignItems: "center",
         }}
@@ -339,11 +347,17 @@ export default function BoardPostScreen() {
        headline, when it went up, and the card with whoever put it there — so
        the page draws itself first and the words land into it. */
     return scaffold(
-      <View style={{ paddingHorizontal: 20, paddingTop: 4, gap: 12 }}>
+      <View
+        style={{
+          paddingHorizontal: space.gutter,
+          paddingTop: space.tight,
+          gap: space.close,
+        }}
+      >
         <Skeleton width={94} height={28} radius={radius.full} />
         <Skeleton width="86%" height={30} />
         <Skeleton width={118} height={11} radius={radius.full} />
-        <View style={{ gap: 8, marginTop: 4 }}>
+        <View style={{ gap: space.cosy, marginTop: space.tight }}>
           <Skeleton width="100%" height={12} radius={radius.full} />
           <Skeleton width="93%" height={12} radius={radius.full} />
           <Skeleton width="56%" height={12} radius={radius.full} />
@@ -352,12 +366,12 @@ export default function BoardPostScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 12,
-            marginTop: 8,
+            gap: space.close,
+            marginTop: space.cosy,
           }}
         >
           <Skeleton width={44} height={44} radius={radius.full} />
-          <View style={{ flex: 1, gap: 8 }}>
+          <View style={{ flex: 1, gap: space.cosy }}>
             <Skeleton width="52%" height={13} radius={radius.full} />
             <Skeleton width="38%" height={11} radius={radius.full} />
           </View>
@@ -368,7 +382,13 @@ export default function BoardPostScreen() {
 
   if (status === "missing") {
     return scaffold(
-      <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 20 }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          paddingHorizontal: space.gutter,
+        }}
+      >
         <EmptyState
           illustration={MagnifyingGlass}
           title="That post isn't there"
@@ -386,8 +406,8 @@ export default function BoardPostScreen() {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          gap: 10,
-          paddingHorizontal: 28,
+          gap: space.room,
+          paddingHorizontal: space.rest,
           paddingBottom: 80,
         }}
       >
@@ -416,7 +436,13 @@ export default function BoardPostScreen() {
 
   if (blocked.has(post.author_id)) {
     return scaffold(
-      <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 20 }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          paddingHorizontal: space.gutter,
+        }}
+      >
         <EmptyState
           icon="slash"
           title="This one's from someone you blocked"
@@ -476,8 +502,8 @@ export default function BoardPostScreen() {
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingTop: 4,
+            paddingHorizontal: space.gutter,
+            paddingTop: space.tight,
             paddingBottom: insets.bottom + space.rest,
           }}
           showsVerticalScrollIndicator={false}
@@ -493,7 +519,7 @@ export default function BoardPostScreen() {
           {loadError ? (
             <AppText
               variant="caption"
-              style={{ color: theme.danger, marginBottom: 10 }}
+              style={{ color: theme.danger, marginBottom: space.room }}
             >
               {loadError}
             </AppText>
@@ -504,8 +530,8 @@ export default function BoardPostScreen() {
               flexDirection: "row",
               alignItems: "center",
               flexWrap: "wrap",
-              gap: 6,
-              marginBottom: 10,
+              gap: space.snug,
+              marginBottom: space.room,
             }}
           >
             <Chip label={info.label} icon={info.icon} tone="brand" size="md" />
@@ -516,12 +542,12 @@ export default function BoardPostScreen() {
 
           <AppText variant="display">{post.title}</AppText>
 
-          <AppText variant="caption" muted style={{ marginTop: 6 }}>
+          <AppText variant="caption" muted style={{ marginTop: space.snug }}>
             {postedLine}
           </AppText>
 
           {price !== null || ride !== null ? (
-            <Card style={{ marginTop: 16, gap: 12 }}>
+            <Card style={{ marginTop: space.card, gap: space.close }}>
               {price !== null ? (
                 <MetaRow icon="tag">
                   <AppText variant="bodySemi">{price}</AppText>
@@ -541,7 +567,7 @@ export default function BoardPostScreen() {
           ) : null}
 
           {post.body ? (
-            <AppText style={{ marginTop: 16, lineHeight: 22 }}>
+            <AppText style={{ marginTop: space.card, lineHeight: 22 }}>
               {post.body}
             </AppText>
           ) : null}
@@ -551,18 +577,18 @@ export default function BoardPostScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "flex-start",
-                gap: 9,
-                padding: 12,
+                gap: space.room,
+                padding: space.close,
                 borderRadius: radius.control,
                 backgroundColor: theme.accentSoft,
-                marginTop: 16,
+                marginTop: space.card,
               }}
             >
               <Feather
                 name="check-circle"
                 size={14}
                 color={theme.accent}
-                style={{ marginTop: 2 }}
+                style={{ marginTop: space.hair }}
               />
               <AppText variant="caption" style={{ flex: 1, lineHeight: 17 }}>
                 {mine
@@ -573,8 +599,14 @@ export default function BoardPostScreen() {
           ) : null}
 
           {/* Who's behind it, and the way to say something about it. */}
-          <Card style={{ marginTop: 20, gap: 12 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Card style={{ marginTop: space.gutter, gap: space.close }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.close,
+              }}
+            >
               {author && !mine ? (
                 <Pressable
                   accessibilityRole="button"
@@ -586,7 +618,7 @@ export default function BoardPostScreen() {
                     minHeight: 44,
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 12,
+                    gap: space.close,
                     opacity: pressed ? 0.7 : 1,
                   })}
                 >
@@ -595,7 +627,7 @@ export default function BoardPostScreen() {
                     name={author.locked ? author.handle : author.display_name}
                     size={44}
                   />
-                  <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                  <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
                     <AppText variant="bodySemi" numberOfLines={1}>
                       {authorName}
                     </AppText>
@@ -603,7 +635,7 @@ export default function BoardPostScreen() {
                       style={{
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: 4,
+                        gap: space.tight,
                       }}
                     >
                       {author.locked ? (
@@ -623,11 +655,11 @@ export default function BoardPostScreen() {
                     minHeight: 44,
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 12,
+                    gap: space.close,
                   }}
                 >
                   <Avatar url={author?.avatar_url} name={authorName} size={44} />
-                  <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                  <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
                     <AppText variant="bodySemi" numberOfLines={1}>
                       {authorName}
                     </AppText>
@@ -665,7 +697,7 @@ export default function BoardPostScreen() {
           {actionError ? (
             <AppText
               variant="caption"
-              style={{ color: theme.danger, marginTop: 12 }}
+              style={{ color: theme.danger, marginTop: space.close }}
             >
               {actionError}
             </AppText>

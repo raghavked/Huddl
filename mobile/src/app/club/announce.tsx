@@ -77,8 +77,8 @@ function PostedNote() {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        gap: 12,
-        padding: 28,
+        gap: space.close,
+        padding: space.rest,
         opacity: enter,
         transform: [
           {
@@ -190,7 +190,7 @@ export default function ClubAnnounceScreen() {
   const mayPost = canPostAnnouncements(role);
 
   const backChevron = (
-    <View style={{ paddingHorizontal: 12 }}>
+    <View style={{ paddingHorizontal: space.close }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Back"
@@ -230,7 +230,11 @@ export default function ClubAnnounceScreen() {
   if (!club) {
     return scaffold(
       <View
-        style={{ flex: 1, justifyContent: "center", paddingHorizontal: 20 }}
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          paddingHorizontal: space.gutter,
+        }}
       >
         <EmptyState
           illustration={Mug}
@@ -249,7 +253,7 @@ export default function ClubAnnounceScreen() {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          gap: 12,
+          gap: space.close,
           paddingBottom: 60,
         }}
       >
@@ -268,8 +272,8 @@ export default function ClubAnnounceScreen() {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          gap: 10,
-          paddingHorizontal: 28,
+          gap: space.room,
+          paddingHorizontal: space.rest,
           paddingBottom: 60,
         }}
       >
@@ -298,7 +302,11 @@ export default function ClubAnnounceScreen() {
   if (!mayPost) {
     return scaffold(
       <View
-        style={{ flex: 1, justifyContent: "center", paddingHorizontal: 20 }}
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          paddingHorizontal: space.gutter,
+        }}
       >
         <EmptyState
           illustration={Mug}
@@ -322,15 +330,15 @@ export default function ClubAnnounceScreen() {
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={{
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
         paddingBottom: insets.bottom + space.rest,
-        gap: 14,
+        gap: space.card,
       }}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       showsVerticalScrollIndicator={false}
     >
-      <View style={{ gap: 6 }}>
+      <View style={{ gap: space.snug }}>
         <AppText variant="display">{heading}</AppText>
         <AppText variant="caption" muted>
           Everyone in the club gets this once, in their notifications.
@@ -347,7 +355,7 @@ export default function ClubAnnounceScreen() {
         returnKeyType="next"
       />
 
-      <View style={{ gap: 6 }}>
+      <View style={{ gap: space.snug }}>
         <Field
           label="What's happening"
           value={body}
@@ -387,7 +395,7 @@ export default function ClubAnnounceScreen() {
         disabled={!canSubmit}
         icon={<Feather name="send" size={16} color={theme.brandFg} />}
         onPress={() => void handlePost()}
-        style={{ marginTop: 4 }}
+        style={{ marginTop: space.tight }}
       />
     </ScrollView>
   );

@@ -173,7 +173,10 @@ const StudyingRow = memo(function StudyingRow({
         .filter(Boolean)
         .join(", ")}
       onPress={() => router.push(`/u/${row.person.handle}`)}
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, marginBottom: 10 })}
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.7 : 1,
+        marginBottom: space.room,
+      })}
     >
       <Card
         padded={false}
@@ -184,9 +187,9 @@ const StudyingRow = memo(function StudyingRow({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
+          gap: space.close,
+          paddingHorizontal: space.card,
+          paddingVertical: space.close,
           minHeight: 68,
         }}
       >
@@ -195,12 +198,12 @@ const StudyingRow = memo(function StudyingRow({
           name={row.person.display_name}
           size={40}
         />
-        <View style={{ flex: 1, gap: 4 }}>
+        <View style={{ flex: 1, gap: space.tight }}>
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 6,
+              gap: space.snug,
             }}
           >
             <AppText variant="bodySemi" numberOfLines={1} style={{ flexShrink: 1 }}>
@@ -489,7 +492,7 @@ export default function FocusScreen() {
   /* ------------------------------ render ----------------------------- */
 
   const header = (
-    <View style={{ paddingHorizontal: 12 }}>
+    <View style={{ paddingHorizontal: space.close }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Back"
@@ -529,7 +532,7 @@ export default function FocusScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 12,
+            gap: space.close,
             paddingBottom: 80,
           }}
         >
@@ -562,8 +565,8 @@ export default function FocusScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
-            paddingHorizontal: 20,
+            gap: space.room,
+            paddingHorizontal: space.gutter,
             paddingBottom: 80,
           }}
         >
@@ -608,7 +611,7 @@ export default function FocusScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + 40,
         }}
         keyboardShouldPersistTaps="handled"
@@ -627,8 +630,8 @@ export default function FocusScreen() {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 10,
-            marginTop: 2,
+            gap: space.room,
+            marginTop: space.hair,
           }}
         >
           <AppText variant="display" accessibilityRole="header">
@@ -644,7 +647,7 @@ export default function FocusScreen() {
           <AppText
             variant="caption"
             accessibilityLiveRegion="polite"
-            style={{ color: theme.danger, marginTop: 8 }}
+            style={{ color: theme.danger, marginTop: space.cosy }}
           >
             We couldn't refresh just now — pull down to try again.
           </AppText>
@@ -656,7 +659,11 @@ export default function FocusScreen() {
              Start, which is exactly the moment worth reporting. */
           <Card
             entrance={0}
-            style={{ marginTop: 16, gap: 14, alignItems: "center" }}
+            style={{
+              marginTop: space.card,
+              gap: space.card,
+              alignItems: "center",
+            }}
           >
             <AppText
               variant="display"
@@ -666,7 +673,7 @@ export default function FocusScreen() {
               style={{
                 fontSize: Math.round(54 * textScale),
                 lineHeight: Math.round(62 * textScale),
-                marginTop: 4,
+                marginTop: space.tight,
               }}
             >
               {timer.readout}
@@ -685,7 +692,7 @@ export default function FocusScreen() {
             <ProgressBar value={timer.value} />
 
             {timer.courseCode || mine.note ? (
-              <View style={{ alignItems: "center", gap: 8 }}>
+              <View style={{ alignItems: "center", gap: space.cosy }}>
                 {timer.courseCode ? (
                   <Chip label={timer.courseCode} tone="brand" />
                 ) : null}
@@ -717,7 +724,7 @@ export default function FocusScreen() {
               pending={ending}
               accessibilityLabel="Done, end this session"
               accessibilityState={{ busy: ending, disabled: ending }}
-              style={{ alignSelf: "stretch", marginTop: 2 }}
+              style={{ alignSelf: "stretch", marginTop: space.hair }}
               onPress={() => void finish("done")}
             />
             <Button
@@ -736,7 +743,11 @@ export default function FocusScreen() {
           <Card
             entrance={0}
             accessibilityLiveRegion="polite"
-            style={{ marginTop: 16, gap: 10, alignItems: "center" }}
+            style={{
+              marginTop: space.card,
+              gap: space.room,
+              alignItems: "center",
+            }}
           >
             <View
               accessibilityElementsHidden
@@ -770,22 +781,26 @@ export default function FocusScreen() {
               label="Sit down again"
               variant="soft"
               size="sm"
-              style={{ marginTop: 4 }}
+              style={{ marginTop: space.tight }}
               onPress={() => setFinished(null)}
             />
           </Card>
         ) : (
           /* -------------------------- idle --------------------------- */
           <>
-            <AppText variant="caption" muted style={{ marginTop: 4 }}>
+            <AppText variant="caption" muted style={{ marginTop: space.tight }}>
               Pick a length, sit down, and see who else is heads-down.
             </AppText>
 
-            <Card style={{ marginTop: 16, gap: 18 }}>
-              <View style={{ gap: 10 }}>
+            <Card style={{ marginTop: space.card, gap: space.gutter }}>
+              <View style={{ gap: space.room }}>
                 <FormLabel text="How long" />
                 <View
-                  style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: space.cosy,
+                  }}
                 >
                   {FOCUS_GOAL_PRESETS.map((minutes) => (
                     <Chip
@@ -801,10 +816,14 @@ export default function FocusScreen() {
                 </View>
               </View>
 
-              <View style={{ gap: 10 }}>
+              <View style={{ gap: space.room }}>
                 <FormLabel text="On what" />
                 <View
-                  style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: space.cosy,
+                  }}
                 >
                   <Chip
                     label="Just studying"
@@ -848,7 +867,7 @@ export default function FocusScreen() {
                 </AppText>
               ) : null}
 
-              <View style={{ gap: 8 }}>
+              <View style={{ gap: space.cosy }}>
                 <Button
                   label="Start"
                   size="lg"

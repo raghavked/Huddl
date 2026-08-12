@@ -1378,6 +1378,7 @@ export default function CourseHubScreen() {
               ) : (
                 <EmptyState
                   compact
+                  icon="info"
                   title="No details yet"
                   body="Who teaches it, when it meets, where — fill it in for the class."
                 />
@@ -1561,6 +1562,7 @@ export default function CourseHubScreen() {
               ) : (
                 <EmptyState
                   compact
+                  icon="calendar"
                   title="No dates yet"
                   body="Paste the syllabus once and the whole class gets the schedule."
                 />
@@ -1644,6 +1646,7 @@ export default function CourseHubScreen() {
               ) : (
                 <EmptyState
                   compact
+                  icon="users"
                   title="Nothing planned yet"
                   body="Be the one who gets the class together — pick a time and a place."
                 />

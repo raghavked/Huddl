@@ -274,7 +274,7 @@ export default function NewEventScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={{ flex: 1, paddingTop: insets.top + space.close }}>
-        <View style={{ paddingHorizontal: 12 }}>
+        <View style={{ paddingHorizontal: space.close }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back"
@@ -295,15 +295,15 @@ export default function NewEventScreen() {
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: space.gutter,
             paddingBottom: insets.bottom + space.rest,
-            gap: 14,
+            gap: space.card,
           }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: space.snug }}>
             <AppText variant="display">Plan something</AppText>
             <AppText variant="caption" muted>
               Put it on the campus calendar — classmates can RSVP right away.
@@ -319,10 +319,10 @@ export default function NewEventScreen() {
               style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 6,
+                gap: space.snug,
                 alignSelf: "flex-start",
-                paddingHorizontal: 12,
-                paddingVertical: 7,
+                paddingHorizontal: space.close,
+                paddingVertical: space.cosy,
                 borderRadius: radius.full,
                 backgroundColor: theme.accentSoft,
                 opacity: pressed ? 0.7 : 1,
@@ -345,10 +345,10 @@ export default function NewEventScreen() {
               style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 6,
+                gap: space.snug,
                 alignSelf: "flex-start",
-                paddingHorizontal: 12,
-                paddingVertical: 7,
+                paddingHorizontal: space.close,
+                paddingVertical: space.cosy,
                 borderRadius: radius.full,
                 backgroundColor: theme.accentSoft,
                 opacity: pressed ? 0.7 : 1,
@@ -362,7 +362,7 @@ export default function NewEventScreen() {
             </Pressable>
           ) : null}
 
-          <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={{ flexDirection: "row", gap: space.cosy }}>
             {KIND_OPTIONS.map((option) => {
               const selected = kind === option.value;
               return (
@@ -374,8 +374,8 @@ export default function NewEventScreen() {
                   onPress={() => setKind(option.value)}
                   hitSlop={6}
                   style={({ pressed }) => ({
-                    paddingHorizontal: 14,
-                    paddingVertical: 9,
+                    paddingHorizontal: space.card,
+                    paddingVertical: space.room,
                     borderRadius: radius.full,
                     backgroundColor: selected ? theme.brandSoft : theme.surface,
                     borderWidth: 1,
@@ -437,7 +437,7 @@ export default function NewEventScreen() {
             keyboardType="numbers-and-punctuation"
             editable={!pending}
           />
-          <View style={{ flexDirection: "row", gap: 10 }}>
+          <View style={{ flexDirection: "row", gap: space.room }}>
             <View style={{ flex: 1 }}>
               <Field
                 label="Starts"
@@ -463,7 +463,7 @@ export default function NewEventScreen() {
               />
             </View>
           </View>
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: space.snug }}>
             <Field
               label="Capacity (optional)"
               value={capacity}
@@ -489,7 +489,7 @@ export default function NewEventScreen() {
             pending={pending}
             icon={<Feather name="calendar" size={16} color={theme.brandFg} />}
             onPress={() => void handleCreate()}
-            style={{ marginTop: 4 }}
+            style={{ marginTop: space.tight }}
           />
         </ScrollView>
       </View>

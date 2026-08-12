@@ -981,7 +981,7 @@ export default function DmRoomScreen() {
       return (
         <View
           style={{
-            paddingVertical: 4,
+            paddingVertical: space.tight,
             alignItems: own ? "flex-end" : "flex-start",
           }}
         >
@@ -999,9 +999,9 @@ export default function DmRoomScreen() {
               style={({ pressed }) => ({
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 6,
-                marginBottom: 4,
-                marginLeft: 2,
+                gap: space.snug,
+                marginBottom: space.tight,
+                marginLeft: space.hair,
                 maxWidth: "80%",
                 opacity: pressed && author ? 0.6 : 1,
               })}
@@ -1080,6 +1080,8 @@ export default function DmRoomScreen() {
           <AppText
             variant="caption"
             muted
+            /* Optical: 3 tucks the stamp under the bubble without
+               reading as a gap between two separate things. */
             style={{ marginTop: 3, fontSize: 10, lineHeight: 13 }}
           >
             {isTemp ? "Sending…" : formatMessageTime(item.created_at)}
@@ -1167,11 +1169,11 @@ export default function DmRoomScreen() {
       <View
         style={{
           paddingTop: insets.top + space.tight,
-          paddingHorizontal: 10,
-          paddingBottom: 8,
+          paddingHorizontal: space.room,
+          paddingBottom: space.cosy,
           flexDirection: "row",
           alignItems: "center",
-          gap: 4,
+          gap: space.tight,
           borderBottomWidth: 1,
           borderBottomColor: theme.border,
         }}
@@ -1204,7 +1206,7 @@ export default function DmRoomScreen() {
               minHeight: 44,
               flexDirection: "row",
               alignItems: "center",
-              gap: 10,
+              gap: space.room,
               opacity: pressed ? 0.7 : 1,
             })}
           >
@@ -1244,7 +1246,7 @@ export default function DmRoomScreen() {
               minHeight: 44,
               flexDirection: "row",
               alignItems: "center",
-              gap: 10,
+              gap: space.room,
               opacity: pressed ? 0.7 : 1,
             })}
           >
@@ -1270,7 +1272,7 @@ export default function DmRoomScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 12,
+            gap: space.close,
           }}
         >
           <ActivityIndicator size="large" color={theme.brand} />
@@ -1284,8 +1286,8 @@ export default function DmRoomScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
-            padding: 24,
+            gap: space.room,
+            padding: space.chapter,
           }}
         >
           <Feather name="message-circle" size={28} color={theme.muted} />
@@ -1311,8 +1313,8 @@ export default function DmRoomScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
-            padding: 24,
+            gap: space.room,
+            padding: space.chapter,
           }}
         >
           <Feather name="cloud-off" size={28} color={theme.muted} />
@@ -1339,8 +1341,8 @@ export default function DmRoomScreen() {
                 flex: 1,
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 8,
-                padding: 24,
+                gap: space.cosy,
+                padding: space.chapter,
               }}
             >
               {isGroup || !other ? (
@@ -1389,8 +1391,8 @@ export default function DmRoomScreen() {
               renderItem={renderItem}
               style={{ flex: 1 }}
               contentContainerStyle={{
-                paddingHorizontal: 16,
-                paddingVertical: 12,
+                paddingHorizontal: space.card,
+                paddingVertical: space.close,
               }}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
@@ -1437,11 +1439,11 @@ export default function DmRoomScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 8,
-                marginHorizontal: 16,
-                marginBottom: 6,
-                paddingHorizontal: 12,
-                paddingVertical: 8,
+                gap: space.cosy,
+                marginHorizontal: space.card,
+                marginBottom: space.snug,
+                paddingHorizontal: space.close,
+                paddingVertical: space.cosy,
                 borderRadius: radius.control,
                 backgroundColor: theme.accentSoft,
               }}
@@ -1459,15 +1461,15 @@ export default function DmRoomScreen() {
           {sendError ? (
             <View
               style={{
-                marginHorizontal: 16,
-                marginBottom: 6,
-                paddingHorizontal: 12,
-                paddingVertical: 8,
+                marginHorizontal: space.card,
+                marginBottom: space.snug,
+                paddingHorizontal: space.close,
+                paddingVertical: space.cosy,
                 borderRadius: radius.control,
                 backgroundColor: theme.surface2,
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 8,
+                gap: space.cosy,
               }}
             >
               <Feather name="alert-circle" size={14} color={theme.danger} />
@@ -1493,11 +1495,11 @@ export default function DmRoomScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 8,
-                marginHorizontal: 16,
-                marginBottom: 6,
-                paddingHorizontal: 12,
-                paddingVertical: 8,
+                gap: space.cosy,
+                marginHorizontal: space.card,
+                marginBottom: space.snug,
+                paddingHorizontal: space.close,
+                paddingVertical: space.cosy,
                 borderRadius: radius.control,
                 backgroundColor: theme.surface2,
               }}
@@ -1524,11 +1526,11 @@ export default function DmRoomScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 8,
-                marginHorizontal: 16,
-                marginBottom: 6,
-                paddingHorizontal: 12,
-                paddingVertical: 8,
+                gap: space.cosy,
+                marginHorizontal: space.card,
+                marginBottom: space.snug,
+                paddingHorizontal: space.close,
+                paddingVertical: space.cosy,
                 borderRadius: radius.control,
                 backgroundColor: theme.brandSoft,
               }}
@@ -1563,11 +1565,11 @@ export default function DmRoomScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 8,
-                marginHorizontal: 16,
-                marginBottom: 6,
-                paddingHorizontal: 12,
-                paddingVertical: 4,
+                gap: space.cosy,
+                marginHorizontal: space.card,
+                marginBottom: space.snug,
+                paddingHorizontal: space.close,
+                paddingVertical: space.tight,
                 borderRadius: radius.control,
                 backgroundColor: theme.brandSoft,
               }}
@@ -1601,9 +1603,9 @@ export default function DmRoomScreen() {
             style={{
               flexDirection: "row",
               alignItems: "flex-end",
-              gap: 8,
-              paddingHorizontal: 16,
-              paddingTop: 8,
+              gap: space.cosy,
+              paddingHorizontal: space.card,
+              paddingTop: space.cosy,
               paddingBottom: insets.bottom + space.close,
               borderTopWidth: 1,
               borderTopColor: theme.border,
@@ -1674,9 +1676,9 @@ export default function DmRoomScreen() {
                 borderColor: theme.border,
                 borderRadius: 22,
                 backgroundColor: theme.surface,
-                paddingHorizontal: 16,
-                paddingTop: 12,
-                paddingBottom: 12,
+                paddingHorizontal: space.card,
+                paddingTop: space.close,
+                paddingBottom: space.close,
                 fontFamily: fonts.body,
                 fontSize: 15,
                 color: theme.foreground,
@@ -1751,7 +1753,7 @@ export default function DmRoomScreen() {
       >
         {blockFor ? (
           <>
-            <AppText muted style={{ marginBottom: 8 }}>
+            <AppText muted style={{ marginBottom: space.cosy }}>
               {isGroup
                 ? "They won't be able to DM you, their messages leave this group, and you won't see their posts. They're never told."
                 : "They won't be able to message you, and you won't see their posts. This conversation stays where it is. They're never told."}
@@ -1834,7 +1836,7 @@ export default function DmRoomScreen() {
                 style={{
                   height: 1,
                   backgroundColor: theme.border,
-                  marginVertical: 4,
+                  marginVertical: space.tight,
                 }}
               />
               <Sheet.Row

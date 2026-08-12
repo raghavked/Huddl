@@ -13,7 +13,7 @@ import { Avatar } from "@/components/avatar";
 import { PaperPlane } from "@/components/illustrations";
 import { Screen } from "@/components/screen";
 import { AppText, Button, Card, EmptyState } from "@/components/ui";
-import { fonts, radius } from "@/constants/theme";
+import { fonts, radius, space } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { threadDisplay } from "@/lib/group-dm";
@@ -186,7 +186,7 @@ function GroupCluster({ people }: { people: ProfileLite[] }) {
           position: "absolute",
           bottom: 0,
           right: 0,
-          padding: 2,
+          padding: space.hair,
           borderRadius: radius.full,
           backgroundColor: theme.surface,
         }}
@@ -225,7 +225,10 @@ function ThreadRow({ item, index }: { item: ThreadItem; index: number }) {
       accessibilityRole="button"
       accessibilityLabel={threadLabel(item, preview)}
       onPress={() => router.push(`/dm/${item.threadId}`)}
-      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, marginBottom: 10 })}
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.85 : 1,
+        marginBottom: space.room,
+      })}
     >
       <Card
         padded={false}
@@ -237,9 +240,9 @@ function ThreadRow({ item, index }: { item: ThreadItem; index: number }) {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
+          gap: space.close,
+          paddingHorizontal: space.card,
+          paddingVertical: space.close,
           minHeight: 68,
         }}
       >
@@ -264,13 +267,13 @@ function ThreadRow({ item, index }: { item: ThreadItem; index: number }) {
             </AppText>
           </View>
         )}
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: space.hair }}>
           <View
             style={{
               flexDirection: "row",
               alignItems: "baseline",
               justifyContent: "space-between",
-              gap: 8,
+              gap: space.cosy,
             }}
           >
             <AppText
@@ -503,7 +506,13 @@ export default function MessagesScreen() {
         /* Two doors, because they answer different questions. The directory
            is for "who is even here"; the composer is for "I know who I want
            to talk to". Before this, only the second one existed. */
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.tight,
+          }}
+        >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Find classmates"
@@ -557,7 +566,7 @@ export default function MessagesScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 12,
+            gap: space.close,
             paddingBottom: 80,
           }}
         >
@@ -572,7 +581,7 @@ export default function MessagesScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
+            gap: space.room,
             paddingBottom: 80,
           }}
         >
@@ -609,7 +618,7 @@ export default function MessagesScreen() {
           contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
-            <View style={{ gap: 6, marginBottom: 12 }}>
+            <View style={{ gap: space.snug, marginBottom: space.close }}>
               <AppText muted>
                 Trade notes, plan study sessions, or just say hi.
               </AppText>

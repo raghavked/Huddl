@@ -100,8 +100,8 @@ function Well({ children }: { children: ReactNode }) {
   return (
     <View
       style={{
-        gap: 6,
-        padding: 12,
+        gap: space.snug,
+        padding: space.close,
         borderRadius: radius.control,
         borderWidth: 1,
         borderColor: theme.border,
@@ -156,7 +156,7 @@ function HiddenMessage({
 
   if (content) {
     return (
-      <View style={{ gap: 6 }}>
+      <View style={{ gap: space.snug }}>
         <AppText variant="label" muted>
           {content.kind === "direct" ? "The direct message" : "What they said"}
         </AppText>
@@ -173,13 +173,19 @@ function HiddenMessage({
   }
 
   return (
-    <View style={{ gap: 8 }}>
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+    <View style={{ gap: space.cosy }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-start",
+          gap: space.snug,
+        }}
+      >
         <Feather
           name="eye-off"
           size={13}
           color={theme.muted}
-          style={{ marginTop: 2 }}
+          style={{ marginTop: space.hair }}
         />
         <AppText variant="caption" muted style={{ flex: 1 }}>
           {empty
@@ -226,12 +232,18 @@ function Subject({ report }: { report: ModerationReport }) {
       return <HiddenMessage report={report} note={subject.note} />;
     }
     return (
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-start",
+          gap: space.snug,
+        }}
+      >
         <Feather
           name="eye-off"
           size={13}
           color={theme.muted}
-          style={{ marginTop: 2 }}
+          style={{ marginTop: space.hair }}
         />
         <AppText variant="caption" muted style={{ flex: 1 }}>
           {subject.note}
@@ -243,7 +255,7 @@ function Subject({ report }: { report: ModerationReport }) {
   if (subject.kind === "message") {
     const { message } = subject;
     return (
-      <View style={{ gap: 6 }}>
+      <View style={{ gap: space.snug }}>
         <AppText variant="label" muted>
           What they said
         </AppText>
@@ -267,7 +279,7 @@ function Subject({ report }: { report: ModerationReport }) {
   if (subject.kind === "post") {
     const { post } = subject;
     return (
-      <View style={{ gap: 6 }}>
+      <View style={{ gap: space.snug }}>
         <AppText variant="label" muted>
           The post
         </AppText>
@@ -286,14 +298,20 @@ function Subject({ report }: { report: ModerationReport }) {
 
   const { profile } = subject;
   return (
-    <View style={{ gap: 6 }}>
+    <View style={{ gap: space.snug }}>
       <AppText variant="label" muted>
         Their profile
       </AppText>
       <Well>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.room,
+          }}
+        >
           <Avatar url={profile.avatar_url} name={profile.display_name} size={36} />
-          <View style={{ flex: 1, gap: 2 }}>
+          <View style={{ flex: 1, gap: space.hair }}>
             <AppText variant="bodySemi" numberOfLines={1}>
               {profile.display_name}
             </AppText>
@@ -386,7 +404,11 @@ function ReportRow({
         ],
       }}
     >
-      <Card padded={false} entrance={index} style={{ marginBottom: 12 }}>
+      <Card
+        padded={false}
+        entrance={index}
+        style={{ marginBottom: space.close }}
+      >
         <Pressable
           accessibilityRole={route ? "button" : "text"}
           accessibilityLabel={title}
@@ -396,8 +418,8 @@ function ReportRow({
             if (route) router.push(route);
           }}
           style={({ pressed }) => ({
-            gap: 10,
-            padding: 16,
+            gap: space.room,
+            padding: space.card,
             opacity: pressed && route !== null ? 0.7 : 1,
           })}
         >
@@ -426,8 +448,8 @@ function ReportRow({
         <View
           style={{
             flexDirection: "row",
-            gap: 10,
-            padding: 12,
+            gap: space.room,
+            padding: space.close,
             borderTopWidth: 1,
             borderTopColor: theme.border,
           }}
@@ -441,7 +463,7 @@ function ReportRow({
               onPress={() => onTriage(action.status)}
               // Two-up inside a card is narrower than two-up on a screen, so
               // the label gets the padding back as room to breathe.
-              style={{ flex: 1, paddingHorizontal: 12 }}
+              style={{ flex: 1, paddingHorizontal: space.close }}
             />
           ))}
         </View>
@@ -451,8 +473,8 @@ function ReportRow({
             variant="caption"
             style={{
               color: theme.danger,
-              paddingHorizontal: 16,
-              paddingBottom: 14,
+              paddingHorizontal: space.card,
+              paddingBottom: space.card,
             }}
           >
             {error}
@@ -671,9 +693,9 @@ export default function ModerationScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 20 }}>
+      <View style={{ paddingHorizontal: space.gutter }}>
         {backChevron}
-        <AppText variant="display" style={{ marginTop: 2 }}>
+        <AppText variant="display" style={{ marginTop: space.hair }}>
           Reports
         </AppText>
       </View>
@@ -687,8 +709,8 @@ export default function ModerationScreen() {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
-        paddingHorizontal: 28,
+        gap: space.room,
+        paddingHorizontal: space.rest,
         paddingBottom: 80,
       }}
     >
@@ -721,7 +743,9 @@ export default function ModerationScreen() {
       error !== null ? (
         errorPane
       ) : (
-        <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
+        <View
+          style={{ paddingHorizontal: space.gutter, paddingTop: space.gutter }}
+        >
           {[0, 1, 2].map((index) => (
             <SkeletonRow key={index} avatar={false} lines={3} />
           ))}
@@ -734,7 +758,9 @@ export default function ModerationScreen() {
      a secret, it's just somebody else's chore. */
   if (!moderator) {
     return page(
-      <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+      <View
+        style={{ paddingHorizontal: space.gutter, marginTop: space.gutter }}
+      >
         <EmptyState
           illustration={Mug}
           title="This one's for the moderators"
@@ -749,7 +775,7 @@ export default function ModerationScreen() {
       <AppText
         variant="caption"
         muted
-        style={{ paddingHorizontal: 20, marginTop: 4 }}
+        style={{ paddingHorizontal: space.gutter, marginTop: space.tight }}
       >
         What campus has flagged. Take them one at a time — there's no clock on
         this.
@@ -760,12 +786,12 @@ export default function ModerationScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0, marginTop: 14, marginBottom: 14 }}
+        style={{ flexGrow: 0, marginTop: space.card, marginBottom: space.card }}
         contentContainerStyle={{
           alignItems: "center",
-          gap: 8,
-          paddingHorizontal: 20,
-          paddingVertical: 2,
+          gap: space.cosy,
+          paddingHorizontal: space.gutter,
+          paddingVertical: space.hair,
         }}
       >
         {STATUSES.map((candidate) => {
@@ -790,7 +816,7 @@ export default function ModerationScreen() {
       </ScrollView>
 
       {loading ? (
-        <View style={{ paddingHorizontal: 20 }}>
+        <View style={{ paddingHorizontal: space.gutter }}>
           {[0, 1, 2].map((index) => (
             <SkeletonRow key={index} avatar={false} lines={3} />
           ))}
@@ -804,7 +830,7 @@ export default function ModerationScreen() {
           renderItem={renderItem}
           style={{ flex: 1 }}
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: space.gutter,
             paddingBottom: insets.bottom + space.rest,
           }}
           showsVerticalScrollIndicator={false}
@@ -812,7 +838,7 @@ export default function ModerationScreen() {
             error !== null ? (
               <AppText
                 variant="caption"
-                style={{ color: theme.danger, marginBottom: 10 }}
+                style={{ color: theme.danger, marginBottom: space.room }}
               >
                 {error}
               </AppText>

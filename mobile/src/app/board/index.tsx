@@ -142,7 +142,7 @@ function BoardRow({
   const author = mine ? "You" : (post.author?.display_name ?? "Someone on campus");
 
   return (
-    <Card padded={false} entrance={index} style={{ marginBottom: 10 }}>
+    <Card padded={false} entrance={index} style={{ marginBottom: space.room }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${info.label}. ${post.title}${
@@ -150,8 +150,8 @@ function BoardRow({
         }`}
         onPress={onOpen}
         style={({ pressed }) => ({
-          gap: 8,
-          padding: 14,
+          gap: space.cosy,
+          padding: space.card,
           minHeight: 68,
           /* The step-back for a sorted post lives on the contents, not on the
              card: the card's own opacity belongs to its arrival. */
@@ -163,7 +163,7 @@ function BoardRow({
             flexDirection: "row",
             alignItems: "center",
             flexWrap: "wrap",
-            gap: 6,
+            gap: space.snug,
           }}
         >
           {closed ? (
@@ -332,10 +332,10 @@ export default function CampusBoardScreen() {
     >
       <View
         style={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
+          gap: space.close,
         }}
       >
         <Pressable
@@ -363,11 +363,11 @@ export default function CampusBoardScreen() {
         />
       </View>
 
-      <View style={{ paddingHorizontal: 20 }}>
-        <AppText variant="display" style={{ marginTop: 2 }}>
+      <View style={{ paddingHorizontal: space.gutter }}>
+        <AppText variant="display" style={{ marginTop: space.hair }}>
           Campus board
         </AppText>
-        <AppText variant="caption" muted style={{ marginTop: 4 }}>
+        <AppText variant="caption" muted style={{ marginTop: space.tight }}>
           Rides home, lost water bottles, couches that need a new apartment.
         </AppText>
       </View>
@@ -377,12 +377,12 @@ export default function CampusBoardScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0, marginTop: 14, marginBottom: 14 }}
+        style={{ flexGrow: 0, marginTop: space.card, marginBottom: space.card }}
         contentContainerStyle={{
           alignItems: "center",
-          gap: 8,
-          paddingHorizontal: 20,
-          paddingVertical: 2,
+          gap: space.cosy,
+          paddingHorizontal: space.gutter,
+          paddingVertical: space.hair,
         }}
       >
         <Chip
@@ -407,7 +407,7 @@ export default function CampusBoardScreen() {
       </ScrollView>
 
       {loading ? (
-        <View style={{ paddingHorizontal: 20 }}>
+        <View style={{ paddingHorizontal: space.gutter }}>
           {[0, 1, 2].map((index) => (
             <SkeletonRow key={index} avatar={false} lines={2} />
           ))}
@@ -418,8 +418,8 @@ export default function CampusBoardScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
-            paddingHorizontal: 28,
+            gap: space.room,
+            paddingHorizontal: space.rest,
             paddingBottom: 80,
           }}
         >
@@ -449,7 +449,7 @@ export default function CampusBoardScreen() {
           renderItem={renderItem}
           style={{ flex: 1 }}
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: space.gutter,
             paddingBottom: insets.bottom + space.rest,
           }}
           showsVerticalScrollIndicator={false}
@@ -457,7 +457,7 @@ export default function CampusBoardScreen() {
             error !== null ? (
               <AppText
                 variant="caption"
-                style={{ color: theme.danger, marginBottom: 10 }}
+                style={{ color: theme.danger, marginBottom: space.room }}
               >
                 {error}
               </AppText>

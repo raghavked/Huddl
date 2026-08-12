@@ -153,7 +153,7 @@ export default function NewChannelScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingTop: insets.top + space.close,
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
         keyboardShouldPersistTaps="handled"
@@ -175,16 +175,20 @@ export default function NewChannelScreen() {
           <Feather name="chevron-left" size={26} color={theme.foreground} />
         </Pressable>
 
-        <AppText variant="display" style={{ marginTop: 2 }}>
+        <AppText variant="display" style={{ marginTop: space.hair }}>
           Start a channel
         </AppText>
-        <AppText variant="caption" muted style={{ marginTop: 4, marginBottom: 16 }}>
+        <AppText
+          variant="caption"
+          muted
+          style={{ marginTop: space.tight, marginBottom: space.card }}
+        >
           Start a channel for anything your campus cares about — a hobby, a
           hunt for teammates, a very specific obsession.
         </AppText>
 
-        <Card style={{ gap: 14 }}>
-          <View style={{ gap: 6 }}>
+        <Card style={{ gap: space.card }}>
+          <View style={{ gap: space.snug }}>
             <Field
               label="Channel name"
               value={name}

@@ -895,7 +895,7 @@ export default function ThreadScreen() {
             flexDirection: "row",
             justifyContent: isOwn ? "flex-end" : "flex-start",
             alignItems: "flex-end",
-            gap: 8,
+            gap: space.cosy,
             marginTop: grouped ? 2 : 10,
           }}
         >
@@ -925,9 +925,9 @@ export default function ThreadScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "baseline",
-                  gap: 6,
-                  paddingHorizontal: 4,
-                  marginBottom: 2,
+                  gap: space.snug,
+                  paddingHorizontal: space.tight,
+                  marginBottom: space.hair,
                 }}
               >
                 <AppText variant="label" numberOfLines={1}>
@@ -1001,7 +1001,10 @@ export default function ThreadScreen() {
               <AppText
                 variant="caption"
                 muted
-                style={{ marginTop: 2, paddingHorizontal: 4 }}
+                style={{
+                  marginTop: space.hair,
+                  paddingHorizontal: space.tight,
+                }}
               >
                 {timeLabel(item.created_at)}
               </AppText>
@@ -1048,11 +1051,11 @@ export default function ThreadScreen() {
       <View
         style={{
           paddingTop: insets.top + space.close,
-          paddingBottom: 10,
-          paddingHorizontal: 12,
+          paddingBottom: space.room,
+          paddingHorizontal: space.close,
           flexDirection: "row",
           alignItems: "center",
-          gap: 8,
+          gap: space.cosy,
           borderBottomWidth: 1,
           borderBottomColor: theme.border,
           backgroundColor: theme.surface,
@@ -1087,8 +1090,8 @@ export default function ThreadScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
-            padding: 28,
+            gap: space.room,
+            padding: space.rest,
           }}
         >
           {status === "loading" ? (
@@ -1129,8 +1132,8 @@ export default function ThreadScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
-            padding: 28,
+            gap: space.room,
+            padding: space.rest,
           }}
         >
           <View
@@ -1163,8 +1166,8 @@ export default function ThreadScreen() {
             renderItem={renderReply}
             style={{ flex: 1 }}
             contentContainerStyle={{
-              paddingHorizontal: 16,
-              paddingBottom: 12,
+              paddingHorizontal: space.card,
+              paddingBottom: space.close,
             }}
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
@@ -1182,7 +1185,7 @@ export default function ThreadScreen() {
               listRef.current?.scrollToEnd({ animated: true });
             }}
             ListHeaderComponent={
-              <View style={{ paddingTop: 12 }}>
+              <View style={{ paddingTop: space.close }}>
                 <Pressable
                   accessibilityHint={
                     parentVisible && parent && !parent.deleted_at
@@ -1196,7 +1199,7 @@ export default function ThreadScreen() {
                   }}
                   delayLongPress={300}
                 >
-                  <Card style={{ padding: 12, gap: 8 }}>
+                  <Card style={{ padding: space.close, gap: space.cosy }}>
                     <AuthorLink
                       handle={
                         parentVisible ? parent?.author?.handle : undefined
@@ -1205,7 +1208,7 @@ export default function ThreadScreen() {
                       style={{
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: 8,
+                        gap: space.cosy,
                       }}
                     >
                       <Avatar
@@ -1273,9 +1276,9 @@ export default function ThreadScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 10,
-                    marginTop: 16,
-                    marginBottom: 2,
+                    gap: space.room,
+                    marginTop: space.card,
+                    marginBottom: space.hair,
                   }}
                 >
                   <AppText variant="label" muted>
@@ -1288,7 +1291,9 @@ export default function ThreadScreen() {
               </View>
             }
             ListEmptyComponent={
-              <View style={{ paddingVertical: 24, alignItems: "center" }}>
+              <View
+                style={{ paddingVertical: space.chapter, alignItems: "center" }}
+              >
                 <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
                   No replies yet — start the thread.
                 </AppText>
@@ -1318,11 +1323,11 @@ export default function ThreadScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 8,
-                marginHorizontal: 16,
-                marginBottom: 6,
-                paddingHorizontal: 12,
-                paddingVertical: 8,
+                gap: space.cosy,
+                marginHorizontal: space.card,
+                marginBottom: space.snug,
+                paddingHorizontal: space.close,
+                paddingVertical: space.cosy,
                 borderRadius: radius.control,
                 backgroundColor: theme.accentSoft,
               }}
@@ -1342,11 +1347,11 @@ export default function ThreadScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 8,
-                marginHorizontal: 16,
-                marginBottom: 6,
-                paddingHorizontal: 12,
-                paddingVertical: 8,
+                gap: space.cosy,
+                marginHorizontal: space.card,
+                marginBottom: space.snug,
+                paddingHorizontal: space.close,
+                paddingVertical: space.cosy,
                 borderRadius: radius.control,
                 backgroundColor: theme.surface2,
               }}
@@ -1376,8 +1381,8 @@ export default function ThreadScreen() {
             <View
               accessibilityLabel="Mention a channel member"
               style={{
-                marginHorizontal: 16,
-                marginBottom: 6,
+                marginHorizontal: space.card,
+                marginBottom: space.snug,
                 borderWidth: 1,
                 borderColor: theme.border,
                 borderRadius: radius.control,
@@ -1397,8 +1402,8 @@ export default function ThreadScreen() {
                     minHeight: 44,
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 8,
-                    paddingHorizontal: 12,
+                    gap: space.cosy,
+                    paddingHorizontal: space.close,
                     backgroundColor: pressed ? theme.surface2 : "transparent",
                   })}
                 >
@@ -1423,11 +1428,11 @@ export default function ThreadScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 8,
-                marginHorizontal: 16,
-                marginBottom: 6,
-                paddingHorizontal: 12,
-                paddingVertical: 4,
+                gap: space.cosy,
+                marginHorizontal: space.card,
+                marginBottom: space.snug,
+                paddingHorizontal: space.close,
+                paddingVertical: space.tight,
                 borderRadius: radius.control,
                 backgroundColor: theme.brandSoft,
               }}
@@ -1460,9 +1465,9 @@ export default function ThreadScreen() {
             style={{
               flexDirection: "row",
               alignItems: "flex-end",
-              gap: 10,
-              paddingHorizontal: 16,
-              paddingTop: 8,
+              gap: space.room,
+              paddingHorizontal: space.card,
+              paddingTop: space.cosy,
               paddingBottom: Math.max(insets.bottom, 8),
               borderTopWidth: 1,
               borderTopColor: theme.border,
@@ -1494,6 +1499,8 @@ export default function ThreadScreen() {
                 borderColor: theme.border,
                 borderRadius: 22,
                 backgroundColor: theme.background,
+                /* Field's metrics, not the ladder: 14 across, 11 top and
+                   bottom, centring a 15/21 line in the 44px pill. */
                 paddingHorizontal: 14,
                 paddingTop: 11,
                 paddingBottom: 11,
@@ -1569,7 +1576,7 @@ export default function ThreadScreen() {
       >
         {blockFor ? (
           <>
-            <AppText muted style={{ marginBottom: 8 }}>
+            <AppText muted style={{ marginBottom: space.cosy }}>
               They won't be able to DM you, their messages leave this thread,
               and you won't see their posts. They're never told.
             </AppText>
@@ -1640,7 +1647,7 @@ export default function ThreadScreen() {
                 style={{
                   height: 1,
                   backgroundColor: theme.border,
-                  marginVertical: 4,
+                  marginVertical: space.tight,
                 }}
               />
               <Sheet.Row

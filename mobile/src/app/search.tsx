@@ -249,8 +249,8 @@ function CenteredState({
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
-        padding: 28,
+        gap: space.room,
+        padding: space.rest,
         paddingBottom: 96,
       }}
     >
@@ -317,11 +317,11 @@ function RecentRow({
           minWidth: 0,
           flexDirection: "row",
           alignItems: "center",
-          gap: 10,
+          gap: space.room,
           minHeight: 48,
-          paddingLeft: 14,
-          paddingRight: 4,
-          paddingVertical: 8,
+          paddingLeft: space.card,
+          paddingRight: space.tight,
+          paddingVertical: space.cosy,
           opacity: pressed ? 0.7 : 1,
         })}
       >
@@ -377,7 +377,10 @@ function HitRow({ hit, index }: { hit: Hit; index: number }) {
       accessibilityRole="button"
       accessibilityLabel={hitLabel(hit)}
       onPress={() => router.push(hit.href)}
-      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, marginBottom: 8 })}
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.85 : 1,
+        marginBottom: space.cosy,
+      })}
     >
       <Card
         padded={false}
@@ -388,9 +391,9 @@ function HitRow({ hit, index }: { hit: Hit; index: number }) {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 10,
+          gap: space.close,
+          paddingHorizontal: space.card,
+          paddingVertical: space.room,
           minHeight: 60,
         }}
       >
@@ -410,12 +413,18 @@ function HitRow({ hit, index }: { hit: Hit; index: number }) {
             <Feather name={hit.icon} size={18} color={theme.brand} />
           </View>
         )}
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
           <AppText variant="bodySemi" numberOfLines={1}>
             {hit.title}
           </AppText>
           {hit.caption ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.tight,
+              }}
+            >
               {hit.locked ? (
                 <Feather name="lock" size={11} color={theme.muted} />
               ) : null}
@@ -703,7 +712,7 @@ export default function SearchScreen() {
         flex: 1,
         backgroundColor: theme.background,
         paddingTop: insets.top + space.close,
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
       }}
     >
       <Pressable
@@ -732,7 +741,7 @@ export default function SearchScreen() {
       <AppText
         variant="display"
         accessibilityRole="header"
-        style={{ marginTop: 2, marginBottom: 12 }}
+        style={{ marginTop: space.hair, marginBottom: space.close }}
       >
         Search
       </AppText>
@@ -755,12 +764,12 @@ export default function SearchScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        style={{ flexGrow: 0, marginTop: 12, marginHorizontal: -20 }}
+        style={{ flexGrow: 0, marginTop: space.close, marginHorizontal: -20 }}
         contentContainerStyle={{
           alignItems: "center",
-          gap: 8,
-          paddingHorizontal: 20,
-          paddingVertical: 2,
+          gap: space.cosy,
+          paddingHorizontal: space.gutter,
+          paddingVertical: space.hair,
         }}
       >
         <Chip
@@ -789,7 +798,11 @@ export default function SearchScreen() {
         variant="caption"
         muted
         accessibilityLiveRegion="polite"
-        style={{ minHeight: 16, marginTop: 8, marginBottom: 4 }}
+        style={{
+          minHeight: 16,
+          marginTop: space.cosy,
+          marginBottom: space.tight,
+        }}
       >
         {status}
       </AppText>
@@ -800,7 +813,7 @@ export default function SearchScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 12,
+            gap: space.close,
             paddingBottom: 96,
           }}
         >
@@ -834,7 +847,7 @@ export default function SearchScreen() {
           <ScrollView
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
-            style={{ flex: 1, marginTop: 4 }}
+            style={{ flex: 1, marginTop: space.tight }}
             contentContainerStyle={{
               paddingBottom: insets.bottom + space.rest,
             }}
@@ -843,9 +856,9 @@ export default function SearchScreen() {
             <View
               style={{
                 alignItems: "center",
-                gap: 10,
-                paddingTop: 20,
-                paddingHorizontal: 8,
+                gap: space.room,
+                paddingTop: space.gutter,
+                paddingHorizontal: space.cosy,
               }}
             >
               <View
@@ -911,7 +924,7 @@ export default function SearchScreen() {
                 variant="label"
                 muted
                 accessibilityRole="header"
-                style={{ marginTop: 16, marginBottom: 8 }}
+                style={{ marginTop: space.card, marginBottom: space.cosy }}
               >
                 {section.title}
               </AppText>
@@ -920,7 +933,7 @@ export default function SearchScreen() {
           stickySectionHeadersEnabled={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          style={{ flex: 1, marginTop: 4 }}
+          style={{ flex: 1, marginTop: space.tight }}
           contentContainerStyle={{
             paddingTop: filter === null ? 0 : 12,
             paddingBottom: insets.bottom + space.rest,

@@ -124,7 +124,7 @@ function NotificationItem({
       onPress={() => onPress(item)}
       style={({ pressed }) => ({
         opacity: pressed ? 0.85 : 1,
-        marginBottom: 10,
+        marginBottom: space.room,
       })}
     >
       <Card
@@ -137,9 +137,9 @@ function NotificationItem({
         style={{
           flexDirection: "row",
           alignItems: "flex-start",
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
+          gap: space.close,
+          paddingHorizontal: space.card,
+          paddingVertical: space.close,
           minHeight: 68,
         }}
       >
@@ -160,7 +160,7 @@ function NotificationItem({
             color={unread ? theme.brand : theme.muted}
           />
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: space.hair }}>
           <AppText variant="bodySemi" numberOfLines={2}>
             {item.title}
           </AppText>
@@ -182,7 +182,7 @@ function NotificationItem({
               height: 8,
               borderRadius: radius.full,
               backgroundColor: theme.brand,
-              marginTop: 6,
+              marginTop: space.snug,
             }}
           />
         ) : null}
@@ -327,7 +327,7 @@ export default function NotificationsScreen() {
         flex: 1,
         backgroundColor: theme.background,
         paddingTop: insets.top + space.close,
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
       }}
     >
       {/* Back + the one header action, on the same 44px line. */}
@@ -375,8 +375,8 @@ export default function NotificationsScreen() {
             minHeight: 44,
             flexDirection: "row",
             alignItems: "center",
-            gap: 6,
-            paddingHorizontal: 4,
+            gap: space.snug,
+            paddingHorizontal: space.tight,
             opacity: pressed ? 0.6 : 1,
           })}
         >
@@ -403,7 +403,7 @@ export default function NotificationsScreen() {
       <AppText
         variant="display"
         accessibilityRole="header"
-        style={{ marginTop: 2 }}
+        style={{ marginTop: space.hair }}
       >
         Notifications
       </AppText>
@@ -413,7 +413,11 @@ export default function NotificationsScreen() {
         variant="caption"
         muted
         accessibilityLiveRegion="polite"
-        style={{ minHeight: 16, marginTop: 4, marginBottom: 12 }}
+        style={{
+          minHeight: 16,
+          marginTop: space.tight,
+          marginBottom: space.close,
+        }}
       >
         {items === null
           ? ""
@@ -425,7 +429,7 @@ export default function NotificationsScreen() {
         <AppText
           variant="caption"
           accessibilityLiveRegion="polite"
-          style={{ color: theme.danger, marginBottom: 10 }}
+          style={{ color: theme.danger, marginBottom: space.room }}
         >
           {markAllError}
         </AppText>
@@ -444,7 +448,7 @@ export default function NotificationsScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
+            gap: space.room,
             paddingBottom: 80,
           }}
         >
@@ -488,7 +492,7 @@ export default function NotificationsScreen() {
               <AppText
                 variant="caption"
                 accessibilityLiveRegion="polite"
-                style={{ color: theme.danger, marginBottom: 10 }}
+                style={{ color: theme.danger, marginBottom: space.room }}
               >
                 We couldn't refresh just now — pull down to try again.
               </AppText>
@@ -506,7 +510,7 @@ export default function NotificationsScreen() {
               <AppText
                 variant="caption"
                 muted
-                style={{ textAlign: "center", marginTop: 4 }}
+                style={{ textAlign: "center", marginTop: space.tight }}
               >
                 Showing your {PAGE_SIZE} most recent notifications.
               </AppText>

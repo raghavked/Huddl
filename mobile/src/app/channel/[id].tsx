@@ -300,9 +300,9 @@ function DaySeparator({ label }: { label: string }) {
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 10,
-        marginTop: 18,
-        marginBottom: 4,
+        gap: space.room,
+        marginTop: space.gutter,
+        marginBottom: space.tight,
       }}
     >
       <View style={{ flex: 1, height: 1, backgroundColor: theme.border }} />
@@ -1671,7 +1671,7 @@ export default function ChannelRoomScreen() {
               flexDirection: "row",
               justifyContent: isOwn ? "flex-end" : "flex-start",
               alignItems: "flex-end",
-              gap: 8,
+              gap: space.cosy,
               marginTop: grouped ? 2 : 10,
             }}
           >
@@ -1701,9 +1701,9 @@ export default function ChannelRoomScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "baseline",
-                    gap: 6,
-                    paddingHorizontal: 4,
-                    marginBottom: 2,
+                    gap: space.snug,
+                    paddingHorizontal: space.tight,
+                    marginBottom: space.hair,
                   }}
                 >
                   <AppText variant="label" numberOfLines={1}>
@@ -1781,7 +1781,10 @@ export default function ChannelRoomScreen() {
                 <AppText
                   variant="caption"
                   muted
-                  style={{ marginTop: 2, paddingHorizontal: 4 }}
+                  style={{
+                    marginTop: space.hair,
+                    paddingHorizontal: space.tight,
+                  }}
                 >
                   {timeLabel(item.created_at)}
                 </AppText>
@@ -1791,8 +1794,8 @@ export default function ChannelRoomScreen() {
                   style={{
                     flexDirection: "row",
                     flexWrap: "wrap",
-                    gap: 4,
-                    marginTop: 4,
+                    gap: space.tight,
+                    marginTop: space.tight,
                     justifyContent: isOwn ? "flex-end" : "flex-start",
                   }}
                 >
@@ -1808,8 +1811,8 @@ export default function ChannelRoomScreen() {
                       style={({ pressed }) => ({
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: 4,
-                        paddingHorizontal: 8,
+                        gap: space.tight,
+                        paddingHorizontal: space.cosy,
                         paddingVertical: 3,
                         borderRadius: radius.full,
                         borderWidth: 1,
@@ -1846,9 +1849,9 @@ export default function ChannelRoomScreen() {
                   style={({ pressed }) => ({
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 4,
-                    marginTop: 4,
-                    paddingHorizontal: 4,
+                    gap: space.tight,
+                    marginTop: space.tight,
+                    paddingHorizontal: space.tight,
                     opacity: pressed ? 0.6 : 1,
                   })}
                 >
@@ -1935,7 +1938,7 @@ export default function ChannelRoomScreen() {
           paddingTop: insets.top + space.close,
         }}
       >
-        <View style={{ paddingHorizontal: 12 }}>
+        <View style={{ paddingHorizontal: space.close }}>
           <BackChevron onPress={goBack} />
         </View>
         <View
@@ -1943,8 +1946,8 @@ export default function ChannelRoomScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
-            padding: 28,
+            gap: space.room,
+            padding: space.rest,
           }}
         >
           {status === "loading" ? (
@@ -2111,11 +2114,11 @@ export default function ChannelRoomScreen() {
       <View
         style={{
           paddingTop: insets.top + space.close,
-          paddingBottom: 10,
-          paddingHorizontal: 12,
+          paddingBottom: space.room,
+          paddingHorizontal: space.close,
           flexDirection: "row",
           alignItems: "center",
-          gap: 8,
+          gap: space.cosy,
           borderBottomWidth: 1,
           borderBottomColor: theme.border,
           backgroundColor: theme.surface,
@@ -2146,7 +2149,7 @@ export default function ChannelRoomScreen() {
               minHeight: 44,
               flexDirection: "row",
               alignItems: "center",
-              gap: 4,
+              gap: space.tight,
               opacity: pressed ? 0.6 : 1,
             })}
           >
@@ -2227,9 +2230,9 @@ export default function ChannelRoomScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 4,
-            paddingHorizontal: 12,
-            paddingVertical: 8,
+            gap: space.tight,
+            paddingHorizontal: space.close,
+            paddingVertical: space.cosy,
             borderBottomWidth: 1,
             borderBottomColor: theme.border,
             backgroundColor: theme.surface,
@@ -2254,6 +2257,7 @@ export default function ChannelRoomScreen() {
               borderColor: theme.border,
               borderRadius: 22,
               backgroundColor: theme.background,
+              /* 14 across, the same as Field — an input is an input. */
               paddingHorizontal: 14,
               fontFamily: fonts.body,
               fontSize: 15,
@@ -2291,8 +2295,8 @@ export default function ChannelRoomScreen() {
             minHeight: 44,
             flexDirection: "row",
             alignItems: "center",
-            gap: 8,
-            paddingHorizontal: 16,
+            gap: space.cosy,
+            paddingHorizontal: space.card,
             borderBottomWidth: 1,
             borderBottomColor: theme.border,
             backgroundColor: pressed ? theme.surface2 : theme.surface,
@@ -2325,7 +2329,7 @@ export default function ChannelRoomScreen() {
                 flex: 1,
                 alignItems: "center",
                 justifyContent: "center",
-                padding: 28,
+                padding: space.rest,
               }}
             >
               <ActivityIndicator size="small" color={theme.brand} />
@@ -2336,7 +2340,7 @@ export default function ChannelRoomScreen() {
                 flex: 1,
                 alignItems: "center",
                 justifyContent: "center",
-                padding: 28,
+                padding: space.rest,
               }}
             >
               <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
@@ -2347,8 +2351,8 @@ export default function ChannelRoomScreen() {
             <ScrollView
               style={{ flex: 1 }}
               contentContainerStyle={{
-                paddingHorizontal: 16,
-                paddingVertical: 12,
+                paddingHorizontal: space.card,
+                paddingVertical: space.close,
               }}
               keyboardDismissMode="on-drag"
               keyboardShouldPersistTaps="handled"
@@ -2366,8 +2370,8 @@ export default function ChannelRoomScreen() {
                   onPress={() => openSearchResult(m)}
                   style={({ pressed }) => ({
                     minHeight: 44,
-                    paddingVertical: 10,
-                    gap: 6,
+                    paddingVertical: space.room,
+                    gap: space.snug,
                     borderTopWidth: i === 0 ? 0 : 1,
                     borderTopColor: theme.border,
                     opacity: pressed ? 0.6 : 1,
@@ -2377,7 +2381,7 @@ export default function ChannelRoomScreen() {
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      gap: 6,
+                      gap: space.snug,
                     }}
                   >
                     <AppText variant="label" numberOfLines={1}>
@@ -2416,8 +2420,8 @@ export default function ChannelRoomScreen() {
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
-              gap: 10,
-              padding: 28,
+              gap: space.room,
+              padding: space.rest,
             }}
           >
             <View
@@ -2456,8 +2460,8 @@ export default function ChannelRoomScreen() {
             renderItem={renderMessage}
             style={{ flex: 1 }}
             contentContainerStyle={{
-              paddingHorizontal: 16,
-              paddingVertical: 12,
+              paddingHorizontal: space.card,
+              paddingVertical: space.close,
             }}
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
@@ -2499,7 +2503,7 @@ export default function ChannelRoomScreen() {
             // "beginning of the channel" note.
             ListFooterComponent={
               visibleMessages.length < PAGE_SIZE ? (
-                <View style={{ paddingVertical: 16, gap: 2 }}>
+                <View style={{ paddingVertical: space.card, gap: space.hair }}>
                   <AppText variant="title">Welcome to {title}</AppText>
                   <AppText variant="caption" muted>
                     This is the very beginning of the channel.
@@ -2514,8 +2518,8 @@ export default function ChannelRoomScreen() {
           style={{
             minHeight: 18,
             justifyContent: "flex-end",
-            paddingHorizontal: 16,
-            paddingBottom: 2,
+            paddingHorizontal: space.card,
+            paddingBottom: space.hair,
           }}
         >
           <AppText
@@ -2541,8 +2545,8 @@ export default function ChannelRoomScreen() {
         {openPolls.length > 0 ? (
           <View
             style={{
-              marginHorizontal: 16,
-              marginBottom: 6,
+              marginHorizontal: space.card,
+              marginBottom: space.snug,
               borderWidth: 1,
               borderColor: theme.border,
               borderRadius: radius.control,
@@ -2568,9 +2572,9 @@ export default function ChannelRoomScreen() {
                 minHeight: 44,
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 8,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
+                gap: space.cosy,
+                paddingHorizontal: space.close,
+                paddingVertical: space.snug,
                 backgroundColor: pressed ? theme.surface2 : "transparent",
               })}
             >
@@ -2594,7 +2598,7 @@ export default function ChannelRoomScreen() {
             {pollsExpanded ? (
               <ScrollView
                 style={{ maxHeight: 320 }}
-                contentContainerStyle={{ padding: 10, gap: 10 }}
+                contentContainerStyle={{ padding: space.room, gap: space.room }}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
                 nestedScrollEnabled
@@ -2613,11 +2617,11 @@ export default function ChannelRoomScreen() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 8,
-              marginHorizontal: 16,
-              marginBottom: 6,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
+              gap: space.cosy,
+              marginHorizontal: space.card,
+              marginBottom: space.snug,
+              paddingHorizontal: space.close,
+              paddingVertical: space.cosy,
               borderRadius: radius.control,
               backgroundColor: theme.accentSoft,
             }}
@@ -2634,11 +2638,11 @@ export default function ChannelRoomScreen() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 8,
-              marginHorizontal: 16,
-              marginBottom: 6,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
+              gap: space.cosy,
+              marginHorizontal: space.card,
+              marginBottom: space.snug,
+              paddingHorizontal: space.close,
+              paddingVertical: space.cosy,
               borderRadius: radius.control,
               backgroundColor: theme.surface2,
             }}
@@ -2671,8 +2675,8 @@ export default function ChannelRoomScreen() {
           <View
             accessibilityLabel="Mention a channel member"
             style={{
-              marginHorizontal: 16,
-              marginBottom: 6,
+              marginHorizontal: space.card,
+              marginBottom: space.snug,
               borderWidth: 1,
               borderColor: theme.border,
               borderRadius: radius.control,
@@ -2690,8 +2694,8 @@ export default function ChannelRoomScreen() {
                   minHeight: 44,
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 8,
-                  paddingHorizontal: 12,
+                  gap: space.cosy,
+                  paddingHorizontal: space.close,
                   backgroundColor: pressed ? theme.surface2 : "transparent",
                 })}
               >
@@ -2716,11 +2720,11 @@ export default function ChannelRoomScreen() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 8,
-              marginHorizontal: 16,
-              marginBottom: 6,
-              paddingHorizontal: 12,
-              paddingVertical: 4,
+              gap: space.cosy,
+              marginHorizontal: space.card,
+              marginBottom: space.snug,
+              paddingHorizontal: space.close,
+              paddingVertical: space.tight,
               borderRadius: radius.control,
               backgroundColor: theme.brandSoft,
             }}
@@ -2753,9 +2757,9 @@ export default function ChannelRoomScreen() {
           style={{
             flexDirection: "row",
             alignItems: "flex-end",
-            gap: 10,
-            paddingHorizontal: 16,
-            paddingTop: 8,
+            gap: space.room,
+            paddingHorizontal: space.card,
+            paddingTop: space.cosy,
             paddingBottom: Math.max(insets.bottom, 8),
             borderTopWidth: 1,
             borderTopColor: theme.border,
@@ -2815,6 +2819,8 @@ export default function ChannelRoomScreen() {
               borderColor: theme.border,
               borderRadius: 22,
               backgroundColor: theme.background,
+              /* Field's own input metrics, not the ladder: 14 across and 11 top
+                 and bottom centres a 15/21 line in the 44px pill. */
               paddingHorizontal: 14,
               paddingTop: 11,
               paddingBottom: 11,
@@ -2873,21 +2879,21 @@ export default function ChannelRoomScreen() {
         title="Pinned messages"
       >
         {visiblePinned.length === 0 ? (
-          <AppText muted style={{ paddingVertical: 16 }}>
+          <AppText muted style={{ paddingVertical: space.card }}>
             Nothing pinned right now.
           </AppText>
         ) : (
           <ScrollView
             style={{ flexGrow: 0 }}
-            contentContainerStyle={{ paddingBottom: 4 }}
+            contentContainerStyle={{ paddingBottom: space.tight }}
             showsVerticalScrollIndicator={false}
           >
             {visiblePinned.map((m, i) => (
               <View
                 key={m.id}
                 style={{
-                  paddingVertical: 10,
-                  gap: 4,
+                  paddingVertical: space.room,
+                  gap: space.tight,
                   borderTopWidth: i === 0 ? 0 : 1,
                   borderTopColor: theme.border,
                 }}
@@ -2896,7 +2902,7 @@ export default function ChannelRoomScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 6,
+                    gap: space.snug,
                   }}
                 >
                   <AppText variant="label" numberOfLines={1}>
@@ -2917,7 +2923,7 @@ export default function ChannelRoomScreen() {
                     hitSlop={10}
                     style={({ pressed }) => ({
                       minHeight: 32,
-                      paddingHorizontal: 10,
+                      paddingHorizontal: space.room,
                       borderRadius: radius.full,
                       backgroundColor: theme.surface2,
                       alignItems: "center",
@@ -3002,10 +3008,10 @@ export default function ChannelRoomScreen() {
             elevation="floating"
             padded={false}
             style={{
-              marginHorizontal: 12,
+              marginHorizontal: space.close,
               marginBottom: Math.max(insets.bottom, 12),
-              padding: 14,
-              gap: 4,
+              padding: space.card,
+              gap: space.tight,
             }}
           >
             <Sheet.Row
@@ -3050,7 +3056,7 @@ export default function ChannelRoomScreen() {
       >
         {blockFor ? (
           <>
-            <AppText muted style={{ marginBottom: 8 }}>
+            <AppText muted style={{ marginBottom: space.cosy }}>
               They won't be able to DM you, their messages leave this room,
               and you won't see their posts. They're never told.
             </AppText>
@@ -3071,11 +3077,11 @@ export default function ChannelRoomScreen() {
           </>
         ) : (
           <>
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: space.close }}>
             <AppText variant="caption" muted numberOfLines={2}>
               {actionsMessage?.content ?? ""}
             </AppText>
-            <View style={{ flexDirection: "row", gap: 10 }}>
+            <View style={{ flexDirection: "row", gap: space.room }}>
               {REACTION_EMOJI.map((emoji) => {
                 const mine = (
                   (actionsMessage ? reactionsByMessage[actionsMessage.id] : []) ??
@@ -3196,7 +3202,7 @@ export default function ChannelRoomScreen() {
                 style={{
                   height: 1,
                   backgroundColor: theme.border,
-                  marginVertical: 4,
+                  marginVertical: space.tight,
                 }}
               />
               <Sheet.Row

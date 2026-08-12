@@ -69,7 +69,7 @@ function MemberRow({
       onPress={() => router.push(`/u/${person.handle}`)}
       style={({ pressed }) => ({
         opacity: pressed ? 0.85 : 1,
-        marginBottom: 10,
+        marginBottom: space.room,
       })}
     >
       <Card
@@ -77,14 +77,14 @@ function MemberRow({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
+          gap: space.close,
+          paddingHorizontal: space.card,
+          paddingVertical: space.close,
           minHeight: 68,
         }}
       >
         <Avatar url={person.avatar_url} name={person.display_name} size={40} />
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
           <AppText variant="bodySemi" numberOfLines={1}>
             {person.display_name}
           </AppText>
@@ -337,9 +337,9 @@ export default function GroupInfoScreen() {
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
+        gap: space.cosy,
+        paddingHorizontal: space.close,
+        paddingVertical: space.cosy,
         borderRadius: radius.control,
         backgroundColor: theme.surface2,
       }}
@@ -371,11 +371,15 @@ export default function GroupInfoScreen() {
           style={{
             flex: 1,
             paddingTop: insets.top + space.close,
-            paddingHorizontal: 20,
+            paddingHorizontal: space.gutter,
           }}
         >
           <View
-            style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.snug,
+            }}
           >
             <Pressable
               accessibilityRole="button"
@@ -406,10 +410,10 @@ export default function GroupInfoScreen() {
           </View>
 
           {errorNote ? (
-            <View style={{ marginTop: 10 }}>{errorNote}</View>
+            <View style={{ marginTop: space.room }}>{errorNote}</View>
           ) : null}
 
-          <View style={{ flex: 1, marginTop: 12 }}>
+          <View style={{ flex: 1, marginTop: space.close }}>
             {full ? (
               <EmptyState
                 icon="users"
@@ -426,7 +430,11 @@ export default function GroupInfoScreen() {
                 autoFocus
                 paddingBottom={insets.bottom + space.chapter}
                 header={
-                  <AppText variant="caption" muted style={{ marginBottom: 12 }}>
+                  <AppText
+                    variant="caption"
+                    muted
+                    style={{ marginBottom: space.close }}
+                  >
                     Everyone in {display.title} is on your campus — that's the
                     only rule. Tap someone to add them right away.
                   </AppText>
@@ -448,7 +456,7 @@ export default function GroupInfoScreen() {
         style={{
           flex: 1,
           paddingTop: insets.top + space.close,
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
         }}
       >
         {backButton}
@@ -459,7 +467,7 @@ export default function GroupInfoScreen() {
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
-              gap: 12,
+              gap: space.close,
               paddingBottom: 80,
             }}
           >
@@ -474,7 +482,7 @@ export default function GroupInfoScreen() {
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
-              gap: 10,
+              gap: space.room,
               paddingBottom: 80,
             }}
           >
@@ -501,7 +509,7 @@ export default function GroupInfoScreen() {
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
-              gap: 10,
+              gap: space.room,
               paddingBottom: 80,
             }}
           >
@@ -543,7 +551,7 @@ export default function GroupInfoScreen() {
             }
           >
             {editingTitle ? (
-              <View style={{ gap: 10, marginTop: 2 }}>
+              <View style={{ gap: space.room, marginTop: space.hair }}>
                 <Field
                   label="Group name"
                   value={titleDraft}
@@ -553,7 +561,7 @@ export default function GroupInfoScreen() {
                   autoFocus
                   editable={!renaming}
                 />
-                <View style={{ flexDirection: "row", gap: 8 }}>
+                <View style={{ flexDirection: "row", gap: space.cosy }}>
                   <Button
                     label="Save name"
                     size="sm"
@@ -574,15 +582,19 @@ export default function GroupInfoScreen() {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 8,
-                  marginTop: 2,
+                  gap: space.cosy,
+                  marginTop: space.hair,
                 }}
               >
                 <View style={{ flex: 1 }}>
                   <AppText variant="display" numberOfLines={2}>
                     {display.title}
                   </AppText>
-                  <AppText variant="caption" muted style={{ marginTop: 4 }}>
+                  <AppText
+                    variant="caption"
+                    muted
+                    style={{ marginTop: space.tight }}
+                  >
                     {display.subtitle ?? "Group chat"} · anyone here can rename
                     it
                   </AppText>
@@ -608,7 +620,7 @@ export default function GroupInfoScreen() {
             )}
 
             {errorNote ? (
-              <View style={{ marginTop: 12 }}>{errorNote}</View>
+              <View style={{ marginTop: space.close }}>{errorNote}</View>
             ) : null}
 
             <SectionLabel text="In this group" />
@@ -641,12 +653,16 @@ export default function GroupInfoScreen() {
                 setRowError(null);
                 setAdding(true);
               }}
-              style={{ marginTop: 4 }}
+              style={{ marginTop: space.tight }}
             />
 
             <SectionLabel text="Leaving" />
 
-            <AppText variant="caption" muted style={{ marginBottom: 10 }}>
+            <AppText
+              variant="caption"
+              muted
+              style={{ marginBottom: space.room }}
+            >
               Everyone else keeps the chat and its history. You just stop
               hearing about it.
             </AppText>

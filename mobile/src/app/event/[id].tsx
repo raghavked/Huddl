@@ -178,11 +178,18 @@ function MetaRow({
 }) {
   const theme = useTheme();
   return (
-    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: space.cosy,
+      }}
+    >
       <Feather
         name={icon}
         size={15}
         color={theme.muted}
+        /* Optical: drops the 15px glyph onto the cap-height beside it. */
         style={{ marginTop: 3 }}
       />
       <View style={{ flex: 1, minWidth: 0 }}>{children}</View>
@@ -218,9 +225,9 @@ function AttendeeRow({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 10,
-        paddingHorizontal: 14,
-        paddingVertical: 8,
+        gap: space.room,
+        paddingHorizontal: space.card,
+        paddingVertical: space.cosy,
         minHeight: 52,
         borderTopWidth: first ? 0 : 1,
         borderTopColor: theme.border,
@@ -470,7 +477,7 @@ export default function EventDetailScreen() {
           paddingTop: insets.top + space.close,
         }}
       >
-        <View style={{ paddingHorizontal: 12 }}>
+        <View style={{ paddingHorizontal: space.close }}>
           <BackChevron onPress={goBack} />
         </View>
         <View
@@ -478,8 +485,8 @@ export default function EventDetailScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
-            padding: 28,
+            gap: space.room,
+            padding: space.rest,
           }}
         >
           {status === "loading" ? (
@@ -560,7 +567,7 @@ export default function EventDetailScreen() {
       <View
         style={{
           paddingTop: insets.top + space.close,
-          paddingHorizontal: 12,
+          paddingHorizontal: space.close,
           flexDirection: "row",
           alignItems: "center",
         }}
@@ -597,8 +604,8 @@ export default function EventDetailScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
-          paddingTop: 4,
+          paddingHorizontal: space.gutter,
+          paddingTop: space.tight,
           paddingBottom: insets.bottom + space.rest,
         }}
         showsVerticalScrollIndicator={false}
@@ -623,9 +630,9 @@ export default function EventDetailScreen() {
             style={({ pressed }) => ({
               flexDirection: "row",
               alignItems: "center",
-              gap: 4,
+              gap: space.tight,
               alignSelf: "flex-start",
-              marginTop: 6,
+              marginTop: space.snug,
               opacity: pressed ? 0.6 : 1,
             })}
           >
@@ -642,7 +649,7 @@ export default function EventDetailScreen() {
             />
           </Pressable>
         ) : (
-          <AppText variant="caption" muted style={{ marginTop: 6 }}>
+          <AppText variant="caption" muted style={{ marginTop: space.snug }}>
             Hosted by{" "}
             <AppText variant="label" muted>
               {hostName}
@@ -650,15 +657,15 @@ export default function EventDetailScreen() {
           </AppText>
         )}
 
-        <Card style={{ marginTop: 16, gap: 14 }}>
-          <View style={{ flexDirection: "row", gap: 14 }}>
+        <Card style={{ marginTop: space.card, gap: space.card }}>
+          <View style={{ flexDirection: "row", gap: space.card }}>
             <DateTile iso={event.starts_at} />
-            <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
+            <View style={{ flex: 1, minWidth: 0, gap: space.cosy }}>
               <View
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 6,
+                  gap: space.snug,
                   flexWrap: "wrap",
                 }}
               >
@@ -695,7 +702,7 @@ export default function EventDetailScreen() {
               style={{
                 borderTopWidth: 1,
                 borderTopColor: theme.border,
-                paddingTop: 12,
+                paddingTop: space.close,
               }}
             >
               <AppText muted>{event.description}</AppText>
@@ -706,7 +713,13 @@ export default function EventDetailScreen() {
         <SectionLabel text="Your RSVP" />
 
         {isPast ? (
-          <Card padded={false} style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
+          <Card
+            padded={false}
+            style={{
+              paddingHorizontal: space.card,
+              paddingVertical: space.close,
+            }}
+          >
             <AppText muted>
               This event has ended
               {myStatus === "going" ? " — hope it was a good one." : "."}
@@ -717,7 +730,7 @@ export default function EventDetailScreen() {
             <View
               accessibilityRole="radiogroup"
               accessibilityLabel="Your RSVP"
-              style={{ flexDirection: "row", gap: 8 }}
+              style={{ flexDirection: "row", gap: space.cosy }}
             >
               {RSVP_OPTIONS.map(({ value, label, icon }) => {
                 const active = myStatus === value;
@@ -745,7 +758,11 @@ export default function EventDetailScreen() {
               })}
             </View>
             {goingBlocked && !rsvpError ? (
-              <AppText variant="caption" muted style={{ marginTop: 8 }}>
+              <AppText
+                variant="caption"
+                muted
+                style={{ marginTop: space.cosy }}
+              >
                 This event is full — you can still RSVP "maybe" in case a spot
                 opens up.
               </AppText>
@@ -753,7 +770,7 @@ export default function EventDetailScreen() {
             {rsvpError ? (
               <AppText
                 variant="caption"
-                style={{ color: theme.danger, marginTop: 8 }}
+                style={{ color: theme.danger, marginTop: space.cosy }}
               >
                 {rsvpError}
               </AppText>
@@ -766,7 +783,10 @@ export default function EventDetailScreen() {
         {going.length === 0 ? (
           <Card
             padded={false}
-            style={{ paddingHorizontal: 14, paddingVertical: 12 }}
+            style={{
+              paddingHorizontal: space.card,
+              paddingVertical: space.close,
+            }}
           >
             <AppText variant="caption" muted>
               {isPast
@@ -791,8 +811,8 @@ export default function EventDetailScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 6,
-            marginTop: 10,
+            gap: space.snug,
+            marginTop: space.room,
           }}
         >
           <Feather name="user" size={13} color={theme.muted} />

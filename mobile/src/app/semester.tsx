@@ -181,18 +181,18 @@ function PrivacyLine() {
       style={{
         flexDirection: "row",
         alignItems: "flex-start",
-        gap: 9,
-        padding: 12,
+        gap: space.room,
+        padding: space.close,
         borderRadius: radius.control,
         backgroundColor: theme.accentSoft,
-        marginTop: 10,
+        marginTop: space.room,
       }}
     >
       <Feather
         name="lock"
         size={14}
         color={theme.accent}
-        style={{ marginTop: 2 }}
+        style={{ marginTop: space.hair }}
       />
       <AppText variant="caption" style={{ flex: 1, lineHeight: 17 }}>
         Only you can see this. Huddl never shares your grades with classmates
@@ -227,7 +227,7 @@ function CourseCodeChip({
     <View
       style={{
         alignSelf: "flex-start",
-        paddingHorizontal: 8,
+        paddingHorizontal: space.cosy,
         paddingVertical: 3,
         borderRadius: radius.full,
         backgroundColor: tint.soft,
@@ -269,14 +269,18 @@ function SummaryCard({
   const scale = GRADE_POINT_MAX.toFixed(1);
 
   return (
-    <Card style={{ gap: 8 }}>
+    <Card style={{ gap: space.cosy }}>
       <AppText variant="caption" muted>
         Estimated GPA
       </AppText>
       <View
         accessible
         accessibilityLabel={`Estimated grade point average ${gpa} out of ${scale}`}
-        style={{ flexDirection: "row", alignItems: "flex-end", gap: 8 }}
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-end",
+          gap: space.cosy,
+        }}
       >
         <AppText
           variant="display"
@@ -289,7 +293,7 @@ function SummaryCard({
         >
           {gpa}
         </AppText>
-        <AppText variant="caption" muted style={{ marginBottom: 7 }}>
+        <AppText variant="caption" muted style={{ marginBottom: space.cosy }}>
           out of {scale}
         </AppText>
       </View>
@@ -349,7 +353,10 @@ function CourseRow({
       accessibilityLabel={rowLabel(course)}
       accessibilityHint="Opens your grades for this class"
       onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, marginBottom: 10 })}
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.7 : 1,
+        marginBottom: space.room,
+      })}
     >
       <Card
         padded={false}
@@ -357,19 +364,19 @@ function CourseRow({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 10,
-          paddingLeft: 14,
-          paddingRight: 10,
-          paddingVertical: 12,
+          gap: space.room,
+          paddingLeft: space.card,
+          paddingRight: space.room,
+          paddingVertical: space.close,
           minHeight: 68,
         }}
       >
-        <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: space.snug }}>
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 8,
+              gap: space.cosy,
               flexWrap: "wrap",
             }}
           >
@@ -385,7 +392,7 @@ function CourseRow({
           ) : null}
         </View>
 
-        <View style={{ alignItems: "flex-end", gap: 2 }}>
+        <View style={{ alignItems: "flex-end", gap: space.hair }}>
           {pct === null ? (
             <AppText variant="caption" muted>
               No grades yet
@@ -476,7 +483,7 @@ export default function SemesterScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 20 }}>
+      <View style={{ paddingHorizontal: space.gutter }}>
         <BackChevron onPress={goBack} />
       </View>
       {children}
@@ -484,7 +491,7 @@ export default function SemesterScreen() {
   );
 
   const header = (
-    <View style={{ marginBottom: 18 }}>
+    <View style={{ marginBottom: space.gutter }}>
       <AppText variant="display">This semester</AppText>
       <PrivacyLine />
     </View>
@@ -495,7 +502,7 @@ export default function SemesterScreen() {
   const scrollProps = {
     style: { flex: 1 },
     contentContainerStyle: {
-      paddingHorizontal: 20,
+      paddingHorizontal: space.gutter,
       paddingBottom: insets.bottom + space.rest,
     },
     showsVerticalScrollIndicator: false,
@@ -506,7 +513,7 @@ export default function SemesterScreen() {
       <ScrollView {...scrollProps}>
         {header}
         {/* The shape is honest — a number card over a short list of classes. */}
-        <Card style={{ gap: 10 }}>
+        <Card style={{ gap: space.room }}>
           <Skeleton width={92} height={11} radius={radius.full} />
           <Skeleton width={132} height={42} />
           <Skeleton width="80%" height={11} radius={radius.full} />
@@ -514,7 +521,10 @@ export default function SemesterScreen() {
         </Card>
         <SectionLabel text="Your classes" />
         {[0, 1, 2].map((index) => (
-          <Card key={index} style={{ gap: 9, marginBottom: 10 }}>
+          <Card
+            key={index}
+            style={{ gap: space.room, marginBottom: space.room }}
+          >
             <Skeleton width={78} height={14} radius={radius.full} />
             <Skeleton width="62%" height={12} radius={radius.full} />
           </Card>
@@ -560,7 +570,7 @@ export default function SemesterScreen() {
       {error ? (
         <AppText
           variant="caption"
-          style={{ color: theme.danger, marginBottom: 10 }}
+          style={{ color: theme.danger, marginBottom: space.room }}
         >
           {error}
         </AppText>
@@ -604,7 +614,7 @@ export default function SemesterScreen() {
           <AppText
             variant="caption"
             muted
-            style={{ marginTop: 6, lineHeight: 18 }}
+            style={{ marginTop: space.snug, lineHeight: 18 }}
           >
             The letters here follow one common 4.0 scale — an A is 4.0, an A-
             is 3.7, and nothing sits above 4.0. Plenty of schools count plus

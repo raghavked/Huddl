@@ -68,7 +68,7 @@ function CategoryChip({
       style={({ pressed }) => ({
         minHeight: 44,
         justifyContent: "center",
-        paddingHorizontal: 14,
+        paddingHorizontal: space.card,
         borderRadius: radius.full,
         borderWidth: 1,
         borderColor: selected ? theme.brand : theme.border,
@@ -286,7 +286,7 @@ export default function ReportScreen() {
           flex: 1,
           backgroundColor: theme.background,
           paddingTop: insets.top + space.close,
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
         }}
       >
         {backChevron}
@@ -295,7 +295,7 @@ export default function ReportScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
+            gap: space.room,
             paddingBottom: 80,
           }}
         >
@@ -319,7 +319,7 @@ export default function ReportScreen() {
           flex: 1,
           backgroundColor: theme.background,
           paddingTop: insets.top + space.close,
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
         }}
       >
         <View
@@ -327,7 +327,7 @@ export default function ReportScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 12,
+            gap: space.close,
             paddingBottom: 80,
           }}
         >
@@ -350,7 +350,13 @@ export default function ReportScreen() {
           {/* Reporting and blocking are one intent. The report is filed
               either way; this is the half that changes her day today. */}
           {canOfferBlock ? (
-            <View style={{ alignItems: "center", gap: 10, marginTop: 6 }}>
+            <View
+              style={{
+                alignItems: "center",
+                gap: space.room,
+                marginTop: space.snug,
+              }}
+            >
               <AppText
                 variant="caption"
                 muted
@@ -378,7 +384,13 @@ export default function ReportScreen() {
               <Button label="No thanks" variant="ghost" onPress={goBack} />
             </View>
           ) : blockTarget !== null && blocked.has(blockTarget) ? (
-            <View style={{ alignItems: "center", gap: 10, marginTop: 6 }}>
+            <View
+              style={{
+                alignItems: "center",
+                gap: space.room,
+                marginTop: space.snug,
+              }}
+            >
               <AppText
                 variant="caption"
                 muted
@@ -403,20 +415,20 @@ export default function ReportScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 20 }}>{backChevron}</View>
+      <View style={{ paddingHorizontal: space.gutter }}>{backChevron}</View>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
       >
-        <AppText variant="display" style={{ marginTop: 2 }}>
+        <AppText variant="display" style={{ marginTop: space.hair }}>
           Report
         </AppText>
-        <AppText variant="caption" muted style={{ marginTop: 6 }}>
+        <AppText variant="caption" muted style={{ marginTop: space.snug }}>
           You're reporting {subject}. Reports are private — they won't know it
           was you.
         </AppText>
@@ -426,9 +438,9 @@ export default function ReportScreen() {
         {context ? (
           <View
             style={{
-              marginTop: 12,
-              paddingLeft: 12,
-              paddingVertical: 2,
+              marginTop: space.close,
+              paddingLeft: space.close,
+              paddingVertical: space.hair,
               borderLeftWidth: 2,
               borderLeftColor: theme.border,
             }}
@@ -439,16 +451,21 @@ export default function ReportScreen() {
           </View>
         ) : null}
         {wordsDontTravel ? (
-          <AppText variant="caption" muted style={{ marginTop: 8 }}>
+          <AppText variant="caption" muted style={{ marginTop: space.cosy }}>
             We couldn't attach the message itself, so tell us below what was
             said.
           </AppText>
         ) : null}
 
-        <AppText variant="label" style={{ marginTop: 20, marginBottom: 10 }}>
+        <AppText
+          variant="label"
+          style={{ marginTop: space.gutter, marginBottom: space.room }}
+        >
           What's going on?
         </AppText>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        <View
+          style={{ flexDirection: "row", flexWrap: "wrap", gap: space.cosy }}
+        >
           {CATEGORIES.map((c) => (
             <CategoryChip
               key={c.value}
@@ -464,13 +481,13 @@ export default function ReportScreen() {
         {categoryError ? (
           <AppText
             variant="caption"
-            style={{ color: theme.danger, marginTop: 8 }}
+            style={{ color: theme.danger, marginTop: space.cosy }}
           >
             Pick the category that fits best.
           </AppText>
         ) : null}
 
-        <View style={{ marginTop: 20 }}>
+        <View style={{ marginTop: space.gutter }}>
           <Field
             label="Tell us a bit more"
             value={reason}
@@ -487,13 +504,13 @@ export default function ReportScreen() {
           <AppText
             variant="caption"
             muted
-            style={{ marginTop: 6, textAlign: "right" }}
+            style={{ marginTop: space.snug, textAlign: "right" }}
           >
             {reason.length}/500
           </AppText>
         </View>
 
-        <View style={{ marginTop: 12, gap: 10 }}>
+        <View style={{ marginTop: space.close, gap: space.room }}>
           <Button
             label="Send report"
             pending={submitting}

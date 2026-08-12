@@ -181,8 +181,8 @@ function CenteredState({
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        gap: 10,
-        padding: 28,
+        gap: space.room,
+        padding: space.rest,
       }}
     >
       <View
@@ -232,9 +232,9 @@ function AnnouncementRow({
   const content = (
     <View
       style={{
-        gap: 4,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
+        gap: space.tight,
+        paddingHorizontal: space.card,
+        paddingVertical: space.close,
         borderTopWidth: first ? 0 : 1,
         borderTopColor: theme.border,
       }}
@@ -553,19 +553,19 @@ export default function ClubHomeScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 12,
-            padding: 12,
+            gap: space.close,
+            padding: space.close,
             minHeight: 64,
-            marginBottom: 10,
+            marginBottom: space.room,
           }}
         >
           <Avatar url={item.profile?.avatar_url} name={name} size={40} />
-          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 6,
+                gap: space.snug,
                 flexWrap: "wrap",
               }}
             >
@@ -585,7 +585,11 @@ export default function ClubHomeScreen() {
             </View>
             {caption ? (
               <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: space.tight,
+                }}
               >
                 {locked ? (
                   <Feather name="lock" size={11} color={theme.muted} />
@@ -628,7 +632,7 @@ export default function ClubHomeScreen() {
           paddingTop: insets.top + space.close,
         }}
       >
-        <View style={{ paddingHorizontal: 12 }}>
+        <View style={{ paddingHorizontal: space.close }}>
           <BackChevron onPress={goBack} />
         </View>
         {status === "loading" ? (
@@ -637,7 +641,7 @@ export default function ClubHomeScreen() {
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
-              gap: 12,
+              gap: space.close,
             }}
           >
             <ActivityIndicator size="large" color={theme.brand} />
@@ -687,7 +691,7 @@ export default function ClubHomeScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 12 }}>
+      <View style={{ paddingHorizontal: space.close }}>
         <BackChevron onPress={goBack} />
       </View>
 
@@ -697,7 +701,7 @@ export default function ClubHomeScreen() {
         renderItem={renderMember}
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
         showsVerticalScrollIndicator={false}
@@ -711,14 +715,14 @@ export default function ClubHomeScreen() {
         }
         ListHeaderComponent={
           <View>
-            <View style={{ gap: 12 }}>
-              <View style={{ gap: 8 }}>
+            <View style={{ gap: space.close }}>
+              <View style={{ gap: space.cosy }}>
                 <AppText variant="display">{club.name}</AppText>
                 <View
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 8,
+                    gap: space.cosy,
                     flexWrap: "wrap",
                   }}
                 >
@@ -731,7 +735,7 @@ export default function ClubHomeScreen() {
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      gap: 4,
+                      gap: space.tight,
                     }}
                   >
                     <Feather name="user" size={12} color={theme.muted} />
@@ -773,7 +777,7 @@ export default function ClubHomeScreen() {
               ) : null}
 
               {!isMember ? (
-                <View style={{ gap: 8 }}>
+                <View style={{ gap: space.cosy }}>
                   <Button
                     label="Join club"
                     pending={busy}
@@ -820,7 +824,7 @@ export default function ClubHomeScreen() {
                 {postError ? (
                   <AppText
                     variant="caption"
-                    style={{ color: theme.danger, marginBottom: 10 }}
+                    style={{ color: theme.danger, marginBottom: space.room }}
                   >
                     {postError}
                   </AppText>
@@ -831,7 +835,7 @@ export default function ClubHomeScreen() {
                     <SkeletonRow avatar={false} lines={2} />
                   </View>
                 ) : announcementsError ? (
-                  <Card style={{ alignItems: "center", gap: 8 }}>
+                  <Card style={{ alignItems: "center", gap: space.cosy }}>
                     <Feather name="cloud-off" size={20} color={theme.muted} />
                     <AppText
                       variant="caption"
@@ -883,7 +887,7 @@ export default function ClubHomeScreen() {
 
             {/* Upcoming events — the club's next three plans. */}
             <SectionLabel text="Upcoming events" />
-            <View style={{ gap: 10 }}>
+            <View style={{ gap: space.room }}>
               {events.length > 0 ? (
                 <Card padded={false}>
                   {events.map((event, index) => (
@@ -898,9 +902,9 @@ export default function ClubHomeScreen() {
                         style={{
                           flexDirection: "row",
                           alignItems: "center",
-                          gap: 10,
-                          paddingHorizontal: 14,
-                          paddingVertical: 10,
+                          gap: space.room,
+                          paddingHorizontal: space.card,
+                          paddingVertical: space.room,
                           minHeight: 48,
                           borderTopWidth: index === 0 ? 0 : 1,
                           borderTopColor: theme.border,
@@ -915,7 +919,7 @@ export default function ClubHomeScreen() {
                           size={15}
                           color={theme.accent}
                         />
-                        <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                        <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
                           <AppText variant="bodyMedium" numberOfLines={1}>
                             {event.title}
                           </AppText>

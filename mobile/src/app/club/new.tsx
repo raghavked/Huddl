@@ -162,7 +162,7 @@ export default function NewClubScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={{ flex: 1, paddingTop: insets.top + space.close }}>
-        <View style={{ paddingHorizontal: 12 }}>
+        <View style={{ paddingHorizontal: space.close }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back"
@@ -183,26 +183,30 @@ export default function NewClubScreen() {
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: space.gutter,
             paddingBottom: insets.bottom + space.rest,
-            gap: 14,
+            gap: space.card,
           }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: space.snug }}>
             <AppText variant="display">Start a club</AppText>
             <AppText variant="caption" muted>
               Your club, live in a minute. Here's what founding one gets you:
             </AppText>
           </View>
 
-          <View style={{ gap: 10 }}>
+          <View style={{ gap: space.room }}>
             {PERKS.map((perk) => (
               <View
                 key={perk.text}
-                style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: space.room,
+                }}
               >
                 <View
                   style={{
@@ -223,7 +227,7 @@ export default function NewClubScreen() {
             ))}
           </View>
 
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: space.snug }}>
             <Field
               label="Club name"
               value={name}
@@ -237,9 +241,15 @@ export default function NewClubScreen() {
             </AppText>
           </View>
 
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: space.snug }}>
             <AppText variant="label">Category</AppText>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: space.cosy,
+              }}
+            >
               {CATEGORIES.map((option) => {
                 const selected = category === option;
                 return (
@@ -252,8 +262,8 @@ export default function NewClubScreen() {
                     disabled={pending}
                     hitSlop={6}
                     style={({ pressed }) => ({
-                      paddingHorizontal: 14,
-                      paddingVertical: 9,
+                      paddingHorizontal: space.card,
+                      paddingVertical: space.room,
                       borderRadius: radius.full,
                       backgroundColor: selected
                         ? theme.brandSoft
@@ -300,7 +310,7 @@ export default function NewClubScreen() {
             pending={pending}
             icon={<Feather name="flag" size={16} color={theme.brandFg} />}
             onPress={() => void handleFound()}
-            style={{ marginTop: 4 }}
+            style={{ marginTop: space.tight }}
           />
         </ScrollView>
       </View>

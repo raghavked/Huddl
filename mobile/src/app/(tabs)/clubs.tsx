@@ -19,7 +19,7 @@ import {
   EmptyState,
   SectionLabel,
 } from "@/components/ui";
-import { fonts, radius } from "@/constants/theme";
+import { fonts, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { type ClubRole } from "@/lib/club-announcements";
 import { supabase } from "@/lib/supabase";
@@ -99,7 +99,7 @@ function CategoryPill({ category }: { category: ClubCategory }) {
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={{
-        paddingHorizontal: 9,
+        paddingHorizontal: space.room,
         paddingVertical: 3,
         borderRadius: radius.full,
         backgroundColor: theme.brandSoft,
@@ -121,9 +121,9 @@ function RolePill({ role }: { role: ClubRole }) {
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 4,
-        paddingHorizontal: 9,
-        paddingVertical: 5,
+        gap: space.tight,
+        paddingHorizontal: space.room,
+        paddingVertical: space.snug,
         borderRadius: radius.full,
         backgroundColor: theme.brandSoft,
       }}
@@ -177,8 +177,14 @@ function ClubRow({
      button, and a button a reader cannot reach is a button that isn't
      there. Both regions open the club; Join stands on its own. */
   return (
-    <Card padded={false} entrance={index} style={{ padding: 14, gap: 10 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+    <Card
+      padded={false}
+      entrance={index}
+      style={{ padding: space.card, gap: space.room }}
+    >
+      <View
+        style={{ flexDirection: "row", alignItems: "center", gap: space.close }}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={label}
@@ -189,7 +195,7 @@ function ClubRow({
             minHeight: 44,
             flexDirection: "row",
             alignItems: "center",
-            gap: 12,
+            gap: space.close,
             opacity: pressed ? 0.7 : 1,
           })}
         >
@@ -238,11 +244,26 @@ function ClubRow({
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         onPress={onOpen}
-        style={({ pressed }) => ({ gap: 10, opacity: pressed ? 0.7 : 1 })}
+        style={({ pressed }) => ({
+          gap: space.room,
+          opacity: pressed ? 0.7 : 1,
+        })}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.cosy,
+          }}
+        >
           <CategoryPill category={club.category} />
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.tight,
+            }}
+          >
             <Feather name="user" size={12} color={theme.muted} />
             <AppText variant="caption" muted>
               {members}
@@ -431,7 +452,7 @@ export default function ClubsScreen() {
       }
       const club = item.club;
       return (
-        <View style={{ marginBottom: 10 }}>
+        <View style={{ marginBottom: space.room }}>
           <ClubRow
             club={club}
             index={index}
@@ -482,7 +503,7 @@ export default function ClubsScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 12,
+            gap: space.close,
             paddingBottom: 80,
           }}
         >
@@ -497,7 +518,7 @@ export default function ClubsScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
+            gap: space.room,
             paddingBottom: 80,
           }}
         >
@@ -535,7 +556,7 @@ export default function ClubsScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           ListHeaderComponent={
-            <View style={{ gap: 10, marginBottom: 14 }}>
+            <View style={{ gap: space.room, marginBottom: space.card }}>
               <AppText muted>
                 Student orgs on your campus — find your people.
               </AppText>

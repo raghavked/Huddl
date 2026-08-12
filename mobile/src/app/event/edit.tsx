@@ -253,7 +253,7 @@ export default function EditEventScreen() {
           paddingTop: insets.top + space.close,
         }}
       >
-        <View style={{ paddingHorizontal: 12 }}>
+        <View style={{ paddingHorizontal: space.close }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back"
@@ -275,8 +275,8 @@ export default function EditEventScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
-            padding: 28,
+            gap: space.room,
+            padding: space.rest,
           }}
         >
           {status === "loading" ? (
@@ -343,7 +343,7 @@ export default function EditEventScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={{ flex: 1, paddingTop: insets.top + space.close }}>
-        <View style={{ paddingHorizontal: 12 }}>
+        <View style={{ paddingHorizontal: space.close }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back"
@@ -364,15 +364,15 @@ export default function EditEventScreen() {
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: space.gutter,
             paddingBottom: insets.bottom + space.rest,
-            gap: 14,
+            gap: space.card,
           }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: space.snug }}>
             <AppText variant="display">Edit your event</AppText>
             <AppText variant="caption" muted>
               Fix the details — everyone who RSVP'd keeps their spot.
@@ -387,10 +387,10 @@ export default function EditEventScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 6,
+                gap: space.snug,
                 alignSelf: "flex-start",
-                paddingHorizontal: 12,
-                paddingVertical: 7,
+                paddingHorizontal: space.close,
+                paddingVertical: space.cosy,
                 borderRadius: radius.full,
                 backgroundColor: theme.accentSoft,
               }}
@@ -408,10 +408,10 @@ export default function EditEventScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 6,
+                gap: space.snug,
                 alignSelf: "flex-start",
-                paddingHorizontal: 12,
-                paddingVertical: 7,
+                paddingHorizontal: space.close,
+                paddingVertical: space.cosy,
                 borderRadius: radius.full,
                 backgroundColor: theme.accentSoft,
               }}
@@ -423,7 +423,7 @@ export default function EditEventScreen() {
             </View>
           ) : null}
 
-          <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={{ flexDirection: "row", gap: space.cosy }}>
             {KIND_OPTIONS.map((option) => {
               const selected = kind === option.value;
               return (
@@ -435,8 +435,8 @@ export default function EditEventScreen() {
                   onPress={() => setKind(option.value)}
                   hitSlop={6}
                   style={({ pressed }) => ({
-                    paddingHorizontal: 14,
-                    paddingVertical: 9,
+                    paddingHorizontal: space.card,
+                    paddingVertical: space.room,
                     borderRadius: radius.full,
                     backgroundColor: selected ? theme.brandSoft : theme.surface,
                     borderWidth: 1,
@@ -498,7 +498,7 @@ export default function EditEventScreen() {
             keyboardType="numbers-and-punctuation"
             editable={!pending}
           />
-          <View style={{ flexDirection: "row", gap: 10 }}>
+          <View style={{ flexDirection: "row", gap: space.room }}>
             <View style={{ flex: 1 }}>
               <Field
                 label="Starts"
@@ -524,7 +524,7 @@ export default function EditEventScreen() {
               />
             </View>
           </View>
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: space.snug }}>
             <Field
               label="Capacity (optional)"
               value={capacity}
@@ -550,7 +550,7 @@ export default function EditEventScreen() {
             pending={pending}
             icon={<Feather name="check" size={16} color={theme.brandFg} />}
             onPress={() => void handleSave()}
-            style={{ marginTop: 4 }}
+            style={{ marginTop: space.tight }}
           />
         </ScrollView>
       </View>

@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { Screen } from "@/components/screen";
 import { AppText, Button, Card, Chip, type ChipTone } from "@/components/ui";
-import { fonts, radius } from "@/constants/theme";
+import { fonts, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -179,15 +179,19 @@ function EventRow({ event, index }: { event: EventItem; index: number }) {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          padding: 14,
+          gap: space.close,
+          padding: space.card,
           minHeight: 76,
         }}
       >
         <DateTile iso={event.starts_at} />
-        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: space.tight }}>
           <View
-            style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: space.cosy,
+            }}
           >
             <AppText
               variant="bodySemi"
@@ -202,7 +206,13 @@ function EventRow({ event, index }: { event: EventItem; index: number }) {
             {formatEventTime(event.starts_at, event.ends_at)}
             {event.location ? ` · ${event.location}` : ""}
           </AppText>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.tight,
+            }}
+          >
             <Feather name="user" size={12} color={theme.muted} />
             <AppText
               variant="caption"
@@ -321,7 +331,7 @@ export default function EventsScreen() {
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<EventItem>) => (
-      <View style={{ marginBottom: 10 }}>
+      <View style={{ marginBottom: space.room }}>
         <EventRow event={item} index={index} />
       </View>
     ),
@@ -333,7 +343,13 @@ export default function EventsScreen() {
       title="Events"
       scroll={false}
       action={
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.cosy,
+          }}
+        >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Your calendar"
@@ -377,7 +393,7 @@ export default function EventsScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 12,
+            gap: space.close,
             paddingBottom: 80,
           }}
         >
@@ -392,7 +408,7 @@ export default function EventsScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
+            gap: space.room,
             paddingBottom: 80,
           }}
         >
@@ -428,7 +444,7 @@ export default function EventsScreen() {
           contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
-            <View style={{ gap: 6, marginBottom: 14 }}>
+            <View style={{ gap: space.snug, marginBottom: space.card }}>
               <AppText muted>
                 Study sessions and meetups coming up on campus.
               </AppText>
@@ -447,8 +463,8 @@ export default function EventsScreen() {
             <Card
               style={{
                 alignItems: "center",
-                gap: 6,
-                paddingVertical: 28,
+                gap: space.snug,
+                paddingVertical: space.rest,
                 borderStyle: "dashed",
               }}
             >
@@ -462,7 +478,7 @@ export default function EventsScreen() {
                   backgroundColor: theme.accentSoft,
                   alignItems: "center",
                   justifyContent: "center",
-                  marginBottom: 2,
+                  marginBottom: space.hair,
                 }}
               >
                 <Feather name="calendar" size={18} color={theme.accent} />

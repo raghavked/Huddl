@@ -236,7 +236,7 @@ export default function BoardComposerScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={{ flex: 1, paddingTop: insets.top + space.close }}>
-        <View style={{ paddingHorizontal: 12 }}>
+        <View style={{ paddingHorizontal: space.close }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back"
@@ -263,12 +263,14 @@ export default function BoardComposerScreen() {
        category chips, then the two fields every category asks for — so the
        form draws itself in grey and the words fill in. */
     return scaffold(
-      <View style={{ paddingHorizontal: 20, gap: 14 }}>
-        <View style={{ gap: 8 }}>
+      <View style={{ paddingHorizontal: space.gutter, gap: space.card }}>
+        <View style={{ gap: space.cosy }}>
           <Skeleton width="64%" height={30} />
           <Skeleton width="88%" height={11} radius={radius.full} />
         </View>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        <View
+          style={{ flexDirection: "row", flexWrap: "wrap", gap: space.cosy }}
+        >
           {[66, 54, 62, 58, 74, 52].map((width) => (
             <Skeleton
               key={width}
@@ -278,11 +280,11 @@ export default function BoardComposerScreen() {
             />
           ))}
         </View>
-        <View style={{ gap: 8 }}>
+        <View style={{ gap: space.cosy }}>
           <Skeleton width={40} height={11} radius={radius.full} />
           <Skeleton height={46} />
         </View>
-        <View style={{ gap: 8 }}>
+        <View style={{ gap: space.cosy }}>
           <Skeleton width={54} height={11} radius={radius.full} />
           <Skeleton height={140} />
         </View>
@@ -297,8 +299,8 @@ export default function BoardComposerScreen() {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          gap: 10,
-          paddingHorizontal: 28,
+          gap: space.room,
+          paddingHorizontal: space.rest,
           paddingBottom: 60,
         }}
       >
@@ -324,7 +326,13 @@ export default function BoardComposerScreen() {
 
   if (editStatus === "missing" || editStatus === "notMine") {
     return scaffold(
-      <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 20 }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          paddingHorizontal: space.gutter,
+        }}
+      >
         <EmptyState
           /* A post that isn't there is a search that came back empty; a post
              that isn't yours is nobody's problem. Two different moods. */
@@ -353,15 +361,15 @@ export default function BoardComposerScreen() {
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={{
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
         paddingBottom: insets.bottom + space.rest,
-        gap: 14,
+        gap: space.card,
       }}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       showsVerticalScrollIndicator={false}
     >
-      <View style={{ gap: 6 }}>
+      <View style={{ gap: space.snug }}>
         <AppText variant="display">
           {editing ? "Edit your post" : "Post to the board"}
         </AppText>
@@ -371,9 +379,11 @@ export default function BoardComposerScreen() {
         </AppText>
       </View>
 
-      <View style={{ gap: 8 }}>
+      <View style={{ gap: space.cosy }}>
         <AppText variant="label">What is it?</AppText>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        <View
+          style={{ flexDirection: "row", flexWrap: "wrap", gap: space.cosy }}
+        >
           {CATEGORIES.map((entry) => (
             <Chip
               key={entry.key}
@@ -403,7 +413,7 @@ export default function BoardComposerScreen() {
         returnKeyType="next"
       />
 
-      <View style={{ gap: 6 }}>
+      <View style={{ gap: space.snug }}>
         <Field
           label="Details"
           value={body}
@@ -434,7 +444,7 @@ export default function BoardComposerScreen() {
       </View>
 
       {info?.wantsPrice ? (
-        <View style={{ gap: 6 }}>
+        <View style={{ gap: space.snug }}>
           <Field
             label="Price"
             value={price}
@@ -457,7 +467,7 @@ export default function BoardComposerScreen() {
       ) : null}
 
       {info?.wantsDate ? (
-        <View style={{ gap: 6 }}>
+        <View style={{ gap: space.snug }}>
           <Field
             label="Day you're leaving"
             value={day}
@@ -504,7 +514,7 @@ export default function BoardComposerScreen() {
           />
         }
         onPress={() => void handleSave()}
-        style={{ marginTop: 4 }}
+        style={{ marginTop: space.tight }}
       />
     </ScrollView>
   );

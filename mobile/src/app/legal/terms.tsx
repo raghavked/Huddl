@@ -29,7 +29,7 @@ export default function TermsScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 20 }}>
+      <View style={{ paddingHorizontal: space.gutter }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
@@ -51,20 +51,23 @@ export default function TermsScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + 40,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <AppText variant="display" style={{ marginTop: 2 }}>
+        <AppText variant="display" style={{ marginTop: space.hair }}>
           {TERMS_OF_SERVICE.title}
         </AppText>
-        <AppText variant="caption" muted style={{ marginTop: 4 }}>
+        <AppText variant="caption" muted style={{ marginTop: space.tight }}>
           Last updated {TERMS_OF_SERVICE.updated}
         </AppText>
 
         {TERMS_OF_SERVICE.sections.map((section) => (
-          <View key={section.heading} style={{ marginTop: 24, gap: 6 }}>
+          <View
+            key={section.heading}
+            style={{ marginTop: space.chapter, gap: space.snug }}
+          >
             <AppText variant="title">{section.heading}</AppText>
             <AppText style={{ lineHeight: 22 }}>{section.body}</AppText>
           </View>

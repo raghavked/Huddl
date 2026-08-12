@@ -177,7 +177,7 @@ function Chip({ text, bg, fg }: { text: string; bg: string; fg: string }) {
   return (
     <View
       style={{
-        paddingHorizontal: 8,
+        paddingHorizontal: space.cosy,
         paddingVertical: 3,
         borderRadius: radius.full,
         backgroundColor: bg,
@@ -267,7 +267,7 @@ function DayCell({
         width: `${100 / 7}%`,
         minHeight: 54,
         alignItems: "center",
-        paddingTop: 2,
+        paddingTop: space.hair,
         opacity: pressed ? 0.7 : 1,
       })}
     >
@@ -297,8 +297,9 @@ function DayCell({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 3,
+          gap: space.tight,
           height: 6,
+          /* Optical: lifts the 6px dot row onto the text baseline above. */
           marginTop: 3,
         }}
       >
@@ -320,7 +321,7 @@ function WeekdayHeader() {
       // the eye and nothing but noise to a reader.
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ flexDirection: "row", marginBottom: 4 }}
+      style={{ flexDirection: "row", marginBottom: space.tight }}
     >
       {WEEKDAYS.map((w) => (
         <View key={w} style={{ width: `${100 / 7}%`, alignItems: "center" }}>
@@ -351,7 +352,7 @@ function GhostGrid() {
               width: `${100 / 7}%`,
               minHeight: 54,
               alignItems: "center",
-              paddingTop: 2,
+              paddingTop: space.hair,
             }}
           >
             <View
@@ -737,7 +738,7 @@ export default function YourCalendarScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 12 }}>
+      <View style={{ paddingHorizontal: space.close }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
@@ -758,11 +759,11 @@ export default function YourCalendarScreen() {
         </Pressable>
       </View>
 
-      <View style={{ flex: 1, paddingHorizontal: 20 }}>
+      <View style={{ flex: 1, paddingHorizontal: space.gutter }}>
         <AppText
           variant="display"
           accessibilityRole="header"
-          style={{ marginTop: 2, marginBottom: 14 }}
+          style={{ marginTop: space.hair, marginBottom: space.card }}
         >
           Your calendar
         </AppText>
@@ -773,7 +774,7 @@ export default function YourCalendarScreen() {
               flex: 1,
               alignItems: "center",
               justifyContent: "center",
-              gap: 10,
+              gap: space.room,
               paddingBottom: 80,
             }}
           >
@@ -821,8 +822,8 @@ export default function YourCalendarScreen() {
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 4,
-                marginBottom: 10,
+                gap: space.tight,
+                marginBottom: space.room,
               }}
             >
               {/* Paging is the one thing on this screen that changes what
@@ -845,7 +846,7 @@ export default function YourCalendarScreen() {
                   style={({ pressed }) => ({
                     minHeight: 44,
                     justifyContent: "center",
-                    paddingHorizontal: 10,
+                    paddingHorizontal: space.room,
                     opacity: pressed ? 0.6 : 1,
                   })}
                 >
@@ -890,7 +891,13 @@ export default function YourCalendarScreen() {
               </Pressable>
             </View>
 
-            <Card padded={false} style={{ paddingVertical: 12, paddingHorizontal: 6 }}>
+            <Card
+              padded={false}
+              style={{
+                paddingVertical: space.close,
+                paddingHorizontal: space.snug,
+              }}
+            >
               {data === null ? (
                 <GhostGrid />
               ) : (
@@ -931,21 +938,21 @@ export default function YourCalendarScreen() {
               <AppText
                 variant="caption"
                 accessibilityLiveRegion="polite"
-                style={{ color: theme.danger, marginTop: 10 }}
+                style={{ color: theme.danger, marginTop: space.room }}
               >
                 We couldn't refresh just now — pull down to try again.
               </AppText>
             ) : null}
 
             {data !== null ? (
-              <View style={{ marginTop: 18 }}>
+              <View style={{ marginTop: space.gutter }}>
                 {/* Tapping a cell changes only what is under this heading,
                     so the heading is what confirms the tap landed. */}
                 <AppText
                   variant="title"
                   accessibilityRole="header"
                   accessibilityLiveRegion="polite"
-                  style={{ marginBottom: 10 }}
+                  style={{ marginBottom: space.room }}
                 >
                   {selectedLabel}
                 </AppText>
@@ -953,7 +960,7 @@ export default function YourCalendarScreen() {
                   <AppText
                     variant="caption"
                     accessibilityLiveRegion="polite"
-                    style={{ color: theme.danger, marginBottom: 10 }}
+                    style={{ color: theme.danger, marginBottom: space.room }}
                   >
                     {actionError}
                   </AppText>
@@ -965,8 +972,8 @@ export default function YourCalendarScreen() {
                     accessibilityLabel="Nothing on this day. Save it for something good."
                     style={{
                       alignItems: "center",
-                      gap: 4,
-                      paddingVertical: 22,
+                      gap: space.tight,
+                      paddingVertical: space.chapter,
                       borderStyle: "dashed",
                     }}
                   >
@@ -999,12 +1006,12 @@ export default function YourCalendarScreen() {
                           style={{
                             flexDirection: "row",
                             alignItems: "center",
-                            gap: 2,
-                            paddingLeft: 4,
-                            paddingRight: 14,
-                            paddingVertical: 12,
+                            gap: space.hair,
+                            paddingLeft: space.tight,
+                            paddingRight: space.card,
+                            paddingVertical: space.close,
                             minHeight: 64,
-                            marginBottom: 8,
+                            marginBottom: space.cosy,
                           }}
                         >
                           <Pressable
@@ -1057,13 +1064,13 @@ export default function YourCalendarScreen() {
                             // about one assignment, beside the one control.
                             accessible
                             accessibilityLabel={summary}
-                            style={{ flex: 1, gap: 4 }}
+                            style={{ flex: 1, gap: space.tight }}
                           >
                             <View
                               style={{
                                 flexDirection: "row",
                                 alignItems: "center",
-                                gap: 6,
+                                gap: space.snug,
                                 flexWrap: "wrap",
                               }}
                             >
@@ -1123,18 +1130,20 @@ export default function YourCalendarScreen() {
                           style={{
                             flexDirection: "row",
                             alignItems: "center",
-                            gap: 12,
-                            padding: 14,
+                            gap: space.close,
+                            padding: space.card,
                             minHeight: 64,
-                            marginBottom: 8,
+                            marginBottom: space.cosy,
                           }}
                         >
-                          <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                          <View
+                            style={{ flex: 1, minWidth: 0, gap: space.tight }}
+                          >
                             <View
                               style={{
                                 flexDirection: "row",
                                 alignItems: "center",
-                                gap: 6,
+                                gap: space.snug,
                                 flexWrap: "wrap",
                               }}
                             >
@@ -1180,9 +1189,9 @@ export default function YourCalendarScreen() {
                     flexWrap: "wrap",
                     alignItems: "center",
                     justifyContent: "center",
-                    columnGap: 6,
-                    rowGap: 4,
-                    marginTop: 14,
+                    columnGap: space.snug,
+                    rowGap: space.tight,
+                    marginTop: space.card,
                   }}
                 >
                   <AppText variant="caption" muted>

@@ -34,7 +34,7 @@ export default function GuidelinesScreen() {
         paddingTop: insets.top + space.close,
       }}
     >
-      <View style={{ paddingHorizontal: 20 }}>
+      <View style={{ paddingHorizontal: space.gutter }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
@@ -56,29 +56,36 @@ export default function GuidelinesScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + 40,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <AppText variant="display" style={{ marginTop: 2 }}>
+        <AppText variant="display" style={{ marginTop: space.hair }}>
           {COMMUNITY_GUIDELINES.title}
         </AppText>
-        <AppText variant="caption" muted style={{ marginTop: 4 }}>
+        <AppText variant="caption" muted style={{ marginTop: space.tight }}>
           Last updated {COMMUNITY_GUIDELINES.updated}
         </AppText>
 
         {ruleSections.map((section) => (
-          <View key={section.heading} style={{ marginTop: 24, gap: 6 }}>
+          <View
+            key={section.heading}
+            style={{ marginTop: space.chapter, gap: space.snug }}
+          >
             <AppText variant="title">{section.heading}</AppText>
             <AppText style={{ lineHeight: 22 }}>{section.body}</AppText>
           </View>
         ))}
 
         {reportSection ? (
-          <Card style={{ marginTop: 28, gap: 8 }}>
+          <Card style={{ marginTop: space.rest, gap: space.cosy }}>
             <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.cosy,
+              }}
             >
               <Feather name="flag" size={16} color={theme.brand} />
               <AppText variant="title">{reportSection.heading}</AppText>

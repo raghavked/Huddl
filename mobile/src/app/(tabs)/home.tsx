@@ -254,9 +254,9 @@ function TodayCard({ line }: { line: string }) {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
+          gap: space.close,
+          paddingHorizontal: space.card,
+          paddingVertical: space.close,
           minHeight: 64,
         }}
       >
@@ -315,9 +315,9 @@ function PlanCard({ plan }: { plan: PlanSummary }) {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
+          gap: space.close,
+          paddingHorizontal: space.card,
+          paddingVertical: space.close,
           minHeight: 64,
         }}
       >
@@ -333,7 +333,7 @@ function PlanCard({ plan }: { plan: PlanSummary }) {
         >
           <Feather name="check-circle" size={18} color={theme.brand} />
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: space.hair }}>
           <AppText variant="bodySemi" numberOfLines={1}>
             {line}
           </AppText>
@@ -365,8 +365,8 @@ function EmptySection({
     <Card
       style={{
         alignItems: "center",
-        gap: 6,
-        paddingVertical: 24,
+        gap: space.snug,
+        paddingVertical: space.chapter,
         borderStyle: "dashed",
       }}
     >
@@ -381,7 +381,7 @@ function EmptySection({
             backgroundColor: theme.brandSoft,
             alignItems: "center",
             justifyContent: "center",
-            marginBottom: 2,
+            marginBottom: space.hair,
           }}
         >
           <Feather name={icon} size={18} color={theme.brand} />
@@ -400,7 +400,7 @@ function EmptySection({
           label={action.label}
           variant="soft"
           size="sm"
-          style={{ marginTop: 6 }}
+          style={{ marginTop: space.snug }}
           onPress={action.onPress}
         />
       ) : null}
@@ -431,9 +431,9 @@ function CampusRow({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
+          gap: space.close,
+          paddingHorizontal: space.card,
+          paddingVertical: space.close,
           minHeight: 64,
         }}
       >
@@ -449,20 +449,20 @@ function CampusRow({
         >
           <Feather name="volume-2" size={18} color={theme.brand} />
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: space.hair }}>
           <View
             style={{
               flexDirection: "row",
               alignItems: "baseline",
               justifyContent: "space-between",
-              gap: 8,
+              gap: space.cosy,
             }}
           >
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: 6,
+                gap: space.snug,
                 flexShrink: 1,
               }}
             >
@@ -514,8 +514,22 @@ function CourseCard({ channel, preview }: CourseCell) {
       onPress={() => router.push(`/channel/${channel.id}`)}
       style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.85 : 1 })}
     >
-      <Card padded={false} style={{ flex: 1, gap: 4, padding: 14, minHeight: 88 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+      <Card
+        padded={false}
+        style={{
+          flex: 1,
+          gap: space.tight,
+          padding: space.card,
+          minHeight: 88,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.snug,
+          }}
+        >
           <Feather name="book-open" size={15} color={theme.brand} />
           <AppText
             variant="bodySemi"
@@ -533,7 +547,7 @@ function CourseCard({ channel, preview }: CourseCell) {
         <AppText
           variant="caption"
           muted
-          style={{ marginTop: "auto", paddingTop: 4 }}
+          style={{ marginTop: "auto", paddingTop: space.tight }}
         >
           {preview
             ? `Active ${formatMessageTime(preview.created_at)}`
@@ -558,9 +572,9 @@ function EventCard({ event }: { event: EventRow }) {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
+          gap: space.close,
+          paddingHorizontal: space.card,
+          paddingVertical: space.close,
           minHeight: 64,
         }}
       >
@@ -576,7 +590,7 @@ function EventCard({ event }: { event: EventRow }) {
         >
           <Feather name="calendar" size={18} color={theme.accent} />
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: space.hair }}>
           <AppText variant="bodySemi" numberOfLines={1}>
             {event.title}
           </AppText>
@@ -587,7 +601,7 @@ function EventCard({ event }: { event: EventRow }) {
         </View>
         <View
           style={{
-            paddingHorizontal: 9,
+            paddingHorizontal: space.room,
             paddingVertical: 3,
             borderRadius: radius.full,
             backgroundColor: isStudy ? theme.accentSoft : theme.brandSoft,
@@ -626,9 +640,9 @@ function BoardCard({ posts }: { posts: BoardPost[] }) {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 10,
-              paddingHorizontal: 14,
-              paddingVertical: 12,
+              gap: space.room,
+              paddingHorizontal: space.card,
+              paddingVertical: space.close,
               minHeight: 64,
             }}
           >
@@ -647,9 +661,9 @@ function BoardCard({ posts }: { posts: BoardPost[] }) {
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 10,
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
+                  gap: space.room,
+                  paddingHorizontal: space.card,
+                  paddingVertical: space.room,
                   minHeight: 48,
                   borderTopWidth: index === 0 ? 0 : 1,
                   borderTopColor: theme.border,
@@ -721,8 +735,8 @@ function HomeGhosts() {
     height: 12,
     borderRadius: radius.full,
     backgroundColor: theme.surface2,
-    marginTop: 24,
-    marginBottom: 12,
+    marginTop: space.chapter,
+    marginBottom: space.close,
   };
   return (
     <View
@@ -731,10 +745,10 @@ function HomeGhosts() {
     >
       <View style={block(64)} />
       <View style={labelBar} />
-      <View style={[block(64), { marginBottom: 12 }]} />
+      <View style={[block(64), { marginBottom: space.close }]} />
       <View style={block(64)} />
       <View style={labelBar} />
-      <View style={{ flexDirection: "row", gap: 12 }}>
+      <View style={{ flexDirection: "row", gap: space.close }}>
         <View style={[block(88), { flex: 1 }]} />
         <View style={[block(88), { flex: 1 }]} />
       </View>
@@ -1179,7 +1193,7 @@ export default function HomeScreen() {
         return <SectionLabel text={item.text} action={item.action} />;
       case "campus":
         return (
-          <View style={{ marginBottom: 12 }}>
+          <View style={{ marginBottom: space.close }}>
             <CampusRow
               channel={item.channel}
               preview={item.preview}
@@ -1189,7 +1203,13 @@ export default function HomeScreen() {
         );
       case "courses":
         return (
-          <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              gap: space.close,
+              marginBottom: space.close,
+            }}
+          >
             <CourseCard
               channel={item.left.channel}
               preview={item.left.preview}
@@ -1206,13 +1226,13 @@ export default function HomeScreen() {
         );
       case "event":
         return (
-          <View style={{ marginBottom: 12 }}>
+          <View style={{ marginBottom: space.close }}>
             <EventCard event={item.event} />
           </View>
         );
       case "board":
         return (
-          <View style={{ marginBottom: 12 }}>
+          <View style={{ marginBottom: space.close }}>
             <BoardCard posts={item.posts} />
           </View>
         );
@@ -1261,7 +1281,7 @@ export default function HomeScreen() {
         flex: 1,
         backgroundColor: theme.background,
         paddingTop: insets.top + space.close,
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
       }}
     >
       <View
@@ -1269,11 +1289,11 @@ export default function HomeScreen() {
           flexDirection: "row",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          gap: 12,
-          marginBottom: 16,
+          gap: space.close,
+          marginBottom: space.card,
         }}
       >
-        <View style={{ flexShrink: 1, gap: 2 }}>
+        <View style={{ flexShrink: 1, gap: space.hair }}>
           <AppText variant="display" numberOfLines={1}>
             {greeting}
           </AppText>
@@ -1358,7 +1378,7 @@ export default function HomeScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
+            gap: space.room,
             paddingBottom: 80,
           }}
         >
@@ -1401,7 +1421,7 @@ export default function HomeScreen() {
             contentContainerStyle={{ paddingBottom: 40 }}
             showsVerticalScrollIndicator={false}
             ListHeaderComponent={
-              <View style={{ gap: 12 }}>
+              <View style={{ gap: space.close }}>
                 {error ? (
                   <AppText variant="caption" style={{ color: theme.danger }}>
                     We couldn't refresh just now — pull down to try again.

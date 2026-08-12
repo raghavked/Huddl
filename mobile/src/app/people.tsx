@@ -123,9 +123,9 @@ function Pill({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 3,
-        paddingHorizontal: 8,
-        paddingVertical: 2,
+        gap: space.tight,
+        paddingHorizontal: space.cosy,
+        paddingVertical: space.hair,
         borderRadius: radius.full,
         backgroundColor: bg,
       }}
@@ -178,7 +178,10 @@ function PersonRow({
       accessibilityRole="button"
       accessibilityLabel={personLabel(person, isMe)}
       onPress={() => router.push(`/u/${person.handle}`)}
-      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, marginBottom: 10 })}
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.85 : 1,
+        marginBottom: space.room,
+      })}
     >
       <Card
         padded={false}
@@ -189,21 +192,25 @@ function PersonRow({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
+          gap: space.close,
+          paddingHorizontal: space.card,
+          paddingVertical: space.close,
           minHeight: 68,
         }}
       >
         <Avatar url={person.avatar_url} name={name} size={44} />
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: space.hair }}>
           {limited ? (
             <>
               <AppText variant="bodySemi" numberOfLines={1}>
                 @{person.handle}
               </AppText>
               <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: space.tight,
+                }}
               >
                 <Feather name="lock" size={11} color={theme.muted} />
                 <AppText variant="caption" muted>
@@ -217,7 +224,7 @@ function PersonRow({
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 6,
+                  gap: space.snug,
                 }}
               >
                 <AppText
@@ -430,7 +437,7 @@ export default function PeopleScreen() {
         flex: 1,
         backgroundColor: theme.background,
         paddingTop: insets.top + space.close,
-        paddingHorizontal: 20,
+        paddingHorizontal: space.gutter,
       }}
     >
       <Pressable
@@ -459,11 +466,15 @@ export default function PeopleScreen() {
       <AppText
         variant="display"
         accessibilityRole="header"
-        style={{ marginTop: 2 }}
+        style={{ marginTop: space.hair }}
       >
         People
       </AppText>
-      <AppText variant="caption" muted style={{ marginTop: 4, marginBottom: 12 }}>
+      <AppText
+        variant="caption"
+        muted
+        style={{ marginTop: space.tight, marginBottom: space.close }}
+      >
         {people && uniName
           ? `${count} ${count === 1 ? "student" : "students"} at ${uniName} — find classmates to trade notes or study with.`
           : "Find classmates to trade notes or study with."}
@@ -532,8 +543,8 @@ export default function PeopleScreen() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 8,
-            marginTop: 10,
+            gap: space.cosy,
+            marginTop: space.room,
           }}
         >
           <AppText variant="caption" muted>
@@ -557,7 +568,11 @@ export default function PeopleScreen() {
         variant="caption"
         muted
         accessibilityLiveRegion="polite"
-        style={{ minHeight: 16, marginTop: 8, marginBottom: 8 }}
+        style={{
+          minHeight: 16,
+          marginTop: space.cosy,
+          marginBottom: space.cosy,
+        }}
       >
         {narrowed
           ? `${filtered.length} ${filtered.length === 1 ? "match" : "matches"}`
@@ -570,7 +585,7 @@ export default function PeopleScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 12,
+            gap: space.close,
             paddingBottom: 80,
           }}
         >
@@ -590,7 +605,7 @@ export default function PeopleScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
+            gap: space.room,
             paddingBottom: 80,
           }}
         >
@@ -633,7 +648,7 @@ export default function PeopleScreen() {
               <AppText
                 variant="caption"
                 accessibilityLiveRegion="polite"
-                style={{ color: theme.danger, marginBottom: 10 }}
+                style={{ color: theme.danger, marginBottom: space.room }}
               >
                 We couldn't refresh just now — pull down to try again.
               </AppText>
@@ -644,8 +659,8 @@ export default function PeopleScreen() {
               <Card
                 style={{
                   alignItems: "center",
-                  gap: 6,
-                  paddingVertical: 28,
+                  gap: space.snug,
+                  paddingVertical: space.rest,
                   borderStyle: "dashed",
                 }}
               >
@@ -659,7 +674,7 @@ export default function PeopleScreen() {
                     backgroundColor: theme.brandSoft,
                     alignItems: "center",
                     justifyContent: "center",
-                    marginBottom: 2,
+                    marginBottom: space.hair,
                   }}
                 >
                   <Feather name="users" size={20} color={theme.brand} />
@@ -680,8 +695,8 @@ export default function PeopleScreen() {
               <Card
                 style={{
                   alignItems: "center",
-                  gap: 6,
-                  paddingVertical: 28,
+                  gap: space.snug,
+                  paddingVertical: space.rest,
                   borderStyle: "dashed",
                 }}
               >
@@ -695,7 +710,7 @@ export default function PeopleScreen() {
                     backgroundColor: theme.brandSoft,
                     alignItems: "center",
                     justifyContent: "center",
-                    marginBottom: 2,
+                    marginBottom: space.hair,
                   }}
                 >
                   <Feather name="search" size={20} color={theme.brand} />

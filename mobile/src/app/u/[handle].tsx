@@ -110,7 +110,7 @@ function LinkPill({
         flexDirection: "row",
         alignItems: "center",
         gap: icon ? 6 : 0,
-        paddingHorizontal: 14,
+        paddingHorizontal: space.card,
         borderRadius: radius.full,
         backgroundColor: bg,
         opacity: pressed ? 0.8 : 1,
@@ -150,8 +150,8 @@ function EmptySection({
     <Card
       style={{
         alignItems: "center",
-        gap: 6,
-        paddingVertical: 24,
+        gap: space.snug,
+        paddingVertical: space.chapter,
         borderStyle: "dashed",
       }}
     >
@@ -165,7 +165,7 @@ function EmptySection({
           backgroundColor: theme.brandSoft,
           alignItems: "center",
           justifyContent: "center",
-          marginBottom: 2,
+          marginBottom: space.hair,
         }}
       >
         <Feather name={icon} size={18} color={theme.brand} />
@@ -186,7 +186,7 @@ function EmptySection({
           variant="soft"
           size="sm"
           onPress={onAction}
-          style={{ marginTop: 4 }}
+          style={{ marginTop: space.tight }}
         />
       ) : null}
     </Card>
@@ -545,16 +545,16 @@ export default function ProfileScreen() {
 
   /* Quiet blocked chip + the way back, shown in place of the Message button. */
   const blockedActions = (
-    <View style={{ alignItems: "center", gap: 10 }}>
+    <View style={{ alignItems: "center", gap: space.room }}>
       <View
         accessible
         accessibilityLabel="You've blocked them"
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 6,
-          paddingHorizontal: 12,
-          paddingVertical: 6,
+          gap: space.snug,
+          paddingHorizontal: space.close,
+          paddingVertical: space.snug,
           borderRadius: radius.full,
           backgroundColor: theme.surface2,
         }}
@@ -591,7 +591,7 @@ export default function ProfileScreen() {
           flex: 1,
           backgroundColor: theme.background,
           paddingTop: insets.top + space.close,
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
         }}
       >
         {backChevron}
@@ -600,7 +600,7 @@ export default function ProfileScreen() {
             flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
+            gap: space.room,
             paddingBottom: 80,
           }}
         >
@@ -692,7 +692,7 @@ export default function ProfileScreen() {
   /* No `alignItems` on purpose: this hugs inside the centered private card
      and stretches to full width under the hero, where it's the main move. */
   const messageButton = (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: space.cosy }}>
       <Button
         label="Message"
         pending={messaging}
@@ -726,7 +726,7 @@ export default function ProfileScreen() {
           flex: 1,
           backgroundColor: theme.background,
           paddingTop: insets.top + space.close,
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
         }}
       >
         <View
@@ -740,7 +740,11 @@ export default function ProfileScreen() {
           {overflowButton}
         </View>
         <Card
-          style={{ alignItems: "center", gap: 12, paddingVertical: 32 }}
+          style={{
+            alignItems: "center",
+            gap: space.close,
+            paddingVertical: space.rest,
+          }}
         >
           {/* Their photo if they've set one, initials from the handle if
               not — the card below says "handle and avatar", so it draws the
@@ -756,7 +760,11 @@ export default function ProfileScreen() {
           <View
             accessible
             accessibilityLabel="This profile is private"
-            style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.snug,
+            }}
           >
             <Feather
               accessibilityElementsHidden
@@ -795,7 +803,7 @@ export default function ProfileScreen() {
     >
       <View
         style={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
@@ -807,7 +815,7 @@ export default function ProfileScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: 20,
+          paddingHorizontal: space.gutter,
           paddingBottom: insets.bottom + space.rest,
         }}
         refreshControl={
@@ -821,16 +829,20 @@ export default function ProfileScreen() {
       >
         {/* Hero — the person first: their face, their name set against it,
             then the quiet facts, then what they're actually after. */}
-        <Card style={{ gap: 16 }}>
+        <Card style={{ gap: space.card }}>
           <View
-            style={{ flexDirection: "row", alignItems: "center", gap: 16 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.card,
+            }}
           >
             <Avatar
               url={profile.avatar_url}
               name={profile.display_name}
               size={80}
             />
-            <View style={{ flex: 1, gap: 4 }}>
+            <View style={{ flex: 1, gap: space.tight }}>
               <AppText
                 variant="display"
                 accessibilityRole="header"
@@ -847,8 +859,8 @@ export default function ProfileScreen() {
                   style={{
                     flexDirection: "row",
                     flexWrap: "wrap",
-                    gap: 6,
-                    marginTop: 2,
+                    gap: space.snug,
+                    marginTop: space.hair,
                   }}
                 >
                   {profile.phone_verified_at ? (
@@ -863,7 +875,13 @@ export default function ProfileScreen() {
           </View>
 
           {profile.major || profile.grad_year ? (
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: space.cosy,
+              }}
+            >
               {profile.major ? (
                 <Chip
                   label={profile.major}
@@ -893,14 +911,18 @@ export default function ProfileScreen() {
               accessible
               accessibilityLabel={`Looking for: ${profile.looking_for}`}
               style={{
-                gap: 6,
-                padding: 14,
+                gap: space.snug,
+                padding: space.card,
                 borderRadius: radius.control,
                 backgroundColor: theme.brandSoft,
               }}
             >
               <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: space.snug,
+                }}
               >
                 <Feather
                   accessibilityElementsHidden
@@ -940,7 +962,7 @@ export default function ProfileScreen() {
             <AppText
               variant="title"
               accessibilityRole="header"
-              style={{ marginTop: 24, marginBottom: 10 }}
+              style={{ marginTop: space.chapter, marginBottom: space.room }}
             >
               {isMe ? "What you're into" : `What ${firstName}'s into`}
             </AppText>
@@ -961,7 +983,13 @@ export default function ProfileScreen() {
                  put the same thing on their profile — an interest nobody can
                  tap is a fact about one person instead of a way to meet the
                  next one. */
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  gap: space.cosy,
+                }}
+              >
                 {interests.map((interest) => (
                   <LinkPill
                     key={interest}
@@ -985,7 +1013,7 @@ export default function ProfileScreen() {
           <AppText
             variant="caption"
             accessibilityLiveRegion="polite"
-            style={{ color: theme.danger, marginTop: 24 }}
+            style={{ color: theme.danger, marginTop: space.chapter }}
           >
             We couldn't load courses and channels just now — pull down to try
             again.
@@ -996,7 +1024,7 @@ export default function ProfileScreen() {
         <AppText
           variant="title"
           accessibilityRole="header"
-          style={{ marginTop: 24, marginBottom: 10 }}
+          style={{ marginTop: space.chapter, marginBottom: space.room }}
         >
           {isMe ? "Your courses" : "Courses together"}
         </AppText>
@@ -1013,7 +1041,9 @@ export default function ProfileScreen() {
             onAction={isMe ? () => router.push("/courses/add") : undefined}
           />
         ) : (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          <View
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: space.cosy }}
+          >
             {sharedCourses.map((course) => (
               <LinkPill
                 key={course.id}
@@ -1031,7 +1061,7 @@ export default function ProfileScreen() {
         <AppText
           variant="title"
           accessibilityRole="header"
-          style={{ marginTop: 24, marginBottom: 10 }}
+          style={{ marginTop: space.chapter, marginBottom: space.room }}
         >
           {isMe ? "Your clubs" : "Clubs together"}
         </AppText>
@@ -1048,7 +1078,9 @@ export default function ProfileScreen() {
             onAction={isMe ? () => router.push("/(tabs)/clubs") : undefined}
           />
         ) : (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          <View
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: space.cosy }}
+          >
             {sharedClubs.map((channel) => (
               <LinkPill
                 key={channel.id}
@@ -1071,7 +1103,7 @@ export default function ProfileScreen() {
         <AppText
           variant="title"
           accessibilityRole="header"
-          style={{ marginTop: 24, marginBottom: 10 }}
+          style={{ marginTop: space.chapter, marginBottom: space.room }}
         >
           {isMe ? "Your channels" : "Channels in common"}
         </AppText>
@@ -1088,7 +1120,9 @@ export default function ProfileScreen() {
             onAction={isMe ? () => router.push("/(tabs)/channels") : undefined}
           />
         ) : (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          <View
+            style={{ flexDirection: "row", flexWrap: "wrap", gap: space.cosy }}
+          >
             {sharedRooms.map((channel) => (
               <LinkPill
                 key={channel.id}
