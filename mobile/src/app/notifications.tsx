@@ -521,7 +521,11 @@ export default function NotificationsScreen() {
             <EmptyState
               illustration={Tray}
               title="All quiet. You're caught up."
-              body="New messages, thread replies, event updates, class calendar changes, club announcements and thanks for your notes will land here."
+              /* Ten kinds can land here and naming all ten reads like a spec
+                 sheet, so this names the ones a student recognises and stops
+                 short of claiming to be the whole list. The web empty state
+                 says the same sentence. */
+              body="Replies, mentions, event changes, club posts and thanks for your notes land here."
             />
           }
           ListFooterComponent={

@@ -143,8 +143,12 @@ export function NotificationList({
       {items.length === 0 ? (
         <EmptyState
           icon={Bell}
-          title="No notifications yet"
-          description="New messages, thread replies, event updates and privacy notices about your schedule uploads will land here."
+          title="All quiet. You're caught up."
+          /* Word for word with the native empty state in
+             mobile/src/app/notifications.tsx. The old copy named four of the
+             ten kinds and one of the four, schedule privacy notices, is the
+             rarest thing that arrives here. */
+          description="Replies, mentions, event changes, club posts and thanks for your notes land here."
         />
       ) : (
         <>
