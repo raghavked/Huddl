@@ -129,11 +129,11 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "Where your data lives",
-      body: "Huddl's database and uploaded files are hosted with Supabase, our infrastructure provider, in a data center in Oregon in the United States. Data is encrypted in transit and at rest, and access rules are enforced at the database level, so a direct message, for example, can only ever be read by the people in that thread: the two of you in a one-to-one, or everyone in a group. If you're using Huddl from outside the United States, including from the UK or the EU, your data is transferred to and stored in the US. Our providers use the standard contractual clauses approved for that transfer.",
+      body: "Huddl's database and uploaded files are hosted with Supabase, our infrastructure provider, in a data center in Oregon in the United States. Data is encrypted in transit and at rest, and access rules are enforced at the database level, so a direct message, for example, can only ever be read by the people in that thread: the two of you in a one-to-one, or everyone in a group. If you're using Huddl from outside the United States, including from the UK or the EU, your data is transferred to and stored in the US, under the data processing terms we have in place with our host.",
     },
     {
       heading: "How long we keep things",
-      body: "Your account and what's in it stay for as long as your account does. Delete the account and it all goes at once. Messages you delete are gone from the app immediately and are cleared from backups within 30 days. Reports and the record of a block are kept while your account exists, because a block that forgets itself isn't a block, and a moderator needs to see whether a pattern is repeating. Routine technical records, like the timestamps behind our rate limits, are kept for 90 days.",
+      body: "Your account and what's in it stay for as long as your account does. Delete the account and it all goes at once. Messages you delete are gone from the app straight away, though a copy can sit in our host's routine backups for a short while before it is overwritten. Reports and the record of a block are kept while your account exists, because a block that forgets itself isn't a block, and a moderator needs to see whether a pattern is repeating. Routine technical records, like the timestamps behind our rate limits, are kept for 90 days.",
     },
     {
       heading: "When we share",
