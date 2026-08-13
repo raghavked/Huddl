@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 /**
  * Device push registration. The backend side already exists: a trigger on
  * `notifications` posts every insert to Expo's push API using the rows in
- * `push_tokens` — all the client has to do is keep that table honest.
+ * `push_tokens`, so all the client has to do is keep that table honest.
  */
 
 export type PushRegistrationResult = "granted" | "denied" | "unavailable";
@@ -18,7 +18,7 @@ let registeredToken: string | null = null;
 
 /**
  * Foreground presentation: show the banner and add to the list, keep quiet
- * otherwise — no sounds, and we never touch the app badge. Call once at
+ * otherwise: no sounds, and we never touch the app badge. Call once at
  * module scope in the root layout.
  */
 export function configureNotificationHandler(): void {
@@ -46,10 +46,11 @@ async function ensureAndroidChannel(): Promise<void> {
  * Ask for permission (when undetermined), fetch this device's Expo push
  * token, and upsert it into `push_tokens` for the signed-in user.
  *
- * - `unavailable` — not a physical device, or the token fetch/save failed
+ * - `unavailable`: not a physical device, or the token fetch/save failed
  *   (for example Expo Go without an EAS project id). Never throws for that.
- * - `denied` — the user has said no; the OS settings app is the only way back.
- * - `granted` — the token row is saved and this device will get pushes.
+ * - `denied`: the user has said no, and the OS settings app is the only way
+ *   back.
+ * - `granted`: the token row is saved and this device will get pushes.
  */
 export async function registerForPush(
   userId: string
@@ -73,7 +74,7 @@ export async function registerForPush(
     );
     token = result.data;
   } catch {
-    // No project id (Expo Go), offline, or Expo's servers hiccuped —
+    // No project id (Expo Go), offline, or Expo's servers hiccuped, so
     // registration just quietly doesn't happen this time.
     return "unavailable";
   }

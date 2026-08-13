@@ -17,7 +17,7 @@ import { useAuth } from "@/providers/auth-provider";
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
 
-/* Founding a club, the way the web does it: one insert into clubs — DB
+/* Founding a club, the way the web does it: one insert into clubs. DB
    triggers then create the chat channel and seat the founder as owner. */
 
 type ClubCategory =
@@ -39,12 +39,12 @@ const CATEGORIES: readonly ClubCategory[] = [
   "other",
 ];
 
-/** "academic" -> "Academic" — every category is a single word. */
+/** "academic" -> "Academic". Every category is a single word. */
 function categoryLabel(category: ClubCategory): string {
   return category.charAt(0).toUpperCase() + category.slice(1);
 }
 
-/** "Chess & Go Club!" -> "chess-go-club" — same recipe as the web app. */
+/** "Chess & Go Club!" -> "chess-go-club", same recipe as the web app. */
 function slugify(name: string): string {
   return name
     .toLowerCase()
@@ -57,7 +57,7 @@ function slugify(name: string): string {
 const PERKS: readonly { icon: FeatherName; text: string }[] = [
   {
     icon: "message-circle",
-    text: "A chat channel just for members — created automatically",
+    text: "A chat channel just for members, created automatically",
   },
   {
     icon: "calendar",
@@ -65,7 +65,7 @@ const PERKS: readonly { icon: FeatherName; text: string }[] = [
   },
   {
     icon: "award",
-    text: "A roster with you as the owner — promote officers any time",
+    text: "A roster with you as the owner, so you can promote officers any time",
   },
 ];
 
@@ -109,7 +109,7 @@ export default function NewClubScreen() {
     setFormError(null);
     setPending(true);
 
-    // The club lives on your campus — grab it from your profile.
+    // The club lives on your campus, so grab it from your profile.
     const profileRes = await supabase
       .from("profiles")
       .select("university_id")
@@ -124,7 +124,7 @@ export default function NewClubScreen() {
       university_id: string;
     };
 
-    // One insert — the DB creates the chat channel and makes you the owner.
+    // One insert. The DB creates the chat channel and makes you the owner.
     const insertRes = await supabase
       .from("clubs")
       .insert({
@@ -141,7 +141,7 @@ export default function NewClubScreen() {
       setPending(false);
       setFormError(
         insertRes.error?.code === "23505"
-          ? `"${trimmed}" is already taken at your school — try a more specific name.`
+          ? `"${trimmed}" is already taken at your school. Try a more specific name.`
           : "Something went wrong founding the club. Give it another try."
       );
       return;
@@ -151,7 +151,7 @@ export default function NewClubScreen() {
     router.replace(`/club/${clubId}`);
   }, [userId, pending, name, slug, category, description, router]);
 
-  // Deep links land here directly — signed-out visitors get a proper door.
+  // Deep links land here directly, so signed-out visitors get a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }

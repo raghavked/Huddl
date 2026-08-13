@@ -19,7 +19,7 @@ describe("accepted image types", () => {
   });
 
   it("refuses SVG, which is the whole point", () => {
-    // `startsWith("image/")` — what these checks used to be — says yes to
+    // `startsWith("image/")`, what these checks used to be, says yes to
     // this, and an SVG in the public avatars bucket is an executable page.
     expect(isAcceptedImageType("image/svg+xml")).toBe(false);
     expect(ACCEPTED_IMAGE_TYPES).not.toContain("image/svg+xml");

@@ -31,7 +31,7 @@ configureNotificationHandler();
  *
  * The response is cleared once it has been handled: the OS keeps handing the
  * most recent tap back to `getLastNotificationResponseAsync`, so without this
- * every remount of the shell — signing out and back in, most reliably —
+ * every remount of the shell (signing out and back in, most reliably)
  * re-navigates to the last notification the student ever tapped.
  */
 function openNotificationResponse(response: Notifications.NotificationResponse) {
@@ -112,8 +112,8 @@ function RootShell() {
 
   return (
     <AuthProvider>
-      {/* Follows the chosen appearance, not the device's — "auto" would
-          fight an explicit light/dark pick. */}
+      {/* Follows the chosen appearance rather than the device's, since "auto"
+          would fight an explicit light/dark pick. */}
       <StatusBar style={resolvedScheme === "dark" ? "light" : "dark"} />
       <PushGateway />
       <Stack

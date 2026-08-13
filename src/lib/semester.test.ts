@@ -12,7 +12,7 @@ import {
 
 /* The semester math, exercised on plain object literals.
  *
- * Everything under test is pure — no Supabase, no clock — so each case is
+ * Everything under test is pure (no Supabase, no clock), so each case is
  * numbers in, a number and one sentence out. The sentences are asserted in
  * full, because that copy IS the feature: a student reads "Two classes are
  * missing their units, so this is a plain average" and knows exactly what the
@@ -36,7 +36,7 @@ function course(
 
 /* ------------------------------ gradePointFor ----------------------------- */
 
-describe("gradePointFor — one percentage on the 4.0 scale", () => {
+describe("gradePointFor: one percentage on the 4.0 scale", () => {
   it("reads the same cutoffs the letter does", () => {
     expect(gradePointFor(95)).toBe(GRADE_POINTS.A);
     expect(gradePointFor(90)).toBe(GRADE_POINTS["A-"]);
@@ -44,7 +44,7 @@ describe("gradePointFor — one percentage on the 4.0 scale", () => {
     expect(gradePointFor(59)).toBe(GRADE_POINTS.F);
   });
 
-  it("tops out at an A — there is no A+ on this scale", () => {
+  it("tops out at an A, because there is no A+ on this scale", () => {
     expect(gradePointFor(100)).toBe(4);
     expect(gradePointFor(112)).toBe(4);
   });
@@ -56,7 +56,7 @@ describe("gradePointFor — one percentage on the 4.0 scale", () => {
 
 /* ------------------------------- formatGpa -------------------------------- */
 
-describe("formatGpa — the way a person writes one", () => {
+describe("formatGpa: the way a person writes one", () => {
   it("always shows two decimals", () => {
     expect(formatGpa(3.4)).toBe("3.40");
     expect(formatGpa(4)).toBe("4.00");
@@ -71,7 +71,7 @@ describe("formatGpa — the way a person writes one", () => {
 
 /* ------------------------------- totalUnits ------------------------------- */
 
-describe("totalUnits — only what we actually know", () => {
+describe("totalUnits: only what we actually know", () => {
   it("adds the classes whose units are filled in", () => {
     expect(totalUnits([course("A", 4, 90), course("B", 3, null)])).toBe(7);
   });
@@ -93,7 +93,7 @@ describe("totalUnits — only what we actually know", () => {
 
 /* ---------------------------- semesterEstimate ---------------------------- */
 
-describe("semesterEstimate — nothing to average yet", () => {
+describe("semesterEstimate: nothing to average yet", () => {
   it("invites a student with no classes to add some", () => {
     expect(semesterEstimate([])).toEqual({
       gpa: null,
@@ -113,12 +113,12 @@ describe("semesterEstimate — nothing to average yet", () => {
     expect(summary.graded).toBe(0);
     expect(summary.total).toBe(2);
     expect(summary.note).toBe(
-      "Nothing's graded yet — your first score in any class starts this off."
+      "Nothing's graded yet. Your first score in any class starts this off."
     );
   });
 });
 
-describe("semesterEstimate — weighted by units", () => {
+describe("semesterEstimate: weighted by units", () => {
   it("weights each class by what it's worth", () => {
     // A (4.0) over five units and a C (2.0) over one: 22 / 6.
     const summary = semesterEstimate([
@@ -136,7 +136,7 @@ describe("semesterEstimate — weighted by units", () => {
       course("MAT 21A", 4, 85),
       course("BIS 2A", 4, null),
     ]);
-    // (4.0 + 3.0) / 2 — the ungraded class is left out, not folded in as a 0.
+    // (4.0 + 3.0) / 2; the ungraded class is left out, not folded in as a 0.
     expect(summary.gpa).toBe(3.5);
     expect(summary.graded).toBe(2);
     expect(summary.total).toBe(3);
@@ -155,7 +155,7 @@ describe("semesterEstimate — weighted by units", () => {
   });
 });
 
-describe("semesterEstimate — units missing, so the whole thing rescales", () => {
+describe("semesterEstimate: units missing, so the whole thing rescales", () => {
   it("falls back to a plain mean and names how many classes are short", () => {
     // Weighted this would be 4.6/1.2 ≈ 3.83; unweighted it is (4 + 2) / 2.
     const summary = semesterEstimate([
@@ -204,7 +204,7 @@ describe("semesterEstimate — units missing, so the whole thing rescales", () =
   });
 });
 
-describe("semesterEstimate — a single class carries the whole number", () => {
+describe("semesterEstimate: a single class carries the whole number", () => {
   it("names the class instead of explaining the weighting", () => {
     const summary = semesterEstimate([
       course("ECS 36A", 4, 95),
@@ -212,7 +212,7 @@ describe("semesterEstimate — a single class carries the whole number", () => {
     ]);
     expect(summary.gpa).toBe(4);
     expect(summary.note).toBe(
-      "Only ECS 36A has scores so far — this is that class on its own."
+      "Only ECS 36A has scores so far, so this is that class on its own."
     );
   });
 
@@ -223,18 +223,18 @@ describe("semesterEstimate — a single class carries the whole number", () => {
     // the missing-units sentence would be noise here.
     expect(summary.unweighted).toBe(true);
     expect(summary.note).toBe(
-      "Only ECS 36A has scores so far — this is that class on its own."
+      "Only ECS 36A has scores so far, so this is that class on its own."
     );
   });
 
   it("falls back to 'one class' when the code didn't come through", () => {
     expect(semesterEstimate([course("", 4, 95)]).note).toBe(
-      "Only one class has scores so far — this is that class on its own."
+      "Only one class has scores so far, so this is that class on its own."
     );
   });
 });
 
-describe("semesterEstimate — the number itself", () => {
+describe("semesterEstimate: the number itself", () => {
   it("rounds to the two decimals a GPA is reported at", () => {
     // (4·3 + 3·4) / 7 = 3.4285…
     expect(
@@ -282,7 +282,7 @@ describe("unitsFrom", () => {
   it("refuses a number the GPA would be wrong to trust", () => {
     expect(() => unitsFrom("four")).toThrow(SemesterError);
     expect(() => unitsFrom("four")).toThrow(
-      "Units should be a number — 4, or 1.5. Leave it blank if you're not sure."
+      "Units should be a number, like 4 or 1.5. Leave it blank if you're not sure."
     );
   });
 
@@ -296,7 +296,7 @@ describe("unitsFrom", () => {
   });
 
   it("trims excess precision rather than storing a long decimal", () => {
-    // Units are a coarse quantity — 1, 1.5, 3, 4 — so two places is all the
+    // Units are a coarse quantity (1, 1.5, 3, 4), so two places is all the
     // precision the column ever needs, and a pasted 3.333333 should not be
     // what a whole class's GPA is weighted by.
     expect(unitsFrom("3.333333")).toBe(3.33);

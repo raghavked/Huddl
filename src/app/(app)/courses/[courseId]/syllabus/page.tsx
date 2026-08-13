@@ -9,9 +9,9 @@ import type { Course } from "@/lib/types";
 export const metadata: Metadata = { title: "Import syllabus" };
 
 /**
- * Paste-first syllabus import. Parsing happens entirely in the browser —
- * the syllabus text never reaches a server; only the dates the student
- * confirms are written to the shared class calendar.
+ * Paste-first syllabus import. Parsing happens entirely in the browser. The
+ * syllabus text never reaches a server; only the dates the student confirms
+ * are written to the shared class calendar.
  */
 export default async function SyllabusImportPage({
   params,
@@ -37,7 +37,7 @@ export default async function SyllabusImportPage({
     .eq("user_id", user.userId)
     .maybeSingle();
 
-  // Importing is for classmates — the course page has the join door.
+  // Importing is for classmates. The course page has the join door.
   if (!enrollment) redirect(`/courses/${course.id}`);
 
   return (
@@ -46,7 +46,7 @@ export default async function SyllabusImportPage({
         backHref={`/courses/${course.id}/calendar`}
         backLabel="Class calendar"
         title="Import syllabus"
-        description={`${course.code} · parsed right here in your browser — the syllabus itself never leaves it.`}
+        description={`${course.code} · parsed right here in your browser. The syllabus itself never leaves it.`}
       />
 
       <div className="mt-6">

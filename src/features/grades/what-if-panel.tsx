@@ -6,7 +6,7 @@ import { Card } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { whatIf, type EntriesLookup, type GradeCategory } from "@/lib/grades";
 
-/* "What do I need for an A-?" — folded away until it's asked.
+/* "What do I need for an A-?" Folded away until it's asked.
  *
  * This is the question that makes a grade tracker worth keeping, and also the
  * one that makes it stressful, so it sits closed by default and opens quietly

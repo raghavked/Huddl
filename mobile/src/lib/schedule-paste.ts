@@ -1,8 +1,8 @@
-/* Schedule paste parsing — pure, dependency-free, and entirely on-device.
+/* Schedule paste parsing: pure, dependency-free, and entirely on-device.
    Adding six courses one at a time is ninety dull seconds, so a student can
    paste whatever their registrar handed them instead: a copied table row, a
    bulleted list, or three codes separated by commas. We scan it line by line
-   with deterministic heuristics — no network, no React, no clock, no AI —
+   with deterministic heuristics (no network, no React, no clock, no AI)
    and hand back a preview the student still edits before anything is saved.
 
    Sibling of ./syllabus.ts and written to the same shape: exported types
@@ -11,13 +11,13 @@
 
 /** One course pulled out of the pasted text. */
 export type PastedCourse = {
-  /** Normalized "SUBJ NUM" — always uppercase, one space, no leading zeros
+  /** Normalized "SUBJ NUM": always uppercase, one space, no leading zeros
       on the number ("MAT 021A", "MAT021A", and "mat 21a" all land here as
       "MAT 21A", the shape the catalog prints). */
   code: string;
   /** The course name when one plausibly survived the line, else null. */
   title: string | null;
-  /** "low" means only a bare code came through — flag it for a second look. */
+  /** "low" means only a bare code came through. Flag it for a second look. */
   confidence: "high" | "low";
 };
 
@@ -26,7 +26,7 @@ export type ParsedSchedule = {
   /** Non-empty lines we couldn't read a course code out of: table headers,
       "Total units: 16", the stray blank-ish row. Codes dropped as duplicates
       are *not* counted (a repeat isn't a loss), and neither are codes past
-      the cap — a caller detects that with `courses.length === MAX_PASTED_COURSES`. */
+      the cap; a caller detects that with `courses.length === MAX_PASTED_COURSES`. */
   skipped: number;
 };
 
@@ -37,7 +37,7 @@ export const MAX_PASTED_COURSES = 12;
 /* ------------------------------ the code shape ---------------------------- */
 
 /* A course code is 2-4 letters, an optional space, 1-3 digits, and an
-   optional trailing letter — the shape `catalog_courses` prints
+   optional trailing letter: the shape `catalog_courses` prints
    (subject_code || ' ' || course_number). Notes on the pieces:
 
    - `(^|[^A-Za-z0-9])` is a hand-rolled left boundary instead of a lookbehind,
@@ -51,7 +51,7 @@ export const MAX_PASTED_COURSES = 12;
 const CODE_SCAN =
   /(^|[^A-Za-z0-9])([A-Za-z]{2,4})[ \t]{0,4}0*(\d{1,3})([A-Za-z])?(?![A-Za-z0-9])/g;
 
-/** The same shape, anchored — for validating one code rather than scanning
+/** The same shape, anchored, for validating one code rather than scanning
     prose. Deliberately has no keyword deny-list: an existing course really
     could be called "WEEK 1", and this is the function callers use to compare
     a pasted code against courses they're already in. */
@@ -62,7 +62,7 @@ const CODE_EXACT = /^\s*([A-Za-z]{2,4})[ \t]{0,4}0*(\d{1,3})([A-Za-z])?\s*$/;
    perfectly ordinary schedule line into a phantom class. Real subject codes
    (ART, MUS, STA, DES, SAS…) must never appear in this list. */
 const NOT_A_SUBJECT = new Set([
-  // Days and months — "Mon 10", "Oct 14" are dates, not classes.
+  // Days and months. "Mon 10", "Oct 14" are dates, not classes.
   "MON", "TUE", "TUES", "WED", "THU", "THUR", "THURS", "FRI", "SAT", "SUN",
   "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUNE", "JUL", "JULY", "AUG",
   "SEP", "SEPT", "OCT", "NOV", "DEC",
@@ -78,10 +78,10 @@ const NOT_A_SUBJECT = new Set([
 
 /* What follows a candidate when the candidate is really a clock time:
    "MWF 10:00", "TR 2-3PM", "F 9 AM". Matched against the text immediately
-   after the candidate, which is why the colon form insists on two digits —
+   after the candidate, which is why the colon form insists on two digits:
    "ECS 36A: Programming" must survive. */
 const TIME_TAIL =
-  /^[ \t]*(?::\d{2}|[ap]\.?m\.?\b|[-–—][ \t]*\d{1,2}(?::\d{2}|[ \t]*[ap]\.?m\.?))/i;
+  /^[ \t]*(?::\d{2}|[ap]\.?m\.?\b|[-\u2013\u2014][ \t]*\d{1,2}(?::\d{2}|[ \t]*[ap]\.?m\.?))/i;
 
 /* Characters that mark a list rather than a sentence. See findCodes: the
    first code on a line is taken on faith, later ones need one of these in
@@ -95,11 +95,11 @@ const LIST_SEPARATORS = /[,;|/&•·]/;
    /i on the day class would let it eat an ordinary lowercase word sitting
    next to a time. */
 const CLOCK_TIME =
-  /(?:\b[MTWRFSUhu]{1,6}\b[ \t]*)?\b\d{1,2}:\d{2}[ \t]*(?:[aApP]\.?[mM]\.?)?(?:[ \t]*[-–—][ \t]*\d{1,2}(?::\d{2})?[ \t]*(?:[aApP]\.?[mM]\.?)?)?/g;
+  /(?:\b[MTWRFSUhu]{1,6}\b[ \t]*)?\b\d{1,2}:\d{2}[ \t]*(?:[aApP]\.?[mM]\.?)?(?:[ \t]*[-\u2013\u2014][ \t]*\d{1,2}(?::\d{2})?[ \t]*(?:[aApP]\.?[mM]\.?)?)?/g;
 
 /* The same, for schedules that write whole hours: "MWF 10-11AM", "F 9 am". */
 const HOUR_TIME =
-  /(?:\b[MTWRFSUhu]{1,6}\b[ \t]*)?\b\d{1,2}[ \t]*[aApP]\.?[mM]\.?(?:[ \t]*[-–—][ \t]*\d{1,2}[ \t]*(?:[aApP]\.?[mM]\.?)?)?/g;
+  /(?:\b[MTWRFSUhu]{1,6}\b[ \t]*)?\b\d{1,2}[ \t]*[aApP]\.?[mM]\.?(?:[ \t]*[-\u2013\u2014][ \t]*\d{1,2}[ \t]*(?:[aApP]\.?[mM]\.?)?)?/g;
 
 /* A section number sitting where a title should start: "001", "A01", "12345".
    Two digits minimum so a title that opens with a number ("3D Modeling")
@@ -126,7 +126,7 @@ const SMALL_WORDS = new Set([
 
 /* -------------------------------- helpers --------------------------------- */
 
-/** True when a token is a meeting pattern like "MWF", "TR", or "TTh" — i.e.
+/** True when a token is a meeting pattern like "MWF", "TR", or "TTh", i.e.
     it decomposes cleanly into day units. Tried case-sensitively first (so
     "TTh" works), then uppercase (so "TTH" works); a lowercase word is never
     treated as a meeting pattern, which is what keeps "mus" and "us" safe. */
@@ -171,7 +171,7 @@ export function normalizeCourseCode(raw: string): string | null {
   return normalize(match[1] ?? "", match[2] ?? "", match[3] ?? "");
 }
 
-/** A line carries times, so it's almost certainly a registrar table row —
+/** A line carries times, so it's almost certainly a registrar table row,
     which licenses the more aggressive title cleanup (rooms, section labels). */
 function looksTabular(line: string): boolean {
   return /\d{1,2}:\d{2}/.test(line) || /\b\d{1,2}[ \t]*[ap]\.?m\.?\b/i.test(line);
@@ -189,7 +189,7 @@ type CodeHit = { code: string; start: number; end: number };
  *    one only counts if a list separator sits between it and the last code we
  *    kept. That single rule is what lets "BIS 2A, CHE 2B, STA 13" be three
  *    classes while "MAT 021A 001 CALCULUS 4.0 …" stays one class and its
- *    columns — everything after the code on a table row is title material.
+ *    columns. Everything after the code on a table row is title material.
  */
 function findCodes(line: string): CodeHit[] {
   const hits: CodeHit[] = [];
@@ -204,7 +204,7 @@ function findCodes(line: string): CodeHit[] {
     if (TIME_TAIL.test(line.slice(end))) continue;
     const previous = hits[hits.length - 1];
     if (previous && !LIST_SEPARATORS.test(line.slice(previous.end, start))) {
-      continue; // whitespace only — this is part of the previous row's tail
+      continue; // whitespace only, so this is part of the previous row's tail
     }
     hits.push({
       code: normalize(letters, match[3] ?? "", match[4] ?? ""),
@@ -244,14 +244,14 @@ function titleCase(text: string): string {
  * along with the meeting-day token in front of them ("MWF 10:00-10:50AM"),
  * any meeting pattern left standing on its own ("TR"), table words in a row
  * that clearly is a table ("LEC", "CRN", "TBA"), and finally a trailing
- * building-and-room pair ("OLSON 106") — that last one only on rows that
+ * building-and-room pair ("OLSON 106"). That last one only lands on rows that
  * carried a time, since a row without one is a list line, not a table.
  *
  * What's left is swept of dangling separators and empty brackets, and a
  * result with fewer than three letters is treated as no title at all.
  */
 function cleanTitle(raw: string, tabular: boolean): string | null {
-  let text = raw.replace(/^[\s\-–—:;,.|>*•·)\]]+/, "");
+  let text = raw.replace(/^[\s\-\u2013\u2014:;,.|>*•·)\]]+/, "");
   text = text.replace(LEADING_SECTION, "");
   text = text.replace(/\b\d{1,2}\.\d\b/g, " ");
   text = text.replace(/\(\s*\d{1,2}(?:\.\d)?\s*\)/g, " ");
@@ -271,8 +271,8 @@ function cleanTitle(raw: string, tabular: boolean): string | null {
   const cleaned = text
     .replace(/\(\s*\)|\[\s*\]/g, " ")
     .replace(/\s+/g, " ")
-    .replace(/^[\s\-–—:;,.|>*•·)\]]+/, "")
-    .replace(/[\s\-–—:;,|(\[]+$/, "")
+    .replace(/^[\s\-\u2013\u2014:;,.|>*•·)\]]+/, "")
+    .replace(/[\s\-\u2013\u2014:;,|(\[]+$/, "")
     .trim()
     .slice(0, 120)
     .trim();
@@ -288,16 +288,16 @@ function cleanTitle(raw: string, tabular: boolean): string | null {
  * same text in gives the same courses out, every time.
  *
  * Survives the three shapes students actually paste:
- * - a registrar table row — `MAT 021A  001  CALCULUS  4.0  MWF 10:00-10:50AM  OLSON 106`
- * - a copied list line — `ECS 36A - Programming & Problem Solving`
- * - bare codes on one line — `BIS 2A, CHE 2B, STA 13`
+ * - a registrar table row: `MAT 021A  001  CALCULUS  4.0  MWF 10:00-10:50AM  OLSON 106`
+ * - a copied list line: `ECS 36A - Programming & Problem Solving`
+ * - bare codes on one line: `BIS 2A, CHE 2B, STA 13`
  *
  * Rules of the road:
  * - Codes normalize to the catalog's shape, so "MAT021A", "MAT 021A", and
  *   "mat 21a" are one course, not three.
  * - The title is whatever plausibly survives the rest of the line once the
  *   section number, units, times, days, and room are gone. When a line puts
- *   the name *before* the code ("Calculus — MAT 21A") we fall back to the
+ *   the name *before* the code ("Calculus - MAT 21A") we fall back to the
  *   text in front of it.
  * - A repeated code keeps its first appearance, upgraded if a later line
  *   finally supplies a title.
@@ -327,7 +327,7 @@ export function parseSchedule(text: string): ParsedSchedule {
       const next = hits[i + 1];
       let title = cleanTitle(line.slice(hit.end, next ? next.start : line.length), tabular);
       if (title === null && i === 0 && hit.start > 0) {
-        // "Calculus — MAT 21A": the name led, the code followed.
+        // "Calculus - MAT 21A": the name led, the code followed.
         title = cleanTitle(line.slice(0, hit.start), tabular);
       }
 

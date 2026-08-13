@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import type { EventKind } from "@/lib/types";
 
-/** Weekday-over-day date tile — accent, per the calendar-row convention. */
+/** Weekday-over-day date tile, accent per the calendar-row convention. */
 export function DateTile({
   iso,
   size = "sm",

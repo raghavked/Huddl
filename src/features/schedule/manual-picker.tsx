@@ -48,7 +48,7 @@ function ErrorAlert({ message }: { message: string }) {
 /**
  * Manual course picker: search + checkbox list of the current term's catalog,
  * an inline "add a course" form for anything missing, then one confirm that
- * writes enrollments (source 'manual') — the DB trigger handles channels.
+ * writes enrollments (source 'manual'). The DB trigger handles channels.
  */
 export function ManualPicker({
   userId,
@@ -127,7 +127,7 @@ export function ManualPicker({
         .select("*")
         .single();
       if (insertError) {
-        // Probably created by a classmate moments ago — look it up instead.
+        // Probably created by a classmate moments ago, so look it up instead.
         const { data: found } = await supabase
           .from("courses")
           .select("*")
@@ -140,7 +140,7 @@ export function ManualPicker({
         course = inserted as Course;
       }
       if (!course) {
-        setAddError("Couldn't add that course. Please try again.");
+        setAddError("Couldn't add that course. Give it another go.");
         return;
       }
       setCourses((list) =>
@@ -151,7 +151,7 @@ export function ManualPicker({
       setAddCode("");
       setAddTitle("");
     } catch {
-      setAddError("Couldn't add that course. Please try again.");
+      setAddError("Couldn't add that course. Give it another go.");
     } finally {
       setAddPending(false);
     }
@@ -175,7 +175,7 @@ export function ManualPicker({
       setJoined(selectedCourses);
       router.refresh();
     } catch {
-      setError("Couldn't save your courses. Please try again.");
+      setError("Couldn't save your courses. Give it another go.");
     } finally {
       setSaving(false);
     }
@@ -196,7 +196,7 @@ export function ManualPicker({
           {joined.length === 1 ? "course channel" : "course channels"}
         </h2>
         <p className="mt-1 text-sm text-muted">
-          Your classmates are already in there — go say hi.
+          Your classmates are already in there. Go say hi.
         </p>
         <ul className="mx-auto mt-4 flex max-w-md flex-wrap justify-center gap-2">
           {joined.map((course) => (
@@ -261,8 +261,8 @@ export function ManualPicker({
           >
             <p className="text-xs text-muted">
               Can&apos;t find your class? Add it
-              {termName ? ` to the ${termName} catalog` : " to the catalog"} —
-              you&apos;ll be its first member and classmates can join after
+              {termName ? ` to the ${termName} catalog` : " to the catalog"}.
+              You&apos;ll be its first member, and classmates can join after
               you.
             </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-[10rem_1fr]">
@@ -339,7 +339,7 @@ export function ManualPicker({
           <EmptyState
             icon={BookOpen}
             title="No courses in the catalog yet"
-            description="Be the first — add a course and its chat channel opens up for everyone in it."
+            description="Be the first: add a course and its chat channel opens up for everyone in it."
             action={
               <Button onClick={() => setAddOpen(true)}>
                 <Plus className="size-4" aria-hidden />
@@ -349,7 +349,7 @@ export function ManualPicker({
           />
         ) : filtered.length === 0 ? (
           <p className="mt-4 text-sm text-muted">
-            Nothing matching &ldquo;{query.trim()}&rdquo; — try another search,
+            Nothing matching &ldquo;{query.trim()}&rdquo;. Try another search,
             or add it with &ldquo;Add a course&rdquo; above.
           </p>
         ) : (

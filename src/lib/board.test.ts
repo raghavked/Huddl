@@ -15,7 +15,7 @@ import {
 
 /* The board's pure helpers, exercised on plain values.
  *
- * Nothing here touches Supabase and nothing reads the clock — every function
+ * Nothing here touches Supabase and nothing reads the clock. Every function
  * under test takes its moment as an argument, which is the whole reason these
  * cases can assert an exact sentence instead of a shape.
  *
@@ -23,7 +23,7 @@ import {
  * `45.50 * 100` is 4550.000000000001 in JavaScript and the column has a check
  * constraint: a rounding hair here is a failed insert in front of a student.
  * And the date-only `happens_on` column, because `new Date("2026-08-14")`
- * parses as UTC midnight — the 13th at 5pm in California — so every ride would
+ * parses as UTC midnight (the 13th at 5pm in California), so every ride would
  * read as leaving a day early if anything ever parsed it the obvious way.
  */
 
@@ -32,7 +32,7 @@ import {
 /** A Thursday, mid-afternoon local time. Every "now" in this file. */
 const NOW = new Date(2026, 7, 13, 15, 30);
 
-/** The shape isStale() actually reads — a category, a day, a created time. */
+/** The shape isStale() actually reads: a category, a day, a created time. */
 function post(
   fields: Partial<{
     category: Parameters<typeof isStale>[0]["category"];
@@ -127,8 +127,14 @@ describe("priceCentsFrom", () => {
 
   it("names what to do instead of failing silently", () => {
     expect(() => priceCentsFrom("free")).toThrow(BoardError);
+    // Two substrings rather than the whole sentence, so a punctuation edit
+    // in board.ts doesn't fail here. What matters is that the message names
+    // the format and says what to do when the thing is free.
     expect(() => priceCentsFrom("free")).toThrow(
-      "Write the price as a number — 45, or 45.50. Leave it blank if it's free."
+      /Write the price as a number/
+    );
+    expect(() => priceCentsFrom("free")).toThrow(
+      /Leave it blank if it's free/
     );
     expect(() => priceCentsFrom(".")).toThrow(BoardError);
     expect(() => priceCentsFrom("45.505")).toThrow(BoardError);

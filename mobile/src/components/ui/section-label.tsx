@@ -6,13 +6,13 @@ import { AppText } from "./app-text";
 /**
  * The quiet uppercase heading that carries a scrolling screen's rhythm.
  *
- * 24 above, 12 below, `letterSpacing: 1.2`, muted — always, on every screen.
+ * 24 above, 12 below, `letterSpacing: 1.2`, muted. Always, on every screen.
  * The consistency is the whole point: a student scrolling home, a course, and
  * a club in the same minute should feel one hand behind all three. Do not
  * hand-roll a variant with different margins.
  *
  * It labels a *group of rows*, so keep it to one or two plain words
- * ("Today", "Your courses", "Coming up"). It is not a kicker or an eyebrow —
+ * ("Today", "Your courses", "Coming up"). It is not a kicker or an eyebrow:
  * it never sits above a display title dressing it up.
  *
  * `action` is the optional "see all" on the right: brand-colored, a chevron,

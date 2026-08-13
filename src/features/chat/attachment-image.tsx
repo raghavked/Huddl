@@ -37,7 +37,7 @@ export function AttachmentImage({
     };
   }, [path]);
 
-  // While the lightbox is open, Escape closes it — captured and stopped so
+  // While the lightbox is open, Escape closes it. Captured and stopped so
   // panels underneath (thread slide-over) don't close on the same key.
   useEffect(() => {
     if (!lightbox) return;
@@ -92,8 +92,8 @@ export function AttachmentImage({
           className
         )}
       >
-        {/* Signed URLs are short-lived and per-user — the Next.js image
-            optimizer would just get in the way here. */}
+        {/* Signed URLs are short-lived and per-user, so the Next.js image
+            optimizer would only get in the way here. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={url}

@@ -2,7 +2,7 @@ import "react-native-url-polyfill/auto";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 
-/* The same Supabase project as the web app — one backend, two clients.
+/* The same Supabase project as the web app: one backend, two clients.
    EXPO_PUBLIC_* values are inlined at bundle time from mobile/.env. */
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;

@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/client";
  *
  * The one rule this screen exists to keep is that it never tells you whether
  * an address has an account. `resetPasswordForEmail` succeeds either way by
- * design, and so does the copy — "if that address has an account" is not
+ * design, and so does the copy: "if that address has an account" is not
  * hedging, it's the feature. A campus is a small place and knowing which of
  * your classmates is on Huddl is not something a stranger with a form should
  * be able to find out.
@@ -26,7 +26,7 @@ import { createClient } from "@/lib/supabase/client";
  * route handler is what turns the emailed token into a session cookie, and it
  * forwards to `next` when the exchange works. See auth/confirm/route.ts.
  *
- * The resend cooldown is copied from the verify screen and is load-bearing —
+ * The resend cooldown is copied from the verify screen and is load-bearing.
  * Supabase rate-limits auth email, so a student who taps "resend" four times
  * gets an error instead of a fourth email. Thirty seconds of a disabled button
  * is kinder than an error they caused. */
@@ -36,9 +36,9 @@ type ResendState = "idle" | "sending" | "sent";
 /** Warm words for a send that didn't go out. Never the raw API text. */
 function sendFailureMessage(error: AuthError): string {
   if (error.status === 429 || error.code === "over_email_send_rate_limit") {
-    return "We've sent a few of those already — give it a minute, then ask again.";
+    return "We've sent a few of those already. Give it a minute, then ask again.";
   }
-  return "That email didn't go out — give it a minute, then try again.";
+  return "That email didn't go out. Give it a minute, then try again.";
 }
 
 export function ForgotPasswordForm({
@@ -61,7 +61,7 @@ export function ForgotPasswordForm({
     };
   }, []);
 
-  /** Give inboxes — and Supabase's rate limiter — a moment. */
+  /** Give inboxes (and Supabase's rate limiter) a moment. */
   function startCooldown() {
     setResendState("sent");
     if (cooldownRef.current) clearTimeout(cooldownRef.current);
@@ -135,11 +135,11 @@ export function ForgotPasswordForm({
             Huddl, to anyone, ever. */}
         <p className="mt-3 text-sm text-muted text-pretty">
           If that address has a Huddl account, a link to set a new password is
-          on its way. It works once, and it doesn&apos;t stay good for long —
+          on its way. It works once, and it doesn&apos;t stay good for long, so
           open it when it lands.
         </p>
         <p className="mt-2 text-sm text-muted text-pretty">
-          Nothing yet? Check your spam folder — campus mail filters are strict
+          Nothing yet? Check your spam folder. Campus mail filters are strict
           about links.
         </p>
 
@@ -151,7 +151,7 @@ export function ForgotPasswordForm({
             className="mt-5 flex items-center justify-center gap-2 text-sm font-medium text-success"
           >
             <MailCheck className="size-4" aria-hidden />
-            Sent — give it a minute to land.
+            Sent. Give it a minute to land.
           </p>
         ) : (
           <Button
@@ -233,7 +233,7 @@ export function ForgotPasswordForm({
             aria-describedby="forgot-email-hint"
           />
           <Hint id="forgot-email-hint">
-            The address you signed up with — the link only works there.
+            The address you signed up with. The link only works there.
           </Hint>
         </div>
 

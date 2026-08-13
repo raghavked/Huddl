@@ -19,8 +19,8 @@ export const metadata: Metadata = { title: "Your grades" };
  * One class's private grade sheet: the weighted estimate, the categories off
  * the syllabus with your scores in them, and the what-if panel.
  *
- * `grade_categories` and `grade_entries` are RLS self-only — no classmate,
- * no club officer and no instructor can read a row of this — so the page
+ * `grade_categories` and `grade_entries` are RLS self-only. No classmate,
+ * no club officer and no instructor can read a row of this, so the page
  * loads with the request-scoped client and hands the whole gradebook to the
  * client section, which owns every write from there.
  */

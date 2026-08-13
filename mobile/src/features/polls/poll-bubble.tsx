@@ -10,13 +10,13 @@ import { useAuth } from "@/providers/auth-provider";
 /** Props for {@link PollBubble}. */
 export type PollBubbleProps = {
   /**
-   * The poll's id — `messages.poll_id` on the carrying message. The bubble is
+   * The poll's id, `messages.poll_id` on the carrying message. The bubble is
    * fully self-contained: it fetches the question, options, and votes itself,
    * handles voting/retracting/closing, and keeps results live over realtime.
    * The room only needs to render `<PollBubble pollId={message.poll_id} />`
    * inside the message row whenever a message carries a `poll_id`. It draws on
    * its own card surface, so it reads correctly on both own and other message
-   * backgrounds — render it in place of (or above) the plain text content.
+   * backgrounds. Render it in place of (or above) the plain text content.
    */
   pollId: string;
 };
@@ -41,7 +41,7 @@ type VoteRow = {
 
 type Status = "loading" | "error" | "missing" | "ready";
 
-/** A skeleton line while the poll loads — question-ish bar + option-ish bar. */
+/** A skeleton line while the poll loads: question-ish bar + option-ish bar. */
 function GhostBar({ width, height }: { width: `${number}%`; height: number }) {
   const theme = useTheme();
   return (
@@ -223,7 +223,7 @@ export function PollBubble({ pollId }: PollBubbleProps) {
         endMutation();
         if (error) {
           setVotes(previous);
-          setActionError("Couldn't take your vote back — give it another try.");
+          setActionError("Couldn't take your vote back. Give it another try.");
         }
         return;
       }
@@ -241,7 +241,7 @@ export function PollBubble({ pollId }: PollBubbleProps) {
       endMutation();
       if (error) {
         setVotes(previous);
-        setActionError("Couldn't save your vote — give it another try.");
+        setActionError("Couldn't save your vote. Give it another try.");
       }
     },
     [userId, poll, pollId, endMutation]
@@ -262,7 +262,7 @@ export function PollBubble({ pollId }: PollBubbleProps) {
     endMutation();
     if (error) {
       setPoll(previous);
-      setActionError("Couldn't close the poll — give it another try.");
+      setActionError("Couldn't close the poll. Give it another try.");
     }
   }, [poll, pollId, endMutation]);
 
@@ -354,7 +354,7 @@ export function PollBubble({ pollId }: PollBubbleProps) {
               disabled={closed}
               accessibilityRole="button"
               accessibilityState={{ selected: mine, disabled: closed }}
-              accessibilityLabel={`${option.label} — ${count} ${
+              accessibilityLabel={`${option.label}, ${count} ${
                 count === 1 ? "vote" : "votes"
               }${mine ? ", your pick" : ""}`}
               accessibilityHint={

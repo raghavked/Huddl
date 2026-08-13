@@ -47,12 +47,12 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /* The one composer for a new conversation. Pick a single classmate and it's
-   a 1:1 — the find-or-create create_dm_thread RPC, same as the "Message"
+   a 1:1: the find-or-create create_dm_thread RPC, same as the "Message"
    button on a profile. Pick two or more and it becomes a named group. The
    screen says which one you're making as the selection changes, so nobody
    has to know the rule up front.
 
-   The roster picker below is shared with /dm/info's "Add people" — it lives
+   The roster picker below is shared with /dm/info's "Add people". It lives
    here (rather than in components/) because the two screens are the only
    callers and app/ files can't hold a non-route module. */
 
@@ -122,10 +122,10 @@ const OPEN_CANDIDATE_SELECT =
 /** Handle and avatar, and not one column more. */
 const LIMITED_CANDIDATE_SELECT = "id, handle, avatar_url";
 
-/** A classmate as the picker shows them — private profiles keep their name back. */
+/** A classmate as the picker shows them. Private profiles keep their name back. */
 type Candidate = ThreadPerson & {
   locked: boolean;
-  /** "Computer science" or "Class of 2027" — null when they've said neither. */
+  /** "Computer science" or "Class of 2027", null when they've said neither. */
   detail: string | null;
 };
 
@@ -250,15 +250,15 @@ function PickerRow({
  * Everyone here shares your campus (the only people a group may hold), you
  * are never in your own results, and anyone you've blocked is filtered out
  * before the list renders. Private profiles appear as a handle behind a
- * lock — enough to invite someone you know without exposing their name.
+ * lock, enough to invite someone you know without exposing their name.
  *
  * It *is* the scrolling list, so give it a parent with real height. Anything
  * the caller wants above the search box goes in `header` and scrolls with
- * the results — on a small phone with the keyboard up, a pinned form would
+ * the results. On a small phone with the keyboard up, a pinned form would
  * leave no room for anyone to pick.
  *
  * @param excludeIds  Ids to drop from results entirely (existing members).
- * @param selectedIds Ids drawn with a fern check — tapping calls `onPick`
+ * @param selectedIds Ids drawn with a fern check; tapping calls `onPick`
  *   again so the parent can toggle them back off.
  * @param onPick      Called with the tapped classmate.
  * @param pendingId   Id currently being written to the server, if any.
@@ -299,7 +299,7 @@ export function CampusPeoplePicker({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Candidate[] | null>(null);
   // Starts true so the very first paint is a spinner, not a wrong "nobody
-  // here" — the session may still be resolving.
+  // here". The session may still be resolving.
   const [searching, setSearching] = useState(true);
   const [failed, setFailed] = useState(false);
 
@@ -328,7 +328,7 @@ export function CampusPeoplePicker({
         /* Two questions, not one. A public classmate's major and year are
            worth a line under their name; a private classmate's are theirs,
            so they're never asked for and never leave the server. It also
-           means a private profile is findable by handle only — typing
+           means a private profile is findable by handle only. Typing
            somebody's real name can't confirm which handle is theirs. */
         const open = supabase
           .from("profiles")
@@ -484,7 +484,7 @@ export function CampusPeoplePicker({
             title={query.trim() ? "Nobody by that name" : "Nobody to add yet"}
             body={
               query.trim()
-                ? "Try a different name or handle — Huddl keeps you to your own campus."
+                ? "Try a different name or handle. Huddl keeps you to your own campus."
                 : "As classmates join your campus they'll show up here."
             }
           />
@@ -519,7 +519,7 @@ export default function NewMessageScreen() {
   const headcount = selected.length + 1;
   const full = headcount >= GROUP_MAX_PEOPLE;
   /* One classmate picked is a 1:1; two or more is a group. Everything the
-     screen says — and what the create button does — follows from these. */
+     screen says, and what the create button does, follows from these. */
   const solo = selected.length === 1 ? selected[0] : null;
   const isGroup = selected.length >= GROUP_MIN_PEOPLE - 1;
 
@@ -542,8 +542,8 @@ export default function NewMessageScreen() {
 
   /**
    * One classmate picked opens the 1:1 with them. Threads carry no INSERT
-   * policy, so it goes through the security-definer create_dm_thread RPC —
-   * find-or-create, so picking someone you already have a thread with just
+   * policy, so it goes through the security-definer create_dm_thread RPC.
+   * It's find-or-create, so picking someone you already have a thread with just
    * lands you back in it (same call as the profile's "Message" button).
    */
   const startDirect = useCallback(async (person: ThreadPerson) => {
@@ -555,10 +555,10 @@ export default function NewMessageScreen() {
       });
       const threadId = typeof data === "string" ? data : null;
       if (error || !threadId) throw error ?? new Error("No thread");
-      tapSuccess(); // the conversation is open — that's a completion
+      tapSuccess(); // the conversation is open, so that's a completion
       router.replace(`/dm/${threadId}`);
     } catch (err) {
-      // A dm_privacy wall (0040) is not a hiccup — telling a student to "give
+      // A dm_privacy wall (0040) is not a hiccup. Telling a student to "give
       // it another go" against a setting that won't move is the wrong story.
       // warmDmError names the wall and falls back to the retry copy otherwise.
       setFormError(
@@ -597,7 +597,7 @@ export default function NewMessageScreen() {
         trimmed,
         selected.map((person) => person.id)
       );
-      tapSuccess(); // the group exists — that's a completion
+      tapSuccess(); // the group exists, so that's a completion
       router.replace(`/dm/${threadId}`);
     } catch (err) {
       setFormError(
@@ -609,7 +609,7 @@ export default function NewMessageScreen() {
     }
   }, [pending, title, selected, solo, startDirect]);
 
-  // Deep links land here directly — signed-out visitors get a proper door.
+  // Deep links land here directly, so signed-out visitors get a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -642,7 +642,7 @@ export default function NewMessageScreen() {
         : "Start a conversation";
 
   const hint = full
-    ? "That's the whole group — sixteen is the cap."
+    ? "That's the whole group. Sixteen is the cap."
     : solo
       ? "Tap another classmate to turn this into a group, or tap their chip to take them back out."
       : isGroup
@@ -695,7 +695,7 @@ export default function NewMessageScreen() {
                   {blurb}
                 </AppText>
 
-                {/* Only a group needs a name — a 1:1 is named after the
+                {/* Only a group needs a name. A 1:1 is named after the
                     person you're talking to. */}
                 {isGroup ? (
                   <View style={{ marginTop: space.card }}>
@@ -713,7 +713,7 @@ export default function NewMessageScreen() {
                   </View>
                 ) : null}
 
-                {/* Nobody picked yet means there's nothing to label — the
+                {/* Nobody picked yet means there's nothing to label. The
                     row arrives with its first chip. */}
                 {selected.length > 0 ? (
                   <>

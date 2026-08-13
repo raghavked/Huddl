@@ -1,7 +1,7 @@
 import { Platform, Share } from "react-native";
 import { supabase } from "@/lib/supabase";
 
-/* Take your data with you — the other half of the deletion promise.
+/* Take your data with you: the other half of the deletion promise.
  *
  * Migration 0035 added `export_my_data()`, a security-definer RPC that
  * returns the caller's whole record as one jsonb document. Every subquery in
@@ -9,8 +9,8 @@ import { supabase } from "@/lib/supabase";
  * no way to ask for anyone else's: {@link requestExport} calls it, checks the
  * shape, and hands back both the parsed object and a pretty-printed copy.
  *
- * {@link summarize} turns that document into countable lines — "312
- * messages", "4 courses", "18 focus sessions" — so a student can tell what
+ * {@link summarize} turns that document into countable lines ("312
+ * messages", "4 courses", "18 focus sessions") so a student can tell what
  * they are getting without reading a page of JSON. It is pure: same document
  * in, same lines out, no clock and no I/O.
  *
@@ -19,7 +19,7 @@ import { supabase } from "@/lib/supabase";
  * There is no filesystem here. `expo-file-system`, `expo-sharing`, and
  * `expo-clipboard` are all absent from `mobile/package.json`, and this
  * feature is not worth a new dependency. So {@link saveAndShare} uses React
- * Native's core `Share` — already in the bundle — and passes the JSON as the
+ * Native's core `Share` (already in the bundle) and passes the JSON as the
  * shared text, which the OS share sheet can drop into mail, notes, or a
  * files app. When that is not possible (web, a share sheet that refuses, or
  * a document too large to survive an Android intent) it says so in its
@@ -29,7 +29,7 @@ import { supabase } from "@/lib/supabase";
  * with no dependency at all.
  *
  * If `expo-file-system` and `expo-sharing` ever land in the app for another
- * reason, {@link saveAndShare} is the one function to rewrite — write the
+ * reason, {@link saveAndShare} is the one function to rewrite: write the
  * string to `documentDirectory + fileName`, share the URI, and keep the same
  * {@link ShareOutcome} contract so no screen has to change.
  *
@@ -49,7 +49,7 @@ export type DataExport = Record<string, unknown>;
 export type PreparedExport = {
   /** The parsed document. */
   data: DataExport;
-  /** The same thing, pretty-printed at two spaces — this is the file. */
+  /** The same thing, pretty-printed at two spaces. This is the file. */
   json: string;
 };
 
@@ -78,7 +78,7 @@ function asDocument(raw: unknown): DataExport | null {
 /**
  * Ask the server for everything it holds about the signed-in student.
  *
- * Self-only by construction — `export_my_data()` reads `auth.uid()` and
+ * Self-only by construction: `export_my_data()` reads `auth.uid()` and
  * takes no arguments, so there is nothing to pass and nothing to get wrong.
  * The call can take a second or two for someone with a semester behind them;
  * show an honest pending state rather than a spinner that implies speed.
@@ -117,7 +117,7 @@ export type SummaryKey =
 
 /** One "312 messages" line, pre-counted and pre-pluralized. */
 export type SummaryLine = {
-  /** Stable key — use it for the row key and to pick an icon. */
+  /** Stable key. Use it for the row key and to pick an icon. */
   key: SummaryKey;
   /** How many. Always 1 or more; empty categories never become lines. */
   count: number;
@@ -205,8 +205,8 @@ const LINE_SPECS: readonly LineSpec[] = [
  * Turn an export document into the countable lines a screen can list, so
  * nobody has to read JSON to know what they are about to walk away with.
  *
- * Empty categories are dropped rather than rendered as a column of zeros —
- * a first-week student should see the two things they have, not seven things
+ * Empty categories are dropped rather than rendered as a column of zeros.
+ * A first-week student should see the two things they have, not seven things
  * they don't. An export with nothing countable in it returns `[]`, which is
  * a real answer: their profile and settings are still in the file.
  *
@@ -238,7 +238,7 @@ export function exportedAt(data: DataExport): Date | null {
 }
 
 /**
- * What to call the file — `huddl-data-2026-08-11.json`. Used as the share
+ * What to call the file: `huddl-data-2026-08-11.json`. Used as the share
  * sheet's title and subject so an emailed export arrives named, and shown on
  * screen so a student knows what they're looking for afterwards.
  */
@@ -257,7 +257,7 @@ export function exportFileName(at: Date = new Date()): string {
  * Android carries shared text in a Binder transaction with a hard ceiling
  * around a megabyte, and a payload anywhere near it takes the whole app down
  * with `TransactionTooLargeException`. 120k characters is a comfortable
- * fraction of that — several thousand messages — and anything larger takes
+ * fraction of that (several thousand messages), and anything larger takes
  * the on-screen fallback, which has no limit at all.
  */
 export const SHARE_TEXT_LIMIT = 120_000;
@@ -265,10 +265,10 @@ export const SHARE_TEXT_LIMIT = 120_000;
 /**
  * What happened when we tried to hand the export over.
  *
- * - `shared` — it went somewhere; the student picked a destination.
- * - `dismissed` — they backed out. Not a failure; say nothing.
- * - `too-large` — past {@link SHARE_TEXT_LIMIT}; show the JSON on screen.
- * - `unavailable` — no share sheet here (web, or the OS refused); same
+ * - `shared`: it went somewhere; the student picked a destination.
+ * - `dismissed`: they backed out. Not a failure; say nothing.
+ * - `too-large`: past {@link SHARE_TEXT_LIMIT}; show the JSON on screen.
+ * - `unavailable`: no share sheet here (web, or the OS refused); same
  *   fallback, different sentence.
  */
 export type ShareOutcome = "shared" | "dismissed" | "too-large" | "unavailable";
@@ -277,7 +277,7 @@ export type ShareOutcome = "shared" | "dismissed" | "too-large" | "unavailable";
  * Open the share sheet with the export in it, so a student can send it to
  * mail, notes, a files app, or wherever they keep things.
  *
- * Never throws — every way this can fail is a {@link ShareOutcome} the
+ * Never throws: every way this can fail is a {@link ShareOutcome} the
  * caller can answer with a sentence and the on-screen fallback. See the
  * module note for why this shares text rather than a written file.
  *

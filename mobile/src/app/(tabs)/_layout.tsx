@@ -23,7 +23,7 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      // A light tick on every tab press — the one "every touch" exception,
+      // A light tick on every tab press: the one "every touch" exception,
       // since switching context is itself a small commitment.
       screenListeners={{ tabPress: () => tapLight() }}
       screenOptions={({ route }) => ({

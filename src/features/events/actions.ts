@@ -58,7 +58,7 @@ function validateFields(fields: EventFields): string | null {
 }
 
 /**
- * Set (or change) the signed-in user's RSVP. Upserts the event_rsvps row —
+ * Set (or change) the signed-in user's RSVP. Upserts the event_rsvps row;
  * RLS restricts writes to the user's own row at their own university. A new
  * "going" is refused once the event is at capacity (people already going can
  * keep their spot or step back).
@@ -94,7 +94,7 @@ export async function rsvp(
         .neq("user_id", user.id);
       if ((count ?? 0) >= capacity) {
         return {
-          error: `This event is full — all ${capacity} spots are taken. You can still RSVP "maybe" in case one opens up.`,
+          error: `This event is full. All ${capacity} spots are taken. You can still RSVP "maybe" in case one opens up.`,
         };
       }
     }
@@ -113,7 +113,7 @@ export async function rsvp(
 }
 
 /**
- * Edit an event. RLS only lets the creator through — a silent no-op update
+ * Edit an event. RLS only lets the creator through, so a silent no-op update
  * (zero rows) means someone else tried, so surface that as an error.
  */
 export async function updateEvent(

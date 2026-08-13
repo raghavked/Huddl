@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 
 /* Pinned messages: any channel member can pin or unpin (campus rooms are
-   small and self-governing) — the RPC from migration 0019 enforces
+   small and self-governing). The RPC from migration 0019 enforces
    membership server-side. Pinned state travels on the messages row
    (pinned_at / pinned_by), so realtime UPDATE events keep clients in sync. */
 

@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
  *
  * 0034's normalize trigger trims, lowercases, dedupes and keeps the first
  * eight, dropping anything outside 2-28 characters. We hold the same line up
- * front so a word never disappears on the way to the server — but we still
+ * front so a word never disappears on the way to the server, but we still
  * send exactly what the student typed and settle on their spelling until the
  * next load. */
 
@@ -32,7 +32,7 @@ const MIN_INTEREST_LENGTH = 2;
 const MAX_INTEREST_LENGTH = 28;
 const MAX_LOOKING_FOR_LENGTH = 140;
 
-/** A campus-flavoured starting vocabulary — click one, or type your own. */
+/** A campus-flavoured starting vocabulary. Click one, or type your own. */
 const INTEREST_SUGGESTIONS = [
   "study spots",
   "live music",
@@ -59,7 +59,7 @@ export function InterestsEditor({
   initialInterests,
   initialLookingFor,
 }: {
-  /** The signed-in student's `profiles.id` — the update is owner-scoped. */
+  /** The signed-in student's `profiles.id`. The update is owner-scoped. */
   userId: string;
   initialInterests: string[];
   initialLookingFor: string | null;
@@ -89,7 +89,7 @@ export function InterestsEditor({
       return false;
     }
     if (interests.length >= MAX_INTERESTS) {
-      setHint(`That's ${MAX_INTERESTS} — take one off to add another.`);
+      setHint(`That's ${MAX_INTERESTS}. Take one off to add another.`);
       return false;
     }
     setInterests([...interests, typed]);
@@ -135,7 +135,7 @@ export function InterestsEditor({
       const { error } = await supabase
         .from("profiles")
         .update({
-          // 0034's trigger trims, lowercases and dedupes — send what they typed.
+          // 0034's trigger trims, lowercases and dedupes, so send what they typed.
           interests: nextInterests,
           looking_for: lookingFor.trim() || null,
         })
@@ -203,7 +203,7 @@ export function InterestsEditor({
                 if (hint) setHint(null);
               }}
               onKeyDown={(event) => {
-                // Enter adds the word rather than saving the whole card —
+                // Enter adds the word rather than saving the whole card,
                 // the same thing the "done" key does on the phone.
                 if (event.key !== "Enter") return;
                 event.preventDefault();
@@ -241,7 +241,7 @@ export function InterestsEditor({
           <Hint id={`${uid}-interest-hint`} className="mt-1.5">
             {interests.length === 0
               ? `Optional, and up to ${MAX_INTERESTS}.`
-              : `${interests.length} of ${MAX_INTERESTS} — click one to take it off.`}
+              : `${interests.length} of ${MAX_INTERESTS}. Click one to take it off.`}
           </Hint>
         )}
 
@@ -295,7 +295,7 @@ export function InterestsEditor({
           />
           <Hint id={`${uid}-looking-hint`}>
             {lookingFor.trim().length === 0
-              ? "One line near the top of your profile — people to run with, a study group for the midterm, a ride home for break."
+              ? "One line near the top of your profile: people to run with, a study group for the midterm, a ride home for break."
               : `${lookingFor.length}/${MAX_LOOKING_FOR_LENGTH}`}
           </Hint>
         </div>

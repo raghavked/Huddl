@@ -18,7 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Post to the board" };
 
 /**
- * The board composer, and — with an `id` param — the editor.
+ * The board composer, and with an `id` param, the editor.
  *
  * The post being edited is fetched here rather than in the browser, so the
  * three ways an edit can fail (it's gone, it isn't yours, the network is) are

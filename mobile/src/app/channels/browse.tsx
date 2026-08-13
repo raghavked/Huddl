@@ -22,7 +22,7 @@ import { useAuth } from "@/providers/auth-provider";
 
    A new campus starts with four channels and every student is auto-joined to
    all four, so on move-in week this screen is a full list with nothing to do
-   on it — the empty state that recruits the first channel never gets a turn,
+   on it. The empty state that recruits the first channel never gets a turn,
    because the list isn't empty. So the recruit sits *above* the list whenever
    there's nothing left here to join, and the empty state stays for the case
    it was written for. Move-in week is the normal case, not the edge case. */
@@ -138,7 +138,7 @@ export default function BrowseChannelsScreen() {
     void load().finally(() => setRefreshing(false));
   }, [load]);
 
-  /** Standard membership insert — the university-scoped policy allows it. */
+  /** Standard membership insert; the university-scoped policy allows it. */
   const handleJoin = useCallback(
     async (channel: BrowseChannel) => {
       if (!userId || joiningId) return;
@@ -148,7 +148,7 @@ export default function BrowseChannelsScreen() {
         .from("channel_members")
         .insert({ channel_id: channel.id, user_id: userId });
       setJoiningId(null);
-      // 23505 means we're already in — treat it as a win and head on through.
+      // 23505 means we're already in, so treat it as a win and head on through.
       if (insertError && insertError.code !== "23505") {
         setJoinError("Couldn't join that channel just now. Give it another try.");
         return;
@@ -159,7 +159,7 @@ export default function BrowseChannelsScreen() {
     [userId, joiningId]
   );
 
-  // Deep links land here directly — a signed-out visitor gets a proper door.
+  // Deep links land here directly, so a signed-out visitor gets a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -272,7 +272,7 @@ export default function BrowseChannelsScreen() {
         <View style={{ gap: space.tight, marginBottom: space.card }}>
           <AppText variant="display">Browse channels</AppText>
           <AppText variant="caption" muted>
-            Every campus and topic channel at your school — join the ones that
+            Every campus and topic channel at your school. Join the ones that
             feel like home.
           </AppText>
           {error ? (
@@ -295,7 +295,7 @@ export default function BrowseChannelsScreen() {
             <EmptyState
               illustration={Pennant}
               title="You're in every channel here"
-              body="That's the whole directory for now. Start one for anything else your campus should have — a class you're taking, a team you follow, a thing you can't stop talking about."
+              body="That's the whole directory for now. Start one for anything your campus is missing: a class you're taking, a team you follow."
               action={{
                 label: "Start a channel",
                 onPress: () => router.push("/channels/new"),
@@ -309,7 +309,7 @@ export default function BrowseChannelsScreen() {
         <EmptyState
           illustration={Pennant}
           title="Nothing to browse yet"
-          body="Be the first — start a channel for anything your campus cares about."
+          body="Your campus doesn't have any channels yet. You could be the first."
           action={{
             label: "Start a channel",
             onPress: () => router.push("/channels/new"),

@@ -36,7 +36,7 @@ type ChannelRow = Channel & {
 
 /**
  * `is_public` rides along because nothing in the database withholds a private
- * student's name — see {@link authorFirstName}, which is the whole of the
+ * student's name. See {@link authorFirstName}, which is the whole of the
  * redaction on this surface.
  */
 type MessagePreview = {
@@ -53,7 +53,7 @@ type MessagePreview = {
 /**
  * The one word a preview line calls whoever spoke last. A classmate with
  * Public profile off stands under their handle here, the same way the board,
- * the people directory and in-channel search read them, and it fails closed —
+ * the people directory and in-channel search read them, and it fails closed:
  * anything other than an explicit `is_public: true` counts as private, so a
  * select that loses the column redacts rather than leaks. You always see
  * yourself in full.
@@ -197,14 +197,14 @@ export default async function HomePage() {
      parallel.
 
      "Readable" includes the block list, and a blocked classmate is excluded
-     IN the query rather than dropped from the answer — so a channel whose
+     IN the query rather than dropped from the answer, so a channel whose
      newest message is theirs falls back to the newest one this student can
      actually see, instead of the row going quiet.
 
      A `blocks` read that didn't land leaves this null rather than empty: with
      no set to cut against, any preview could be quoting someone the rooms
      themselves hide. The rows then carry no second line at all, which is the
-     one honest option — "No messages yet" would be a claim about a channel we
+     one honest option. "No messages yet" would be a claim about a channel we
      never looked in. */
   let previews: Map<string, MessagePreview> | null = null;
   if (!blocksRes.error) {
@@ -246,7 +246,7 @@ export default async function HomePage() {
         description="Here's what's happening on campus."
       />
 
-      {/* 0 — today at a glance, only when today actually holds something.
+      {/* 0: today at a glance, only when today actually holds something.
           Drawn in the browser: what counts as "today" is the student's day,
           not the server's. */}
       <TodayStrip
@@ -259,7 +259,7 @@ export default async function HomePage() {
         }))}
       />
 
-      {/* 1 — the study plan, when there are classes to plan around */}
+      {/* 1: the study plan, when there are classes to plan around */}
       {planStats ? (
         <section className="mt-8" aria-label="Your plan">
           <SectionHeader title="Your plan" />
@@ -293,7 +293,7 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      {/* 2 — campus channels I'm in, with latest-message previews */}
+      {/* 2: campus channels I'm in, with latest-message previews */}
       <section className="mt-8" aria-label="Your campus">
         <SectionHeader
           title="Your campus"
@@ -305,7 +305,7 @@ export default async function HomePage() {
             <EmptyState
               icon={Megaphone}
               title="No campus channels yet"
-              description="Campus channels usually come free with your profile — browse to find and join them."
+              description="Campus channels usually come free with your profile."
               action={
                 <Link
                   href="/channels/browse"
@@ -356,7 +356,7 @@ export default async function HomePage() {
                             {preview.content}
                           </>
                         ) : previews ? (
-                          "No messages yet — say hi!"
+                          "No messages yet. Say hi."
                         ) : null}
                       </span>
                     </span>
@@ -368,7 +368,7 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* 3 — course channels grid */}
+      {/* 3: course channels grid */}
       <section className="mt-8" aria-label="Your courses">
         <SectionHeader title="Your courses" />
         {courseChannels.length === 0 ? (
@@ -376,7 +376,7 @@ export default async function HomePage() {
             <EmptyState
               icon={GraduationCap}
               title="No courses yet"
-              description="Add your classes and each one opens its own chat — the campus catalog fills in the details as you type."
+              description="Add your classes and each one opens its own chat. The campus catalog fills in the details as you type."
               action={
                 <Link href="/setup" className={buttonClasses({ size: "sm" })}>
                   Set up your courses
@@ -427,7 +427,7 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* 4 — next events at my university */}
+      {/* 4: next events at my university */}
       <section className="mt-8" aria-label="Coming up">
         <SectionHeader title="Coming up" href="/events" linkLabel="All events" />
         {events.length === 0 ? (
@@ -479,7 +479,7 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* 5 — topic channels I haven't joined */}
+      {/* 5: topic channels I haven't joined */}
       <section className="mt-8" aria-label="Discover">
         <SectionHeader title="Discover" />
         {discover.length === 0 ? (
@@ -488,7 +488,7 @@ export default async function HomePage() {
               className="py-10"
               icon={Hash}
               title="You're in on everything"
-              description="Nothing new to discover right now — maybe it's time to start the next big channel."
+              description="Nothing new to discover right now. Maybe it's time to start the next big channel."
             />
           </div>
         ) : (

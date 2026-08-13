@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Focus" };
 
-/** How far back the streak query looks — long enough for any real run. */
+/** How far back the streak query looks. Long enough for any real run. */
 const STREAK_WINDOW_DAYS = 120;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -24,7 +24,7 @@ type EnrollmentJoin = { course: CourseOption | null };
 /**
  * Focus: sit down with a goal, and see who else on campus is heads-down.
  *
- * Everything the first paint needs is loaded here — your open session (if you
+ * Everything the first paint needs is loaded here: your open session (if you
  * left one running on your phone), the campus's "studying now" list, your
  * live classes for the course chips, and the sessions the streak is counted
  * from. The panel takes it from there: it owns the clock, the writes, and the
@@ -41,7 +41,7 @@ export default async function FocusPage() {
 
   /* Settled independently rather than through one Promise.all, because these
      are not the same failure. The campus list refuses to draw if it can't
-     read the reader's block list — a list we can't filter is a list we
+     read the reader's block list. A list we can't filter is a list we
      mustn't show. But your own running session has nothing to do with anyone
      else's block list, and a student mid-session shouldn't lose their timer
      because the campus list had a bad minute. */
@@ -65,7 +65,7 @@ export default async function FocusPage() {
         : "We couldn't open focus just now."
       : null;
 
-  // Secondary data — a failure in either is a missing chip or a missing
+  // Secondary data. A failure in either is a missing chip or a missing
   // streak, never a page that won't draw.
   const [{ data: enrollRows }, { data: streakRows }] = await Promise.all([
     supabase

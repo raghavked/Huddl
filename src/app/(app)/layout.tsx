@@ -46,10 +46,10 @@ export default async function AppLayout({
 
   return (
     /* Huddl is mobile-exclusive: one phone-width column at every viewport.
-       On larger screens the app centers itself with soft edges — there is
-       no desktop layout, only the mobile app, comfortably framed. */
+       On larger screens the app centers itself with soft edges. There is no
+       desktop layout, only the mobile app, comfortably framed. */
     <div className="min-h-dvh">
-      {/* Ambient wash behind everything — subtle, token-built. */}
+      {/* Ambient wash behind everything: subtle, token-built. */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-brand/[0.05] via-transparent to-transparent"

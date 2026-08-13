@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     "Change your Huddl password, sign out on every other device, or delete your account for good.",
 };
 
-/* Password and security — everything a student can do about the credentials
+/* Password and security: everything a student can do about the credentials
  * and the account itself, on one page instead of three.
  *
  * The three actions here are strangers to each other in every way except
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
  * What they share is that each one is a thing you come looking for exactly
  * once, usually in a hurry, usually because something happened. Putting them
  * behind one row in Settings means the student only has to remember one
- * place, and the page can order them by how permanent they are — the reversible
+ * place, and the page can order them by how permanent they are: the reversible
  * pair first, the irreversible one last and under its own heading.
  *
  * The state model lives with the actions, not here. This page reads only the
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
  * all of them.
  *
  * Deletion sits behind `#delete-account` because the Settings index links
- * straight to it — the Terms and the privacy policy both promise students
+ * straight to it. The Terms and the privacy policy both promise students
  * "Settings, then Delete account", and a promise like that should land on the
  * thing itself rather than somewhere near it.
  */

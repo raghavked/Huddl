@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Download,
   Flag,
+  HelpCircle,
   KeyRound,
   LogOut,
   ShieldCheck,
@@ -64,7 +65,7 @@ export default async function SettingsPage() {
   /* The moderation row only exists for the handful of students who look after
      campus. `profiles.is_moderator` is set through the service role and can't
      be written from the app, so this is a read and never a claim. A hiccup
-     reading it just leaves the row off — /moderation explains itself warmly to
+     reading it just leaves the row off. /moderation explains itself warmly to
      anyone who arrives there anyway, so nothing is lost. */
   let isModerator = false;
   try {
@@ -121,7 +122,7 @@ export default async function SettingsPage() {
       icon: Bookmark,
       tile: "bg-brand-soft text-brand",
       title: "Saved messages",
-      description: "Every message you kept — private to you",
+      description: "Every message you kept, private to you",
       trailing: null as React.ReactNode,
     },
     {
@@ -148,6 +149,18 @@ export default async function SettingsPage() {
       description: "Theme and text size on this device",
       trailing: null as React.ReactNode,
     },
+    /* The explanation students can come back to. The native app shows a tour
+       on first launch and nothing afterwards; the web app never had one at
+       all, so this row is the only introduction a browser-first student
+       gets. */
+    {
+      href: "/help",
+      icon: HelpCircle,
+      tile: "bg-brand-soft text-brand",
+      title: "How Huddl works",
+      description: "What each tab does, and who can see what",
+      trailing: null as React.ReactNode,
+    },
     ...(isModerator
       ? [
           {
@@ -164,8 +177,8 @@ export default async function SettingsPage() {
        page's deletion section rather than a page of its own, because the
        Terms and the privacy policy both send students to "Settings, then
        Delete account" and a row they can't find is a promise we didn't
-       keep. Everything that makes this deliberate — the consequence spelled
-       out, the typed handle — lives where it arrives. */
+       keep. Everything that makes this deliberate (the consequence spelled
+       out, the typed handle) lives where it arrives. */
     {
       href: "/settings/security#delete-account",
       icon: Trash2,
@@ -180,7 +193,7 @@ export default async function SettingsPage() {
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
         title="Settings"
-        description="Your profile, your badge and your privacy — all in one place."
+        description="Your profile, your badge and your privacy, all in one place."
       />
 
       <section

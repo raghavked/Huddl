@@ -22,7 +22,7 @@ export default function VerifyScreen() {
   const [error, setError] = useState<string | null>(null);
 
   // Signup replaces itself with this screen, so there is usually nothing
-  // behind us — fall back to sending people back to sign up.
+  // behind us, so fall back to sending people back to sign up.
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace("/(auth)/signup");
@@ -45,7 +45,7 @@ export default function VerifyScreen() {
     });
     setSending(false);
     if (resendError) {
-      setError("That resend didn't go through — give it a moment and try again.");
+      setError("That resend didn't go through. Give it a moment and try again.");
       return;
     }
     setSent(true);
@@ -145,7 +145,7 @@ export default function VerifyScreen() {
           <AppText muted style={{ textAlign: "center" }}>
             We sent a confirmation link to{" "}
             {email ? "that address" : "your school email"}. It opens in your
-            browser — tap it to prove you're a student, then come back here and
+            browser. Tap it to prove you're a student, then come back here and
             log in.
           </AppText>
 
@@ -175,7 +175,7 @@ export default function VerifyScreen() {
           ) : null}
 
           <Button
-            label="I've confirmed — log me in"
+            label="I've confirmed, log me in"
             size="lg"
             style={{ alignSelf: "stretch", marginTop: space.tight }}
             onPress={goToLogin}
@@ -191,7 +191,7 @@ export default function VerifyScreen() {
             >
               <Feather name="check-circle" size={14} color={theme.success} />
               <AppText variant="caption" style={{ color: theme.success }}>
-                Sent — check your inbox (and spam).
+                Sent. Check your inbox (and spam).
               </AppText>
             </View>
           ) : null}
@@ -216,8 +216,8 @@ export default function VerifyScreen() {
 
           {!email ? (
             <AppText variant="caption" muted style={{ textAlign: "center" }}>
-              We lost track of your email on the way here — head back and sign
-              up again, it only takes a minute.
+              We lost track of your email on the way here. Head back and sign
+              up again. It only takes a minute.
             </AppText>
           ) : null}
         </Card>

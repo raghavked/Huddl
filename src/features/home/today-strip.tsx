@@ -21,7 +21,7 @@ function eventTodayPhrase(event: TodayEventRow) {
   return `${event.title} at ${time}`;
 }
 
-/** One calm line from what today actually holds — null means stay silent. */
+/** One calm line from what today actually holds. Null means stay silent. */
 function buildTodayLine(
   dueCount: number,
   firstDueTitle: string | null,
@@ -44,7 +44,7 @@ function buildTodayLine(
  * today, on one quiet line above the rest of Home.
  *
  * This runs in the browser on purpose. "Today" is a calendar day, and both
- * halves of the line decide one by reading the local clock — `buildPlan`
+ * halves of the line decide one by reading the local clock: `buildPlan`
  * buckets on whole local days, and the event match compares local dates. Done
  * on the server that would be the server's day: on a UTC host, a deadline the
  * syllabus importer wrote for 11:59pm tonight sits in tomorrow's bucket all
@@ -58,7 +58,7 @@ export function TodayStrip({
   checkedIds,
   events,
 }: {
-  /** The server's "now" — the instant is fine to ship; only the zone isn't. */
+  /** The server's "now". The instant is fine to ship; only the zone isn't. */
   nowIso: string;
   items: PlanItemRow[];
   checkedIds: string[];
@@ -76,7 +76,7 @@ export function TodayStrip({
       })
     );
     const plan = buildPlan(planItems, new Set(checkedIds), now);
-    // What's still ahead of me today and unhandled — the same buckets the
+    // What's still ahead of me today and unhandled, from the same buckets the
     // plan page draws, so the two never disagree.
     const dueToday =
       plan.groups

@@ -28,11 +28,11 @@ import { cn } from "@/lib/utils";
 
 /* Per-kind push opt-outs, mirrored from profiles.notification_prefs.
    A missing key means on; {"dm":"off"} means quiet. We only ever store
-   'off' keys — re-enabling removes the key, keeping the object minimal. */
+   'off' keys; re-enabling removes the key, keeping the object minimal. */
 type NotificationPrefs = Record<string, string>;
 
 /* profiles.quiet_hours, exactly the shape in_quiet_hours() reads. `null`
-   here is the app's word for "no window" — on the row that is stored as an
+   here is the app's word for "no window". On the row that is stored as an
    empty object, never a deleted or null column. */
 type QuietHours = { start: string; end: string; tz: string };
 
@@ -170,17 +170,17 @@ function clockLabel(value: string): string {
 
 function quietSentence(quiet: QuietHours | null): string {
   if (!quiet) {
-    return "Pick a window — 10:00 PM until 8:00 AM, say — and your phone stays silent inside it. Nothing gets lost either: whatever arrives is waiting in your inbox in the morning.";
+    return "Pick a window (10:00 PM until 8:00 AM, say) and your phone stays silent inside it. Nothing gets lost either: whatever arrives is waiting in your inbox in the morning.";
   }
   return `Between ${clockLabel(quiet.start)} and ${clockLabel(
     quiet.end
-  )} nothing buzzes. Nothing is dropped either — whatever arrives is sitting in your inbox, and the first nudge after the window carries it along. Those times follow the ${zoneLabel(
+  )} nothing buzzes. Nothing is dropped either: whatever arrives is sitting in your inbox, and the first nudge after the window carries it along. Those times follow the ${zoneLabel(
     quiet.tz
   )} clock.`;
 }
 
 const DIGEST_NOTE =
-  "When a class channel gets going, Huddl rolls the pile into one nudge — the “4 new notifications” kind — instead of buzzing twelve times. Tapping it opens your inbox with all of them in it.";
+  "When a class channel gets going, Huddl rolls the pile into one nudge (the “4 new notifications” kind) instead of buzzing twelve times. Tapping it opens your inbox with all of them in it.";
 
 /* ------------------------------- pieces ------------------------------ */
 
@@ -294,7 +294,7 @@ function SettingRowSkeleton() {
   );
 }
 
-/** A warning line — the honest kind, short of an error. */
+/** A warning line: the honest kind, short of an error. */
 function WarningLine({ children }: { children: React.ReactNode }) {
   return <p className="mt-2 text-xs font-medium text-warning">{children}</p>;
 }
@@ -303,8 +303,8 @@ function WarningLine({ children }: { children: React.ReactNode }) {
 
 /**
  * Push preferences: the quiet window, then what gets through when the window
- * is open. Both live on `profiles` — `quiet_hours` (0035) and
- * `notification_prefs` — and both are written straight from here, optimistically.
+ * is open. Both live on `profiles` (`quiet_hours` from 0035 and
+ * `notification_prefs`), and both are written straight from here, optimistically.
  * Push lands on the phone where Huddl is installed; this page is the one dial
  * for what gets through. The in-app inbox never filters.
  */
@@ -318,8 +318,8 @@ export default function NotificationSettingsPage() {
   const [savingQuiet, setSavingQuiet] = useState(false);
 
   /* Read on the client only. The server renders this page too, and its clock
-     lives in a different city — comparing a server zone against a stored one
-     would flash a warning that isn't true. */
+     lives in a different city, so comparing a server zone against a stored
+     one would flash a warning that isn't true. */
   const [deviceTz, setDeviceTz] = useState<string | null>(null);
   useEffect(() => {
     setDeviceTz(deviceTimeZone());
@@ -375,7 +375,7 @@ export default function NotificationSettingsPage() {
       .update({ notification_prefs: updated })
       .eq("id", userId);
     if (error) {
-      // Roll just this switch back — other flips since stay put.
+      // Roll just this switch back. Other flips since stay put.
       setPrefs((current) => {
         if (current === null) return current;
         const rolled = { ...current };
@@ -384,7 +384,7 @@ export default function NotificationSettingsPage() {
         return rolled;
       });
       setToggleError(
-        "That change didn't save — your phone kept the old setting. Give it another flip."
+        "That change didn't save, so your phone kept the old setting. Give it another flip."
       );
     }
   }
@@ -400,7 +400,7 @@ export default function NotificationSettingsPage() {
       const supabase = createClient();
       const { error } = await supabase
         .from("profiles")
-        // Off is an empty object, not a null and not a missing row — that is
+        // Off is an empty object, not a null and not a missing row. That is
         // what in_quiet_hours() reads as "never quiet".
         .update({ quiet_hours: next ?? {} })
         .eq("id", userId);
@@ -408,7 +408,7 @@ export default function NotificationSettingsPage() {
       if (error) {
         setQuiet(previous);
         setQuietError(
-          "That didn't save — your quiet hours are still the old ones. Give it another go."
+          "That didn't save, so your quiet hours are still the old ones. Give it another go."
         );
       }
     },
@@ -462,7 +462,7 @@ export default function NotificationSettingsPage() {
         backHref="/settings"
         backLabel="Settings"
         title="Notifications"
-        description="Choose what gets pushed to your phone. Quiet here never means missed — everything still lands in your inbox."
+        description="Choose what gets pushed to your phone. Quiet here never means missed: everything still lands in your inbox."
       />
 
       {loadError ? (
@@ -577,7 +577,7 @@ export default function NotificationSettingsPage() {
           <section aria-label="What gets pushed" className="mt-8">
             <SectionHeader title="What gets pushed" />
             <p className="mt-2 px-1 text-xs text-muted">
-              The in-app inbox always keeps everything — these only quiet your
+              The in-app inbox always keeps everything. These only quiet your
               phone.
             </p>
 

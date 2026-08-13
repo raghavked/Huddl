@@ -74,7 +74,7 @@ export function Button({
 
   const isDisabled = disabled || pending;
 
-  /* One driver, two outputs — the animated node set never changes shape
+  /* One driver, two outputs. The animated node set never changes shape
      between renders, so the native driver stays happy. */
   const feedback = useMemo(() => {
     const resting = isDisabled ? DISABLED_OPACITY : 1;

@@ -20,7 +20,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /* Saved messages: the private shelf behind every long-press "Save".
-   Two tables feed one list — channel bookmarks and DM bookmarks — so both
+   Two tables feed one list (channel bookmarks and DM bookmarks), so both
    halves are fetched side by side and merged here, newest save first.
 
    Reading a bookmark's message still goes through that message's own RLS:
@@ -30,7 +30,7 @@ import { useAuth } from "@/providers/auth-provider";
 /** Both queries are capped here, and so is the merged list. */
 const SAVED_LIMIT = 100;
 
-/** The message-body text style — MentionText needs it spelled out. */
+/** The message-body text style. MentionText needs it spelled out. */
 const BODY_TEXT = {
   fontFamily: fonts.body,
   fontSize: 15,
@@ -45,16 +45,16 @@ const DM_SELECT =
 
 /** One row on the shelf, flattened out of either side of the union. */
 type SavedItem = {
-  /** List key — the subject id, namespaced because the two tables differ. */
+  /** List key: the subject id, namespaced because the two tables differ. */
   key: string;
   kind: "channel" | "dm";
-  /** messages.id or dm_messages.id — the bookmark's subject. */
+  /** messages.id or dm_messages.id: the bookmark's subject. */
   messageId: string;
   /** Where tapping the row lands: the channel, or the DM thread. */
   roomId: string;
-  /** message_bookmarks.created_at — the sort key for the whole list. */
+  /** message_bookmarks.created_at: the sort key for the whole list. */
   savedAt: string;
-  /** When the message itself was sent — what the caption shows. */
+  /** When the message itself was sent, which is what the caption shows. */
   sentAt: string;
   authorName: string;
   /** "#study-hall" for a room, "DM" for a direct message. */
@@ -69,7 +69,7 @@ type SavedItem = {
 /**
  * PostgREST hands an embedded row back as an object or as a one-element
  * array depending on how it resolves the relationship, and the client here
- * is untyped — accept both shapes, and treat anything else as absent.
+ * is untyped, so accept both shapes and treat anything else as absent.
  */
 function embedded(value: unknown): Record<string, unknown> | null {
   const one: unknown = Array.isArray(value) ? value[0] : value;
@@ -203,7 +203,7 @@ function SavedRow({
           <AppText variant="bodySemi" numberOfLines={1} style={{ flexShrink: 1 }}>
             {item.authorName}
           </AppText>
-          {/* Rooms wear ember, DMs wear fern — one glance tells you where
+          {/* Rooms wear ember, DMs wear fern, so one glance tells you where
               it's from. */}
           <Chip
             label={item.context}
@@ -341,7 +341,7 @@ export default function SavedMessagesScreen() {
     void run("initial");
   }, [userId, run]);
 
-  /** The shelf points at a message, not a room — so the message id rides
+  /** The shelf points at a message, not a room, so the message id rides
       along and the room lands on it rather than at the bottom. */
   const handleOpen = useCallback((item: SavedItem) => {
     router.push({
@@ -350,7 +350,7 @@ export default function SavedMessagesScreen() {
     });
   }, []);
 
-  /** Unsaving is optimistic — the row leaves at once and comes back, with a
+  /** Unsaving is optimistic: the row leaves at once and comes back, with a
       gentle note, only if the delete didn't land. */
   const handleRemove = useCallback(
     async (item: SavedItem) => {
@@ -375,7 +375,7 @@ export default function SavedMessagesScreen() {
       setRemovingKey(null);
       if (deleteError) {
         setItems(previous);
-        setRowError("Couldn't remove that from saved — give it another try.");
+        setRowError("Couldn't remove that from saved. Give it another try.");
       }
     },
     [userId, removingKey, items]
@@ -394,7 +394,7 @@ export default function SavedMessagesScreen() {
     [removingKey, handleOpen, handleRemove]
   );
 
-  // Deep links land here directly — a signed-out visitor gets a proper door.
+  // Deep links land here directly, so a signed-out visitor gets a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -448,7 +448,7 @@ export default function SavedMessagesScreen() {
         style={{ marginTop: space.tight, marginBottom: space.card }}
       >
         {count === 0
-          ? "Your private shelf — only you can see what's here."
+          ? "Your private shelf. Only you can see what's here."
           : `${count} kept, newest save first. Only you can see this.`}
       </AppText>
 
@@ -525,7 +525,7 @@ export default function SavedMessagesScreen() {
                 style={{ color: theme.danger, marginBottom: space.room }}
               >
                 {rowError ??
-                  "We couldn't refresh just now — pull down to try again."}
+                  "We couldn't refresh just now. Pull down to try again."}
               </AppText>
             ) : null
           }

@@ -33,7 +33,7 @@ import { useAuth } from "@/providers/auth-provider";
  * Reporting has always been a one-way door: you pick a category, write what
  * happened, the screen says "Report sent", and that is the last you ever hear
  * of it. Migration 0015 granted reporters SELECT on their own rows from the
- * beginning — the record was always there, nothing in the app ever read it.
+ * beginning. The record was always there; nothing in the app ever read it.
  *
  * The screen is deliberately modest about what it can promise. A moderator can
  * move a report between three piles and that is the whole of the tooling that
@@ -282,7 +282,7 @@ export default function MyReportsScreen() {
     []
   );
 
-  // A deep link can land here signed out — send them to a proper door.
+  // A deep link can land here signed out, so send them to a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -386,7 +386,7 @@ export default function MyReportsScreen() {
                 accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginBottom: space.room }}
               >
-                We couldn't refresh just now — pull down to try again.
+                We couldn't refresh just now. Pull down to try again.
               </AppText>
             ) : null
           }
@@ -405,7 +405,7 @@ export default function MyReportsScreen() {
                 style={{ marginTop: space.snug, lineHeight: 17 }}
               >
                 A campus moderator reads every one. "Closed, no action" means
-                they looked and decided nothing needed doing — if it happens
+                they looked and decided nothing needed doing. If it happens
                 again, report it again, and say that it has.
               </AppText>
             ) : null

@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Start a club" };
 const PERKS = [
   {
     icon: MessageCircle,
-    text: "A chat channel just for members — created automatically",
+    text: "A chat channel just for members, created automatically",
   },
   {
     icon: CalendarDays,
@@ -18,7 +18,7 @@ const PERKS = [
   },
   {
     icon: Crown,
-    text: "A roster with you as the owner — promote officers any time",
+    text: "A roster with you as the owner, so you can promote officers any time",
   },
 ] as const;
 

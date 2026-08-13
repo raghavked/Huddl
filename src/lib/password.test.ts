@@ -8,7 +8,7 @@ import {
   passwordsMatch,
 } from "./password";
 
-describe("checkPassword — length", () => {
+describe("checkPassword: length", () => {
   it("refuses anything under the minimum", () => {
     const check = checkPassword("short1");
     expect(check.ok).toBe(false);
@@ -27,7 +27,7 @@ describe("checkPassword — length", () => {
   });
 });
 
-describe("checkPassword — common passwords", () => {
+describe("checkPassword: common passwords", () => {
   it("refuses the ones in every leaked dump", () => {
     for (const bad of ["password123", "12345678", "qwertyui", "letmein1"]) {
       expect(checkPassword(bad).problems).toContain("too-common");
@@ -49,7 +49,7 @@ describe("checkPassword — common passwords", () => {
   });
 });
 
-describe("checkPassword — the student's own email", () => {
+describe("checkPassword: the student's own email", () => {
   it("refuses a password built from the local part", () => {
     const check = checkPassword("adalovelace1", { email: "adalovelace@ucdavis.edu" });
     expect(check.ok).toBe(false);
@@ -85,7 +85,7 @@ describe("checkPassword — the student's own email", () => {
   });
 });
 
-describe("checkPassword — strength is a label, not a gate", () => {
+describe("checkPassword: strength is a label, not a gate", () => {
   it("never calls a refused password anything but weak", () => {
     expect(checkPassword("password123").strength).toBe("weak");
     expect(checkPassword("shrt").strength).toBe("weak");

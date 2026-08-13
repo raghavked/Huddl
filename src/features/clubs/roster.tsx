@@ -12,7 +12,7 @@ const ROLE_WEIGHT: Record<ClubMember["role"], number> = {
   member: 2,
 };
 
-/** Owner first, then officers, then members — each group oldest-first. */
+/** Owner first, then officers, then members, each group oldest-first. */
 export function sortRoster(entries: RosterEntry[]): RosterEntry[] {
   return [...entries].sort(
     (a, b) =>
@@ -39,7 +39,7 @@ function RoleBadge({ role }: { role: ClubMember["role"] }) {
  * A classmate who turned Public profile off is a handle and a face here, the
  * same as in the people directory, on the board, and on the native roster.
  * Joining a club is not consent to have your name and your major drawn beside
- * the membership — and nothing in the database withholds them (migration 0012
+ * the membership, and nothing in the database withholds them (migration 0012
  * left the redaction to the app), so this component is the only thing between
  * a private student and a page their whole club reads.
  *
@@ -68,7 +68,7 @@ export function Roster({
         // into the select redacts instead of leaking.
         const locked = !isMe && !member.profile.is_public;
         // The avatar falls back to initials, so it has to be built from the
-        // name we're allowed to print — otherwise a private student's tile
+        // name we're allowed to print. Otherwise a private student's tile
         // still spells out their real one.
         const name = locked
           ? `@${member.profile.handle}`

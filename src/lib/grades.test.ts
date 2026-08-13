@@ -13,14 +13,14 @@ import {
 
 /* The grade math, exercised on plain object literals.
  *
- * Everything under test is pure — no Supabase, no clock — so each case is
+ * Everything under test is pure (no Supabase, no clock), so each case is
  * just numbers in, numbers and sentences out. The sentences are asserted in
  * full where the wording is the point (the honest edges of `whatIf`, the
  * weight warnings), because that copy is the feature: a student reads the
  * sentence, not the float.
  *
  * Points are chosen to divide exactly (45/50, 72/80, 15/30) wherever a test
- * asserts an exact figure — binary floating point turns 29/30 into
+ * asserts an exact figure. Binary floating point turns 29/30 into
  * 0.9666…67 and the rescale would carry that noise into the assertion.
  */
 
@@ -36,7 +36,7 @@ function score(earned: number, possible: number): EntryScore {
 
 /* ------------------------------ categoryScore ----------------------------- */
 
-describe("categoryScore — one bucket's arithmetic", () => {
+describe("categoryScore: one bucket's arithmetic", () => {
   it("is null for a bucket nobody has scored in yet", () => {
     expect(categoryScore(undefined)).toBeNull();
     expect(categoryScore([])).toBeNull();
@@ -71,7 +71,7 @@ describe("categoryScore — one bucket's arithmetic", () => {
     expect(categoryScore([score(5, -10)])).toBeNull();
     expect(categoryScore([score(5, Number.NaN)])).toBeNull();
     expect(categoryScore([score(5, Number.POSITIVE_INFINITY)])).toBeNull();
-    // A mid-typing row with no earned value drops out entirely — its
+    // A mid-typing row with no earned value drops out entirely. Its
     // `possible` must not count either, or a zero appears from nowhere.
     expect(categoryScore([score(Number.NaN, 20)])).toBeNull();
   });
@@ -96,7 +96,7 @@ describe("categoryScore — one bucket's arithmetic", () => {
 
 /* ------------------------------ courseEstimate ---------------------------- */
 
-describe("courseEstimate — rescaling by what's actually graded", () => {
+describe("courseEstimate: rescaling by what's actually graded", () => {
   it("averages over the graded weight, not the whole syllabus", () => {
     // Week five: homework and the midterm are back, the final is not. A plain
     // weighted average would read 45%; the honest answer is 90%.
@@ -142,7 +142,7 @@ describe("courseEstimate — rescaling by what's actually graded", () => {
     expect(estimate.pct).toBeNull();
     expect(estimate.gradedWeight).toBe(0);
     expect(estimate.note).toBe(
-      "Nothing's graded yet — your first score starts the estimate."
+      "Nothing's graded yet. Your first score starts the estimate."
     );
   });
 
@@ -152,7 +152,7 @@ describe("courseEstimate — rescaling by what's actually graded", () => {
     });
     expect(estimate.pct).toBeNull();
     expect(estimate.note).toBe(
-      "Nothing's graded yet — your first score starts the estimate."
+      "Nothing's graded yet. Your first score starts the estimate."
     );
   });
 
@@ -164,7 +164,7 @@ describe("courseEstimate — rescaling by what's actually graded", () => {
     expect(estimate.pct).toBe(90);
     expect(estimate.gradedWeight).toBe(100);
     expect(estimate.note).toBe(
-      "Everything that counts has a score — this is your whole grade."
+      "Everything that counts has a score, so this is your whole grade."
     );
   });
 
@@ -176,7 +176,7 @@ describe("courseEstimate — rescaling by what's actually graded", () => {
     });
     expect(estimate.gradedWeight).toBe(100);
     expect(estimate.note).toBe(
-      "Everything that counts has a score — this is your whole grade."
+      "Everything that counts has a score, so this is your whole grade."
     );
   });
 
@@ -220,7 +220,7 @@ describe("courseEstimate — rescaling by what's actually graded", () => {
 
 /* ---------------------------------- whatIf -------------------------------- */
 
-describe("whatIf — what's left has to average", () => {
+describe("whatIf: what's left has to average", () => {
   it("solves for the average the ungraded weight needs", () => {
     const categories = [cat("hw", 50), cat("final", 50)];
     const entries: EntriesLookup = { hw: [score(45, 50)] };
@@ -260,10 +260,10 @@ describe("whatIf — what's left has to average", () => {
       hw: [score(15, 30)],
     }, 90);
     expect(result.reachable).toBe(false);
-    // The real, impossible figure — not a comforting 100.
+    // The real, impossible figure, not a comforting 100.
     expect(result.neededPct).toBe(107.2);
     expect(result.message).toBe(
-      "Even a perfect finish lands around 85% — worth a talk with your instructor."
+      "Even a perfect finish lands around 85%. Worth a talk with your instructor."
     );
   });
 
@@ -280,7 +280,7 @@ describe("whatIf — what's left has to average", () => {
     expect(result.neededPct).toBe(85);
     expect(result.reachable).toBe(true);
     expect(result.message).toBe(
-      "Nothing's graded yet — averaging about 85% from here lands you at 85%."
+      "Nothing's graded yet. Averaging about 85% from here lands you at 85%."
     );
   });
 
@@ -289,7 +289,7 @@ describe("whatIf — what's left has to average", () => {
     expect(result.neededPct).toBeNull();
     expect(result.reachable).toBe(true);
     expect(result.message).toBe(
-      "Everything's graded and it landed at 95% — you made your 90%."
+      "Everything's graded and it landed at 95%. You made your 90%."
     );
   });
 
@@ -307,7 +307,7 @@ describe("whatIf — what's left has to average", () => {
       neededPct: null,
       reachable: false,
       message:
-        "Add your categories and weights first — then we can work out what's left.",
+        "Add your categories and weights first, then we can work out what's left.",
     };
     expect(whatIf([], {}, 90)).toEqual(expected);
     expect(whatIf([cat("hw", 0)], { hw: [score(9, 10)] }, 90)).toEqual(expected);
@@ -319,7 +319,7 @@ describe("whatIf — what's left has to average", () => {
     }, 150);
     expect(result.reachable).toBe(false);
     expect(result.message).toBe(
-      "Even a perfect finish lands around 95% — worth a talk with your instructor."
+      "Even a perfect finish lands around 95%. Worth a talk with your instructor."
     );
   });
 
@@ -337,7 +337,7 @@ describe("whatIf — what's left has to average", () => {
 
 /* -------------------------------- letterFor ------------------------------- */
 
-describe("letterFor — the hint beside the number", () => {
+describe("letterFor: the hint beside the number", () => {
   it("hands back the letter at every cutoff on the scale", () => {
     for (const { letter, min } of LETTER_CUTOFFS) {
       expect(letterFor(min)).toBe(letter);
@@ -374,7 +374,7 @@ describe("letterFor — the hint beside the number", () => {
 
 /* ------------------------------ weightWarning ----------------------------- */
 
-describe("weightWarning — when the syllabus doesn't add up", () => {
+describe("weightWarning: when the syllabus doesn't add up", () => {
   it("stays quiet on an empty course and on a course that adds to 100", () => {
     expect(weightWarning([])).toBeNull();
     expect(weightWarning([cat("hw", 20), cat("mt", 30), cat("final", 50)])).toBeNull();
@@ -387,25 +387,25 @@ describe("weightWarning — when the syllabus doesn't add up", () => {
 
   it("asks for the percentages when nothing carries any weight", () => {
     expect(weightWarning([cat("hw", 0), cat("mt", 0)])).toBe(
-      "Your categories don't carry any weight yet — add the percentages from your syllabus."
+      "Your categories don't carry any weight yet. Add the percentages from your syllabus."
     );
   });
 
   it("explains that a short syllabus is treated as the whole grade", () => {
     expect(weightWarning([cat("hw", 20), cat("mt", 30)])).toBe(
-      "Your weights add to 50% — the estimate assumes that's the whole grade."
+      "Your weights add to 50%, so the estimate assumes that's the whole grade."
     );
   });
 
   it("explains that an over-100 syllabus gets scaled back", () => {
     expect(weightWarning([cat("hw", 60), cat("mt", 50)])).toBe(
-      "Your weights add to 110% — the estimate scales them back to fit."
+      "Your weights add to 110%, so the estimate scales them back to fit."
     );
   });
 
   it("drops the trailing zero from a whole-number total", () => {
     expect(weightWarning([cat("hw", 45.5), cat("mt", 44.5)])).toBe(
-      "Your weights add to 90% — the estimate assumes that's the whole grade."
+      "Your weights add to 90%, so the estimate assumes that's the whole grade."
     );
   });
 

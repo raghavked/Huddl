@@ -34,7 +34,7 @@ import {
 } from "@/lib/series";
 import { kindLabel, type CalendarKind } from "@/lib/syllabus";
 
-/* Add a weekly pattern — the composer for "this meets Mon and Wed at 10".
+/* Add a weekly pattern: the composer for "this meets Mon and Wed at 10".
  *
  * The whole screen is a form wrapped around one pure function. Every keystroke
  * re-runs `generateSeries`, and what comes back is both the preview the student
@@ -43,7 +43,7 @@ import { kindLabel, type CalendarKind } from "@/lib/syllabus";
  * on a shared class calendar blind.
  *
  * Nothing here loads. The only async moment is the save, so the four data
- * states collapse to two — the form, and the warm confirmation that replaces it
+ * states collapse to two: the form, and the warm confirmation that replaces it
  * before we drop back to the calendar.
  */
 
@@ -53,8 +53,8 @@ import { kindLabel, type CalendarKind } from "@/lib/syllabus";
  * The shapes a weekly pattern actually takes, each mapped onto a real
  * `CalendarKind`.
  *
- * A class meeting has more shapes than the calendar has kinds — a section and
- * a lab are both lectures as far as the column is concerned — so a pattern
+ * A class meeting has more shapes than the calendar has kinds (a section and
+ * a lab are both lectures as far as the column is concerned), so a pattern
  * carries two things: the `kind` that gets stored, and the `noun` that seeds
  * the title. That keeps the calendar's vocabulary exactly as it is (no new
  * enum, no migration, every row still reads the same on the class calendar and
@@ -81,7 +81,7 @@ const PATTERNS = [
 
 type Pattern = (typeof PATTERNS)[number];
 
-/** Ten weeks — one quarter of instruction, near enough for a default. */
+/** Ten weeks: one quarter of instruction, near enough for a default. */
 const QUARTER_DAYS = 70;
 
 /* ───────────────────────── pure helpers ───────────────────────── */
@@ -98,7 +98,7 @@ function pad2(value: number): string {
   return String(value).padStart(2, "0");
 }
 
-/** A local calendar day as "2026-01-06" — never `toISOString`, which would
+/** A local calendar day as "2026-01-06". Never `toISOString`, which would
     hand back yesterday for anyone west of Greenwich in the evening. */
 function toDateText(date: Date): string {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
@@ -122,19 +122,19 @@ type Parsed<T> = { value: T } | { error: string };
 function parseDate(text: string): Parsed<Date> {
   const match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(text.trim());
   if (!match) {
-    return { error: "Dates look like YYYY-MM-DD — try 2026-10-14." };
+    return { error: "Dates look like YYYY-MM-DD, as in 2026-10-14." };
   }
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
   if (month < 1 || month > 12 || day < 1 || day > daysInMonth(month, year)) {
-    return { error: "That day doesn't exist — double-check the month and day." };
+    return { error: "That day doesn't exist. Double-check the month and day." };
   }
   return { value: new Date(year, month - 1, day) };
 }
 
 /** Blank means "no particular time", which the calendar draws as 11:59 pm and
-    then hides — the same bargain the "Add a date" form makes. */
+    then hides, the same bargain the "Add a date" form makes. */
 function parseTime(text: string): Parsed<{ time: TimeOfDay; set: boolean }> {
   const trimmed = text.trim();
   if (trimmed === "") return { value: { time: END_OF_DAY, set: false } };
@@ -142,7 +142,7 @@ function parseTime(text: string): Parsed<{ time: TimeOfDay; set: boolean }> {
   const hour = match ? Number(match[1]) : NaN;
   const minute = match ? Number(match[2]) : NaN;
   if (!match || hour > 23 || minute > 59) {
-    return { error: "Times look like HH:MM — try 14:30, or leave it blank." };
+    return { error: "Times look like HH:MM, as in 14:30, or leave it blank." };
   }
   return { value: { time: { hour, minute }, set: true } };
 }
@@ -155,7 +155,7 @@ function clockLabel(time: TimeOfDay): string {
   );
 }
 
-/** "Jan 6" — the date without its weekday, for the range in a sentence. */
+/** "Jan 6": the date without its weekday, for the range in a sentence. */
 function monthDay(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
     month: "short",
@@ -163,7 +163,7 @@ function monthDay(iso: string): string {
   });
 }
 
-/** "Mon, Jan 6" — the preview rows, same shape as a calendar row's caption. */
+/** "Mon, Jan 6": the preview rows, same shape as a calendar row's caption. */
 function shortDay(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
     weekday: "short",
@@ -173,7 +173,7 @@ function shortDay(iso: string): string {
 }
 
 /**
- * "Mondays and Wednesdays" — the days as prose.
+ * "Mondays and Wednesdays": the days as prose.
  *
  * Deliberately not `describeWeekdays`, which gives the compact "Mon, Wed &
  * Fri" that belongs on a row subtitle where space is tight. The preview here
@@ -250,7 +250,7 @@ export default function AddSeriesScreen() {
     } else router.replace("/(tabs)/home");
   }, [router, courseId, courseCode]);
 
-  // The confirmation is meant to be read, not dismissed — it sits for a beat
+  // The confirmation is meant to be read, not dismissed. It sits for a beat
   // and then the calendar is where they left it, with the dates on it.
   useEffect(() => {
     if (done === null) return;
@@ -314,7 +314,7 @@ export default function AddSeriesScreen() {
         return {
           state: "blocked",
           message:
-            "No dates land between those two — widen the range or pick another day of the week.",
+            "No dates land between those two. Widen the range or pick another day of the week.",
         };
       }
       return { state: "ready", drafts };
@@ -324,7 +324,7 @@ export default function AddSeriesScreen() {
         message:
           err instanceof SeriesError
             ? err.message
-            : "Something in that pattern doesn't add up — check the dates and try again.",
+            : "Something in that pattern doesn't add up. Check the dates and try again.",
       };
     }
   }, [title, pattern.kind, weekdays, startText, endText, parsedTime]);
@@ -361,7 +361,7 @@ export default function AddSeriesScreen() {
       const saved = rows[rows.length - 1] ?? last;
       setDone({
         count: rows.length,
-        line: `${title.trim()} — ${weekdaysPhrase(weekdays)}${
+        line: `${title.trim()}: ${weekdaysPhrase(weekdays)}${
           saved ? `, through ${monthDay(saved.due_at)}` : ""
         }.`,
       });
@@ -438,7 +438,7 @@ export default function AddSeriesScreen() {
       ? null
       : `On the calendar they read as ${kindLabel(pattern.kind)}s.`;
 
-  /* The two cards arrive with the screen, a beat apart — the form first, the
+  /* The two cards arrive with the screen, a beat apart: the form first, the
      preview under it. Frozen at mount, so a keystroke re-running the preview
      never replays it. */
   const previewCard =
@@ -690,7 +690,7 @@ export default function AddSeriesScreen() {
             muted
             style={{ marginTop: space.room, textAlign: "center" }}
           >
-            These go on the shared calendar — everyone in{" "}
+            These go on the shared calendar. Everyone in{" "}
             {courseCode ?? "the class"} sees them, and each one can be removed
             on its own later.
           </AppText>

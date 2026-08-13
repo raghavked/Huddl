@@ -11,7 +11,7 @@ export function isSupabaseConfigured(): boolean {
 
 /**
  * Request-scoped Supabase client for Server Components, Server Actions and
- * Route Handlers. Note: Next 15 cookies() is async — always `await createClient()`.
+ * Route Handlers. Next 15 cookies() is async, so always `await createClient()`.
  */
 export async function createClient() {
   const cookieStore = await cookies();
@@ -29,8 +29,8 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Called from a Server Component — session refresh is handled by
-            // middleware, so ignoring the write is safe here.
+            // Called from a Server Component. Middleware handles session
+            // refresh, so ignoring the write is safe here.
           }
         },
       },
@@ -40,7 +40,7 @@ export async function createClient() {
 
 /**
  * Service-role client for trusted server-side work (e.g. campus-wide channel
- * listings in browse). Bypasses RLS — never import from client code.
+ * listings in browse). Bypasses RLS, so never import it from client code.
  */
 export function createServiceClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;

@@ -44,9 +44,9 @@ import { useAuth } from "@/providers/auth-provider";
 
 /* The club home: who's in it, what officers have posted, what's coming up,
    and the door to the chat.
-   Joining inserts the club_members row — a DB trigger mirrors membership
+   Joining inserts the club_members row, and a DB trigger mirrors membership
    into the club's channel, exactly like the web app. Leaving deletes it
-   (same trigger cleans up the chat); owners can't leave, only disband —
+   (same trigger cleans up the chat); owners can't leave, only disband,
    which, with the rest of the club's details, lives behind the gear in the
    header and is only drawn for the officers who can actually use it. */
 
@@ -95,12 +95,12 @@ type Status = "loading" | "error" | "notFound" | "ready";
 /** The board shows the three most recent; the rest live in notifications. */
 const ANNOUNCEMENT_PREVIEW = 3;
 
-/** "academic" -> "Academic" — every category is a single word. */
+/** "academic" -> "Academic". Every category is a single word. */
 function categoryLabel(category: ClubCategory): string {
   return category.charAt(0).toUpperCase() + category.slice(1);
 }
 
-/* Owner first, then officers, then members — each group oldest-first,
+/* Owner first, then officers, then members, each group oldest-first,
    mirroring the web roster sort. */
 const ROLE_WEIGHT: Record<ClubRole, number> = {
   owner: 0,
@@ -116,7 +116,7 @@ function sortRoster(entries: MemberRow[]): MemberRow[] {
   );
 }
 
-/** "Sat, Aug 9 · 3:00 PM" — how upcoming events read on the club page. */
+/** "Sat, Aug 9 · 3:00 PM", how upcoming events read on the club page. */
 function eventWhen(iso: string): string {
   const d = new Date(iso);
   const day = d.toLocaleDateString(undefined, {
@@ -211,8 +211,8 @@ function CenteredState({
 /**
  * One notice on the club's board: headline, the first two lines of it, and
  * who posted when. Your own posts answer a long press with the action sheet
- * (and the same thing through the screen reader's long-press action) —
- * everyone else's are quiet text, because only an author can take one down.
+ * (and the same thing through the screen reader's long-press action).
+ * Everyone else's are quiet text, because only an author can take one down.
  */
 function AnnouncementRow({
   post,
@@ -227,7 +227,7 @@ function AnnouncementRow({
 }) {
   const theme = useTheme();
   const when = timeAgo(post.created_at);
-  // A post outlives its author's account — the byline degrades, the notice
+  // A post outlives its author's account: the byline degrades, the notice
   // stays, because the club still needs to have read it.
   const who = post.author?.display_name ?? "A past officer";
 
@@ -362,7 +362,7 @@ export default function ClubHomeScreen() {
         (channelRes.data as unknown as { id: string; slug: string } | null) ??
           null
       );
-      // Events are a bonus — a hiccup there shouldn't block the club.
+      // Events are a bonus, so a hiccup there shouldn't block the club.
       setEvents((eventsRes.data ?? []) as unknown as ClubEventRow[]);
       setMyProfile((meRes.data as unknown as MemberProfile | null) ?? null);
       setStatus("ready");
@@ -493,7 +493,7 @@ export default function ClubHomeScreen() {
     if (error && error.code !== "23505") {
       setRoster(previous);
       setMembershipError(
-        "We couldn't add you to the club just now — give it another try."
+        "We couldn't add you to the club just now. Give it another try."
       );
       return;
     }
@@ -518,7 +518,7 @@ export default function ClubHomeScreen() {
     if (error) {
       setRoster(previous);
       setMembershipError(
-        "We couldn't take you off the roster just now — give it another try."
+        "We couldn't take you off the roster just now. Give it another try."
       );
       return;
     }
@@ -544,7 +544,7 @@ export default function ClubHomeScreen() {
       const isMe = item.user_id === userId;
       /* A private classmate is a handle and a face here too. The roster was
          the one list in the app that drew their real name and their major
-         whatever they'd set — being in a club isn't consent to that. */
+         whatever they'd set, and being in a club isn't consent to that. */
       const locked = item.profile !== null && !item.profile.is_public && !isMe;
       const name = item.profile
         ? locked
@@ -627,7 +627,7 @@ export default function ClubHomeScreen() {
     [userId, router, theme]
   );
 
-  // Deep links land here directly — signed-out visitors get a proper door.
+  // Deep links land here directly, so signed-out visitors get a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -865,7 +865,7 @@ export default function ClubHomeScreen() {
               ) : null}
             </View>
 
-            {/* The board — officers writing to the whole club at once. It's
+            {/* The board: officers writing to the whole club at once. It's
                 members-only by RLS, so it stays behind the join button. */}
             {isMember ? (
               <>
@@ -928,7 +928,7 @@ export default function ClubHomeScreen() {
                     }
                     body={
                       isOfficer
-                        ? "Tell the club what is happening — everyone gets it once, in their notifications."
+                        ? "Tell the club what is happening. Everyone gets it once, in their notifications."
                         : "When an officer posts, it lands here and in your notifications."
                     }
                     action={
@@ -941,7 +941,7 @@ export default function ClubHomeScreen() {
               </>
             ) : null}
 
-            {/* Upcoming events — the club's next three plans. */}
+            {/* Upcoming events: the club's next three plans. */}
             <SectionLabel text="Upcoming events" />
             <View style={{ gap: space.room }}>
               {events.length > 0 ? (
@@ -1000,7 +1000,7 @@ export default function ClubHomeScreen() {
                   title="No upcoming events"
                   body={
                     isOfficer
-                      ? "Plan the first one — members will see it here and on the events board."
+                      ? "Plan the first one. Members will see it here and on the events board."
                       : "Nothing on the calendar yet. Check back soon."
                   }
                 />

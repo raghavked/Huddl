@@ -77,7 +77,7 @@ function SaveBubbleButton({
   onClick,
 }: {
   saved: boolean;
-  /** True when the row has been tapped — see {@link DmRoom}'s `tappedId`. */
+  /** True when the row has been tapped. See {@link DmRoom}'s `tappedId`. */
   revealed: boolean;
   onClick: () => void;
 }) {
@@ -123,7 +123,7 @@ function ReportBubbleButton({
   onClick,
 }: {
   open: boolean;
-  /** True when the row has been tapped — see {@link DmRoom}'s `tappedId`. */
+  /** True when the row has been tapped. See {@link DmRoom}'s `tappedId`. */
   revealed: boolean;
   panelId: string;
   onClick: () => void;
@@ -194,7 +194,7 @@ function ReportPanel({
         Report this message
       </p>
       <p className="mt-0.5 text-xs text-muted text-pretty">
-        Reports are private — they won&apos;t know it was you. A person reads
+        Reports are private. They won&apos;t know it was you. A person reads
         every one within 24 hours.
       </p>
 
@@ -287,8 +287,8 @@ function ReportPanel({
  * incoming messages.
  *
  * A group (migration 0028) swaps the header for the group's name, its
- * headcount, and a way into the info panel — roster, rename, add people,
- * leave — and names whoever is talking above their first bubble in a run.
+ * headcount, and a way into the info panel (roster, rename, add people,
+ * leave), and names whoever is talking above their first bubble in a run.
  * Everything below the header is shared.
  *
  * @param other The other student on a 1:1; null in a group.
@@ -325,14 +325,14 @@ export function DmRoom({
   const [error, setError] = useState<string | null>(null);
   const { blockedIds, unblock } = useBlockedIds(userId);
   // A group can hold someone you've blocked, so there's no banner and no
-  // gate on the composer — their messages simply don't render.
+  // gate on the composer: their messages simply don't render.
   const otherBlocked = other !== null && blockedIds.has(other.id);
   // Saved messages: my private bookmarks among the loaded bubbles, so each
   // toggle can tell "Save message" from "Remove from saved".
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   /* Which row a tap has opened up. Tailwind compiles `group-hover` inside
-     `@media (hover: hover)`, so on a phone — where most direct messages are
-     read — hover never fires and the save and report buttons on a bubble
+     `@media (hover: hover)`, so on a phone, where most direct messages are
+     read, hover never fires and the save and report buttons on a bubble
      would simply never appear. There is no keyboard on a phone either, so
      `group-focus-within` doesn't rescue it. The channel room solved this the
      same way; this is the same fix on the surface that needed it more. */
@@ -375,7 +375,7 @@ export function DmRoom({
       .then(() => undefined);
   }, [threadId, userId]);
 
-  /** Which of these bubbles I've saved — one query per loaded page keeps
+  /** Which of these bubbles I've saved. One query per loaded page keeps
    *  every toggle's label truthful. */
   const loadSaved = useCallback(
     async (messageIds: string[]) => {
@@ -436,7 +436,7 @@ export function DmRoom({
     "dm_messages",
     `thread_id=eq.${threadId}`,
     (row) => {
-      if (row.author_id === userId) return; // own echo — optimistic path has it
+      if (row.author_id === userId) return; // own echo; optimistic path has it
       appendMessage(row as DmMessage, nearBottomRef.current ? "smooth" : null);
       markRead(); // we're looking at the thread, so it's read on arrival
     }
@@ -481,7 +481,7 @@ export function DmRoom({
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [draft]);
 
-  // Live layer — all new hooks sit after the existing ones so hook order is
+  // Live layer. All new hooks sit after the existing ones so hook order is
   // stable. DmRoom isn't handed the viewer's profile, so fetch our display
   // name once for the typing broadcast ("Someone" until it lands).
   const [selfName, setSelfName] = useState<string | null>(null);
@@ -601,11 +601,11 @@ export function DmRoom({
     event.target.value = ""; // picking the same file twice should still fire
     if (!file || otherBlocked) return;
     if (!isAcceptedImageType(file.type)) {
-      setError("Photos only here — pick an image file.");
+      setError("Photos only here. Pick an image file.");
       return;
     }
     if (file.size > MAX_ATTACHMENT_BYTES) {
-      setError("That image is over 10 MB — try a smaller one.");
+      setError("That image is over 10 MB. Try a smaller one.");
       return;
     }
     setError(null);
@@ -635,7 +635,7 @@ export function DmRoom({
     }
   }
 
-  /** Optimistic save/remove in message_bookmarks — a private keep-it-handy
+  /** Optimistic save/remove in message_bookmarks: a private keep-it-handy
    *  flag. A double-click race (23505) already means saved, so it stands. */
   const handleToggleSaved = useCallback(
     async (messageId: string, save: boolean) => {
@@ -664,8 +664,8 @@ export function DmRoom({
         });
         setError(
           save
-            ? "Couldn't save that — give it another try."
-            : "Couldn't remove that from saved — give it another try."
+            ? "Couldn't save that. Give it another try."
+            : "Couldn't remove that from saved. Give it another try."
         );
       }
     },
@@ -699,7 +699,7 @@ export function DmRoom({
     }
   }
 
-  /* Nothing moves the panel while a report is in flight — not closing it, not
+  /* Nothing moves the panel while a report is in flight: not closing it, not
      opening another one. On a slow network the answer, sent or failed, has to
      land somewhere the reporter is still looking. */
   function openReport(messageId: string) {
@@ -732,13 +732,13 @@ export function DmRoom({
     setReportPending(true);
     setReportError(null);
     /* `reports.reason` is not nullable, and a student who picked a category
-       and had nothing to add has still said something — the category's own
+       and had nothing to add has still said something, so the category's own
        words stand in rather than blocking the report on a second field. */
     const words = reportDetail.trim();
     /* A server action is an HTTP POST, so offline or a 500 REJECTS rather
        than resolving `{ error }`. Unhandled, that rejection skips
-       setReportPending(false) and the panel is stuck on "Sending…" forever —
-       and because closing is guarded on `pending`, Cancel, Escape and the
+       setReportPending(false) and the panel is stuck on "Sending…" forever.
+       Because closing is guarded on `pending`, Cancel, Escape and the
        trigger all stop responding too. The student is left with no error, no
        retry and no way out but a reload, on the one flow where being unable
        to finish matters most. */
@@ -751,7 +751,7 @@ export function DmRoom({
       );
       failure = result.error;
     } catch {
-      failure = "Couldn't send that report — check your connection and try again.";
+      failure = "Couldn't send that report. Check your connection and try again.";
     } finally {
       setReportPending(false);
     }
@@ -1008,7 +1008,7 @@ export function DmRoom({
                     own ? "items-end" : "items-start"
                   )}
                 >
-                  {/* In a group, say who's talking — once per run of
+                  {/* In a group, say who's talking, once per run of
                       bubbles, not once per bubble. */}
                   {isGroup && !own && !grouped ? (
                     <span className="px-1 text-[11px] font-semibold text-muted">
@@ -1047,7 +1047,7 @@ export function DmRoom({
                     </div>
                   )}
                   <span className="sr-only">
-                    {own ? " — sent by you" : ` — from ${authorName}`}
+                    {own ? " (sent by you)" : ` (from ${authorName})`}
                   </span>
 
                   {reportSentId === m.id ? (
@@ -1056,7 +1056,7 @@ export function DmRoom({
                       className="flex w-fit items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-medium text-success"
                     >
                       <Flag className="size-3 shrink-0" aria-hidden />
-                      Report sent — a person reads it within 24 hours.
+                      Report sent. A person reads it within 24 hours.
                     </p>
                   ) : null}
 

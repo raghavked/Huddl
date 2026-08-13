@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
-/* Take your data with you — the other half of the deletion promise.
+/* Take your data with you: the other half of the deletion promise.
  *
  * Migration 0035 added `export_my_data()`, a security-definer RPC that
  * returns the caller's whole record as one jsonb document. Every subquery in
@@ -9,8 +9,8 @@ import { createClient } from "@/lib/supabase/client";
  * no way to ask for anyone else's: {@link requestExport} calls it, checks the
  * shape, and hands back both the parsed object and a pretty-printed copy.
  *
- * {@link summarize} turns that document into countable lines — "312
- * messages", "4 courses", "18 focus sessions" — so a student can tell what
+ * {@link summarize} turns that document into countable lines ("312
+ * messages", "4 courses", "18 focus sessions") so a student can tell what
  * they are getting without reading a page of JSON. It is pure: same document
  * in, same lines out, no clock and no I/O.
  *
@@ -20,8 +20,8 @@ import { createClient } from "@/lib/supabase/client";
  * can write a file on its own: {@link downloadExport} wraps the JSON in a
  * `Blob`, points an object URL at it, clicks a link, and revokes the URL a
  * beat later. No dependency, no server round trip, and the bytes never leave
- * the tab. When that is not possible — a document with nothing in it, or a
- * browser without `URL.createObjectURL` — it says so in its return value
+ * the tab. When that is not possible (a document with nothing in it, or a
+ * browser without `URL.createObjectURL`) it says so in its return value
  * rather than throwing, and the caller falls back to showing the JSON in a
  * selectable block on screen. That fallback is the floor: a student can
  * always get their data out of this page.
@@ -35,15 +35,15 @@ import { createClient } from "@/lib/supabase/client";
 
 /* ------------------------------ shapes ------------------------------ */
 
-/** The Supabase client this RPC runs against — server or browser. */
+/** The Supabase client this RPC runs against, server or browser. */
 type Db = SupabaseClient;
 
 /**
  * How a caller tells this module which Supabase client to use.
  *
  * @property client Request-scoped server client. Omit in the browser.
- * @property userId Unused by the RPC — `export_my_data()` reads `auth.uid()`
- *   itself — but accepted so every ported data layer takes the same ctx.
+ * @property userId Unused by the RPC (`export_my_data()` reads `auth.uid()`
+ *   itself), but accepted so every ported data layer takes the same ctx.
  */
 export type ExportCtx = {
   client?: Db;
@@ -61,7 +61,7 @@ export type DataExport = Record<string, unknown>;
 export type PreparedExport = {
   /** The parsed document. */
   data: DataExport;
-  /** The same thing, pretty-printed at two spaces — this is the file. */
+  /** The same thing, pretty-printed at two spaces. This is the file. */
   json: string;
 };
 
@@ -86,7 +86,7 @@ let browserDb: Db | null = null;
 function db(ctx?: ExportCtx): Db {
   if (ctx?.client) return ctx.client;
   if (typeof window === "undefined") {
-    // A developer mistake, not a student's problem — say what's missing.
+    // A developer mistake, not a student's problem. Say what's missing.
     throw new Error(
       "@/lib/data-export: on the server, pass { client } from @/lib/supabase/server."
     );
@@ -108,7 +108,7 @@ function asDocument(raw: unknown): DataExport | null {
 /**
  * Ask the server for everything it holds about the signed-in student.
  *
- * Self-only by construction — `export_my_data()` reads `auth.uid()` and
+ * Self-only by construction: `export_my_data()` reads `auth.uid()` and
  * takes no arguments, so there is nothing to pass and nothing to get wrong.
  * The call can take a second or two for someone with a semester behind them;
  * show an honest pending state rather than a spinner that implies speed.
@@ -147,7 +147,7 @@ export type SummaryKey =
 
 /** One "312 messages" line, pre-counted and pre-pluralized. */
 export type SummaryLine = {
-  /** Stable key — use it for the row key and to pick an icon. */
+  /** Stable key. Use it for the row key and to pick an icon. */
   key: SummaryKey;
   /** How many. Always 1 or more; empty categories never become lines. */
   count: number;
@@ -235,8 +235,8 @@ const LINE_SPECS: readonly LineSpec[] = [
  * Turn an export document into the countable lines a page can list, so
  * nobody has to read JSON to know what they are about to walk away with.
  *
- * Empty categories are dropped rather than rendered as a column of zeros —
- * a first-week student should see the two things they have, not seven things
+ * Empty categories are dropped rather than rendered as a column of zeros.
+ * A first-week student should see the two things they have, not seven things
  * they don't. An export with nothing countable in it returns `[]`, which is
  * a real answer: their profile and settings are still in the file.
  *
@@ -268,7 +268,7 @@ export function exportedAt(data: DataExport): Date | null {
 }
 
 /**
- * What to call the file — `huddl-data-2026-08-11.json`. It is the download's
+ * What to call the file: `huddl-data-2026-08-11.json`. It is the download's
  * name, and it is shown on screen too so a student knows what they're looking
  * for in their downloads folder afterwards.
  */
@@ -298,9 +298,9 @@ export function sizeLabel(json: string): string {
 /**
  * What happened when we tried to hand the export over.
  *
- * - `saved` — the browser took the file; it's in their downloads.
- * - `empty` — there was nothing to write. Nothing was offered.
- * - `unavailable` — this browser can't build a file URL; show the JSON on
+ * - `saved`: the browser took the file; it's in their downloads.
+ * - `empty`: there was nothing to write. Nothing was offered.
+ * - `unavailable`: this browser can't build a file URL; show the JSON on
  *   screen instead.
  */
 export type DownloadOutcome = "saved" | "empty" | "unavailable";
@@ -313,13 +313,13 @@ const REVOKE_AFTER_MS = 60_000;
  *
  * The document becomes a `Blob`, an object URL points at it, a detached
  * anchor with a `download` attribute is clicked, and the URL is revoked a
- * minute later — long enough for even a slow "where do you want this?"
+ * minute later, long enough for even a slow "where do you want this?"
  * dialog, short enough that the tab doesn't hold the bytes forever.
  *
  * Never throws: every way this can fail is a {@link DownloadOutcome} the
  * caller can answer with a sentence and the on-screen fallback.
  *
- * Browser only — it touches `document`. Calling it during a render on the
+ * Browser only: it touches `document`. Calling it during a render on the
  * server returns `unavailable` rather than blowing up.
  *
  * @param json The pretty-printed document from {@link requestExport}.

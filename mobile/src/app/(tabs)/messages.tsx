@@ -60,13 +60,13 @@ type ParticipantRow = {
 type ThreadItem = {
   threadId: string;
   isGroup: boolean;
-  /** The group's name, or the other person's — one naming rule for both. */
+  /** The group's name, or the other person's. One naming rule for both. */
   name: string;
   /** "6 people" on a group; null on a 1:1. */
   subtitle: string | null;
   /** Everyone but me, for the avatar cluster. */
   others: ProfileLite[];
-  /** The other person on a 1:1, and null on a group — drives block filtering. */
+  /** The other person on a 1:1, and null on a group. Drives block filtering. */
   otherId: string | null;
   latest: DmMessage | null;
   latestIsMine: boolean;
@@ -112,8 +112,8 @@ function firstNameOf(name: string): string {
 function previewOf(item: ThreadItem): string {
   if (!item.latest) {
     return item.isGroup
-      ? "No messages yet — get it started."
-      : "No messages yet — say hi.";
+      ? "No messages yet. Get it started."
+      : "No messages yet. Say hi.";
   }
   if (item.latest.deleted_at) return "Message deleted";
   const body = item.latest.content.replace(/\s+/g, " ");
@@ -130,7 +130,7 @@ function previewOf(item: ThreadItem): string {
 /**
  * A group's face: two of its members overlapped in a small cluster, falling
  * back to a single avatar or the plain group glyph when there's nobody left
- * to draw. Purely decorative — the row's own label carries the meaning.
+ * to draw. Purely decorative: the row's own label carries the meaning.
  */
 function GroupCluster({ people }: { people: ProfileLite[] }) {
   const theme = useTheme();
@@ -325,7 +325,7 @@ function ThreadRow({ item, index }: { item: ThreadItem; index: number }) {
   );
 }
 
-/* The way out of an empty inbox is a person, not a blank composer — so the
+/* The way out of an empty inbox is a person, not a blank composer, so the
    button opens the directory, where classmates come with a face, a major and
    a year. The composer is still one tap away in the header. */
 function EmptyThreads() {
@@ -333,7 +333,7 @@ function EmptyThreads() {
     <EmptyState
       illustration={PaperPlane}
       title="No conversations yet"
-      body="Everyone at your campus is in the directory, with their major and their year. Find someone to trade notes with, or pick a few and get them all in one place."
+      body="Everyone at your campus is in the directory, with their major and their year. Find someone to trade notes with, or pick a few and start a group."
       action={{
         label: "Find classmates",
         onPress: () => router.push("/people"),
@@ -373,13 +373,13 @@ export default function MessagesScreen() {
     if (threadIds.length === 0) return [];
 
     // A group thread can hold someone you blocked, and the DM room drops
-    // their messages at render — so the newest message in the thread is not
+    // their messages at render, so the newest message in the thread is not
     // necessarily one you'd be shown if you opened it. The preview asks for
     // the newest message you can actually read, which also makes the unread
     // dot honest: it hangs off this same row, and used to light up for words
     // the room itself refuses to draw. Fetched here rather than read off the
     // `blocked` hook so the previews are cut against the same set the query
-    // used — the hook's refresh lands a tick later.
+    // used. The hook's refresh lands a tick later.
     const hidden = [...(await fetchBlockedIds(userId))];
 
     // Everyone in each thread (me included, so a group's headcount is
@@ -502,7 +502,7 @@ export default function MessagesScreen() {
     }, [userId, run, refreshBlocked])
   );
 
-  // A blocked classmate's 1:1 stays hidden. A group doesn't — it can hold
+  // A blocked classmate's 1:1 stays hidden. A group doesn't: it can hold
   // someone you blocked, and the thread itself belongs to everyone in it.
   const visibleThreads = (threads ?? []).filter(
     (t) => t.isGroup || t.otherId === null || !blocked.has(t.otherId)
@@ -645,7 +645,7 @@ export default function MessagesScreen() {
                   accessibilityLiveRegion="polite"
                   style={{ color: theme.danger }}
                 >
-                  We couldn't refresh just now — pull down to try again.
+                  We couldn't refresh just now. Pull down to try again.
                 </AppText>
               ) : null}
             </View>

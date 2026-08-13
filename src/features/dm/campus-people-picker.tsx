@@ -99,11 +99,11 @@ function PickerRow({
  * Everyone here shares your campus (the only people a group may hold), you
  * are never in your own results, and anyone you've blocked is filtered out
  * before the list renders. Private profiles appear as a handle behind a
- * lock — enough to invite someone you know without exposing their name.
+ * lock: enough to invite someone you know without exposing their name.
  *
  * @param userId      The signed-in student, for scoping and blocks.
  * @param excludeIds  Ids to drop from results entirely (existing members).
- * @param selectedIds Ids drawn with a fern check — picking one again lets
+ * @param selectedIds Ids drawn with a fern check; picking one again lets
  *   the caller toggle it back off.
  * @param onPick      Called with the tapped classmate.
  * @param pendingId   Id currently being written to the server, if any.
@@ -134,8 +134,8 @@ export function CampusPeoplePicker({
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CampusCandidate[]>([]);
-  // Starts true so the very first paint is a spinner, not a wrong "nobody
-  // here" — the campus lookup hasn't come back yet.
+  // Starts true so the very first paint is a spinner rather than a wrong
+  // "nobody here": the campus lookup hasn't come back yet.
   const [searching, setSearching] = useState(true);
   const [failed, setFailed] = useState(false);
 
@@ -205,10 +205,10 @@ export function CampusPeoplePicker({
           onChange={(event) => setQuery(event.target.value)}
           placeholder={placeholder}
           autoComplete="off"
-          // The panel opens straight into "add people" — the search box is
-          // the whole point of that view, so focus belongs in it.
+          // The panel opens straight into "add people", and the search box
+          // is the whole point of that view, so focus belongs in it.
           autoFocus={autoFocus}
-          // The pill variant of `controlClasses` — same border, caret,
+          // The pill variant of `controlClasses`: same border, caret,
           // placeholder and focus ring, drawn round for a search box, and
           // held at the 44px target a thumb needs.
           className="min-h-11 w-full rounded-full border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-foreground shadow-soft transition-colors placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-[3px] focus:ring-brand/15 disabled:cursor-not-allowed disabled:opacity-60"
@@ -237,7 +237,7 @@ export function CampusPeoplePicker({
               The campus directory didn&rsquo;t load
             </p>
             <p className="max-w-xs text-xs text-muted">
-              Check your connection and give it another go — nobody you
+              Check your connection and give it another go. Nobody you
               already picked has gone anywhere.
             </p>
             <Button variant="soft" size="sm" onClick={retry}>
@@ -251,7 +251,7 @@ export function CampusPeoplePicker({
             </p>
             <p className="mx-auto mt-1 max-w-xs text-xs text-muted">
               {query.trim()
-                ? "Try a different name or handle — groups only hold people from your campus."
+                ? "Try a different name or handle. Groups only hold people from your campus."
                 : "As classmates join your campus they'll show up here."}
             </p>
           </div>

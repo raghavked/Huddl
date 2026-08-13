@@ -1,18 +1,18 @@
 import { supabase } from "@/lib/supabase";
 
-/* Study buddies — the data layer.
+/* Study buddies: the data layer.
  *
  * One row in `study_buddy_optins` means "I'm in ECS 36A and I'd study with
  * someone." That's the whole feature: a per-course opt-in with an optional
  * 140-character note about how you like to work. Opting out is a DELETE, not
- * a flag — once a student takes their name down there is nothing left behind
+ * a flag. Once a student takes their name down there is nothing left behind
  * that says they were ever looking.
  *
  * Migration 0028 created the table with two policies:
  *
- *   SELECT — `is_enrolled(course_id)`. Only classmates in that course can see
+ *   SELECT: `is_enrolled(course_id)`. Only classmates in that course can see
  *            who's looking. Nobody browses the list from outside the class.
- *   ALL    — `user_id = auth.uid()` with an added `is_enrolled(course_id)` on
+ *   ALL:    `user_id = auth.uid()` with an added `is_enrolled(course_id)` on
  *            the WITH CHECK, so you can only put your own name up, and only
  *            in a class you're actually in.
  *
@@ -21,7 +21,7 @@ import { supabase } from "@/lib/supabase";
  * bare RLS refusal (PostgREST `42501`), which we translate into a sentence
  * that names the fix. See {@link ENROLL_FIRST}.
  *
- * No React, no theme, no navigation in here — queries, narrowing, and one
+ * No React, no theme, no navigation in here: queries, narrowing, and one
  * length check. Every failure arrives as a {@link StudyBuddyError} whose
  * message is warm, specific, and safe to drop straight into an inline error.
  */
@@ -29,8 +29,8 @@ import { supabase } from "@/lib/supabase";
 /* ------------------------------ shapes ------------------------------ */
 
 /**
- * One `study_buddy_optins` row with the classmate's profile attached — the
- * exact shape a "who's looking" list row renders.
+ * One `study_buddy_optins` row with the classmate's profile attached. This is
+ * the exact shape a "who's looking" list row renders.
  *
  * The profile is flattened rather than nested because every caller wants all
  * of it: the avatar, the name, and the "Computer science · '27" line under
@@ -38,7 +38,7 @@ import { supabase } from "@/lib/supabase";
  * than handed over half-built.
  */
 export type StudyBuddy = {
-  /** The classmate's `profiles.id`. Also the row's identity — one per person. */
+  /** The classmate's `profiles.id`. Also the row's identity: one per person. */
   user_id: string;
   /** `courses.id` they opted in for. */
   course_id: string;
@@ -50,7 +50,7 @@ export type StudyBuddy = {
   handle: string;
   /** Their display name, falling back to their handle if it's somehow blank. */
   display_name: string;
-  /** Their avatar, or null — fall back to initials via `@/components/avatar`. */
+  /** Their avatar, or null. Fall back to initials via `@/components/avatar`. */
   avatar_url: string | null;
   /** Their major, e.g. "Computer science", or null if they haven't said. */
   major: string | null;
@@ -58,13 +58,13 @@ export type StudyBuddy = {
   grad_year: number | null;
   /**
    * True when this classmate keeps their profile private, so the row has
-   * already been stripped to handle and avatar — `display_name` is their
+   * already been stripped to handle and avatar: `display_name` is their
    * handle, and `major` and `grad_year` are null no matter what they filled
    * in. Draw the lock off this rather than inferring it from a missing name.
    * Always false on the caller's own row: you always see yourself in full.
    */
   locked: boolean;
-  /** True on the caller's own row — {@link fetchBuddies} sorts it to the top. */
+  /** True on the caller's own row. {@link fetchBuddies} sorts it to the top. */
   is_me: boolean;
 };
 
@@ -97,7 +97,7 @@ export const BUDDY_SELECT = "user_id, course_id, note, created_at";
 
 /**
  * {@link BUDDY_SELECT} plus the classmate, for the list. `is_public` rides
- * along because the list has to strip private profiles itself — see
+ * along because the list has to strip private profiles itself. See
  * {@link toStudyBuddy}.
  */
 const BUDDY_LIST_SELECT = `${BUDDY_SELECT}, profile:profiles(id, handle, display_name, avatar_url, major, grad_year, is_public)`;
@@ -106,7 +106,7 @@ const BUDDY_LIST_SELECT = `${BUDDY_SELECT}, profile:profiles(id, handle, display
 
 /**
  * A study-buddy failure with a message written for a person, not a log. Show
- * `err.message` directly in your inline error — it never leaks SQL, ids, or
+ * `err.message` directly in your inline error: it never leaks SQL, ids, or
  * PostgREST codes.
  */
 export class StudyBuddyError extends Error {
@@ -119,7 +119,7 @@ export class StudyBuddyError extends Error {
 /**
  * What an RLS refusal on insert actually means. The WITH CHECK requires
  * `is_enrolled(course_id)`, so the only way to be refused is to not have the
- * class — which is something the student can fix in about four taps, so we
+ * class, which is something the student can fix in about four taps, so we
  * say so instead of apologising.
  */
 const ENROLL_FIRST =
@@ -183,20 +183,20 @@ function optionalYear(raw: unknown): number | null {
 
 /**
  * Narrow one joined opt-in row into a {@link StudyBuddy}. Returns null when
- * the row is missing something a list row can't be drawn without — an id, a
+ * the row is missing something a list row can't be drawn without: an id, a
  * handle, or a timestamp. Better an honest drop than a nameless avatar.
  *
  * A classmate who set their profile private is stripped here, before anything
  * renders: their handle stands in for their name, and their major and
  * graduating year are dropped. Opting into a study list is a "I'm looking"
- * signal, not consent to publish the profile they deliberately closed — the
- * same rule the directory and the new-message picker follow. Anything other
+ * signal, not consent to publish the profile they deliberately closed. It's
+ * the same rule the directory and the new-message picker follow. Anything other
  * than an explicit `is_public: true` counts as private, so a select that
  * forgets the column fails closed. Your own row is never stripped.
  *
  * @param raw   The row as PostgREST returned it.
  * @param myId  The caller's `profiles.id`, or null when the session hasn't
- *   resolved — nothing is marked `is_me` in that case.
+ *   resolved. Nothing is marked `is_me` in that case.
  */
 function toStudyBuddy(raw: unknown, myId: string | null): StudyBuddy | null {
   if (typeof raw !== "object" || raw === null) return null;
@@ -258,7 +258,7 @@ function toMyOptIn(raw: unknown): MyOptIn | null {
  * enforces, so an over-long note fails on the phone with a sentence rather
  * than as a check-constraint violation after a round trip.
  *
- * Blank becomes null — an empty string in the column would be a note that
+ * Blank becomes null: an empty string in the column would be a note that
  * renders as a gap under someone's name.
  *
  * @throws {StudyBuddyError} When the trimmed note runs past 140 characters.
@@ -268,14 +268,14 @@ function cleanNote(note: string | undefined | null): string | null {
   if (trimmed.length === 0) return null;
   if (trimmed.length > BUDDY_NOTE_MAX) {
     throw new StudyBuddyError(
-      `Keep your note to ${BUDDY_NOTE_MAX} characters — say when you study and where.`
+      `Keep your note to ${BUDDY_NOTE_MAX} characters. Say when you study and where.`
     );
   }
   return trimmed;
 }
 
 /**
- * The caller's `profiles.id`, read from the stored session (no network hop —
+ * The caller's `profiles.id`, read from the stored session (no network hop:
  * supabase-js refreshes the token itself when it's stale).
  *
  * @throws {StudyBuddyError} When nobody's signed in.
@@ -289,7 +289,7 @@ async function requireUserId(): Promise<string> {
   return id;
 }
 
-/** The caller's `profiles.id`, or null — for reads, which work either way. */
+/** The caller's `profiles.id`, or null, for reads, which work either way. */
 async function currentUserId(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
   const id = data.session?.user.id;
@@ -303,13 +303,13 @@ async function currentUserId(): Promise<string | null> {
  * the caller's own row lifted to the top when they're on the list.
  *
  * That sort is the whole ergonomics of the screen: a student who has opted in
- * sees their own card first — their note, ready to edit or take down — and a
+ * sees their own card first, with their note ready to edit or take down, and a
  * student who hasn't sees only classmates, with the invitation to join them.
  * Everyone else stays in newest-first order, so the person who signed up this
  * morning is the one you're most likely to catch.
  *
  * RLS already limits this to people enrolled in the course, so a student who
- * hasn't added the class gets an empty array rather than a refusal — pair
+ * hasn't added the class gets an empty array rather than a refusal. Pair
  * this with a course-level "add this class" affordance rather than treating
  * empty as an error.
  *
@@ -344,7 +344,7 @@ export async function fetchBuddies(courseId: string): Promise<StudyBuddy[]> {
 }
 
 /**
- * How many classmates are looking, without shipping a single row — a
+ * How many classmates are looking, without shipping a single row: a
  * head-only `count: "exact"`, so a course home can say "4 looking" on a badge
  * for the price of one cheap query.
  *
@@ -352,9 +352,9 @@ export async function fetchBuddies(courseId: string): Promise<StudyBuddy[]> {
  * "how many people are on this list", not "how many strangers".
  *
  * Never throws: a badge is not worth an error state, and a course screen that
- * fails to draw because a tally didn't load is a worse screen. A failure —
- * including the caller not being enrolled, which RLS renders as zero rows —
- * reads as 0, and the badge should simply not render at 0.
+ * fails to draw because a tally didn't load is a worse screen. Any failure,
+ * including the caller not being enrolled, which RLS renders as zero rows,
+ * reads as 0, and the badge shouldn't render at 0.
  *
  * @param courseId `courses.id` to count inside.
  * @returns The number of opt-ins, or 0 if the count couldn't be read.
@@ -408,7 +408,7 @@ export async function fetchMyOptIn(courseId: string): Promise<MyOptIn | null> {
  * Safe to run optimistically: add your own row to the list, call this, and
  * pull it back out if it throws.
  *
- * @param courseId `courses.id` — you must be enrolled, or the database
+ * @param courseId `courses.id`. You must be enrolled, or the database
  *   refuses and you get {@link ENROLL_FIRST} back as the message.
  * @param note     How you like to study, up to 140 characters. Optional;
  *   blank saves as no note at all.
@@ -449,7 +449,7 @@ export async function optIn(
 }
 
 /**
- * Take your name back down. This is a delete — no lingering flag, no "opted
+ * Take your name back down. This is a delete: no lingering flag, no "opted
  * out" row, nothing left that says you were ever looking. Your note goes with
  * it, so opting back in starts from a blank note.
  *
@@ -482,7 +482,7 @@ export async function optOut(courseId: string): Promise<void> {
 
 /**
  * The one-line "Computer science · '27" under a classmate's name, or null
- * when they've filled in neither — in which case render nothing rather than
+ * when they've filled in neither, in which case render nothing rather than
  * a placeholder, and let the note carry the row.
  *
  * Pure: no I/O, no clock, no theme.
@@ -503,7 +503,7 @@ export function buddyDetail(
 /**
  * The badge sentence for a course home: `4` → "4 looking", `1` → "1 looking",
  * `0` → null so the badge doesn't render at all. Deliberately not "4 students
- * looking for study partners" — this sits inside a `Chip`.
+ * looking for study partners": this sits inside a `Chip`.
  *
  * Pure.
  *

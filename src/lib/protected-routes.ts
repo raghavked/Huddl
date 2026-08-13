@@ -6,7 +6,7 @@
  * carries `?next=` so the student lands where they were going), the robots
  * file (which keeps crawlers off the app), and `app/(app)/layout.tsx` (which
  * redirects too, but bare). They drifted, in the way three hand-maintained
- * copies of one list always do — eight routes added since launch were in the
+ * copies of one list always do. Eight routes added since launch were in the
  * app and in none of the copies, so a link to a board post survived login by
  * dumping the student on /home, and the same eight paths were left crawlable.
  *
@@ -33,6 +33,7 @@ export const PROTECTED_PREFIXES = [
   "/notifications",
   "/settings",
   "/onboarding",
+  "/help",
   "/u",
 ] as const;
 

@@ -90,7 +90,7 @@ const SHEET_EXT = new Set(["xls", "xlsx", "csv"]);
 const SLIDE_EXT = new Set(["ppt", "pptx", "key"]);
 const DOC_EXT = new Set(["pdf", "doc", "docx", "txt", "md", "rtf"]);
 
-/** Feather stand-ins for file types — same mapping as the course hub. */
+/** Feather stand-ins for file types, same mapping as the course hub. */
 function noteIcon(mime: string | null, fileName: string): FeatherName {
   const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
   if (mime?.startsWith("image/") || IMAGE_EXT.has(ext)) return "image";
@@ -112,7 +112,7 @@ function shortDate(iso: string): string {
   });
 }
 
-/** "week-5-notes.pdf" -> "week 5 notes" — a friendly default title. */
+/** "week-5-notes.pdf" -> "week 5 notes": a friendly default title. */
 function titleFromFileName(name: string): string {
   return name
     .replace(/\.[^.]+$/, "")
@@ -126,7 +126,7 @@ function titleFromFileName(name: string): string {
  *
  * Saved tags arrive already trimmed and lowercased by 0032's trigger, so a
  * saved-to-saved comparison is plain equality. A tag the student just typed
- * hasn't been through that yet — "Midterm 2" and "midterm 2" are the same
+ * hasn't been through that yet, and "Midterm 2" and "midterm 2" are the same
  * tag and only one of them should get a chip.
  */
 function tagKey(tag: string): string {
@@ -138,7 +138,7 @@ function hasTag(tags: readonly string[], tag: string): boolean {
   return tags.some((existing) => tagKey(existing) === key);
 }
 
-/** "12 notes", "1 note" — the count beside a filter chip, spelled out. */
+/** "12 notes", "1 note": the count beside a filter chip, spelled out. */
 function noteCount(n: number): string {
   return n === 1 ? "1 note" : `${n} notes`;
 }
@@ -166,7 +166,7 @@ function BackChevron({ onPress }: { onPress: () => void }) {
   );
 }
 
-/** A whole-screen state — the pre-list door, before there's a list to show. */
+/** A whole-screen state: the pre-list door, before there's a list to show. */
 function CenteredState({
   icon,
   title,
@@ -222,7 +222,7 @@ const NO_SUGGESTIONS: readonly string[] = [];
  * words this course is already filing notes under (so a class converges on
  * "problem set" instead of drifting into four spellings of it), then
  * anything the student typed themselves. The order never changes as chips
- * are tapped — a list that re-sorts under your finger is how you tap the
+ * are tapped. A list that re-sorts under your finger is how you tap the
  * wrong thing.
  *
  * Nothing here normalizes: the database trigger owns trimming, lowercasing
@@ -269,7 +269,7 @@ function TagPicker({
         return;
       }
       if (atCap) {
-        setHint(`That's ${MAX_NOTE_TAGS} — take one off to add another.`);
+        setHint(`That's ${MAX_NOTE_TAGS}. Take one off to add another.`);
         return;
       }
       setHint(null);
@@ -292,7 +292,7 @@ function TagPicker({
       return;
     }
     if (atCap) {
-      setHint(`That's ${MAX_NOTE_TAGS} — take one off to add another.`);
+      setHint(`That's ${MAX_NOTE_TAGS}. Take one off to add another.`);
       return;
     }
     onChange([...value, typed]);
@@ -313,7 +313,7 @@ function TagPicker({
               label={tag}
               tone="brand"
               size="md"
-              /* The × only shows on the ones already chosen — an unselected
+              /* The × only shows on the ones already chosen. An unselected
                  chip is an invitation, not a thing to dismiss. */
               {...(on ? { icon: "x" as const } : null)}
               selected={on}
@@ -369,7 +369,7 @@ function TagPicker({
       ) : (
         <AppText variant="caption" muted>
           {value.length === 0
-            ? `Optional, and up to ${MAX_NOTE_TAGS} — they're how classmates find this later.`
+            ? `Optional, and up to ${MAX_NOTE_TAGS}. They're how classmates find this later.`
             : `${value.length} of ${MAX_NOTE_TAGS} tags.`}
         </AppText>
       )}
@@ -394,7 +394,7 @@ export default function CourseNotesScreen() {
   const [status, setStatus] = useState<Status>("loading");
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [noteThanks, setNoteThanks] = useState<Record<string, NoteThanksEntry>>({});
-  /** null until we know — the share affordance waits rather than flickering. */
+  /** null until we know. The share affordance waits rather than flickering. */
   const [enrolled, setEnrolled] = useState<boolean | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -408,7 +408,7 @@ export default function CourseNotesScreen() {
   const [thanksError, setThanksError] = useState<string | null>(null);
   const thanksInFlight = useRef<Set<string>>(new Set());
 
-  // Row-level failures — retagging and removing both land here, keyed to the
+  // Row-level failures: retagging and removing both land here, keyed to the
   // note so the sentence sits under the card it's about.
   const [noteError, setNoteError] = useState<NoteFailure | null>(null);
 
@@ -440,7 +440,7 @@ export default function CourseNotesScreen() {
     try {
       const [rows, enrollRes] = await Promise.all([
         listNotes(id),
-        // Reading notes and sharing one are different permissions — this is
+        // Reading notes and sharing one are different permissions, and this is
         // what decides whether the share affordance is honest to offer.
         supabase
           .from("enrollments")
@@ -455,7 +455,7 @@ export default function CourseNotesScreen() {
       if (!enrollRes.error) setEnrolled(enrollRes.data !== null);
 
       // Gratitude on the listed notes: one query, reduced to {count, mine}
-      // per note. Best-effort — a hiccup keeps whatever we already had.
+      // per note. Best-effort: a hiccup keeps whatever we already had.
       if (rows.length > 0) {
         const { data: thanksRows, error: thanksFetchError } = await supabase
           .from("note_thanks")
@@ -503,8 +503,8 @@ export default function CourseNotesScreen() {
   /* ------------------------------ the tags ------------------------------ */
 
   /* Tallied from the notes already in state rather than fetched again.
-     `fetchCourseTags` runs the identical query behind `listNotes` — same
-     course, same RLS, same rows — so a second round trip would only buy a
+     `fetchCourseTags` runs the identical query behind `listNotes` (same
+     course, same RLS, same rows), so a second round trip would only buy a
      tally that goes stale the moment someone retags a note here. This one
      recomputes off the list itself, which means an optimistic retag and a
      just-shared note both move the counts immediately. */
@@ -514,7 +514,7 @@ export default function CourseNotesScreen() {
   );
 
   /* If the last note wearing a filtered tag gets retagged or taken down, that
-     chip leaves the bar — and a filter you can no longer see is a filter you
+     chip leaves the bar, and a filter you can no longer see is a filter you
      can't clear. Drop it instead of stranding an empty list. */
   useEffect(() => {
     setSelected((current) => {
@@ -563,11 +563,11 @@ export default function CourseNotesScreen() {
     }
   }, []);
 
-  /** Give thanks, or take it back — optimistic either way, rolled back on
+  /** Give thanks, or take it back. Optimistic either way, rolled back on
       failure. The uploader hears about it through the server-side trigger. */
   const handleToggleThanks = useCallback(
     async (note: NoteRow) => {
-      // You can't thank yourself — the server agrees, so don't even try.
+      // You can't thank yourself, and the server agrees, so don't even try.
       if (!userId || note.uploader_id === userId) return;
       if (thanksInFlight.current.has(note.id)) return;
       thanksInFlight.current.add(note.id);
@@ -600,8 +600,8 @@ export default function CourseNotesScreen() {
         setNoteThanks((prev) => ({ ...prev, [note.id]: previous }));
         setThanksError(
           giving
-            ? "Your thanks didn't make it through — give it another try."
-            : "Couldn't take that back just now — give it another try."
+            ? "Your thanks didn't make it through. Give it another try."
+            : "Couldn't take that back just now. Give it another try."
         );
       } finally {
         thanksInFlight.current.delete(note.id);
@@ -625,7 +625,7 @@ export default function CourseNotesScreen() {
       if (!asset) return;
       if (typeof asset.size === "number" && asset.size > MAX_NOTE_BYTES) {
         setUploadError(
-          `That file is ${formatFileSize(asset.size)} — the limit is 25 MB.`
+          `That file is ${formatFileSize(asset.size)}. The limit is 25 MB.`
         );
         return;
       }
@@ -633,7 +633,7 @@ export default function CourseNotesScreen() {
       setNoteTitle(titleFromFileName(asset.name));
       setNoteDescription("");
       // Whatever tags are being filtered on are almost always the ones this
-      // note wants too — start there, and they're one tap from gone.
+      // note wants too, so start there, and they're one tap from gone.
       setDraftTags(selected.slice(0, MAX_NOTE_TAGS));
     } catch {
       setUploadError("Couldn't open the file picker. Give it another try.");
@@ -667,7 +667,7 @@ export default function CourseNotesScreen() {
       });
       setNotes((prev) => [note, ...prev.filter((n) => n.id !== note.id)]);
       // If they took the seeded tags back off, the note they just shared
-      // wouldn't match the filter that's on — and disappearing is a terrible
+      // wouldn't match the filter that's on, and disappearing is a terrible
       // answer to "I just shared this". Drop the filter rather than their work.
       setSelected((current) =>
         current.length > 0 && !current.every((tag) => note.tags.includes(tag))
@@ -759,7 +759,7 @@ export default function CourseNotesScreen() {
             style: "destructive",
             onPress: () => {
               // Where to put it back if the delete doesn't take. Restoring
-              // this one row beats restoring the whole array — a refresh
+              // this one row beats restoring the whole array: a refresh
               // that landed while the alert was open keeps its work.
               const slot = notes.findIndex((row) => row.id === note.id);
               setNoteError(null);
@@ -803,7 +803,7 @@ export default function CourseNotesScreen() {
     [courseCode, notes]
   );
 
-  // Deep links land here directly — a signed-out visitor gets a proper door.
+  // Deep links land here directly, so a signed-out visitor gets a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -926,7 +926,7 @@ export default function CourseNotesScreen() {
       </AppText>
 
       {/* The filter rail. It bleeds to both gutters so a long list of tags
-          runs off the edge instead of stopping short of it — and it isn't
+          runs off the edge instead of stopping short of it, and it isn't
           drawn at all until the class has actually tagged something. */}
       {courseTags.length > 0 ? (
         <>
@@ -953,7 +953,7 @@ export default function CourseNotesScreen() {
             {courseTags.map((entry) => (
               <Chip
                 key={entry.tag}
-                /* "lecture · 12", never "lecture 12" — plenty of real tags
+                /* "lecture · 12", never "lecture 12". Plenty of real tags
                    end in a number ("week 5"), and the middot is what keeps
                    the count from reading as part of the word. */
                 label={`${entry.tag} · ${entry.count}`}
@@ -1124,8 +1124,8 @@ export default function CourseNotesScreen() {
       action={{ label: "Clear the filter", onPress: clearFilter }}
     />
   ) : enrolled === false ? (
-    /* Not "no notes yet" — for someone outside the course there could be
-       dozens, and the read policy simply doesn't show them any. Say the
+    /* Not "no notes yet": for someone outside the course there could be
+       dozens, and the read policy doesn't show them any. Say the
        mechanism rather than let the empty list imply an empty shelf. The
        door is the mark: the room is there, and adding the course opens it. */
     <EmptyState
@@ -1239,7 +1239,7 @@ export default function CourseNotesScreen() {
             </View>
 
             {mine ? (
-              /* Your own notes: the warmth just shows — you can't thank
+              /* Your own notes: the warmth just shows. You can't thank
                  yourself, and the server agrees. */
               <View
                 accessible={thanksEntry.count > 0}

@@ -10,9 +10,9 @@ export const metadata: Metadata = {
  * The door for a student who can't get in.
  *
  * Two things this page deliberately does not do. It doesn't bounce a
- * signed-in student to /home the way login and signup do — a recovery link
- * signs you in before you've set the new password, so that guard would throw
- * people out of the middle of the flow they're already in. And it doesn't
+ * signed-in student to /home the way login and signup do, because a recovery
+ * link signs you in before you've set the new password and that guard would
+ * throw people out of the middle of the flow they're already in. And it doesn't
  * check whether the address exists: the whole flow is designed so that this
  * page can't be used to find out who is on Huddl. See the form for the copy
  * that keeps that promise.

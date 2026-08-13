@@ -23,12 +23,12 @@ const HOME: Href = "/(tabs)/home";
  * a display name and a handle for every account the moment it is created, so
  * a missing name never marks a new student; `accepted_terms_at` is null until
  * they come out the far side of onboarding, and it is the one column whose
- * meaning — they saw the first-run flow and agreed to the terms — is exactly
+ * meaning (they saw the first-run flow and agreed to the terms) is exactly
  * the question this gate is asking. Both exits from `/onboarding` stamp it,
  * including "Skip for now", so nobody is handed the same screen twice.
  *
- * Every failure in here — a profile we couldn't read, storage we couldn't
- * check — falls through to home. A launch gate that can't answer must open,
+ * Every failure in here, a profile we couldn't read or storage we couldn't
+ * check, falls through to home. A launch gate that can't answer must open,
  * never trap.
  */
 export default function Index() {

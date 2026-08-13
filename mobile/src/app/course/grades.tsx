@@ -49,7 +49,7 @@ import { tapSuccess } from "@/lib/haptics";
 import { useAuth } from "@/providers/auth-provider";
 import { clampTextScale, useDisplay } from "@/providers/display-provider";
 
-/* Your grades — the private one.
+/* Your grades: the private one.
  *
  * Every number on this screen is the student's own arithmetic on their own
  * scores. Nothing here is shared, nothing is compared against a classmate,
@@ -57,18 +57,18 @@ import { clampTextScale, useDisplay } from "@/providers/display-provider";
  * entirely `@/lib/grades`: this file parses text into numbers, hands them
  * over, and renders sentences the module wrote.
  *
- * Every write is optimistic — the row lands, the estimate moves, and only a
+ * Every write is optimistic. The row lands, the estimate moves, and only a
  * server refusal puts it back with a warm line underneath the form.
  */
 
 /* ------------------------------ formatting ----------------------------- */
 
-/** "86.7", "90", "45" — a percentage the way a person writes it. */
+/** "86.7", "90", "45": a percentage the way a person writes it. */
 function pctText(value: number): string {
   return String(Math.round(value * 10) / 10);
 }
 
-/** "18", "17.5" — points with no trailing zeros. */
+/** "18", "17.5": points with no trailing zeros. */
 function pointsText(value: number): string {
   return String(Math.round(value * 100) / 100);
 }
@@ -78,7 +78,7 @@ function itemsText(count: number): string {
   return `${count} item${count === 1 ? "" : "s"}`;
 }
 
-/** "Oct 14" — quiet, and only carries a year when it isn't this one. */
+/** "Oct 14", quiet, and only carrying a year when it isn't this one. */
 function shortDate(iso: string): string {
   if (!iso) return "";
   const date = new Date(iso);
@@ -114,7 +114,7 @@ function parseNumber(text: string): number | null {
 
 /**
  * The same rules `grades.ts` enforces, checked on the phone first so a typo
- * never becomes a round trip. Extra credit is deliberately not an error —
+ * never becomes a round trip. Extra credit is deliberately not an error:
  * 22 out of 20 is a real thing that happens.
  */
 function checkEntry(
@@ -150,7 +150,7 @@ function checkCategory(
 ): Checked<{ name: string; weight: number }> {
   const name = draft.name.trim();
   if (name.length === 0) {
-    return { ok: false, message: "Give this category a name — homework, labs, midterm." };
+    return { ok: false, message: "Give this category a name: homework, labs, midterm." };
   }
   if (name.length > CATEGORY_NAME_MAX) {
     return {
@@ -162,7 +162,7 @@ function checkCategory(
   if (weight === null || weight < 0 || weight > WEIGHT_MAX) {
     return {
       ok: false,
-      message: `Weights run from 0 to ${WEIGHT_MAX} — copy the number off your syllabus.`,
+      message: `Weights run from 0 to ${WEIGHT_MAX}. Copy the number off your syllabus.`,
     };
   }
   return { ok: true, value: { name, weight } };
@@ -179,9 +179,9 @@ function sumWeights(categories: readonly GradeCategory[]): number {
 
 /**
  * Ids for optimistic rows that haven't met the server yet. A draft id is
- * never a real primary key, so anything that would send it to Supabase —
- * the long-press menu, the add-a-score row — stays shut until the insert
- * settles and the row swaps for the saved one.
+ * never a real primary key, so anything that would send it to Supabase (the
+ * long-press menu, the add-a-score row) stays shut until the insert settles
+ * and the row swaps for the saved one.
  */
 const DRAFT_PREFIX = "huddl-draft:";
 let draftSeq = 0;
@@ -279,7 +279,7 @@ function EstimateCard({
   const letter = letterFor(estimate.pct);
   // The one number this screen exists for. Its size is set here rather than
   // by the variant, so the text-size preference has to be multiplied through
-  // by hand — same as the timer on /focus.
+  // by hand, same as the timer on /focus.
   const textScale = clampTextScale(useDisplay().textScale);
 
   if (estimate.pct === null) {
@@ -323,7 +323,7 @@ function EstimateCard({
       </AppText>
       {warning ? <WeightWarning message={warning} /> : null}
       <AppText variant="caption" muted style={{ lineHeight: 17 }}>
-        An estimate, not a grade of record — instructors curve, drop a low
+        An estimate, not a grade of record. Instructors curve, drop a low
         score, and round their own way.
       </AppText>
     </Card>
@@ -464,7 +464,7 @@ function EntryFields({
       </View>
       {extra ? (
         <AppText variant="caption" style={{ color: theme.accent }}>
-          Above the max — that's extra credit, and it counts. Keep it.
+          Above the max. That's extra credit, and it counts. Keep it.
         </AppText>
       ) : null}
     </View>
@@ -1124,7 +1124,7 @@ export default function CourseGradesScreen() {
 
   const handleDeleteCategory = useCallback((category: GradeCategory) => {
     const count = (entriesByCategory[category.id] ?? []).length;
-    // Name what leaves with it — deleting a category cascades its scores.
+    // Name what leaves with it: deleting a category cascades its scores.
     const stakes =
       count === 0
         ? "The category goes, and the estimate recalculates without its weight."
@@ -1300,7 +1300,7 @@ export default function CourseGradesScreen() {
 
   /* ------------------------------ scaffold ------------------------------ */
 
-  // A deep link can land here signed out — send them to a proper door.
+  // A deep link can land here signed out, so send them to a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -1309,7 +1309,7 @@ export default function CourseGradesScreen() {
   const draftWeight = parseNumber(categoryDraft.weight);
   const weightsCaption =
     draftWeight !== null && draftWeight >= 0 && draftWeight <= WEIGHT_MAX
-      ? `Weights so far: ${pctText(weightsSoFar)}% — this one takes it to ${pctText(
+      ? `Weights so far: ${pctText(weightsSoFar)}%, and this one takes it to ${pctText(
           weightsSoFar + draftWeight
         )}%.`
       : `Weights so far: ${pctText(weightsSoFar)}%.`;
@@ -1476,7 +1476,7 @@ export default function CourseGradesScreen() {
           /* The estimate card above is already the dashed recruit; a second
              one here would just be two empty boxes stacked. */
           <AppText variant="caption" muted style={{ lineHeight: 18 }}>
-            Your syllabus lists these — homework 20%, midterm 30%, final 50%.
+            Your syllabus lists these: homework 20%, midterm 30%, final 50%.
             Add them below and your scores slot in underneath.
           </AppText>
         ) : (

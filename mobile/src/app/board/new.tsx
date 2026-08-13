@@ -41,28 +41,28 @@ import {
 import { tapSuccess } from "@/lib/haptics";
 import { useAuth } from "@/providers/auth-provider";
 
-/* Putting something on the board — and, with an `id` param, editing it.
+/* Putting something on the board, and with an `id` param, editing it.
  *
  * One screen for both because `updatePost` takes the same whole-composer
  * shape `createPost` does: an edit is a re-save, not a patch, so a post that
  * stops being for sale can't keep a price nobody meant to leave on it. The
- * two paths differ in three places — where the fields start, what the button
+ * two paths differ in three places: where the fields start, what the button
  * says, and where you land afterwards.
  *
  * The category comes first and the rest of the form follows it. Every
  * category takes a title and details; `wantsPrice` and `wantsDate` from
  * `@/lib/board` decide whether the price and the leaving-day fields are
- * offered at all, and a field that isn't offered isn't sent — switch a post
+ * offered at all, and a field that isn't offered isn't sent. Switch a post
  * from "for sale" to "lost" and the price goes with it.
  *
  * Nothing here re-derives the board's vocabulary: the chips, the icons, and
  * the question in the details placeholder all come from `CATEGORIES`.
  */
 
-/** Start warning about the details cap this late — earlier is just nagging. */
+/** Start warning about the details cap this late. Earlier is just nagging. */
 const COUNT_VISIBLE_FROM = 1300;
 
-/** How many days a month has — the calendar screens' own day check. */
+/** How many days a month has, the calendar screens' own day check. */
 function daysInMonth(month: number, year: number): number {
   return new Date(year, month, 0).getDate();
 }
@@ -124,7 +124,7 @@ export default function BoardComposerScreen() {
       setCategory(post.category);
       setTitle(post.title);
       setBody(post.body ?? "");
-      // Dollars in the field, cents in the column — `priceLabel` is the one
+      // Dollars in the field, cents in the column. `priceLabel` is the one
       // place that division happens, and it prints "Free" at zero, which is
       // not something you can type back in. Zero seeds as "0".
       setPrice(
@@ -171,14 +171,14 @@ export default function BoardComposerScreen() {
     if (info.wantsDate && day.trim().length > 0) {
       const match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(day.trim());
       if (!match) {
-        setDayError("Dates look like YYYY-MM-DD — try 2026-10-14.");
+        setDayError("Dates look like YYYY-MM-DD, as in 2026-10-14.");
         return;
       }
       const year = Number(match[1]);
       const month = Number(match[2]);
       const date = Number(match[3]);
       if (month < 1 || month > 12 || date < 1 || date > daysInMonth(month, year)) {
-        setDayError("That day doesn't exist — double-check the month and day.");
+        setDayError("That day doesn't exist. Double-check the month and day.");
         return;
       }
       happensOn = new Date(year, month - 1, date);
@@ -193,7 +193,7 @@ export default function BoardComposerScreen() {
         setPriceError(
           caught instanceof BoardError
             ? caught.message
-            : "Write the price as a number — 45, or 45.50."
+            : "Write the price as a number: 45, or 45.50."
         );
         return;
       }
@@ -211,7 +211,7 @@ export default function BoardComposerScreen() {
         return;
       }
       const post = await createPost(input);
-      // It's on the board — that's the completion moment.
+      // It's on the board, so that's the completion moment.
       tapSuccess();
       router.replace(`/board/${post.id}`);
     } catch (caught) {
@@ -225,7 +225,7 @@ export default function BoardComposerScreen() {
     }
   }, [pending, category, info, day, price, postId, title, body, goBack]);
 
-  // A deep link can land here signed out — send them to a proper door.
+  // A deep link can land here signed out, so send them to a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -259,8 +259,8 @@ export default function BoardComposerScreen() {
   );
 
   if (editStatus === "loading") {
-    /* The composer's shape is entirely predictable — a title, the rail of
-       category chips, then the two fields every category asks for — so the
+    /* The composer's shape is entirely predictable: a title, the rail of
+       category chips, then the two fields every category asks for. So the
        form draws itself in grey and the words fill in. */
     return scaffold(
       <View style={{ paddingHorizontal: space.gutter, gap: space.card }}>
@@ -398,7 +398,7 @@ export default function BoardComposerScreen() {
         </View>
         {category === null ? (
           <AppText variant="caption" muted>
-            Pick one — it changes what we ask for next.
+            Pick one. It changes what we ask for next.
           </AppText>
         ) : null}
       </View>
@@ -418,7 +418,7 @@ export default function BoardComposerScreen() {
           label="Details"
           value={body}
           onChangeText={setBody}
-          /* The question the board asks about this kind of post — the hardest
+          /* The question the board asks about this kind of post. The hardest
              part of posting is knowing which detail the reader needs. */
           placeholder={info?.placeholder ?? NEUTRAL_PLACEHOLDER}
           maxLength={BOARD_BODY_MAX}
@@ -436,7 +436,7 @@ export default function BoardComposerScreen() {
               variant="caption"
               style={{ alignSelf: "flex-end", color: theme.danger }}
             >
-              That's the full {BOARD_BODY_MAX} characters — swap the rest in a
+              That's the full {BOARD_BODY_MAX} characters. Swap the rest in a
               message.
             </AppText>
           )

@@ -56,7 +56,7 @@ import { cn } from "@/lib/utils";
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 const PAGE_SIZE = 50;
 
-/** The message row plus its joined author — one select shape everywhere. */
+/** The message row plus its joined author: one select shape everywhere. */
 const MESSAGE_WITH_AUTHOR_SELECT =
   "*, author:profiles(id, handle, display_name, avatar_url, verified_at, major, grad_year, is_public, university_id)";
 
@@ -162,7 +162,7 @@ export function ChatRoom({
     pinnedIdsRef.current = new Set(pinned.map((p) => p.id));
   }, [pinned]);
 
-  /** Which of these messages I've saved — one query per loaded page keeps
+  /** Which of these messages I've saved. One query per loaded page keeps
    *  the toolbar label truthful. */
   const loadSaved = useCallback(
     async (messageIds: string[]) => {
@@ -209,7 +209,7 @@ export function ChatRoom({
           setReplyCounts(counts);
         });
     }
-    // Initial data only — runs once per channel mount.
+    // Initial data only: runs once per channel mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -257,11 +257,11 @@ export function ChatRoom({
     (row) => {
       markRead();
       if (row.parent_id) {
-        // Thread replies never join the main list — just bump the badge.
+        // Thread replies never join the main list, so just bump the badge.
         bumpReplyCount(row.parent_id, row.id);
         return;
       }
-      if (row.author_id === userId) return; // own echo — optimistic path has it
+      if (row.author_id === userId) return; // own echo; optimistic path has it
       const supabase = createClient();
       void supabase
         .from("messages")
@@ -314,7 +314,7 @@ export function ChatRoom({
         return changed ? next : prev;
       });
       // Pinned-strip upkeep: pins can flip on rows outside the loaded window,
-      // and deleting a pinned message unlists it — refetch when state differs.
+      // and deleting a pinned message unlists it, so refetch when state differs.
       const isPinnedNow = Boolean(row.pinned_at) && !row.deleted_at;
       if (pinnedIdsRef.current.has(row.id) !== isPinnedNow) {
         void refreshPinned();
@@ -419,7 +419,7 @@ export function ChatRoom({
       return;
     }
     // Reconcile: swap the temp row for the real one (the realtime echo may
-    // have landed first — dedupe by id either way).
+    // have landed first, so dedupe by id either way).
     const real = data as unknown as MessageWithAuthor;
     setMessages((prev) => {
       const without = prev.filter((m) => m.id !== tempId && m.id !== real.id);
@@ -476,11 +476,11 @@ export function ChatRoom({
     event.target.value = ""; // picking the same file twice should still fire
     if (!file) return;
     if (!isAcceptedImageType(file.type)) {
-      setError("Photos only here — pick an image file.");
+      setError("Photos only here. Pick an image file.");
       return;
     }
     if (file.size > MAX_ATTACHMENT_BYTES) {
-      setError("That image is over 10 MB — try a smaller one.");
+      setError("That image is over 10 MB. Try a smaller one.");
       return;
     }
     setError(null);
@@ -510,7 +510,7 @@ export function ChatRoom({
     }
   }
 
-  /** Any member can pin or unpin — the RPC enforces membership server-side. */
+  /** Any member can pin or unpin; the RPC enforces membership server-side. */
   async function handleTogglePin(id: string, pin: boolean) {
     const supabase = createClient();
     const { error: rpcError } = await supabase.rpc("set_message_pinned", {
@@ -536,7 +536,7 @@ export function ChatRoom({
     void refreshPinned();
   }
 
-  /** Optimistic save/remove in message_bookmarks — a private keep-it-handy
+  /** Optimistic save/remove in message_bookmarks: a private keep-it-handy
    *  flag. A double-click race (23505) already means saved, so it stands. */
   const handleToggleSaved = useCallback(
     async (messageId: string, save: boolean) => {
@@ -565,8 +565,8 @@ export function ChatRoom({
         });
         setError(
           save
-            ? "Couldn't save that — give it another try."
-            : "Couldn't remove that from saved — give it another try."
+            ? "Couldn't save that. Give it another try."
+            : "Couldn't remove that from saved. Give it another try."
         );
       }
     },
@@ -605,13 +605,13 @@ export function ChatRoom({
     router.replace(pathname, { scroll: false });
   }, [router, pathname]);
 
-  // Live typing layer — kept after all existing hooks so hook order is stable.
+  // Live typing layer, kept after all existing hooks so hook order is stable.
   const { typers, noteTyping } = useTyping(channel.id, {
     id: userId,
     name: profile.display_name,
   });
 
-  // Blocked students' messages never render — filtering happens at the edge
+  // Blocked students' messages never render. Filtering happens at the edge
   // so realtime, optimistic, and initial rows all pass through one gate.
   const visibleMessages = useMemo(
     () => messages.filter((m) => !blockedIds.has(m.author_id)),
@@ -645,7 +645,7 @@ export function ChatRoom({
             </p>
             <p className="text-sm text-muted">
               {visibleMessages.length === 0
-                ? "Nobody's said anything yet — be the first to say hi."
+                ? "Nobody's said anything yet. Be the first to say hi."
                 : "This is the very beginning of the channel."}
             </p>
           </div>
@@ -891,8 +891,8 @@ export function ChatRoom({
 }
 
 /**
- * Submit button for the server-action join form on the channel page —
- * client-side so it can show a pending spinner via useFormStatus.
+ * Submit button for the server-action join form on the channel page.
+ * Client-side so it can show a pending spinner via useFormStatus.
  */
 export function JoinChannelButton() {
   const { pending } = useFormStatus();

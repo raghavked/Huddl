@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 /**
  * The Huddl mark: three heads leaning together inside a speech bubble.
  *
- * The bubble is the category — this is a place where people talk, and an
+ * The bubble is the category: this is a place where people talk, and an
  * icon on a home screen has about a tenth of a second to say so. The three
  * heads inside are the huddle: the middle one sits a little larger and a
  * little higher, the way the person leaning furthest in always does.
@@ -21,8 +21,8 @@ import { cn } from "@/lib/utils";
  * Two arrangements were rejected on the way here and are worth not
  * re-discovering: heads evenly spaced around a closed ring always resolve
  * into a flower (five petals, or a four-leaf clover at n=4), and two heads
- * above one below reads as a face — two eyes and an open mouth — at any
- * size above about 40px.
+ * above one below reads as a face (two eyes and an open mouth) at any size
+ * above about 40px.
  */
 const MARK_PATH =
   "M9 4h14a6 6 0 0 1 6 6v6a6 6 0 0 1-6 6h-8.5l-5.6 5.1c-.9.8-2.2.1-2.2-1V22H9a6 6 0 0 1-6-6v-6a6 6 0 0 1 6-6z " +
@@ -44,7 +44,7 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-/** The mark on a solid ember tile — app icon energy, no gradient. */
+/** The mark on a solid ember tile: app icon energy, no gradient. */
 export function LogoTile({ className }: { className?: string }) {
   return (
     <span

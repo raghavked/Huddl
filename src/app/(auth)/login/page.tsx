@@ -16,7 +16,7 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const params = await searchParams;
-  // Same-origin paths only — a protocol-relative or backslash-tricked `next`
+  // Same-origin paths only. A protocol-relative or backslash-tricked `next`
   // would redirect an already-signed-in student off-site. See safeNextPath.
   const next = safeNextPath(params.next);
 

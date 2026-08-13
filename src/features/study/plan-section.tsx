@@ -51,7 +51,7 @@ function Chip({ text, className }: { text: string; className: string }) {
   );
 }
 
-/** A derived study suggestion — plain text, nothing to check off. */
+/** A derived study suggestion: plain text, nothing to check off. */
 function BlockRow({ block }: { block: StudyBlock }) {
   return (
     <li className="ml-9 flex items-center gap-2.5 rounded-xl bg-surface-2 px-3 py-2.5">
@@ -78,7 +78,7 @@ export function PlanSection({
   hasCourses,
 }: {
   userId: string;
-  /** The server's "now" — keeps the first render deterministic across SSR + hydration. */
+  /** The server's "now". Keeps the first render deterministic across SSR + hydration. */
   nowIso: string;
   items: PlanItemRow[];
   initialCheckedIds: string[];
@@ -133,7 +133,7 @@ export function PlanSection({
           .eq("item_id", entry.id);
     if (res.error) {
       flip(!marking); // roll back
-      setActionError("That check-off didn't save — give it another tap.");
+      setActionError("That check-off didn't save. Give it another tap.");
     }
   }
 
@@ -150,8 +150,8 @@ export function PlanSection({
           title={hasCourses ? "Nothing on your plan yet" : "No courses yet"}
           description={
             hasCourses
-              ? "Import a syllabus from a course home — assignments and exams land here, ready to check off."
-              : "Add your classes first — then import a syllabus and your whole term plans itself."
+              ? "Import a syllabus from a course home. Assignments and exams land here, ready to check off."
+              : "Add your classes first. Then import a syllabus and your whole term plans itself."
           }
           action={
             <Link
@@ -173,7 +173,7 @@ export function PlanSection({
         <p className="font-bold tracking-tight">
           {allDone
             ? "All caught up. Go touch grass."
-            : `You're on top of it — ${stats.handled} of ${stats.total} handled`}
+            : `You're on top of it: ${stats.handled} of ${stats.total} handled`}
         </p>
         <div
           role="progressbar"

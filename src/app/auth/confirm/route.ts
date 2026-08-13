@@ -10,8 +10,8 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
  * session cookies); where they land afterwards is the interesting part.
  *
  * A brand-new account goes to onboarding, which is the whole point of the link.
- * A student coming back through a password-reset email is not new — dropping
- * them into onboarding would ask a second-year to pick their major again — so
+ * A student coming back through a password-reset email is not new, and dropping
+ * them into onboarding would ask a second-year to pick their major again, so
  * the reset email sends `?next=/reset-password` and we honour it. `type=recovery`
  * is the same signal from the OTP flow, where the link carries no `next` of its
  * own, and it lands in the same place.

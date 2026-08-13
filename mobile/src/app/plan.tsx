@@ -63,7 +63,7 @@ import { useResolvedScheme } from "@/providers/display-provider";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/* Minimal local row shapes — the web app's types live outside this tsconfig. */
+/* Minimal local row shapes; the web app's types live outside this tsconfig. */
 
 type EnrollmentJoin = {
   /** The student's own tint for this course; null means "let the app choose". */
@@ -86,7 +86,7 @@ type CheckoffRow = { item_id: string; done_at: string };
 
 type PlanData = {
   items: PlanItem[];
-  /** item_id → done_at ISO — membership drives the plan, times drive the streak. */
+  /** item_id → done_at ISO; membership drives the plan, times drive the streak. */
   checkoffs: Map<string, string>;
   /**
    * Course code → the tint that course wears for this student. Keyed by code
@@ -103,7 +103,7 @@ type PlanData = {
   idByCode: ReadonlyMap<string, string>;
   /** Active course codes, in the order the chips should read. */
   courseCodes: string[];
-  /** Any ACTIVE enrolments — what the plan is actually built from. */
+  /** Any ACTIVE enrolments: what the plan is actually built from. */
   hasCourses: boolean;
   /**
    * Any SHELVED enrolments, counted only when there are no active ones. It
@@ -159,7 +159,7 @@ function reminderCaption(reminder: Reminder): string {
     : `Reminded you ${phrase}`;
 }
 
-/** True while the nearest lead on the ladder could still reach you — the
+/** True while the nearest lead on the ladder could still reach you. The
     hourly sweep only sends before a deadline, so past this point a bell would
     be a promise we can't keep. */
 function remindable(dueAt: Date, now: Date): boolean {
@@ -175,7 +175,7 @@ function kindTone(kind: PlanKind): ChipTone {
  * There are three ways to have an empty plan, and they want three different
  * sentences: classes but no calendar items, everything shelved between
  * quarters, and a genuinely new student. Only the last one should be told to
- * add courses — the one in the gap between terms already has them.
+ * add courses; the one in the gap between terms already has them.
  */
 function emptyPlanCopy(data: PlanData | null): {
   title: string;
@@ -186,7 +186,7 @@ function emptyPlanCopy(data: PlanData | null): {
   if (data?.hasCourses) {
     return {
       title: "Nothing on your plan yet",
-      body: "Import a syllabus from a course home — assignments and exams land here, ready to check off.",
+      body: "Import a syllabus from a course home. Assignments and exams land here, ready to check off.",
       actionLabel: "Open your courses",
       href: "/courses",
     };
@@ -201,7 +201,7 @@ function emptyPlanCopy(data: PlanData | null): {
   }
   return {
     title: "No courses yet",
-    body: "Add your classes first — then import a syllabus and your whole term plans itself.",
+    body: "Add your classes first. Then import a syllabus and your whole term plans itself.",
     actionLabel: "Add your courses",
     href: "/courses/add",
   };
@@ -212,8 +212,8 @@ function emptyPlanCopy(data: PlanData | null): {
 /**
  * The course code, wearing that course's colour.
  *
- * Hand-drawn rather than a `Chip`, because `Chip` takes a `tone` — four fixed
- * meanings — and a course tint is a sixth of a personal palette, not a
+ * Hand-drawn rather than a `Chip`, because `Chip` takes a `tone` (four fixed
+ * meanings), and a course tint is a sixth of a personal palette, not a
  * meaning. The metrics are `Chip`'s static `sm` numbers exactly, so this is a
  * colour change and nothing else. If a third screen needs it, `Chip` should
  * grow a way to be handed a soft/ink pair instead of a third copy of this.
@@ -260,7 +260,7 @@ function EntryRow({
   index: number;
   /** This item's reminder, or undefined for "not set". */
   reminder: Reminder | undefined;
-  /** False when we have no course id for the code — the row stays inert. */
+  /** False when we have no course id for the code; the row stays inert. */
   canOpenCourse: boolean;
   onToggle: () => void;
   onOpenCourse: () => void;
@@ -301,7 +301,7 @@ function EntryRow({
       <Pressable
         accessibilityRole="checkbox"
         accessibilityState={{ checked: entry.done }}
-        accessibilityLabel={`${entry.done ? "Mark not done" : "Mark done"} — ${
+        accessibilityLabel={`${entry.done ? "Mark not done" : "Mark done"}, ${
           entry.courseCode
         } ${entry.title}`}
         onPress={onToggle}
@@ -339,7 +339,7 @@ function EntryRow({
           />
         )}
       </Pressable>
-      {/* The body is the way into the class. "PHY 9B Midterm 1 — was due
+      {/* The body is the way into the class. "PHY 9B Midterm 1, was due
           Tuesday" was a dead end before: the one screen that knows you're
           behind couldn't take you to the course you're behind in. */}
       <Pressable
@@ -434,7 +434,7 @@ function EntryRow({
 }
 
 /**
- * A derived study suggestion — plain text, nothing to check off.
+ * A derived study suggestion: plain text, nothing to check off.
  *
  * It is filed by the night you should sit down, which is rarely the week its
  * exam falls in, so it no longer hangs indented off a parent row: it stands
@@ -479,11 +479,11 @@ function BlockRow({ block }: { block: StudyBlock }) {
 /**
  * The one card at the top of the plan that changes while you stand there:
  * check something off and the count, the bar and the next-up line all move.
- * So it is a single live element — the bar slides to its new length on the
+ * So it is a single live element: the bar slides to its new length on the
  * arrival curve, and the reader hears the new count rather than the old one
  * going quietly stale.
  *
- * `handled` and `total` are **this week's** — Overdue through This week, the
+ * `handled` and `total` are **this week's**: Overdue through This week, the
  * same window the home card prints. Scoring the whole term instead turned a
  * good week into "6 of 74 handled" over a bar at 8%, which is a true division
  * and a false sentence.
@@ -518,14 +518,14 @@ function PlanProgress({
     return () => animation.stop();
   }, [pct, reduceMotion, fill]);
 
-  // Nothing this week, but the term goes on — say that rather than dividing
+  // Nothing this week, but the term goes on, so say that rather than dividing
   // by zero into "All caught up" over an empty bar.
   const quietWeek = total === 0;
   const headline = quietWeek
     ? "Nothing due this week"
     : allDone
       ? "All caught up. Go touch grass."
-      : `You're on top of it — ${handled} of ${total} handled this week`;
+      : `You're on top of it: ${handled} of ${total} handled this week`;
 
   const label = [
     headline,
@@ -574,7 +574,7 @@ function PlanProgress({
           Next up: {nextUp.courseCode} {nextUp.title}
         </AppText>
       ) : null}
-      {/* The streak stays quiet: nothing at 0 or 1 — no guilt UI. */}
+      {/* The streak stays quiet: nothing at 0 or 1, no guilt UI. */}
       {streak >= 2 ? (
         <Chip label={`${streak}-day streak`} tone="accent" icon="zap" />
       ) : null}
@@ -596,7 +596,7 @@ export default function PlanScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  /** Your own reminders, keyed by item — absent from the map IS "no reminder". */
+  /** Your own reminders, keyed by item; absent from the map IS "no reminder". */
   const [reminders, setReminders] = useState<Map<string, Reminder>>(new Map());
   const [remindersError, setRemindersError] = useState<string | null>(null);
   /** The item whose lead-time sheet is open, and when it opened. */
@@ -614,7 +614,7 @@ export default function PlanScreen() {
     if (!userId) throw new Error("Not signed in");
     const now = new Date();
 
-    // Active classes only — a shelved course keeps its history, but last
+    // Active classes only. A shelved course keeps its history, but last
     // quarter's due dates have no business crowding this quarter's plan.
     const enrollRes = await supabase
       .from("enrollments")
@@ -637,7 +637,7 @@ export default function PlanScreen() {
     }
     const courseCodes = [...idByCode.keys()].sort((a, b) => a.localeCompare(b));
     if (courses.length === 0) {
-      // Nothing active. Before saying "no courses yet", check the shelf —
+      // Nothing active. Before saying "no courses yet", check the shelf:
       // a student between quarters has added plenty, they're just all
       // archived, and telling them to add courses would be wrong. One
       // head-only count, and only on the empty path.
@@ -660,7 +660,7 @@ export default function PlanScreen() {
 
     const codeById = new Map(courses.map((c) => [c.id, c.code]));
     // The plan window opens a week back so a missed deadline still nags,
-    // and runs forward without limit — buildPlan buckets the far stuff
+    // and runs forward without limit; buildPlan buckets the far stuff
     // under "Later".
     const since = new Date(now.getTime() - 7 * DAY_MS).toISOString();
     const [itemsRes, checkoffsRes] = await Promise.all([
@@ -772,7 +772,7 @@ export default function PlanScreen() {
             .eq("item_id", entry.id);
       if (res.error) {
         flip(!marking); // roll back
-        setActionError("That check-off didn't save — give it another tap.");
+        setActionError("That check-off didn't save. Give it another tap.");
       }
     },
     [userId]
@@ -894,7 +894,7 @@ export default function PlanScreen() {
    *
    * A **study block is filed by when to sit down**, not by when the exam is.
    * Hanging it off its parent put "study block 1 of 3" for tomorrow night
-   * under "Later" with the midterm it prepares for — the one row designed to
+   * under "Later" with the midterm it prepares for: the one row designed to
    * answer "what do I do tonight", filed under not yet.
    *
    * And **"Later" arrives folded**. Four classes of expanded weekly lectures
@@ -930,8 +930,8 @@ export default function PlanScreen() {
     }
 
     // Walked in time order rather than over plan.groups, because a block can
-    // land in a bucket that has no deadlines of its own — a study block this
-    // week for an exam that's still "Later" — and that heading has to appear
+    // land in a bucket that has no deadlines of its own (a study block this
+    // week for an exam that's still "Later"), and that heading has to appear
     // in its place, not at the end.
     const out: ListRow[] = [];
     for (const label of PLAN_GROUP_ORDER) {
@@ -1033,7 +1033,7 @@ export default function PlanScreen() {
     stats.weekTotal > 0 &&
     stats.weekHandled === stats.weekTotal;
 
-  /* One chip per class over the list. Filtering is local — every row is
+  /* One chip per class over the list. Filtering is local: every row is
      already in hand, so narrowing to one course costs no query. */
   const courseCodes = data?.courseCodes ?? [];
   const filterRow =
@@ -1070,7 +1070,7 @@ export default function PlanScreen() {
   /* ------------------------- the lead-time sheet ---------------------- */
 
   const sheetReminder = sheet ? reminders.get(sheet.entry.id) : undefined;
-  // Even the closest rung is behind us — there is no honest choice left to
+  // Even the closest rung is behind us. There is no honest choice left to
   // offer, so the sheet explains instead of listing seven dead ones.
   const sheetTooLate =
     sheet !== null && !remindable(sheet.entry.dueAt, sheet.openedAt);
@@ -1095,7 +1095,7 @@ export default function PlanScreen() {
           variant="caption"
           style={{ color: theme.warning, marginBottom: space.snug }}
         >
-          This one's due too soon — even the closest reminder would land after
+          This one's due too soon. Even the closest reminder would land after
           the deadline.
         </AppText>
       ) : (
@@ -1113,8 +1113,8 @@ export default function PlanScreen() {
                 ).past;
                 return (
                   <View key={choice.minutes}>
-                    {/* Faded when that moment is already behind them —
-                        tapping it says why rather than arming a nudge that
+                    {/* Faded when that moment is already behind them.
+                        Tapping it says why rather than arming a nudge that
                         can't arrive. */}
                     <View style={{ opacity: past ? 0.5 : 1 }}>
                       <Sheet.Row
@@ -1137,7 +1137,7 @@ export default function PlanScreen() {
                           marginBottom: space.tight,
                         }}
                       >
-                        That moment has passed — pick something closer in.
+                        That moment has passed. Pick something closer in.
                       </AppText>
                     ) : null}
                   </View>
@@ -1291,7 +1291,7 @@ export default function PlanScreen() {
                     accessibilityLiveRegion="polite"
                     style={{ color: theme.danger }}
                   >
-                    We couldn't refresh just now — pull down to try again.
+                    We couldn't refresh just now. Pull down to try again.
                   </AppText>
                 ) : null}
                 {actionError ? (

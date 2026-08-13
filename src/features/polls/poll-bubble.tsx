@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * A live poll, rendered in place of the chat message that carries it.
- * One vote per student — tapping another option moves the vote, tapping
- * your own retracts it — until the creator closes the poll, after which
+ * One vote per student: tapping another option moves the vote, tapping your
+ * own retracts it. That holds until the creator closes the poll, after which
  * the bars read as final results. Votes and the close travel live over
  * realtime, so every open room sees the same numbers.
  */
@@ -229,7 +229,7 @@ export function PollBubble({
               onClick={() => void vote(option.id)}
               disabled={isClosed || voting}
               aria-pressed={mine}
-              aria-label={`${option.label} — ${count} ${
+              aria-label={`${option.label}, ${count} ${
                 count === 1 ? "vote" : "votes"
               }${mine ? ", your vote" : ""}`}
               className={cn(

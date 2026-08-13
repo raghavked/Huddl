@@ -12,25 +12,25 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /* The app-wide report flow. Pushed from anywhere with
-   { messageId?, dmMessageId?, userId?, boardPostId?, label?, context? } —
-   label is a short human subject (a display name, or a post's title) for the
+   { messageId?, dmMessageId?, userId?, boardPostId?, label?, context? }.
+   Label is a short human subject (a display name, or a post's title) for the
    header, and context is the reported words themselves, quoted back so she
    can see exactly which message she's flagging.
 
    Four things can be reported, and public.reports takes any one of them: a
    room message, a direct message, a person, or a post on the campus board.
    Whichever it is, the author rides along in reported_user_id, because every
-   subject column is `on delete set null` — the report has to keep a subject
+   subject column is `on delete set null`: the report has to keep a subject
    when the thing it named is deleted, which is the most likely moment for
    someone to try.
 
    Direct messages were the gap. Until migration 0038 there was no
    dm_message_id, so a reported DM filed against the PERSON with the words
-   pasted into the reason box if the student thought to include them — and
-   the moderator triaged a harassment report with no evidence attached. That
-   is now a real subject like any other. */
+   pasted into the reason box if the student thought to include them. The
+   moderator got a harassment report with no evidence attached. That is now
+   a real subject like any other. */
 
-/** Longest quoted excerpt we show back — enough to recognise the message. */
+/** Longest quoted excerpt we show back: enough to recognise the message. */
 const CONTEXT_MAX = 240;
 
 const CATEGORIES = [
@@ -47,7 +47,7 @@ const CATEGORIES = [
 type Category = (typeof CATEGORIES)[number]["value"];
 
 const RATE_LIMIT_MESSAGE =
-  "You've filed a lot of reports this hour — we're on it. Try again later.";
+  "You've filed a lot of reports this hour. We're on it. Try again later.";
 
 function CategoryChip({
   label,
@@ -149,7 +149,7 @@ export default function ReportScreen() {
     else router.replace("/(tabs)/home");
   };
 
-  // Confirmation lingers just long enough to read, then steps back out — but
+  // Confirmation lingers just long enough to read, then steps back out, but
   // only when there's nothing left to decide. Offering to block and then
   // yanking the screen away mid-thought is worse than no offer at all.
   useEffect(() => {
@@ -175,7 +175,7 @@ export default function ReportScreen() {
     }
   }
 
-  /* Message, then post, then person — the same precedence `reportSubject` in
+  /* Message, then post, then person: the same precedence `reportSubject` in
      `@/lib/moderation` reads them back with, so the sentence a student sees
      here and the one a moderator sees later name the same thing. A board post
      arrives with its author attached, and naming the post is what keeps this
@@ -191,7 +191,7 @@ export default function ReportScreen() {
       : "a message"
     : boardPostId
       ? label
-        ? `this post — ${label}`
+        ? `this post (${label})`
         : "this post"
       : (label ?? "this person");
   /* The one case where the words still don't travel: a screen quoted a
@@ -213,7 +213,7 @@ export default function ReportScreen() {
       setReasonError("A few words about what happened helps us act fast.");
       valid = false;
     } else if (trimmed.length > 500) {
-      setReasonError("Keep it under 500 characters — the short version is fine.");
+      setReasonError("Keep it under 500 characters. The short version is fine.");
       valid = false;
     }
     if (!valid || !category) return;
@@ -278,7 +278,7 @@ export default function ReportScreen() {
     </Pressable>
   );
 
-  /* Nothing to report — pushed without a subject. */
+  /* Nothing to report: pushed without a subject. */
   if (!messageId && !dmMessageId && !reportedUserParam && !boardPostId) {
     return (
       <View
@@ -345,7 +345,7 @@ export default function ReportScreen() {
           </View>
           <AppText variant="title">Report sent</AppText>
           <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
-            Thanks for looking out — we review reports within 24 hours.
+            Thanks for looking out. We review reports within 24 hours.
           </AppText>
           {/* Reporting and blocking are one intent. The report is filed
               either way; this is the half that changes her day today. */}
@@ -429,7 +429,7 @@ export default function ReportScreen() {
           Report
         </AppText>
         <AppText variant="caption" muted style={{ marginTop: space.snug }}>
-          You're reporting {subject}. Reports are private — they won't know it
+          You're reporting {subject}. Reports are private. They won't know it
           was you.
         </AppText>
 

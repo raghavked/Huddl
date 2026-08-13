@@ -9,7 +9,7 @@ import { cn, formatMessageTime } from "@/lib/utils";
 /**
  * A group's face: two of its members overlapped in a small cluster, falling
  * back to a single avatar or the plain group glyph when there's nobody left
- * to draw. Decorative — the row's own name carries the meaning.
+ * to draw. Decorative: the row's own name carries the meaning.
  */
 function GroupCluster({ people }: { people: ThreadPerson[] }) {
   const [first, second] = people;
@@ -49,7 +49,7 @@ function GroupCluster({ people }: { people: ThreadPerson[] }) {
 /**
  * One row on the /messages list, in either shape: a 1:1 named after the
  * other student, or a group named after itself with a stacked cluster of
- * the people in it. Purely presentational — the page computes the naming,
+ * the people in it. Purely presentational: the page computes the naming,
  * the latest message, and unread state, and hands them down.
  */
 export function ThreadListItem({

@@ -1,5 +1,5 @@
 /* Hearth (v3) design tokens, ported from the web app's globals.css.
-   Same names, same hex values, same AA-checked pairs — one brand,
+   Same names, same hex values, same AA-checked pairs: one brand,
    two runtimes. Dark is the candle-lit den: warm browns, never blue. */
 
 import { Easing, type ViewStyle } from "react-native";
@@ -58,8 +58,8 @@ export type Palette = { [K in keyof (typeof palettes)["light"]]: string };
  * `enrollments.color` accepts. The name is what we store and what the picker
  * shows; the colours themselves live in `courseTints`.
  *
- * The rule for turning a course into one of these — the student's pick when
- * they made one, a stable hash of the course code when they didn't — lives in
+ * The rule for turning a course into one of these (the student's pick when
+ * they made one, a stable hash of the course code when they didn't) lives in
  * `@/lib/course-color`, not here. This file only owns the paint.
  */
 export type CourseTint = "ember" | "fern" | "clay" | "plum" | "sky" | "sand";
@@ -67,13 +67,13 @@ export type CourseTint = "ember" | "fern" | "clay" | "plum" | "sky" | "sand";
 /**
  * One tint: the wash a course sits on, and the ink that reads on that wash.
  *
- * `soft` is a fill — a chip, a calendar block, the stripe down a card. `ink`
+ * `soft` is a fill: a chip, a calendar block, the stripe down a card. `ink`
  * is the text and the icons *on* that fill, and it is dark enough in light
  * and bright enough in dark to also work as a standalone mark (a dot, a bar,
  * the course code) on `background`, `surface`, or `surface2`.
  *
  * There is deliberately no saturated third step. A course colour is a label,
- * not a call to action — the ember stays the only thing in the app that fills
+ * not a call to action. The ember stays the only thing in the app that fills
  * a button.
  */
 export type CourseTintColors = { soft: string; ink: string };
@@ -92,7 +92,7 @@ export type CourseTintScale = Record<CourseTint, CourseTintColors>;
  *
  * How they were tuned:
  *
- * - **Every `ink` on its own `soft` clears 4.5:1** in both themes — 5.15 to
+ * - **Every `ink` on its own `soft` clears 4.5:1** in both themes: 5.15 to
  *   6.05 in light, 5.26 to 7.58 in dark. Ink on `background` and on `surface`
  *   clears it too (5.7 minimum), so the code can be set in its colour on a
  *   plain card.
@@ -104,7 +104,7 @@ export type CourseTintScale = Record<CourseTint, CourseTintColors>;
  * - **A course keeps its identity across themes.** Each tint holds its hue
  *   within a few degrees between light and dark; only the lightness flips.
  *
- * Colour is never the only signal — the course code is always rendered next
+ * Colour is never the only signal. The course code is always rendered next
  * to the tint, so a student who cannot separate two of these still reads the
  * row correctly.
  */
@@ -116,7 +116,7 @@ export const courseTints: { light: CourseTintScale; dark: CourseTintScale } = {
     fern: { soft: "#e9edd8", ink: "#56682d" },
     /* Unfired rose-brick. Sits opposite ember so the two don't blur. */
     clay: { soft: "#f9d9dc", ink: "#8e3f48" },
-    /* Dried plum skin — the one violet, kept greyed. */
+    /* Dried plum skin: the one violet, kept greyed. */
     plum: { soft: "#ecdcf1", ink: "#6f4482" },
     /* Faded chambray. The coolest thing we allow, and barely. */
     sky: { soft: "#d3e6eb", ink: "#3b5e6a" },
@@ -134,8 +134,8 @@ export const courseTints: { light: CourseTintScale; dark: CourseTintScale } = {
 };
 
 /**
- * The course palette for the active appearance. Feed it `useColorScheme()` —
- * anything that isn't an explicit "dark" falls back to light, the same way
+ * The course palette for the active appearance. Feed it `useColorScheme()`.
+ * Anything that isn't an explicit "dark" falls back to light, the same way
  * `elevationFor` and `useTheme()` do.
  *
  * `const tint = courseTintsFor(scheme)[colorForCourse(enrollment.color, course.code)];`
@@ -155,37 +155,37 @@ export const radius = {
 /* -------------------------------- space --------------------------------- */
 
 /**
- * The spacing ladder — the one token family the system was missing.
+ * The spacing ladder: the one token family the system was missing.
  *
  * These are not invented, and they are not derived from a formula. Four of
- * them are structural facts already load-bearing in the app — `Card` pads by
+ * them are structural facts already load-bearing in the app (`Card` pads by
  * 16, `Screen` gutters by 20 and ends at 32, `SectionLabel` puts 24 above
- * itself — and the small end is what roughly fifteen hundred hand-written
+ * itself), and the small end is what roughly fifteen hundred hand-written
  * paddings had already converged on: 12 and 10 carry most of the app, with
  * 8 / 6 / 4 inside small things. The values that appeared a handful of times
- * each — 3, 5, 7, 9, 14, 18 — are the drift this ladder exists to stop.
+ * each (3, 5, 7, 9, 14, 18) are the drift this ladder exists to stop.
  *
  * Names describe the RELATIONSHIP, not the size, so a screen reads as an
  * argument about hierarchy rather than a pile of numbers:
  *
- * - `hair` (2) — a nudge. Optical alignment, the gap under a label.
- * - `tight` (4) — parts of one thing: an icon and its count.
- * - `snug` (6) — a chip's inner padding, a two-line stack.
- * - `cosy` (8) — the default gap between siblings in a row.
- * - `room` (10) — a list row's vertical breathing.
- * - `close` (12) — between rows in a group, between the parts of a card.
- * - `card` (16) — `Card`'s own padding, and the gap between cards.
- * - `gutter` (20) — the screen's left and right margin. Every screen.
- * - `chapter` (24) — above a `SectionLabel`.
- * - `rest` (32) — the bottom of a scroll, and the air around an empty state.
+ * - `hair` (2): a nudge. Optical alignment, the gap under a label.
+ * - `tight` (4): parts of one thing, an icon and its count.
+ * - `snug` (6): a chip's inner padding, a two-line stack.
+ * - `cosy` (8): the default gap between siblings in a row.
+ * - `room` (10): a list row's vertical breathing.
+ * - `close` (12): between rows in a group, between the parts of a card.
+ * - `card` (16): `Card`'s own padding, and the gap between cards.
+ * - `gutter` (20): the screen's left and right margin. Every screen.
+ * - `chapter` (24): above a `SectionLabel`.
+ * - `rest` (32): the bottom of a scroll, and the air around an empty state.
  *
  * **Comfort is mostly this.** The palette makes Huddl warm; the spacing makes
- * it unhurried. When a screen feels cramped the fix is almost never a colour —
- * it is `cosy` where the content wanted `gutter`. Reach one rung wider than
+ * it unhurried. When a screen feels cramped the fix is almost never a colour.
+ * It is `cosy` where the content wanted `gutter`. Reach one rung wider than
  * feels necessary, especially around anything a student reads rather than
  * scans.
  *
- * Not a hard rule for one-off optical fixes — a 3px nudge to line a glyph up
+ * Not a hard rule for one-off optical fixes: a 3px nudge to line a glyph up
  * with a baseline is a real thing and should stay 3, with a comment. It is a
  * rule for anything structural.
  */
@@ -223,7 +223,7 @@ export type ElevationScale = Record<ElevationStep, ViewStyle>;
 
 /* Shadows in the hearth world are warm: they read as lamplight falling
    past a real object, not as a grey drop-shadow from a spec sheet. Both
-   inks come out of the palette rather than a one-off literal — espresso
+   inks come out of the palette rather than a one-off literal: espresso
    foreground in light, the deepest candle-brown we own in dark. */
 const shadowInk = {
   light: palettes.light.foreground,
@@ -231,19 +231,19 @@ const shadowInk = {
 } as const;
 
 /**
- * Warm, low-contrast shadow scale — three steps, both appearances.
+ * Warm, low-contrast shadow scale: three steps, both appearances.
  *
- * - `rest` — cards sitting on the page. This is the default for `Card`
+ * - `rest` for cards sitting on the page. This is the default for `Card`
  *   and should cover nine surfaces in ten.
- * - `raised` — something the user lifted off the page: a menu, a popover,
+ * - `raised` for something the user lifted off the page: a menu, a popover,
  *   a row that is mid-drag, a floating compose button.
- * - `floating` — the top of the stack: bottom sheets and modals, the one
+ * - `floating` for the top of the stack: bottom sheets and modals, the one
  *   thing on screen while it is open.
  *
  * Dark mode leans on **surface contrast**, not shadow. A brown shadow on a
  * candle-dark background is nearly invisible, and cranking the opacity to
- * make it show reads as soot. So the dark values are deliberately softer —
- * `rest` drops the Android elevation to zero entirely — and depth in the
+ * make it show reads as soot. So the dark values are deliberately softer
+ * (`rest` drops the Android elevation to zero entirely), and depth in the
  * dark theme comes from `surface` / `surface2` / `surface3` stepping up
  * away from `background` plus the hairline `border`.
  *
@@ -300,8 +300,8 @@ export const elevation: { light: ElevationScale; dark: ElevationScale } = {
 };
 
 /**
- * The elevation set for the active appearance. Feed it `useColorScheme()`
- * — anything that isn't an explicit "dark" (null, undefined, the
+ * The elevation set for the active appearance. Feed it `useColorScheme()`.
+ * Anything that isn't an explicit "dark" (null, undefined, the
  * "unspecified" scheme before the system has answered) falls back to
  * light, the same way `useTheme()` does.
  */
@@ -315,28 +315,28 @@ export function elevationFor(
 
 /**
  * Durations in milliseconds, and the three curves they travel along. Four
- * durations and three easings — that is the whole budget.
+ * durations and three easings. That is the whole budget.
  *
- * - `instant` (0) — the reduced-motion value. Pass it as the duration
+ * - `instant` (0): the reduced-motion value. Pass it as the duration
  *   instead of branching around the animation, so state still lands.
- * - `quick` (140) — press feedback, a chip selecting, a checkbox filling.
+ * - `quick` (140): press feedback, a chip selecting, a checkbox filling.
  *   Fast enough to feel like a direct consequence of the finger.
- * - `base` (240) — the house default. Sheets, expanding cards, list rows
+ * - `base` (240): the house default. Sheets, expanding cards, list rows
  *   settling in, anything that "arrives".
- * - `slow` (320) — full-screen transitions and the skeleton pulse. Rare.
+ * - `slow` (320): full-screen transitions and the skeleton pulse. Rare.
  *
- * **House easing** — `motion.easing`, so nothing has to reach for
+ * **House easing** lives in `motion.easing`, so nothing has to reach for
  * `react-native`'s `Easing` and invent a fourth curve:
  *
- * - `standard` (`inOut` cubic) — anything **reversible**: press in and out,
+ * - `standard` (`inOut` cubic) is for anything **reversible**: press in and out,
  *   open and close, select and deselect. It leaves and returns along the
  *   same curve, so the undo feels like the same gesture backwards. When you
  *   are not sure, this is the one.
- * - `enter` (`out` cubic) — **arrivals.** Something appearing that will not
+ * - `enter` (`out` cubic) is for **arrivals.** Something appearing that will not
  *   immediately leave: a newly inserted row, a card landing on a first
  *   paint, a button settling back under a lifted finger. Fast off the mark,
  *   slow into place.
- * - `exit` (`in` cubic) — **departures.** Something on its way out: a
+ * - `exit` (`in` cubic) is for **departures.** Something on its way out: a
  *   dismissed sheet, a row being removed. Slow to let go, then gone. Never
  *   use it for something arriving; an arrival that accelerates away from
  *   you reads as a glitch.
@@ -352,7 +352,7 @@ export function elevationFor(
  * animation is reporting, delete it.
  *
  * **And every animation is gated on `useReducedMotion()`.** Not "animate
- * less" — land the final state in `motion.instant`. A primitive that cannot
+ * less": land the final state in `motion.instant`. A primitive that cannot
  * be turned off this way is not finished.
  */
 export const motion = {

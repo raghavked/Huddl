@@ -25,7 +25,7 @@ import { type ClubRole } from "@/lib/club-announcements";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
-/* Minimal local row shapes — the web app's types live outside this tsconfig.
+/* Minimal local row shapes. The web app's types live outside this tsconfig.
    The directory with one-tap join, mirroring the web clubs page: each row
    opens the club home, and the header plus starts a brand-new club. */
 
@@ -60,14 +60,14 @@ type ListRow =
   | { type: "label"; key: string; text: string }
   | { type: "club"; key: string; club: ClubItem };
 
-/** "academic" -> "Academic" — every category is a single word. */
+/** "academic" -> "Academic". Every category is a single word. */
 function categoryLabel(category: ClubCategory): string {
   return category.charAt(0).toUpperCase() + category.slice(1);
 }
 
 /**
  * Does this club answer what was typed? Name, category and blurb, all
- * case-insensitively — "photo" should find the photography club whether the
+ * case-insensitively: "photo" should find the photography club whether the
  * word is in its name or its one-line description.
  */
 function matches(club: ClubItem, query: string): boolean {
@@ -239,7 +239,7 @@ function ClubRow({
 
       <Pressable
         // The lower half opens the club too, and its words are already in the
-        // label above — so it stays silent rather than repeating itself.
+        // label above, so it stays silent rather than repeating itself.
         accessible={false}
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
@@ -399,7 +399,7 @@ export default function ClubsScreen() {
       setJoinError(null);
       setJoiningId(clubId);
       // RLS lets students join clubs at their own university; the default
-      // role is "member" — same insert as the web joinClub action.
+      // role is "member", the same insert as the web joinClub action.
       const { error: insertError } = await supabase
         .from("club_members")
         .insert({ club_id: clubId, user_id: userId });
@@ -558,7 +558,7 @@ export default function ClubsScreen() {
           ListHeaderComponent={
             <View style={{ gap: space.room, marginBottom: space.card }}>
               <AppText muted>
-                Student orgs on your campus — find your people.
+                Student orgs on your campus. Find your people.
               </AppText>
               <View style={{ justifyContent: "center" }}>
                 <Feather
@@ -623,7 +623,7 @@ export default function ClubsScreen() {
                   accessibilityLiveRegion="polite"
                   style={{ color: theme.danger }}
                 >
-                  We couldn't refresh just now — pull down to try again.
+                  We couldn't refresh just now. Pull down to try again.
                 </AppText>
               ) : null}
             </View>
@@ -643,7 +643,7 @@ export default function ClubsScreen() {
               <EmptyState
                 illustration={Pennant}
                 title="No clubs yet"
-                body="Nobody's founded a club at your school yet — yours could be the first."
+                body="Nobody's started a club at your school yet. Be the first."
                 action={{
                   label: "Start a club",
                   onPress: () => router.push("/club/new"),

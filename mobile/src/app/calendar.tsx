@@ -19,12 +19,12 @@ import { kindLabel, type CalendarKind } from "@/lib/syllabus";
 import { useAuth } from "@/providers/auth-provider";
 import { useResolvedScheme } from "@/providers/display-provider";
 
-/* Your calendar — one warm month of everything: class due dates from every
+/* Your calendar. One warm month of everything: class due dates from every
    enrolled course, plus the events you said you'd show up to. Weeks start on
-   Monday — the class-schedule rhythm — the same on every device, no locale
+   Monday (the class-schedule rhythm), the same on every device, no locale
    guessing. */
 
-/* Minimal local row shapes — the web app's types live outside this tsconfig. */
+/* Minimal local row shapes. The web app's types live outside this tsconfig. */
 
 type EnrollmentJoin = {
   archived_at: string | null;
@@ -79,7 +79,7 @@ type TintByCode = ReadonlyMap<string, CourseTint>;
 
 /**
  * How many class dots one day can show. Past three the day is simply busy,
- * and the agenda underneath is the honest answer — a row of six dots in a
+ * and the agenda underneath is the honest answer. A row of six dots in a
  * 47px cell is confetti, not information.
  */
 const MAX_DAY_DOTS = 3;
@@ -133,7 +133,7 @@ function formatTime(d: Date): string {
   return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
-/** A due time only shows when someone set one — 11:59 PM is the quiet default. */
+/** A due time only shows when someone set one. 11:59 PM is the quiet default. */
 function classTimeLabel(dueAt: Date): string {
   if (dueAt.getHours() === 23 && dueAt.getMinutes() === 59) {
     return "Due by end of day";
@@ -207,8 +207,8 @@ function Dot({ color }: { color: string }) {
 }
 
 /**
- * A cell's dots in words. Everything a day carries is drawn as colour — an
- * ember ring for today, coloured dots for classes, a fern dot for an event —
+ * A cell's dots in words. Everything a day carries is drawn as colour (an
+ * ember ring for today, coloured dots for classes, a fern dot for an event),
  * so all of it is said here too, and the counts are the real counts rather
  * than the capped handful of dots.
  */
@@ -250,7 +250,7 @@ function DayCell({
   isSelected: boolean;
   /** One tint per course with something due that day, already capped. */
   classTints: readonly CourseTint[];
-  /** Everything actually due that day — the dots stop at three. */
+  /** Everything actually due that day. The dots stop at three. */
   classCount: number;
   eventCount: number;
   onSelect: () => void;
@@ -281,7 +281,7 @@ function DayCell({
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: isToday ? theme.brandSoft : "transparent",
-          // The espresso ring — selection sits on the foreground token.
+          // The espresso ring: selection sits on the foreground token.
           borderWidth: 2,
           borderColor: isSelected ? theme.foreground : "transparent",
         }}
@@ -303,7 +303,7 @@ function DayCell({
           marginTop: 3,
         }}
       >
-        {/* A dot per course, in that course's ink — a soft wash at 5px would
+        {/* A dot per course, in that course's ink. A soft wash at 5px would
             vanish against the card. Events keep fern, always last. */}
         {classTints.map((tint) => (
           <Dot key={tint} color={tints[tint].ink} />
@@ -399,7 +399,7 @@ export default function YourCalendarScreen() {
 
   /** Months we've already fetched, so paging back is instant. */
   const cacheRef = useRef<Map<string, MonthData>>(new Map());
-  /** The month currently on screen — late responses for old months stay quiet. */
+  /** The month currently on screen. Late responses for old months stay quiet. */
   const activeKeyRef = useRef<string>("");
 
   const fetchMonth = useCallback(
@@ -426,7 +426,7 @@ export default function YourCalendarScreen() {
       if (enrollRes.error) throw enrollRes.error;
       const codeById = new Map<string, string>();
       const activeIds = new Set<string>();
-      // Shelved classes keep their tint too — a chip on an old date should
+      // Shelved classes keep their tint too. A chip on an old date should
       // still be the colour that class always was.
       const readTints = new Map<string, CourseTint>();
       for (const row of (enrollRes.data ?? []) as unknown as EnrollmentJoin[]) {
@@ -450,7 +450,7 @@ export default function YourCalendarScreen() {
               .lt("due_at", endIso)
               .order("due_at", { ascending: true })
           : Promise.resolve(none),
-        // Everything you RSVP'd to — filtered to the month below.
+        // Everything you RSVP'd to, filtered to the month below.
         supabase
           .from("event_rsvps")
           .select(`event:events(${EVENT_SELECT})`)
@@ -507,7 +507,7 @@ export default function YourCalendarScreen() {
         )
         .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
 
-      // Your check-off state for this month's class dates — private, one query.
+      // Your check-off state for this month's class dates: private, one query.
       let doneIds: string[] = [];
       if (classDates.length > 0) {
         const checksRes = await supabase
@@ -552,7 +552,7 @@ export default function YourCalendarScreen() {
       try {
         const { month, doneIds, tintByCode: fresh } = await fetchMonth(start);
         cacheRef.current.set(key, month);
-        if (activeKeyRef.current !== key) return; // paged on — stay quiet
+        if (activeKeyRef.current !== key) return; // paged on, stay quiet
         setData(month);
         setTintByCode(fresh);
         setChecked((prev) => {
@@ -632,7 +632,7 @@ export default function YourCalendarScreen() {
             );
       if (res.error) {
         flip(wasDone); // roll back
-        setActionError("That check-off didn't save — give it another tap.");
+        setActionError("That check-off didn't save. Give it another tap.");
       }
     },
     [userId, checked]
@@ -652,7 +652,7 @@ export default function YourCalendarScreen() {
     return out;
   }, [monthStart]);
 
-  /** The tint name a course code wears — the student's pick where they made
+  /** The tint name a course code wears: the student's pick where they made
       one, and the stable hash of the code everywhere else. */
   const tintNameFor = useCallback(
     (courseCode: string): CourseTint =>
@@ -681,7 +681,7 @@ export default function YourCalendarScreen() {
       const mark = map.get(key) ?? blank();
       const tint = tintNameFor(item.courseCode);
       // One dot per colour, in due order. Two courses that share a tint
-      // share a dot — a second dot in the same colour says nothing.
+      // share a dot. A second dot in the same colour says nothing.
       if (
         mark.classTints.length < MAX_DAY_DOTS &&
         !mark.classTints.includes(tint)
@@ -940,7 +940,7 @@ export default function YourCalendarScreen() {
                 accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginTop: space.room }}
               >
-                We couldn't refresh just now — pull down to try again.
+                We couldn't refresh just now. Pull down to try again.
               </AppText>
             ) : null}
 
@@ -1019,7 +1019,7 @@ export default function YourCalendarScreen() {
                             accessibilityState={{ checked: done }}
                             accessibilityLabel={`${
                               done ? "Mark not done" : "Mark done"
-                            } — ${item.courseCode} ${item.title}`}
+                            }, ${item.courseCode} ${item.title}`}
                             onPress={() => void toggle(item)}
                             hitSlop={4}
                             style={({ pressed }) => ({

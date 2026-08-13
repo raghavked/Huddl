@@ -22,7 +22,7 @@ import { useAuth } from "@/providers/auth-provider";
 /**
  * One classmate as the directory draws them. A private profile arrives with
  * nothing but a handle and an avatar, because that is all the query asked
- * for — see {@link LIMITED_SELECT}. Nulling hidden columns in JavaScript
+ * for. See {@link LIMITED_SELECT}. Nulling hidden columns in JavaScript
  * would still have put them on the wire.
  */
 type DirectoryPerson = {
@@ -84,8 +84,8 @@ function matches(person: DirectoryPerson, query: string): boolean {
 
 /**
  * Arriving from a chip on somebody's profile: show only the classmates who
- * put the same thing on theirs. A private profile never matches — we don't
- * have their interests and we shouldn't.
+ * put the same thing on theirs. A private profile never matches: we don't
+ * have their interests, and we shouldn't.
  */
 function sharesInterest(person: DirectoryPerson, interest: string): boolean {
   if (interest.length === 0) return true;
@@ -423,7 +423,7 @@ export default function PeopleScreen() {
         person={item}
         isMe={item.id === userId}
         /* The directory arrives once and is filtered in the hand after
-           that, so the stagger belongs to that first paint — not to every
+           that, so the stagger belongs to that first paint, not to every
            keystroke that drops rows out and puts them back. */
         entrance={narrowed ? undefined : index}
       />
@@ -476,7 +476,7 @@ export default function PeopleScreen() {
         style={{ marginTop: space.tight, marginBottom: space.close }}
       >
         {people && uniName
-          ? `${count} ${count === 1 ? "student" : "students"} at ${uniName} — find classmates to trade notes or study with.`
+          ? `${count} ${count === 1 ? "student" : "students"} at ${uniName}. Find classmates to trade notes or study with.`
           : "Find classmates to trade notes or study with."}
       </AppText>
 
@@ -650,7 +650,7 @@ export default function PeopleScreen() {
                 accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginBottom: space.room }}
               >
-                We couldn't refresh just now — pull down to try again.
+                We couldn't refresh just now. Pull down to try again.
               </AppText>
             ) : null
           }

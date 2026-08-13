@@ -69,7 +69,7 @@ function StatusBadge({ status }: { status: ScheduleUpload["status"] }) {
  * Interactive half of the privacy dashboard: per-upload view (signed URL +
  * logged 'accessed' event) and delete (storage object removed, status set to
  * 'deleted', 'deleted' event logged), plus the live audit timeline. Every
- * event insert also produces a notification via the DB trigger — that's the
+ * event insert also produces a notification via the DB trigger. That's the
  * receipt guarantee the page explains.
  */
 export function PrivacyDashboard({
@@ -104,10 +104,10 @@ export function PrivacyDashboard({
         .from("schedules")
         .createSignedUrl(upload.storage_path, 300);
       if (error || !data?.signedUrl) {
-        setError(upload.id, "Couldn't open the image. Please try again.");
+        setError(upload.id, "Couldn't open the image. Give it another go.");
         return;
       }
-      // Log the access — the DB trigger turns this into a notification.
+      // Log the access. The DB trigger turns this into a notification.
       const { data: event } = await supabase
         .from("schedule_upload_events")
         .insert({
@@ -122,7 +122,7 @@ export function PrivacyDashboard({
       }
       setViewUrls((v) => ({ ...v, [upload.id]: data.signedUrl }));
     } catch {
-      setError(upload.id, "Couldn't open the image. Please try again.");
+      setError(upload.id, "Couldn't open the image. Give it another go.");
     } finally {
       setBusy((b) => ({ ...b, [upload.id]: null }));
     }
@@ -138,7 +138,7 @@ export function PrivacyDashboard({
           .from("schedules")
           .remove([upload.storage_path]);
         if (removeError) {
-          setError(upload.id, "Couldn't delete the image. Please try again.");
+          setError(upload.id, "Couldn't delete the image. Give it another go.");
           return;
         }
       }
@@ -147,7 +147,7 @@ export function PrivacyDashboard({
         .update({ status: "deleted" })
         .eq("id", upload.id);
       if (statusError) {
-        setError(upload.id, "Couldn't update the record. Please try again.");
+        setError(upload.id, "Couldn't update the record. Give it another go.");
         return;
       }
       const { data: event } = await supabase
@@ -170,7 +170,7 @@ export function PrivacyDashboard({
       setViewUrls((v) => ({ ...v, [upload.id]: null }));
       setConfirmingDelete(null);
     } catch {
-      setError(upload.id, "Couldn't delete the image. Please try again.");
+      setError(upload.id, "Couldn't delete the image. Give it another go.");
     } finally {
       setBusy((b) => ({ ...b, [upload.id]: null }));
     }
@@ -202,10 +202,10 @@ export function PrivacyDashboard({
                 </h3>
                 <p className="mt-0.5 text-xs text-muted">
                   {hasImage
-                    ? "Image stored in your private folder — only you can open it."
+                    ? "Image stored in your private folder. Only you can open it."
                     : upload.storage_path
                       ? "Stored image has been deleted."
-                      : "Processed on your device — the image was never stored."}
+                      : "Processed on your device. The image was never stored."}
                 </p>
               </div>
               <StatusBadge status={upload.status} />
@@ -302,7 +302,7 @@ export function PrivacyDashboard({
                 />
                 <figcaption className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
                   <Eye className="size-3.5" aria-hidden />
-                  This view was logged just now — check your notifications for
+                  This view was logged just now. Check your notifications for
                   the receipt.
                 </figcaption>
               </figure>

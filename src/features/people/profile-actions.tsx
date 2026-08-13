@@ -18,10 +18,10 @@ const REASON_MAX = 500;
  * Report this person, from their profile.
  *
  * @param personId `profiles.id` of whoever the page is about. Never the
- *   viewer's own — the page doesn't render this on your own profile, and
+ *   viewer's own: the page doesn't render this on your own profile, and
  *   `reportProfile` refuses it besides.
  * @param name What to call them out loud. A private profile withholds the
- *   display name, so the caller passes the handle instead — the panel has to
+ *   display name, so the caller passes the handle instead. The panel has to
  *   name the person the viewer can actually see.
  */
 export function ReportPersonButton({
@@ -39,7 +39,7 @@ export function ReportPersonButton({
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
-  /* Nothing closes the panel while a report is in flight — on a slow network
+  /* Nothing closes the panel while a report is in flight. On a slow network
      the answer, sent or failed, has to land somewhere the reporter is still
      looking. What they picked and typed stays put when it does close, so
      reopening picks up where they left off rather than starting again. */
@@ -58,12 +58,12 @@ export function ReportPersonButton({
     setPending(true);
     setError(null);
     /* `reports.reason` is not nullable, and a student who picked a category
-       and had nothing to add has still said something — the category's own
+       and had nothing to add has still said something. The category's own
        words stand in rather than blocking the report on a second field. */
     const words = detail.trim();
     /* A server action is an HTTP POST, so offline or a 500 REJECTS rather
        than resolving `{ error }`. Unhandled, that rejection would skip
-       setPending(false) and leave the panel stuck on "Sending…" — with
+       setPending(false) and leave the panel stuck on "Sending…", with
        Cancel, Escape and the trigger all guarded on `pending` and therefore
        dead with it. */
     let failure: string | undefined;
@@ -75,7 +75,7 @@ export function ReportPersonButton({
       );
       failure = result.error;
     } catch {
-      failure = "Couldn't send that report — check your connection and try again.";
+      failure = "Couldn't send that report. Check your connection and try again.";
     } finally {
       setPending(false);
     }
@@ -137,7 +137,7 @@ export function ReportPersonButton({
             Report {name}
           </p>
           <p className="mt-1 text-sm text-muted text-pretty">
-            Reports are private — they won&apos;t know it was you. A person
+            Reports are private. They won&apos;t know it was you. A person
             reads every one within 24 hours. This one is about {name}, not
             about a single message; to report something they said, use the flag
             on the message itself.

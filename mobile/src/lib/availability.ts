@@ -4,7 +4,7 @@ import type {
 } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
-/* Availability polls — "when can everyone meet?" — as a data layer.
+/* Availability polls: "when can everyone meet?", as a data layer.
  *
  * A poll is a short title, two to eight candidate times, and a yes / maybe /
  * no from each classmate. Everyone in the channel can see it and answer it;
@@ -15,11 +15,11 @@ import { supabase } from "@/lib/supabase";
  *
  *   availability_polls   the question, plus closed_at and event_id
  *   availability_slots   one row per candidate time, ordered by `position`
- *   availability_votes   one row per (slot, person) — the primary key
+ *   availability_votes   one row per (slot, person), the primary key
  *
  * Creating a poll goes through `create_availability_poll`, a security-definer
  * RPC that writes the poll, its slots, and the chat message announcing it in
- * one transaction — the same shape as `create_poll`, so the two feel like
+ * one transaction, the same shape as `create_poll`, so the two feel like
  * siblings in the composer. Everything else is a plain query against
  * member-scoped RLS. `availability_votes` is in the realtime publication, so
  * {@link subscribeToPoll} works with no extra setup; the poll row itself is
@@ -45,7 +45,7 @@ export type AvailabilityPerson = {
   display_name: string;
   /** Their handle, without the leading `@`. */
   handle: string;
-  /** Their avatar, or null — fall back to initials via `@/components/avatar`. */
+  /** Their avatar, or null; fall back to initials via `@/components/avatar`. */
   avatar_url: string | null;
 };
 
@@ -57,7 +57,7 @@ export type AvailabilityPoll = {
   channel_id: string;
   /** Who asked (`profiles.id`). Only they can close it or attach an event. */
   creator_id: string;
-  /** The question, 1-120 characters — e.g. "ECS 36A midterm review". */
+  /** The question, 1-120 characters, e.g. "ECS 36A midterm review". */
   title: string;
   /** ISO timestamp the poll was closed, or null while it's still open. */
   closed_at: string | null;
@@ -74,7 +74,7 @@ export type AvailabilityPoll = {
 
 /** One candidate time. Slots never change after the poll is created. */
 export type AvailabilitySlot = {
-  /** `availability_slots.id` — what {@link vote} and {@link clearVote} take. */
+  /** `availability_slots.id`: what {@link vote} and {@link clearVote} take. */
   id: string;
   /** Which poll it belongs to (`availability_polls.id`). */
   poll_id: string;
@@ -96,7 +96,7 @@ export type AvailabilityVote = {
   created_at: string;
   /**
    * The voter's profile, so "Ana, Ben and Cleo said yes" needs no second
-   * query. Always null on a realtime payload — those are bare table rows with
+   * query. Always null on a realtime payload; those are bare table rows with
    * nothing embedded. Refetch via {@link fetchPoll} when you need names.
    */
   voter: AvailabilityPerson | null;
@@ -108,7 +108,7 @@ export type AvailabilityPollDetail = {
   poll: AvailabilityPoll;
   /** Its candidate times, in the order the creator offered them. */
   slots: AvailabilitySlot[];
-  /** Every answer across every slot — feed it straight to {@link tally}. */
+  /** Every answer across every slot. Feed it straight to {@link tally}. */
   votes: AvailabilityVote[];
 };
 
@@ -137,7 +137,7 @@ export type SlotTally = {
   maybe: number;
   /** How many said no. */
   no: number;
-  /** `yes + maybe / 2` — a maybe is half a yes. Ranks the slots. */
+  /** `yes + maybe / 2`: a maybe is half a yes. Ranks the slots. */
   score: number;
 };
 
@@ -145,11 +145,11 @@ export type SlotTally = {
 export type BestSlot = {
   /** The winning slot. With a tie, the deterministic pick among the leaders. */
   slot: SlotTally;
-  /** True when exactly one slot holds the top score — `tied.length === 1`. */
+  /** True when exactly one slot holds the top score, i.e. `tied.length === 1`. */
   clear: boolean;
   /**
    * Every slot sharing the top score, earliest first, including
-   * {@link BestSlot.slot}. Length 1 on a clear win, 2+ on a tie — useful for
+   * {@link BestSlot.slot}. Length 1 on a clear win, 2+ on a tie, useful for
    * "Tuesday and Thursday are neck and neck".
    */
   tied: SlotTally[];
@@ -166,7 +166,7 @@ export const AVAILABILITY_SLOTS_MAX = 8;
 /** Shortest title the database accepts, after trimming. */
 export const AVAILABILITY_TITLE_MIN = 1;
 
-/** Longest title the database accepts — cap your TextInput here. */
+/** Longest title the database accepts. Cap your TextInput here. */
 export const AVAILABILITY_TITLE_MAX = 120;
 
 /** Columns every poll query selects, creator included. Keep selects consistent. */
@@ -189,7 +189,7 @@ const AVAILABILITY_DETAIL_SELECT = `${AVAILABILITY_POLL_SELECT}, slots:availabil
 
 /**
  * An availability-poll failure with a message written for a person, not a
- * log. Show `err.message` directly in your inline error — it never leaks SQL,
+ * log. Show `err.message` directly in your inline error; it never leaks SQL,
  * ids, or PostgREST codes.
  */
 export class AvailabilityError extends Error {
@@ -287,7 +287,7 @@ function toResponse(raw: unknown): AvailabilityResponse | null {
 
 /**
  * Narrow one `availability_polls` row. Null when it's missing something we
- * promise callers — better an honest null than a poll with no question on it.
+ * promise callers. Better an honest null than a poll with no question on it.
  */
 function toPoll(raw: unknown): AvailabilityPoll | null {
   const row = record(raw);
@@ -379,7 +379,7 @@ function requireTitle(title: string): string {
   }
   if (trimmed.length > AVAILABILITY_TITLE_MAX) {
     throw new AvailabilityError(
-      `Titles stop at ${AVAILABILITY_TITLE_MAX} characters — try a shorter one.`
+      `Titles stop at ${AVAILABILITY_TITLE_MAX} characters. Try a shorter one.`
     );
   }
   return trimmed;
@@ -387,8 +387,8 @@ function requireTitle(title: string): string {
 
 /**
  * Turn the composer's `Date`s into the ISO strings the RPC's `timestamptz[]`
- * takes. Invalid dates and exact duplicates drop out first — two identical
- * times aren't a choice — and what's left is sorted earliest first, so the
+ * takes. Invalid dates and exact duplicates drop out first (two identical
+ * times aren't a choice), and what's left is sorted earliest first, so the
  * slots' `position` always runs in chronological order no matter what order
  * the composer collected them in.
  *
@@ -415,7 +415,7 @@ function requireSlots(slots: readonly Date[]): string[] {
 }
 
 /**
- * The caller's `profiles.id`, read from the stored session (no network hop —
+ * The caller's `profiles.id`, read from the stored session (no network hop:
  * supabase-js refreshes the token itself when it's stale).
  *
  * @throws {AvailabilityError} When nobody's signed in.
@@ -436,7 +436,7 @@ async function requireUserId(): Promise<string> {
  * candidate times, and the chat message announcing it, so the channel never
  * shows a poll message pointing at a poll that isn't there.
  *
- * Title and times are cleaned here first — trimmed, deduped, sorted, counted —
+ * Title and times are cleaned here first (trimmed, deduped, sorted, counted),
  * so the database's own checks stay a backstop rather than an error path
  * students see. Times in the past are allowed on purpose: "tonight at 7"
  * shouldn't stop working at 7:01.
@@ -478,7 +478,7 @@ export async function createAvailabilityPoll(
 }
 
 /**
- * Answer one candidate time, or change the answer you already gave — an
+ * Answer one candidate time, or change the answer you already gave: an
  * upsert on the `(slot_id, user_id)` primary key, so tapping "yes" twice is
  * the same as tapping it once.
  *
@@ -491,7 +491,7 @@ export async function createAvailabilityPoll(
  *
  * @param slotId   The candidate time's `availability_slots.id`.
  * @param response Their answer.
- * @returns The stored vote, voter attached — use it to reconcile your
+ * @returns The stored vote, voter attached. Use it to reconcile your
  *   optimistic state.
  * @throws {AvailabilityError} With copy that's ready to render.
  */
@@ -534,7 +534,7 @@ export async function vote(
 
 /**
  * Take your answer to one time back, leaving you unanswered on it rather than
- * on record as a no. Only ever removes your own row — the delete policy
+ * on record as a no. Only ever removes your own row: the delete policy
  * matches on `auth.uid()` and we filter by it here too.
  *
  * Clearing an answer you never gave resolves quietly: the intent ("I have no
@@ -561,7 +561,7 @@ export async function clearVote(slotId: string): Promise<void> {
 
 /**
  * Close the poll: stamp `closed_at` so no new answers come in and the winning
- * time can be read as final. Creator only — the update policy matches on
+ * time can be read as final. Creator only: the update policy matches on
  * `creator_id`, so gate the button with {@link canManagePoll} and nobody taps
  * something the database will refuse.
  *
@@ -569,7 +569,7 @@ export async function clearVote(slotId: string): Promise<void> {
  * failing, so a double tap costs nothing.
  *
  * @param pollId The poll's `availability_polls.id`.
- * @returns The ISO `closed_at` now stored — use it for your optimistic state.
+ * @returns The ISO `closed_at` now stored. Use it for your optimistic state.
  * @throws {AvailabilityError} With copy that's ready to render.
  */
 export async function closePoll(pollId: string): Promise<string> {
@@ -587,7 +587,7 @@ export async function closePoll(pollId: string): Promise<string> {
     );
   }
   // Zero rows updated isn't an error to PostgREST, but it means the policy
-  // didn't match — this poll belongs to someone else.
+  // didn't match; this poll belongs to someone else.
   if (!data) {
     throw new AvailabilityError(
       "Only the person who started this poll can close it."
@@ -603,7 +603,7 @@ export async function closePoll(pollId: string): Promise<string> {
  * unresolved. Creator only, same policy as {@link closePoll}.
  *
  * Create the event first (it has its own table and rules); this only records
- * the link. Passing an event the creator can't see still writes the id — RLS
+ * the link. Passing an event the creator can't see still writes the id: RLS
  * guards who may write the poll row, not which event it names.
  *
  * @param pollId  The poll's `availability_polls.id`.
@@ -635,7 +635,7 @@ export async function attachEvent(
 /* ------------------------------ reads ------------------------------- */
 
 /**
- * One poll, its candidate times in order, and every answer on it — a single
+ * One poll, its candidate times in order, and every answer on it, in a single
  * request, so the counts can never come from a different moment than the
  * times they're counting.
  *
@@ -644,7 +644,7 @@ export async function attachEvent(
  * oldest first, ready for {@link tally}.
  *
  * RLS is member-scoped, so null covers both "no such poll" and "you're not in
- * that channel" — they look the same from here, and both mean the same thing
+ * that channel". They look the same from here, and both mean the same thing
  * to the screen.
  *
  * @param pollId The poll's `availability_polls.id`.
@@ -707,13 +707,13 @@ let channelSeq = 0;
 
 /**
  * Watch a poll fill in. Fires `onChange` on every answer added, changed, or
- * withdrawn on this poll's slots — `availability_votes` is in the realtime
+ * withdrawn on this poll's slots. `availability_votes` is in the realtime
  * publication and its SELECT policy is member-scoped, so the socket only ever
  * delivers rows the caller could already read.
  *
  * Votes carry no `poll_id`, so the subscription can't be filtered server-side
  * by poll. Instead this reads the poll's slot ids once (they never change
- * after creation) and drops any payload for a slot that isn't one of them —
+ * after creation) and drops any payload for a slot that isn't one of them, so
  * every other poll in your channels stays out of the way.
  *
  * The poll row itself is NOT in the publication: closing a poll or attaching
@@ -728,7 +728,7 @@ let channelSeq = 0;
  *
  * @param pollId   The poll's `availability_polls.id`.
  * @param onChange Called with the event, the slot, and the row as it stands.
- * @returns An unsubscribe function — return it straight from a `useEffect`.
+ * @returns An unsubscribe function. Return it straight from a `useEffect`.
  *   Safe to call before the slot lookup has finished.
  */
 export function subscribeToPoll(
@@ -745,7 +745,7 @@ export function subscribeToPoll(
     event: "INSERT" | "UPDATE" | "DELETE",
     payload: RealtimePostgresChangesPayload<Record<string, unknown>>
   ): void => {
-    // A DELETE payload carries only the primary key — (slot_id, user_id) —
+    // A DELETE payload carries only the primary key, (slot_id, user_id),
     // which is exactly enough to know which slot lost an answer.
     const row = record(event === "DELETE" ? payload.old : payload.new);
     const slotId = row?.["slot_id"];
@@ -769,7 +769,7 @@ export function subscribeToPoll(
         if (typeof id === "string" && id.length > 0) slotIds.add(id);
       }
     }
-    // No readable slots means no poll to watch — leave the socket alone.
+    // No readable slots means no poll to watch, so leave the socket alone.
     if (slotIds.size === 0) return;
 
     channel = supabase
@@ -806,14 +806,14 @@ const MAYBE_WEIGHT = 0.5;
 
 /**
  * Count each candidate time: how many yes, maybe, and no, plus a `score` that
- * ranks them — a yes is worth 1, a maybe 0.5, a no nothing.
+ * ranks them: a yes is worth 1, a maybe 0.5, a no nothing.
  *
  * Returns one entry per slot in the order the slots were given, including
  * slots nobody has answered (all zeros), so a list can map straight over it.
  *
  * A person only ever counts once per slot: the database's primary key
  * guarantees it server-side, and if the array holds two rows for the same
- * pair — an optimistic vote sitting in front of the fetched one — the LAST
+ * pair (an optimistic vote sitting in front of the fetched one), the LAST
  * one wins. Votes pointing at unknown slots are ignored.
  *
  * Pure: no I/O, no clock. Same inputs, same numbers, every time.
@@ -842,7 +842,7 @@ export function tally(
     out.push(entry);
   }
 
-  // One answer per (slot, person), last one wins — so an optimistic vote can
+  // One answer per (slot, person), last one wins, so an optimistic vote can
   // be appended to the fetched list without inflating the counts.
   const latest = new Map<string, Map<string, AvailabilityResponse>>();
   for (const one of votes) {
@@ -870,15 +870,15 @@ export function tally(
 /**
  * The time that's winning, and whether it's winning outright.
  *
- * The top score takes it. Ties are broken — deterministically, so two devices
- * never name different winners — by more definite yeses, then fewer nos, then
- * the earlier time, then the slot id. `clear` is false whenever more than one
- * slot holds that top score, however the tie was broken, and `tied` lists all
- * of them earliest first.
+ * The top score takes it. Ties are broken by more definite yeses, then fewer
+ * nos, then the earlier time, then the slot id. That order is deterministic,
+ * so two devices never name different winners. `clear` is false whenever more
+ * than one slot holds that top score, however the tie was broken, and `tied`
+ * lists all of them earliest first.
  *
  * Returns null when there's nothing to declare: no slots, or a top score of 0
- * because nobody has said yes or maybe to anything yet. Say so in the UI —
- * "no time works for everyone yet" — rather than crowning a slot full of nos.
+ * because nobody has said yes or maybe to anything yet. Say so in the UI
+ * ("no time works for everyone yet") rather than crowning a slot full of nos.
  *
  * Pure: no I/O, no clock.
  *
@@ -918,7 +918,7 @@ export function bestSlot(tallies: readonly SlotTally[]): BestSlot | null {
 /** How many times {@link suggestSlots} offers when you don't say. */
 export const SUGGEST_SLOTS_DEFAULT = 4;
 
-/** The hour a suggested weeknight slot lands on — after dinner, before late. */
+/** The hour a suggested weeknight slot lands on: after dinner, before late. */
 export const SUGGEST_EVENING_HOUR = 19;
 
 /** The hour a suggested weekend slot lands on. */
@@ -926,7 +926,7 @@ export const SUGGEST_AFTERNOON_HOUR = 14;
 
 /**
  * How far out a suggestion has to be. A poll opened at 6:50pm shouldn't offer
- * tonight at 7 — nobody can answer in ten minutes.
+ * tonight at 7. Nobody can answer in ten minutes.
  */
 export const SUGGEST_LEAD_MINUTES = 60;
 
@@ -937,7 +937,7 @@ const MINUTE_MS = 60 * 1000;
  * Sensible times to prefill the composer with: the next few evenings at 7pm
  * plus the next weekend afternoon at 2pm, earliest first.
  *
- * These are a STARTING POINT, not a recommendation — the composer shows them
+ * These are a STARTING POINT, not a recommendation. The composer shows them
  * as editable rows and most students will drag one or two around before they
  * post. The point is that the poll opens with something plausible in it
  * instead of an empty form.
@@ -951,7 +951,7 @@ const MINUTE_MS = 60 * 1000;
  * @param now   The current moment.
  * @param count How many times to offer; rounded and clamped to 2-8, the same
  *   window the database accepts. Defaults to 4.
- * @returns `count` distinct times, earliest first — or `[]` if `now` isn't a
+ * @returns `count` distinct times, earliest first, or `[]` if `now` isn't a
  *   real date.
  */
 export function suggestSlots(
@@ -1011,7 +1011,7 @@ export function canVote(poll: Pick<AvailabilityPoll, "closed_at">): boolean {
 
 /**
  * Whether the signed-in person may close this poll or turn it into a study
- * session — the client-side twin of the "creators close their polls" policy.
+ * session: the client-side twin of the "creators close their polls" policy.
  * Keep the rule here so a menu and an empty state can never disagree about
  * who's in charge of a poll.
  *

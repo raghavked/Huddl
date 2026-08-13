@@ -23,7 +23,7 @@ import { buttonClasses, cardClasses } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
-/* Marketing landing page — the hearth (UI v3) front porch. Server     */
+/* Marketing landing page: the hearth (UI v3) front porch. Server      */
 /* component; the only interactivity is the FAQ, which uses native     */
 /* <details> so no client JS is needed.                                */
 /* ------------------------------------------------------------------ */
@@ -43,27 +43,27 @@ const SCHOOLS = [
 const FAQS: { q: string; a: string }[] = [
   {
     q: "Who can join Huddl?",
-    a: "Anyone with a student email at a supported school. You sign up with your @school.edu address, confirm it from your inbox, and you land in your campus — and only your campus. There are no open servers and no cross-campus browsing.",
+    a: "Anyone with a student email at a supported school. You sign up with your @school.edu address, confirm it from your inbox, and you land in your campus. Only yours: there are no open servers and no cross-campus browsing.",
   },
   {
     q: "Which schools are supported?",
-    a: "We open one campus at a time so every community starts dense, not empty. UC Davis is first, followed by the rest of the UC system, then the CSUs. If your school isn't live yet, signing up with your school email is the best way to move it up the list — a campus opens once enough students are waiting.",
+    a: "We open one campus at a time so every community starts dense, not empty. UC Davis is first, followed by the rest of the UC system, then the CSUs. If your school isn't live yet, signing up with your school email is the best way to move it up the list. A campus opens once enough students are waiting.",
   },
   {
     q: "How do my course channels get set up?",
-    a: "You add your classes yourself — type a course code and its chat opens, with the campus catalog autocompleting codes and titles as you go. If a class isn't in the catalog yet, adding it makes you its first member, and classmates who add the same class land right beside you.",
+    a: "You add your classes yourself: type a course code and its chat opens, and the campus catalog fills in codes and titles as you go. If a class isn't in the catalog yet, adding it makes you its first member, and classmates who add the same class land right beside you.",
   },
   {
     q: "Does Huddl connect to my school's systems?",
-    a: "No. Your course list on Huddl is yours alone — you add classes, rename nothing behind your back, and drop them whenever you like. Nothing links to your school accounts, and we never see your grades, submissions, or official enrollment.",
+    a: "No. Your course list on Huddl is yours alone: you add classes, we rename nothing behind your back, and you drop them whenever you like. Nothing links to your school accounts, and we never see your grades, submissions, or official enrollment.",
   },
   {
     q: "Can professors or administrators see my messages?",
-    a: "No. Huddl is a student space. Course channels are visible only to students enrolled in that course, campus channels only to verified students at your school, and a direct message only to the people in that thread — the two of you, or everyone in a group you started together.",
+    a: "No. Huddl is a student space. Course channels are visible only to students enrolled in that course, campus channels only to verified students at your school, and a direct message only to the people in that thread: the two of you, or everyone in a group you started together.",
   },
   {
     q: "How much does it cost?",
-    a: "Nothing. The core of Huddl — course channels, campus channels, DMs, notes, and events — is free for students, and staying that way. We will never sell student data and never put ads inside course channels.",
+    a: "Nothing. The core of Huddl (course channels, campus channels, DMs, notes, and events) is free for students, and staying that way. We will never sell student data and never put ads inside course channels.",
   },
 ];
 
@@ -78,7 +78,7 @@ export default function LandingPage() {
       </a>
 
       {/* ---------------------------------------------------------- */}
-      {/* Sticky header — frosted glass                               */}
+      {/* Sticky header: frosted glass                                */}
       {/* ---------------------------------------------------------- */}
       <header className="glass sticky top-0 z-40 border-b border-border/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
@@ -111,7 +111,7 @@ export default function LandingPage() {
           aria-labelledby="hero-heading"
           className="relative overflow-hidden"
         >
-          {/* Quiet ambient washes — warm hearth tones, tokens only. */}
+          {/* Quiet ambient washes: warm hearth tones, tokens only. */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 bg-linear-to-b from-brand/8 via-transparent to-transparent"
@@ -128,7 +128,7 @@ export default function LandingPage() {
           <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 sm:pt-24">
             <div className="mx-auto flex max-w-2xl animate-fade-up flex-col items-center text-center">
               <p className="text-sm font-medium text-muted">
-                Now open at UC Davis — the UC system is next
+                Now open at UC Davis, with the UC system next
               </p>
               <h1
                 id="hero-heading"
@@ -137,7 +137,7 @@ export default function LandingPage() {
                 Your campus, in{" "}
                 <span className="relative inline-block">
                   one huddle
-                  {/* Hand-drawn underline — one wobbly ember stroke. */}
+                  {/* Hand-drawn underline: one wobbly ember stroke. */}
                   <svg
                     aria-hidden="true"
                     viewBox="0 0 200 12"
@@ -158,8 +158,8 @@ export default function LandingPage() {
               <p className="mt-6 max-w-xl text-base text-muted text-pretty sm:text-lg">
                 Course chat that opens the moment you add a class. Notes that
                 outlive the group chat. Study sessions people actually show up
-                to. All of it verified with your school email — so it&apos;s
-                your campus, and only your campus.
+                to. All of it verified with your school email, so it&apos;s
+                your campus and nobody else&apos;s.
               </p>
               <div className="mt-8 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
                 <Link
@@ -245,7 +245,7 @@ export default function LandingPage() {
         </section>
 
         {/* -------------------------------------------------------- */}
-        {/* Stats strip — honest, token-built                         */}
+        {/* Stats strip: honest, token-built                          */}
         {/* -------------------------------------------------------- */}
         <section
           aria-label="Huddl at a glance"
@@ -286,7 +286,7 @@ export default function LandingPage() {
         </section>
 
         {/* -------------------------------------------------------- */}
-        {/* Features — bento grid                                     */}
+        {/* Features: bento grid                                      */}
         {/* -------------------------------------------------------- */}
         <section
           aria-labelledby="features-heading"
@@ -309,7 +309,7 @@ export default function LandingPage() {
             <FeatureCard
               icon={BookOpen}
               title="Your classes, added in seconds"
-              body="Type a course and its chat opens; the campus catalog autocompletes the details. Your classmates are already in it, because they added the same classes — and if you're first, the room is ready for whoever's next."
+              body="Type a course and its chat opens; the campus catalog autocompletes the details. Your classmates are already in it, because they added the same classes. If you're first, the room is ready for whoever's next."
               points={[
                 "One chat per course, open the moment you add it",
                 "The campus catalog fills in codes and titles as you type",
@@ -320,7 +320,7 @@ export default function LandingPage() {
             <FeatureCard
               icon={FileText}
               title="Notes that don't die in group chats"
-              body="Week 5 slides shouldn't be 400 messages deep in someone else's thread. On Huddl, notes live with the course — uploader credit, one tap to download, there for everyone all term."
+              body="Week 5 slides shouldn't be 400 messages deep in someone else's thread. On Huddl, notes live with the course: uploader credit, one tap to download, there for everyone all term."
               points={[
                 "Files attach to the course, not to a conversation",
                 "Whoever shared it gets the credit, always",
@@ -331,7 +331,7 @@ export default function LandingPage() {
             <FeatureCard
               icon={CalendarDays}
               title="Plans people actually show up to"
-              body="Spin up a review session before the midterm, a club meetup, or a Sunday pickup game. RSVPs, capacity and location up front — so you know who's in before you head out."
+              body="Spin up a review session before the midterm, a club meetup, or a Sunday pickup game. RSVPs, capacity and location up front, so you know who's in before you head out."
               points={[
                 "RSVP with one tap, see who else is going",
                 "Cap the room when the study spot only fits six",
@@ -342,7 +342,7 @@ export default function LandingPage() {
             <FeatureCard
               icon={MessagesSquare}
               title="Your whole campus, on speaking terms"
-              body="Trade notes over DMs, find your people in #study-buddies, pass on a textbook in #asks-and-offers. Every campus starts with places to talk — and students open new channels from there."
+              body="Trade notes over DMs, find your people in #study-buddies, pass on a textbook in #asks-and-offers. Every campus starts with places to talk, and students open new channels from there."
               points={[
                 "1:1 messages with read state and real-time delivery",
                 "Campus channels every student is part of from day one",
@@ -354,7 +354,7 @@ export default function LandingPage() {
         </section>
 
         {/* -------------------------------------------------------- */}
-        {/* Trust / verification — accent-led                         */}
+        {/* Trust / verification: accent-led                          */}
         {/* -------------------------------------------------------- */}
         <section
           aria-labelledby="trust-heading"
@@ -374,7 +374,7 @@ export default function LandingPage() {
               </h2>
               <p className="mt-4 text-muted text-pretty">
                 A campus community only works if everyone in it is actually on
-                your campus — and if you can see exactly what happens with your
+                your campus, and if you can see exactly what happens with your
                 data.
               </p>
             </div>
@@ -384,19 +384,19 @@ export default function LandingPage() {
                 step={1}
                 icon={MailCheck}
                 title="Your school email is your key"
-                body="Sign up with your @school.edu address and confirm it from your inbox. That's what puts you on your campus — and keeps everyone else off it."
+                body="Sign up with your @school.edu address and confirm it from your inbox. That's what puts you on your campus, and keeps everyone else off it."
               />
               <TrustStep
                 step={2}
                 icon={ListChecks}
                 title="Your courses, run by you"
-                body="You add your own classes — nothing connects to your school's systems, and nothing about your schedule is collected behind your back. Course chats are visible only to classmates who added the same class."
+                body="You add your own classes. Nothing connects to your school's systems, and nothing about your schedule is collected behind your back. Course chats are visible only to classmates who added the same class."
               />
               <TrustStep
                 step={3}
                 icon={BellRing}
                 title="Campus-only, receipts included"
-                body="Everything you post stays inside your verified campus. And where privacy matters most, we show you the log — audited events become notifications by database trigger, so nothing happens silently."
+                body="Everything you post stays inside your verified campus. And where privacy matters most, we show you the log: audited events become notifications by database trigger, so nothing happens silently."
               />
             </ol>
           </div>
@@ -438,7 +438,7 @@ export default function LandingPage() {
         </section>
 
         {/* -------------------------------------------------------- */}
-        {/* Closing CTA — one calm ember panel                        */}
+        {/* Closing CTA: one calm ember panel                         */}
         {/* -------------------------------------------------------- */}
         <section
           aria-labelledby="cta-heading"
@@ -582,7 +582,7 @@ function TrustStep({
 
 /* ------------------------------------------------------------------ */
 /* Vignettes: fake-UI panels built purely from tokens.                 */
-/* Decorative — hidden from assistive tech.                            */
+/* Decorative: hidden from assistive tech.                             */
 /* ------------------------------------------------------------------ */
 
 function VignetteFrame({
@@ -651,7 +651,7 @@ function ChatVignette() {
               dev <span className="font-normal text-muted">2:15 PM</span>
             </p>
             <p className="mt-1 rounded-2xl rounded-tl-sm bg-surface-2 px-3 py-2 text-xs">
-              friday — prof pushed it in lecture. notes are in the channel
+              friday, prof pushed it in lecture. notes are in the channel
             </p>
           </div>
         </div>
@@ -684,7 +684,7 @@ function DmVignette() {
               sam <span className="font-normal text-muted">· now</span>
             </p>
             <p className="truncate text-[11px] text-muted">
-              found a study group for tuesday — you in?
+              found a study group for tuesday, you in?
             </p>
           </div>
           <span className="size-2 shrink-0 rounded-full bg-brand" />
@@ -707,7 +707,7 @@ function DmVignette() {
               jordan <span className="font-normal text-muted">· 3h</span>
             </p>
             <p className="truncate text-[11px] text-muted">
-              thanks for the notes — total lifesaver
+              thanks for the notes, total lifesaver
             </p>
           </div>
         </div>
@@ -763,7 +763,7 @@ function EventVignette() {
 
 /* --- Compact vignettes for the feature bento cards. --- */
 
-/** Course list growing as you add classes — catalog fills in the details. */
+/** Course list growing as you add classes; catalog fills in the details. */
 function SyncVignette() {
   const rows = [
     {
@@ -894,7 +894,7 @@ function CampusVignette() {
             maya <span className="font-normal text-muted">· now</span>
           </p>
           <p className="truncate text-[11px] text-muted">
-            quiet floor of the library, 7pm — who&apos;s in?
+            quiet floor of the library at 7pm, who&apos;s in?
           </p>
         </div>
         <span className="size-2 shrink-0 rounded-full bg-brand" />

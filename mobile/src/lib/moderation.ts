@@ -5,24 +5,24 @@ import {
 } from "@/lib/board";
 import { supabase } from "@/lib/supabase";
 
-/* The moderation queue — the data layer.
+/* The moderation queue: the data layer.
  *
  * Reports have existed since migration 0015: a student flags a message, a
  * classmate, or (since 0034) a post on the campus board, and the row lands in
  * `public.reports` with a category, a reason in their own words, and a status
- * of `open`. What 0015 did NOT give anyone was a way to act on one — triage
+ * of `open`. What 0015 did NOT give anyone was a way to act on one. Triage
  * lived with the service role, so the queue filled up and nothing emptied it.
  *
  * Migration 0034 gives it a front door. It adds `profiles.is_moderator`, the
  * `is_moderator()` helper, and two policies:
  *
- *   select  public.is_moderator()   — a moderator reads the whole queue
- *   update  public.is_moderator()   — and can move a report's status
+ *   select  public.is_moderator()   lets a moderator read the whole queue
+ *   update  public.is_moderator()   lets them move a report's status
  *
  * (The reporter-scoped policies from 0015 are still there, so a student can
  * always see the reports they filed themselves.) `is_moderator` is deliberately
  * missing from the `authenticated` update grant, so nobody can hand themselves
- * the badge — {@link amIModerator} is a read, never a claim.
+ * the badge. {@link amIModerator} is a read, never a claim.
  *
  * THE JOINS ARE ALL NULLABLE, AND THAT IS THE POINT. A report keeps its
  * subject long after the subject stops being readable:
@@ -30,8 +30,8 @@ import { supabase } from "@/lib/supabase";
  *   · `message_id` and `board_post_id` are `on delete set null`, so a
  *     hard-deleted subject leaves the report standing with nothing attached.
  *   · Messages are readable only to members of their channel
- *     (`is_channel_member`), and moderators get no exemption — a report about
- *     a channel you never joined arrives with `message: null` even though the
+ *     (`is_channel_member`), and moderators get no exemption, so a report
+ *     about a channel you never joined arrives with `message: null` even though the
  *     message is alive and well.
  *   · A message the author "deleted" is a soft delete: `deleted_at` is stamped
  *     and the content stays. Moderation is exactly the place that should still
@@ -40,10 +40,10 @@ import { supabase } from "@/lib/supabase";
  * So every screen has to be able to say "this isn't here" instead of drawing a
  * blank card. {@link reportSubject} decides which of those cases a report is
  * in, once, and hands back either the thing itself or a sentence explaining
- * where it went — so the row's title, its quoted well, and its tap target can
+ * where it went, so the row's title, its quoted well, and its tap target can
  * never disagree with each other.
  *
- * No React, no theme, no navigation in here — queries, narrowing, and pure
+ * No React, no theme, no navigation in here: queries, narrowing, and pure
  * helpers that take `now` as an argument so a ticking screen and a unit test
  * get the same answers. Failures arrive as a {@link ModerationError} whose
  * message is warm, specific, and safe to drop straight into an inline error.
@@ -55,8 +55,8 @@ import { supabase } from "@/lib/supabase";
  * Where a report sits in triage, exactly as `reports.status` stores it.
  * `open` is where every report starts; the other two are both endings, and
  * the difference between them is only ever "did this need doing something
- * about". Neither is a punishment and neither is permanent —
- * {@link setStatus} moves a report in any direction.
+ * about". Neither is a punishment and neither is permanent. {@link setStatus}
+ * moves a report in any direction.
  */
 export type ReportStatus = "open" | "reviewed" | "dismissed";
 
@@ -84,7 +84,7 @@ export type ReportCategory =
 
 /* The reporter picks these words on `src/app/report.tsx`; a moderator has to
    read the same words back or the two screens are describing different
-   things. Kept in step with that list by hand — if a category is added to the
+   things. Kept in step with that list by hand: if a category is added to the
    check constraint, it goes in both places. */
 const CATEGORY_LABELS: Record<ReportCategory, string> = {
   harassment: "Harassment or bullying",
@@ -103,11 +103,11 @@ const CATEGORY_LABELS: Record<ReportCategory, string> = {
 export type ReportPerson = {
   /** `profiles.id`. */
   id: string;
-  /** Their handle, without the leading `@` — this is what `/u/<handle>` takes. */
+  /** Their handle, without the leading `@`. This is what `/u/<handle>` takes. */
   handle: string;
   /** Their display name, falling back to their handle if it's somehow blank. */
   display_name: string;
-  /** Their avatar, or null — fall back to initials via `@/components/avatar`. */
+  /** Their avatar, or null. Fall back to initials via `@/components/avatar`. */
   avatar_url: string | null;
 };
 
@@ -122,7 +122,7 @@ export type ReportedProfile = ReportPerson & {
 
 /** The room a reported message was said in. */
 export type ReportedChannel = {
-  /** `channels.id` — push `/channel/<id>` with it. */
+  /** `channels.id`. Push `/channel/<id>` with it. */
   id: string;
   /** The channel's name, e.g. "MAT 21A discussion". */
   name: string;
@@ -139,8 +139,8 @@ export type ReportedMessage = {
   /** ISO timestamp it was posted. */
   created_at: string;
   /**
-   * Set if the author has taken it down since. The content is still here —
-   * a soft delete hides a message from the room, not from triage.
+   * Set if the author has taken it down since. The content is still here: a
+   * soft delete hides a message from the room, not from triage.
    */
   deleted_at: string | null;
   /** Its channel, or null when the row isn't readable from here. */
@@ -149,7 +149,7 @@ export type ReportedMessage = {
 
 /** A reported post on the campus board. */
 export type ReportedBoardPost = {
-  /** `board_posts.id` — push `/board/<id>` with it. */
+  /** `board_posts.id`. Push `/board/<id>` with it. */
   id: string;
   /** The headline. */
   title: string;
@@ -163,10 +163,10 @@ export type ReportedBoardPost = {
 
 /**
  * One row of the queue, with everything a moderator needs to decide without
- * leaving the screen. Every join is nullable — see the module note.
+ * leaving the screen. Every join is nullable; see the module note.
  */
 export type ModerationReport = {
-  /** `reports.id` — your list key, and what {@link setStatus} takes. */
+  /** `reports.id`: your list key, and what {@link setStatus} takes. */
   id: string;
   /** Where it sits in triage right now. */
   status: ReportStatus;
@@ -184,9 +184,9 @@ export type ModerationReport = {
   message: ReportedMessage | null;
   /** The reported board post, or null. */
   post: ReportedBoardPost | null;
-  /** Raw `reports.message_id` — non-null with a null `message` means unreadable. */
+  /** Raw `reports.message_id`. Non-null with a null `message` means unreadable. */
   message_id: string | null;
-  /** Raw `reports.board_post_id` — same story as `message_id`. */
+  /** Raw `reports.board_post_id`. Same story as `message_id`. */
   board_post_id: string | null;
   /**
    * Raw `reports.dm_message_id` (migration 0038). There is deliberately NO
@@ -204,7 +204,7 @@ export type ModerationReport = {
  * What a report is actually about, resolved once so the title, the quoted
  * well, and the tap target can't drift apart.
  *
- * `gone` is not an error state — it's the honest answer for a report whose
+ * `gone` isn't a failure: it's the honest answer for a report whose
  * subject has been deleted, or whose message lives in a channel this
  * moderator never joined. Its `note` is a finished sentence: render it where
  * the quote would have gone.
@@ -242,7 +242,7 @@ export const REPORT_SELECT =
 
 /**
  * A moderation failure with a message written for a person, not a log. Show
- * `err.message` directly in your inline error — it never leaks SQL, ids, or
+ * `err.message` directly in your inline error; it never leaks SQL, ids, or
  * PostgREST codes.
  */
 export class ModerationError extends Error {
@@ -322,7 +322,7 @@ function toChannel(raw: unknown): ReportedChannel | null {
 
 /**
  * Narrow an embedded `messages` row. A message with no content left in it is
- * dropped — there's nothing to moderate — but a soft-deleted one is kept,
+ * dropped (there's nothing to moderate), but a soft-deleted one is kept,
  * `deleted_at` and all, because "they took it down after being reported" is
  * information a moderator wants.
  */
@@ -361,8 +361,8 @@ function toPost(raw: unknown): ReportedBoardPost | null {
 /**
  * Narrow one joined queue row. A report with no id, no reason, or no filing
  * time isn't a report we can render honestly, so it's dropped rather than
- * shown as a blank card. Everything else — every single join — is allowed to
- * be null.
+ * shown as a blank card. Everything else, every single join, is allowed to be
+ * null.
  */
 function toReport(raw: unknown): ModerationReport | null {
   if (typeof raw !== "object" || raw === null) return null;
@@ -394,12 +394,12 @@ function toReport(raw: unknown): ModerationReport | null {
  * Whether the signed-in student is a campus moderator.
  *
  * This is a plain read of your own `profiles.is_moderator`, which the
- * `authenticated` update grant deliberately leaves out — the flag is set by an
+ * `authenticated` update grant deliberately leaves out: the flag is set by an
  * admin through the service role and there is no way to write it from the app.
  * Call it before drawing the queue and show a warm "this one's not for you"
  * instead of letting RLS return an empty list that looks like a clear queue.
  *
- * A signed-out caller is simply not a moderator: false, not an error.
+ * A signed-out caller isn't a moderator: false, not an error.
  *
  * @throws {ModerationError} When the profile can't be read at all.
  */
@@ -427,13 +427,13 @@ export async function amIModerator(): Promise<boolean> {
  * {@link QUEUE_LIMIT}, with the reporter, the reported student, the reported
  * message and its channel, and the reported board post all attached.
  *
- * Every one of those joins can come back null, and a null is never an error —
- * read the module note, and hand each row to {@link reportSubject} rather than
+ * Every one of those joins can come back null, and a null is never an error.
+ * Read the module note, and hand each row to {@link reportSubject} rather than
  * testing the embeds yourself.
  *
  * RLS does the gatekeeping: a moderator gets the whole campus queue, and
  * anyone else gets only the reports they filed themselves. That second case is
- * why {@link amIModerator} exists — an ordinary student calling this doesn't
+ * why {@link amIModerator} exists: an ordinary student calling this doesn't
  * get an error, they get their own small pile, which would be a confusing
  * thing to render under the word "Reports".
  *
@@ -465,7 +465,7 @@ export async function fetchQueue(
 }
 
 /**
- * How many reports are sitting in each pile — for the filter chips, so a
+ * How many reports are sitting in each pile, for the filter chips, so a
  * moderator can see there's nothing waiting without tapping through.
  *
  * These are `head` counts, not rows, so they're cheap and they aren't capped
@@ -502,14 +502,14 @@ export async function fetchQueueCounts(): Promise<Record<ReportStatus, number>> 
 /* ══════════════════════════════ writes ═══════════════════════════════ */
 
 /**
- * Move a report from one pile to another. Moderators only — the update policy
+ * Move a report from one pile to another. Moderators only: the update policy
  * checks `is_moderator()`, and this is the only column a moderator may change.
  *
  * Nothing here is one-way: a report dismissed at 1am can be marked reviewed in
  * the morning, and either can go back to `open`. That's deliberate, so a tired
  * tap is never a decision anybody has to live with.
  *
- * Safe to run optimistically — start the row leaving, call this, and roll it
+ * Safe to run optimistically: start the row leaving, call this, and roll it
  * back only if it throws. A row that RLS refuses (the badge was taken away
  * mid-session) comes back with nothing updated rather than an error code, so
  * this asks for the id back and treats an empty result as a failure. Silence
@@ -536,7 +536,7 @@ export async function setStatus(
   }
   if (typeof data !== "object" || data === null) {
     throw new ModerationError(
-      "That one didn't move — pull down to refresh and see where it landed."
+      "That one didn't move. Pull down to refresh and see where it landed."
     );
   }
 }
@@ -556,7 +556,7 @@ export function categoryLabel(category: ReportCategory): string {
 }
 
 /**
- * The two moves available from where a report is now — never the status it
+ * The two moves available from where a report is now, never the status it
  * already has, so a row can't offer a button that does nothing.
  *
  * From `open` that's the pair the queue is built around ("Mark reviewed" and
@@ -584,7 +584,7 @@ export function triageActions(
  * Precedence is message → board post → profile, which matches how reports are
  * filed: a message report also records its author (so the report keeps a
  * subject after the message goes), and the message is the more specific of the
- * two. A report whose subject columns have all nulled out still resolves — to
+ * two. A report whose subject columns have all nulled out still resolves to
  * `gone`, with a sentence saying so.
  *
  * Pure.
@@ -597,14 +597,14 @@ export function reportSubject(report: ModerationReport): ReportSubject {
     return {
       kind: "gone",
       was: "message",
-      note: "That message is in a room you haven't joined. Open the report to read it.",
+      note: "That message is in a channel you haven't joined, so it isn't loaded with the queue.",
     };
   }
   if (report.dm_message_id !== null) {
     return {
       kind: "gone",
       was: "message",
-      note: "A direct message. Open the report to read it — the words aren't loaded with the queue.",
+      note: "A direct message, so the words aren't loaded with the queue.",
     };
   }
   if (report.post !== null) return { kind: "post", post: report.post };
@@ -633,7 +633,7 @@ export function reportSubject(report: ModerationReport): ReportSubject {
 }
 
 /**
- * The name a person goes by in one word — "Maya Chen" reads as "Maya". Falls
+ * The name a person goes by in one word: "Maya Chen" reads as "Maya". Falls
  * back to the whole string when there's nothing to split.
  */
 function firstName(person: ReportPerson): string {
@@ -645,7 +645,7 @@ function firstName(person: ReportPerson): string {
  * One line saying what got reported: "A message in #mat-21a", "Maya's
  * profile", "A board post: couch, free".
  *
- * This is the row's title, so it names the *thing*, never the accusation — the
+ * This is the row's title, so it names the *thing*, never the accusation. The
  * reporter's words go underneath in full, and they're the part worth reading
  * slowly. When the subject can't be shown, this still names its kind and, when
  * we know it, the person it was about ("A message from Maya"), so a row is
@@ -696,8 +696,8 @@ const MINUTE_MS = 60 * 1000;
  * When a report was filed, as a person would say it: "Just now", "12m ago",
  * "3h ago", "2d ago", then a plain date once it's been sitting a week.
  *
- * A report filed a moment in the future — a phone clock that's drifted behind
- * the server — reads "Just now" rather than a negative number.
+ * A report filed a moment in the future (a phone clock that's drifted behind
+ * the server) reads "Just now" rather than a negative number.
  *
  * Pure: pass the moment in, from a state tick or a test.
  */
@@ -722,7 +722,7 @@ export function filedAgo(
 /**
  * The counts after a report moves from one pile to another, so the filter
  * chips settle at the same moment the row does instead of waiting for a
- * refetch. Clamped at zero — a count that's drifted can't go negative.
+ * refetch. Clamped at zero, since a count that's drifted can't go negative.
  *
  * Pure. Moving a report to the pile it's already in is a no-op.
  */
@@ -745,8 +745,8 @@ export function moveCount(
  * The reported message itself, for the one report a moderator has open.
  *
  * This exists because triage was blind. `messages` is readable only to
- * channel members and `dm_messages` only to the two people in the thread —
- * both correct, and both meaning a moderator was being asked to judge words
+ * channel members and `dm_messages` only to the two people in the thread.
+ * Both correct, and both meaning a moderator was being asked to judge words
  * they could not read. Migration 0038 added `reported_content()`, a
  * security-definer function that returns the text of the ONE message a given
  * report names, for a moderator on that report's own campus.
@@ -758,7 +758,7 @@ export function moveCount(
  * @param reportId The report being triaged.
  * @returns The words and who said them, or null when the subject is a person
  *   or a board post (both already readable), or when the message has since
- *   been hard-deleted — in which case the report stands on its own.
+ *   been hard-deleted, in which case the report stands on its own.
  * @throws {ModerationError} With copy that's ready to render.
  */
 export async function fetchReportedContent(
@@ -796,7 +796,7 @@ export async function fetchReportedContent(
 
 /** What {@link fetchReportedContent} hands back. */
 export type ReportedContent = {
-  /** Which surface it was said on — a room, or a one-to-one thread. */
+  /** Which surface it was said on: a room, or a one-to-one thread. */
   kind: "channel" | "direct";
   /** The words. Never truncated on the way through here. */
   content: string;
@@ -805,7 +805,7 @@ export type ReportedContent = {
   /** ISO timestamp it was sent, or null. */
   created_at: string | null;
   /**
-   * Set if it has been taken down since. The content is still here — a soft
+   * Set if it has been taken down since. The content is still here: a soft
    * delete hides a message from the room, not from triage.
    */
   deleted_at: string | null;

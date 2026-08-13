@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-/* Recent searches — the data layer.
+/* Recent searches: the data layer.
  *
  * The search box's short memory: the last handful of things a student
  * actually found something with, so opening search on a Tuesday night starts
@@ -8,7 +8,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  *
  * It lives on the device, in one AsyncStorage key, and nowhere else. Nothing
  * here is sent to the server, so a search history is never something a
- * classmate, a moderator, or a future employer can read — signing out or
+ * classmate, a moderator, or a future employer can read. Signing out or
  * switching phones simply starts the list over. That is the right trade for a
  * convenience: it is a shortcut, not a record of anyone.
  *
@@ -18,7 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  * that refuses to search because it couldn't remember the last search would be
  * absurd.
  *
- * No React, no theme, no navigation — one key, four calls, and three pure
+ * No React, no theme, no navigation: one key, four calls, and three pure
  * helpers at the bottom that the calls are built from. Screens can use those
  * helpers to move their own state optimistically (see `withRecent`), which is
  * what keeps the list feeling instant even when the write is still in flight.
@@ -28,7 +28,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /**
  * How many queries we keep. Eight is about a screen's worth under the lantern
- * on the idle search screen — long enough to hold a week of classes, short
+ * on the idle search screen: long enough to hold a week of classes, short
  * enough that the list never needs its own scroll or a "see all".
  */
 export const RECENT_SEARCHES_MAX = 8;
@@ -54,7 +54,7 @@ const KEY = "huddl.search.recents";
  * {@link RECENT_SEARCHES_MAX}.
  *
  * **Never throws.** Unreadable storage, a value written by an older build, or
- * outright garbage all resolve to `[]` — an empty history is always a safe
+ * outright garbage all resolve to `[]`. An empty history is always a safe
  * answer, and the idle screen already knows how to say "search your campus".
  *
  * @returns The remembered queries, newest first. Safe to render directly.
@@ -71,7 +71,7 @@ export async function fetchRecents(): Promise<string[]> {
 /**
  * Remember a query, moving it to the front if it's already there.
  *
- * Call it when a search **found something**, not on every keystroke — a
+ * Call it when a search **found something**, not on every keystroke. A
  * history full of "ec", "ecs", "ecs 3" is noise, and offering back a query
  * that returned nothing is a shortcut to a dead end.
  *
@@ -83,7 +83,7 @@ export async function fetchRecents(): Promise<string[]> {
  *
  * @param query What they typed. Trimmed and whitespace-collapsed here; blank
  *   is quietly ignored.
- * @returns The list as it now stands, newest first — hand it straight to
+ * @returns The list as it now stands, newest first. Hand it straight to
  *   `setState` rather than calling {@link fetchRecents} again.
  */
 export async function pushRecent(query: string): Promise<string[]> {
@@ -94,7 +94,7 @@ export async function pushRecent(query: string): Promise<string[]> {
 }
 
 /**
- * Forget one query — the `x` on a recent row.
+ * Forget one query: the `x` on a recent row.
  *
  * Matching is case-insensitive and whitespace-tolerant, so tapping the `x` on
  * "Farmers Market" removes it however it was capitalized when it went in.
@@ -114,7 +114,7 @@ export async function removeRecent(query: string): Promise<string[]> {
 }
 
 /**
- * Forget the whole history — the "Clear" action above the list.
+ * Forget the whole history: the "Clear" action above the list.
  *
  * Removes the key rather than writing an empty array, so a student who clears
  * their searches leaves nothing behind on the device.
@@ -173,7 +173,7 @@ function parseRecents(raw: string | null): string[] {
 /**
  * A query as we store and compare it: trimmed, internal whitespace collapsed
  * to single spaces, and cut to {@link RECENT_QUERY_MAX} characters. Case is
- * left exactly as the student typed it — "ECS 36A" should come back shouting
+ * left exactly as the student typed it: "ECS 36A" should come back shouting
  * the way a course code does.
  *
  * Pure.
@@ -198,7 +198,7 @@ export function sameQuery(a: string, b: string): boolean {
  * removed first, and the tail is cut to {@link RECENT_SEARCHES_MAX}. A blank
  * query returns the list unchanged (still capped and deduped).
  *
- * Pure, and exported on purpose — a screen can move its own state with this
+ * Pure, and exported on purpose: a screen can move its own state with this
  * the moment a search lands and let {@link pushRecent} catch up behind it, so
  * the history is right even on a device whose storage is broken.
  */
@@ -225,7 +225,7 @@ export function withoutRecent(
   return recents.filter((entry) => !sameQuery(entry, query));
 }
 
-/** Whether two lists hold the same queries in the same order — skips a write. */
+/** Whether two lists hold the same queries in the same order; skips a write. */
 function sameList(a: readonly string[], b: readonly string[]): boolean {
   if (a.length !== b.length) return false;
   return a.every((entry, index) => entry === b[index]);

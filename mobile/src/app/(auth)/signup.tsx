@@ -14,7 +14,7 @@ import { fonts, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 
-/** Minimal local row shape — the web app's types live outside this tsconfig. */
+/** Minimal local row shape. The web app's types live outside this tsconfig. */
 type University = {
   id: string;
   name: string;
@@ -28,7 +28,7 @@ export default function SignupScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  // null = still loading (or the fetch failed) — in that case we don't gate on
+  // null = still loading (or the fetch failed). In that case we don't gate on
   // the client and let the DB trigger be the backstop.
   const [universities, setUniversities] = useState<University[] | null>(null);
   const [pending, setPending] = useState(false);
@@ -93,14 +93,14 @@ export default function SignupScreen() {
 
     if (unsupportedDomain && domain) {
       setIsDomainError(true);
-      setError("Huddl is campus-only — use your school email.");
+      setError("Huddl is campus-only. Use your school email.");
       return;
     }
 
     setPending(true);
     const { data, error: signUpError } = await supabase.auth.signUp({
       // No emailRedirectTo on native: Supabase's confirmation link opens the
-      // web app's /auth/confirm page, which is exactly what we want — the
+      // web app's /auth/confirm page, which is exactly what we want: the
       // student confirms there, then comes back here to log in.
       email: email.trim(),
       password,
@@ -113,14 +113,14 @@ export default function SignupScreen() {
         setIsDomainError(true);
         setError(
           domain
-            ? `Huddl isn't at ${domain} yet. We're adding new schools all the time — check back soon.`
-            : "Huddl isn't at your school yet. We're adding new schools all the time — check back soon."
+            ? `Huddl isn't at ${domain} yet. We're adding new schools all the time, so check back soon.`
+            : "Huddl isn't at your school yet. We're adding new schools all the time, so check back soon."
         );
       } else if (/already registered/i.test(signUpError.message)) {
         setAccountExists(true);
       } else {
         setError(
-          "We couldn't create your account just now — give it a moment and try again."
+          "We couldn't create your account just now. Give it a moment and try again."
         );
       }
       return;
@@ -134,7 +134,7 @@ export default function SignupScreen() {
       return;
     }
 
-    // Confirmations off (e.g. local dev): we're already signed in — go
+    // Confirmations off (e.g. local dev): we're already signed in, so go
     // straight to onboarding. Otherwise, on to the check-your-inbox screen.
     if (data.session) {
       router.replace("/onboarding");
@@ -194,7 +194,7 @@ export default function SignupScreen() {
           Join your campus
         </AppText>
         <AppText muted style={{ marginBottom: space.gutter }}>
-          Sign up with your school email — that's how we keep Huddl
+          Sign up with your school email. That's how we keep Huddl
           campus-only.
         </AppText>
 
@@ -288,7 +288,7 @@ export default function SignupScreen() {
                   variant="caption"
                   style={{ color: theme.success, flex: 1 }}
                 >
-                  That's a {matched.name} address — you're in the right place.
+                  That's a {matched.name} address. You're in the right place.
                 </AppText>
               </View>
             ) : unsupportedDomain ? (
@@ -304,12 +304,12 @@ export default function SignupScreen() {
                   variant="caption"
                   style={{ color: theme.danger, flex: 1 }}
                 >
-                  Huddl is campus-only — use your school email.
+                  Huddl is campus-only. Use your school email.
                 </AppText>
               </View>
             ) : (
               <AppText variant="caption" muted>
-                Use your .edu address — we match it to your school.
+                Use your .edu address. We match it to your school.
               </AppText>
             )}
           </View>

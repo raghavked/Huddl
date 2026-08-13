@@ -24,7 +24,7 @@ import type { Course } from "@/lib/types";
 export const metadata: Metadata = { title: "Class calendar" };
 
 /**
- * The shared class calendar: due dates, exams, lectures — syllabus-imported
+ * The shared class calendar: due dates, exams, and lectures, syllabus-imported
  * or hand-added by classmates, with private check-offs on top. RLS scopes
  * items to enrolled classmates.
  *
@@ -64,12 +64,12 @@ export default async function ClassCalendarPage({
       .order("due_at", { ascending: true }),
   ]);
 
-  // The calendar is for classmates — the course page has the join door.
+  // The calendar is for classmates. The course page has the join door.
   if (!enrollment) redirect(`/courses/${course.id}`);
 
   const items = (itemRows ?? []) as CalendarItemRow[];
 
-  // Your own check-offs — private, one query, keyed by item.
+  // Your own check-offs: private, one query, keyed by item.
   let checkedIds: string[] = [];
   if (items.length > 0) {
     const { data: checks } = await supabase
@@ -85,7 +85,7 @@ export default async function ClassCalendarPage({
     );
   }
 
-  /* Your own reminders across every item on this calendar — one query, and a
+  /* Your own reminders across every item on this calendar: one query, and a
      failure here is worth saying out loud rather than drawing empty bells. */
   let reminders: Reminder[] = [];
   let reminderError: string | null = null;
@@ -129,7 +129,7 @@ export default async function ClassCalendarPage({
         backHref={`/courses/${course.id}`}
         backLabel={course.code}
         title="Class calendar"
-        description={`${course.code} · shared with everyone in the class — check off what you've handled.`}
+        description={`${course.code} · shared with everyone in the class. Check off what you've handled.`}
         action={
           <div className="flex flex-wrap gap-2">
             <Link
@@ -172,8 +172,8 @@ export default async function ClassCalendarPage({
 
           <p className="mt-2 px-1 text-xs leading-relaxed text-muted text-pretty">
             One nudge before a deadline, however far ahead you like. Only you
-            see these — the dates are the class&apos;s, who wants reminding
-            isn&apos;t.
+            see these. The dates belong to the class; who wants reminding
+            doesn&apos;t.
           </p>
 
           <div className="mt-3">

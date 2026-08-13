@@ -13,7 +13,7 @@ const WEIGHT: Record<string, { priority: number; changeFrequency: "weekly" | "mo
 const DEFAULT_WEIGHT = { priority: 0.3, changeFrequency: "monthly" as const };
 
 /**
- * Only the public pages — everything behind auth is out of the index.
+ * Only the public pages. Everything behind auth is out of the index.
  *
  * Built from the same `PUBLIC_PATHS` that robots.txt allows, so the two can't
  * disagree about a page: advertising something in the sitemap that robots.txt

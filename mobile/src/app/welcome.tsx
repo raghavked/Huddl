@@ -44,13 +44,13 @@ import { useAuth } from "@/providers/auth-provider";
 
 /* The first thing a new student sees after their profile is saved.
  *
- * Three panels they swipe through — what a class brings with it, what else is
- * on campus, who is on the other side of a message — and then the checklist,
+ * Three panels they swipe through (what a class brings with it, what else is
+ * on campus, who is on the other side of a message) and then the checklist,
  * which is the only page that touches the network. The panels are the
  * promise; the checklist is the first hour of keeping it.
  *
  * The checklist does not open with a score. On the first pass every step is
- * unticked, and "0 of 5 done" is a scoreboard reading nothing — so the tally
+ * unticked, and "0 of 5 done" is a scoreboard reading nothing. So the tally
  * appears only once there is something to count, and until then the footer
  * offers the first step itself instead. Come back with a class added and the
  * count is there, honest and earned.
@@ -61,8 +61,8 @@ import { useAuth } from "@/providers/auth-provider";
  * which is what makes "add a course, come back, see it ticked" work.
  *
  * Leaving is always one tap: "Skip" top-right on every page, "Take me in"
- * in the footer on the last. Both stamp the welcome as seen — the tour is a
- * one-time thing whether you read it or not.
+ * in the footer on the last. Both stamp the welcome as seen, because the tour
+ * is a one-time thing whether you read it or not.
  */
 
 /**
@@ -70,9 +70,8 @@ import { useAuth } from "@/providers/auth-provider";
  *
  * One panel each for the three reasons someone opens Huddl: the classes
  * they're taking, the people they haven't met yet, and whether this is a
- * place they can be honest in. Coursework gets one panel, not two — a
- * transfer student who knows nobody is not helped by hearing about syllabi
- * twice, and the calendar belongs in the same breath as the class it came
+ * place they can be honest in. Coursework gets one panel, not two. A transfer
+ * student who knows nobody is not helped by hearing about syllabi twice, and the calendar belongs in the same breath as the class it came
  * from.
  */
 const PANELS: {
@@ -91,7 +90,7 @@ const PANELS: {
     key: "campus",
     illustration: Pennant,
     title: "The rest of campus",
-    body: "Clubs, events, and a board for rides, textbooks and lost keys. You can look classmates up by name, major or year — you don't have to already know someone to say hello.",
+    body: "Clubs, events, and a board for rides, textbooks and lost keys. You can look classmates up by name, major or year. You don't have to already know someone to say hello.",
   },
   {
     key: "verified",
@@ -114,7 +113,7 @@ const FALLBACK_ERROR =
 
 /**
  * One dot in the pager's counter. The scale-and-brighten reports an
- * arrival — you just landed on this panel — and lands in zero milliseconds
+ * arrival (you just landed on this panel) and lands in zero milliseconds
  * under reduce motion.
  */
 function Dot({ active }: { active: boolean }) {
@@ -208,7 +207,7 @@ function Panel({
 }
 
 /**
- * One checklist row. Tapping goes wherever the step goes — done or not,
+ * One checklist row. Tapping goes wherever the step goes, done or not,
  * because "add a photo" is still where you go to change the photo.
  */
 function StepRow({ step, onPress }: { step: StarterStep; onPress: () => void }) {
@@ -370,7 +369,7 @@ export default function WelcomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      {/* Skip sits top-right on every page — the way out is never more than
+      {/* Skip sits top-right on every page, so the way out is never more than
           one tap away, including from the checklist. */}
       <View
         style={{
@@ -514,6 +513,24 @@ export default function WelcomeScreen() {
                     onPress={() => router.push(step.route)}
                   />
                 ))}
+                {/* The tour is three panels; some people want the whole thing
+                    up front. This is the same page Settings links to, and
+                    coming back re-reads the checklist on focus. */}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Read how Huddl works"
+                  onPress={() => router.push("/help")}
+                  hitSlop={8}
+                  style={({ pressed }) => ({
+                    minHeight: 44,
+                    justifyContent: "center",
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <AppText variant="bodySemi" style={{ color: theme.brand }}>
+                    Or read how Huddl works
+                  </AppText>
+                </Pressable>
               </>
             )}
           </ScrollView>

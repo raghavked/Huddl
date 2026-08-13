@@ -36,7 +36,7 @@ import {
 } from "@/lib/board";
 import { useAuth } from "@/providers/auth-provider";
 
-/* The campus board — everything the room is offering and asking for.
+/* The campus board: everything the room is offering and asking for.
  *
  * One list, filtered by a rail of chips built straight from `CATEGORIES` in
  * `@/lib/board`, so a category that gets added there shows up here with its
@@ -44,15 +44,15 @@ import { useAuth } from "@/providers/auth-provider";
  *
  * Two things sink rather than disappear, and the difference matters:
  *
- *   closed — the author marked it sorted. It stays readable at the bottom
- *            with a fern "Sorted" chip, because a ride that filled still
- *            tells you who drives to LA on Fridays.
- *   stale  — nobody's judgement but the list's: a ride whose day has gone, or
- *            anything a month old. It keeps its place in the open run but
- *            settles under the fresh posts. See `isStale`.
+ *   closed: the author marked it sorted. It stays readable at the bottom
+ *           with a fern "Sorted" chip, because a ride that filled still
+ *           tells you who drives to LA on Fridays.
+ *   stale:  nobody's judgement but the list's, a ride whose day has gone, or
+ *           anything a month old. It keeps its place in the open run but
+ *           settles under the fresh posts. See `isStale`.
  *
- * The filter is a real query, not a client-side slice — each board gets its
- * own hundred rows that way, so a busy "for sale" run can't push a quiet
+ * The filter is a real query, not a client-side slice, so each board gets
+ * its own hundred rows and a busy "for sale" run can't push a quiet
  * "lost" post out of the fetch. The cost is a load between chips, which is
  * why the skeletons are honest about the row shape.
  */
@@ -61,14 +61,14 @@ import { useAuth } from "@/providers/auth-provider";
 type Filter = BoardCategory | null;
 
 /**
- * What each board says when it's empty. The all-boards empty recruits — an
- * empty board is a board nobody has tried yet. A single quiet category is
+ * What each board says when it's empty. The all-boards empty recruits, since
+ * an empty board is a board nobody has tried yet. A single quiet category is
  * usually just quiet, so those reassure first and invite second.
  */
 const EMPTIES: Record<BoardCategory, { title: string; body: string }> = {
   ride: {
     title: "No rides up yet",
-    body: "Nobody's posted a drive home. If you're going, say where and when — the seats fill fast.",
+    body: "Nobody's posted a drive home. If you're going, say where and when. The seats fill fast.",
   },
   lost: {
     title: "Nothing lost",
@@ -88,7 +88,7 @@ const EMPTIES: Record<BoardCategory, { title: string; body: string }> = {
   },
   ask: {
     title: "Nobody's asking",
-    body: "No one needs a hand this minute. Ask when you do — people around here answer.",
+    body: "No one needs a hand this minute. Ask when you do. People around here answer.",
   },
   offer: {
     title: "No offers up",
@@ -116,7 +116,7 @@ function timeAgo(iso: string, now: Date): string {
  * costs or when it leaves, the headline, the first line of the details, and
  * who put it up.
  *
- * A closed post keeps every one of those and just steps back — dimmed, with a
+ * A closed post keeps every one of those and just steps back: dimmed, with a
  * fern "Sorted" chip in front of the category. Nothing is hidden; the card is
  * as tappable as any other.
  */
@@ -208,7 +208,7 @@ export default function CampusBoardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Every relative label on the screen reads off one moment, refreshed each
-  // time the list is — so two cards can't disagree about what "today" means.
+  // time the list is, so two cards can't disagree about what "today" means.
   const [now, setNow] = useState(() => new Date());
 
   const goBack = useCallback(() => {
@@ -240,7 +240,7 @@ export default function CampusBoardScreen() {
   const { blocked, refresh: refreshBlocked } = useBlockedIds();
 
   // The only loader: it runs on first focus, again whenever the filter
-  // changes `load`'s identity, and again on every return to the screen — so a
+  // changes `load`'s identity, and again on every return to the screen, so a
   // post you just put up is already there when you step back.
   useFocusEffect(
     useCallback(() => {
@@ -257,7 +257,7 @@ export default function CampusBoardScreen() {
   const pickFilter = useCallback(
     (next: Filter) => {
       if (next === filter) return;
-      // A different board is a different query — say so with the skeletons
+      // A different board is a different query, so say so with the skeletons
       // rather than leaving the last board's rows sitting under a new chip.
       // Dropping them also means a failed switch can't show the old category's
       // posts under an error about the new one.
@@ -275,7 +275,7 @@ export default function CampusBoardScreen() {
     });
   }, []);
 
-  /* Open posts first, then the ones that have quietly gone past — then the
+  /* Open posts first, then the ones that have quietly gone past, then the
      ones the author closed. `sort` is stable, so each tier keeps the
      newest-first order the query gave it. */
   const rows = useMemo(() => {
@@ -300,7 +300,7 @@ export default function CampusBoardScreen() {
     [now, myId]
   );
 
-  // A deep link can land here signed out — send them to a proper door.
+  // A deep link can land here signed out. Send them to a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -310,7 +310,7 @@ export default function CampusBoardScreen() {
       <EmptyState
         illustration={PinnedNote}
         title="The board is up, and it's bare"
-        body="Rides home, couches that need an apartment, the water bottle somebody left in Olson — this is where campus posts them. Whatever goes up first is what everybody reads."
+        body="Rides home, couches that need an apartment, the water bottle somebody left in Olson. This is where campus posts them. Whatever goes up first is what everybody reads."
         action={{ label: "Post something", onPress: () => openComposer(null) }}
       />
     ) : (

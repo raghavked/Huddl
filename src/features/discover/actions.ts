@@ -27,7 +27,7 @@ function revalidateChannelSurfaces() {
 /**
  * Join a channel at my university. RLS ("students can join channels at their
  * university") only lets a student insert their own membership row for a
- * channel on their own campus — everything else comes back as an error.
+ * channel on their own campus. Everything else comes back as an error.
  */
 export async function joinChannel(channelId: string): Promise<JoinChannelResult> {
   const supabase = await createClient();
@@ -96,7 +96,7 @@ export async function createTopicChannel(fields: {
   if (insertError || !channel) {
     if (insertError?.code === "23505") {
       return {
-        error: `#${slug} is already taken at ${user.university.short_name} — try a more specific name.`,
+        error: `#${slug} is already taken at ${user.university.short_name}. Try a more specific name.`,
       };
     }
     return { error: "Couldn't create the channel. Please try again." };

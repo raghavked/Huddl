@@ -48,7 +48,7 @@ export function shortDay(date: Date | string): string {
   });
 }
 
-/** "today", "tomorrow", "in 6 days", "3 weeks ago" — calendar-day distance. */
+/** "today", "tomorrow", "in 6 days", "3 weeks ago": calendar-day distance. */
 export function relativeDay(iso: string): string {
   const now = new Date();
   const target = new Date(iso);
@@ -70,14 +70,14 @@ export function relativeDay(iso: string): string {
   return `${Math.round(-diff / 7)} weeks ago`;
 }
 
-/** A due time only shows when someone set one — 11:59 PM is the quiet default. */
+/** A due time only shows when someone set one; 11:59 PM is the quiet default. */
 export function timeSuffix(iso: string): string {
   const d = new Date(iso);
   if (d.getHours() === 23 && d.getMinutes() === 59) return "";
   return ` · ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
 }
 
-/** "Fri, Oct 14 · 3:00 PM" — how plan entries and study blocks read. */
+/** "Fri, Oct 14 · 3:00 PM": how plan entries and study blocks read. */
 export function formatDayTime(d: Date): string {
   const day = d.toLocaleDateString([], {
     weekday: "short",

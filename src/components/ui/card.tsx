@@ -9,8 +9,8 @@ const PADDING = {
 
 /**
  * v2 card: soft elevation instead of flat hairline boxes.
- * `interactive` adds the hover treatment for cards that are links/buttons —
- * pair it with a `<Link>` inside, or spread onto the Link via `cardClasses`.
+ * `interactive` adds the hover treatment for cards that are links/buttons.
+ * Pair it with a `<Link>` inside, or spread onto the Link via `cardClasses`.
  */
 export function cardClasses(opts?: {
   padding?: keyof typeof PADDING;

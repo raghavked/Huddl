@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
  * costs or when it leaves, the headline, the first lines of the details, and
  * who put it up.
  *
- * A closed post keeps every one of those and just steps back — dimmed, with a
+ * A closed post keeps every one of those and just steps back: dimmed, with a
  * fern "Sorted" chip in front of the category. Nothing is hidden; the card is
  * as clickable as any other, because a ride that filled still tells you who
  * drives to LA on Fridays.
@@ -42,7 +42,7 @@ export function BoardRow({
   mine,
 }: {
   post: BoardPost;
-  /** The page's single moment — never read the clock in here. */
+  /** The page's single moment. Never read the clock in here. */
   now: Date;
   /** True when the viewer wrote it; the byline says "You". */
   mine: boolean;

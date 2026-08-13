@@ -26,13 +26,13 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "This semester" };
 
-/* This semester — every class's estimate, and the one number across them.
+/* This semester: every class's estimate, and the one number across them.
  *
  * Scratch math from top to bottom. Every figure here is arithmetic on scores
  * the student typed into their own private gradebook: nothing on this page is
  * a transcript, a registrar number, or a grade of record, and none of it is
- * ever visible to a classmate. It is also an estimate OF an estimate — each
- * course number is already a projection from partial grades — so the copy
+ * ever visible to a classmate. It is also an estimate OF an estimate (each
+ * course number is already a projection from partial grades), so the copy
  * stays hedged the whole way down: the privacy line up top, the note under the
  * number, and the line about the 4.0 scale at the bottom.
  *
@@ -43,7 +43,7 @@ export const metadata: Metadata = { title: "This semester" };
 
 /* ------------------------------ formatting ----------------------------- */
 
-/** "86.7", "90", "45" — a percentage the way a person writes it. */
+/** "86.7", "90", "45": a percentage the way a person writes it. */
 function pctText(value: number): string {
   return String(Math.round(value * 10) / 10);
 }
@@ -61,7 +61,8 @@ function unitsText(units: number | null): string {
  * The semester's units, but only when every class has them. `totalUnits`
  * happily adds up the classes it knows about, and "17 units" beside a
  * half-known list would read as the whole semester when it isn't. Null means
- * leave the line out — the summary note already says which classes are short.
+ * leave the line out, because the summary note already says which classes
+ * are short.
  */
 function unitsLine(courses: readonly SemesterCourse[]): string | null {
   const known = courses.every(
@@ -75,7 +76,7 @@ function unitsLine(courses: readonly SemesterCourse[]): string | null {
   return total === null ? null : unitsText(total);
 }
 
-/** "3 of 5 classes have grades in" — the ledger beside the note's prose. */
+/** "3 of 5 classes have grades in": the ledger beside the note's prose. */
 function coverageLine(estimate: SemesterEstimate): string {
   if (estimate.total === 1) return "Your one class has grades in";
   const verb = estimate.graded === 1 ? "has" : "have";
@@ -95,7 +96,7 @@ function recruitCourse(
 }
 
 /**
- * ", about an A minus" — the letter said aloud rather than spelled, with the
+ * ", about an A minus": the letter said aloud rather than spelled, with the
  * article that fits it. Empty when there's no letter to say, so it can be
  * dropped straight onto the end of the sentence.
  */
@@ -145,7 +146,7 @@ function PrivacyLine() {
 /**
  * The course code, wearing that course's colour.
  *
- * Not a `Badge`, which takes a `tone` — six fixed meanings — where a course
+ * Not a `Badge`, which takes a `tone` (six fixed meanings) where a course
  * tint is one of a personal palette rather than a meaning. The metrics match
  * `Badge`'s smaller shape exactly, so this is a colour change and nothing
  * else. The code is always rendered, so a student who can't separate two of
@@ -203,8 +204,8 @@ function SummaryCard({
 
 /**
  * What stands in for the number before there is one. A 0.00 would be a lie
- * with a decimal point on it — an empty gradebook is not a failing semester —
- * so the card recruits toward the one thing that starts it: a category off a
+ * with a decimal point on it, and an empty gradebook is not a failing
+ * semester. So the card recruits toward the one thing that starts it: a category off a
  * syllabus in a class that hasn't got one yet.
  */
 function RecruitCard({ course }: { course: SemesterCourse }) {
@@ -213,7 +214,7 @@ function RecruitCard({ course }: { course: SemesterCourse }) {
       <EmptyState
         icon={TrendingUp}
         title="Your average starts with one score"
-        description={`Add a category off your syllabus — homework 20%, midterm 30% — to ${course.code}, then log a score. Every class you set up joins the average.`}
+        description={`Add a category off your syllabus (homework 20%, midterm 30%) to ${course.code}, then log a score. Every class you set up joins the average.`}
         action={
           <Link
             href={`/courses/${course.courseId}/grades`}
@@ -357,7 +358,7 @@ export default async function SemesterPage() {
 
           {/* The tint is already resolved by `@/lib/semester`: the student's
               own pick where they made one, the stable hash of the course code
-              where they didn't. It is personal — the lab partner reading the
+              where they didn't. It is personal: the lab partner reading the
               same class may well see a different colour. */}
           <ul className="mt-3 flex flex-col gap-2.5">
             {courses.map((course) => (
@@ -367,7 +368,7 @@ export default async function SemesterPage() {
 
           {/* The closing hedge: whose 4.0 scale this is, and whose it isn't. */}
           <p className="mt-6 px-1 text-xs leading-relaxed text-muted text-pretty">
-            The letters here follow one common 4.0 scale — an A is 4.0, an A- is
+            The letters here follow one common 4.0 scale: an A is 4.0, an A- is
             3.7, and nothing sits above 4.0. Plenty of schools count plus and
             minus their own way, so treat this as your math, not your
             registrar&apos;s.

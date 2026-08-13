@@ -22,7 +22,7 @@ import type { Profile } from "@/lib/types";
 const HANDLE_RE = /^[a-z0-9_]{3,24}$/;
 /**
  * A profile photo has to clear two bars: a type from `lib/image-types` and
- * this size. Both are enforced again on the bucket by migration 0044 — see
+ * this size. Both are enforced again on the bucket by migration 0044. See
  * that file for why the type list names formats instead of saying "image/*",
  * and why it matters more here than anywhere else (avatars is the one public
  * bucket).
@@ -118,7 +118,7 @@ export function AccountForm({
       setAvatarUrl(data.publicUrl);
       // Sweep the folder now that the profile points at the new key. Every
       // upload here writes a fresh timestamped name, so without this the
-      // previous photo — and the one before that — stay live at their own
+      // previous photo (and the one before that) stay live at their own
       // public URLs forever. Last, and deliberately not fatal: the student's
       // new picture is already set, and a sweep that failed is retried by the
       // next change or by Remove.
@@ -134,7 +134,7 @@ export function AccountForm({
   /**
    * Take the photo down: the file, then the link to it, in that order.
    *
-   * There was no way to do this on the web at all — the only way to stop
+   * There was no way to do this on the web at all. The only way to stop
    * showing a photo was to upload a different one, which left the first still
    * sitting at a public URL. The Privacy Policy says removing a photo deletes
    * the file rather than just the link; this is the browser half of making
@@ -219,7 +219,7 @@ export function AccountForm({
         .eq("id", profile.id);
       if (error) {
         if (error.code === "23505") {
-          setErrors({ handle: "That handle is already taken — try another." });
+          setErrors({ handle: "That handle is already taken. Try another." });
         } else if (error.code === "23514") {
           setErrors({
             handle:
@@ -405,7 +405,7 @@ export function AccountForm({
               onChange={(e) => setBio(e.target.value.slice(0, MAX_BIO_LENGTH))}
               rows={3}
               maxLength={MAX_BIO_LENGTH}
-              placeholder="A line or two about you — clubs, interests, what you're studying."
+              placeholder="A line or two about you: clubs, interests, what you're studying."
               aria-describedby={`${uid}-bio-count`}
             />
             <Hint id={`${uid}-bio-count`} aria-live="polite">

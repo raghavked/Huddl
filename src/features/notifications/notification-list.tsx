@@ -182,7 +182,7 @@ export function NotificationList({
                         className={cn(
                           "mt-0.5 line-clamp-2 block text-sm",
                           // On the tinted unread row, secondary text tints from
-                          // the surface hue — never gray on a colored surface.
+                          // the surface hue, never gray on a colored surface.
                           unread ? "text-brand-ink/80" : "text-muted"
                         )}
                       >

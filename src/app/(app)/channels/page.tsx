@@ -76,7 +76,7 @@ export default async function ChannelsPage() {
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
         title="Your channels"
-        description="Campus, courses, topics, clubs — every conversation you're in."
+        description="Every conversation you're in: campus, courses, topics, clubs."
         action={
           channels.length === 0 ? undefined : (
             <Link
@@ -105,7 +105,7 @@ export default async function ChannelsPage() {
             illustration={<DiscoverScene />}
             icon={Hash}
             title="No channels yet"
-            description="Add your courses and you'll land in a channel for each class automatically — campus channels come free with your profile."
+            description="Add your courses and you'll land in a channel for each class. Campus channels come free with your profile."
             action={
               <div className="flex flex-col items-center gap-3 sm:flex-row">
                 <Link href="/setup" className={buttonClasses({ size: "sm" })}>

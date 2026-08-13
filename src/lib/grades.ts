@@ -1,12 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
-/* The private grade tracker — the math, then the data layer.
+/* The private grade tracker: the math, then the data layer.
  *
  * Migration 0028 gave every student two tables of their own:
  *
- *   grade_categories — the buckets off a syllabus (Homework 20%, Midterm 30%)
- *   grade_entries    — the scores inside a bucket (18/20 on Problem Set 3)
+ *   grade_categories: the buckets off a syllabus (Homework 20%, Midterm 30%)
+ *   grade_entries:    the scores inside a bucket (18/20 on Problem Set 3)
  *
  * Both are RLS self-only: nobody else on campus can read a single row, and
  * the write policies require `user_id = auth.uid()`, so every insert here
@@ -14,8 +14,8 @@ import { createClient } from "@/lib/supabase/client";
  *
  * The file has two halves and they never mix:
  *
- *   1. THE MATH is pure. No Supabase, no Date.now(), no React, no theme —
- *      numbers in, numbers and sentences out. Every function is
+ *   1. THE MATH is pure. No Supabase, no Date.now(), no React, no theme.
+ *      Numbers in, numbers and sentences out. Every function is
  *      deterministic and unit-testable on plain object literals (see
  *      `grades.test.ts`), and takes whatever shape the screen already has in
  *      state, so optimistic local rows work exactly like fetched ones.
@@ -41,15 +41,15 @@ import { createClient } from "@/lib/supabase/client";
 
 /* ══════════════════════════════ shapes ══════════════════════════════ */
 
-/** The Supabase client these queries run against — server or browser. */
+/** The Supabase client these queries run against, server or browser. */
 type Db = SupabaseClient;
 
 /**
  * How a caller tells this module which Supabase client to use.
  *
  * @property client Request-scoped server client. Omit in the browser.
- * @property userId The caller's `profiles.id` when it's already known —
- *   server components have it from `getCurrentUser()`, and passing it keeps
+ * @property userId The caller's `profiles.id` when it's already known.
+ *   Server components have it from `getCurrentUser()`, and passing it keeps
  *   this module off `auth.getSession()` on the server.
  */
 export type GradesCtx = {
@@ -61,7 +61,7 @@ export type GradesCtx = {
 export type GradeCategory = {
   /** `grade_categories.id`. */
   id: string;
-  /** Always the signed-in student — these rows are never shared. */
+  /** Always the signed-in student. These rows are never shared. */
   user_id: string;
   /** `courses.id` this bucket belongs to. */
   course_id: string;
@@ -93,10 +93,10 @@ export type GradeEntry = {
   recorded_at: string;
 };
 
-/** The least the math needs from a score — a full {@link GradeEntry} fits. */
+/** The least the math needs from a score. A full {@link GradeEntry} fits. */
 export type EntryScore = Pick<GradeEntry, "points_earned" | "points_possible">;
 
-/** The least the math needs from a bucket — a full {@link GradeCategory} fits. */
+/** The least the math needs from a bucket. A full {@link GradeCategory} fits. */
 export type CategoryWeight = Pick<GradeCategory, "id" | "weight">;
 
 /**
@@ -113,8 +113,8 @@ export type GradeBook = {
   /** The course's buckets, in `position` then `created_at` order. */
   categories: GradeCategory[];
   /**
-   * Scores keyed by category id. Every category in `categories` has a key —
-   * an empty array when nothing's been logged there yet — so a screen can
+   * Scores keyed by category id. Every category in `categories` has a key
+   * (an empty array when nothing's been logged there yet), so a screen can
    * index it without a fallback.
    */
   entriesByCategory: Record<string, GradeEntry[]>;
@@ -134,7 +134,7 @@ export type CategoryScore = {
 export type CourseEstimate = {
   /**
    * The weighted estimate, 0-100 (higher with extra credit), rounded to one
-   * decimal — or null when there's nothing to estimate from yet.
+   * decimal, or null when there's nothing to estimate from yet.
    */
   pct: number | null;
   /**
@@ -152,13 +152,13 @@ export type WhatIf = {
   /**
    * What the ungraded weight has to average, as a percentage, rounded UP to
    * the next tenth so hitting the number always clears the target. Null when
-   * there's nothing left to average — no weights at all, or everything's
+   * there's nothing left to average: no weights at all, or everything's
    * already graded. Above 100 when the target is out of reach.
    */
   neededPct: number | null;
   /** True when the target is still mathematically possible. */
   reachable: boolean;
-  /** One warm, honest sentence — including when the honest answer is no. */
+  /** One warm, honest sentence, including when the honest answer is no. */
   message: string;
 };
 
@@ -179,7 +179,7 @@ export type Letter =
 
 /* ══════════════════════════════ limits ══════════════════════════════ */
 
-/** Longest a category name may be, after trimming — cap your input here. */
+/** Longest a category name may be, after trimming. Cap your input here. */
 export const CATEGORY_NAME_MAX = 60;
 
 /** Longest a score's title may be, after trimming. */
@@ -188,7 +188,7 @@ export const ENTRY_TITLE_MAX = 120;
 /** Largest weight a single category may carry, matching the check constraint. */
 export const WEIGHT_MAX = 100;
 
-/** Ceiling on any points value — `numeric(8,2)` runs out here. */
+/** Ceiling on any points value: `numeric(8,2)` runs out here. */
 export const POINTS_MAX = 999_999.99;
 
 /**
@@ -214,7 +214,7 @@ export const LETTER_CUTOFFS: readonly { letter: Letter; min: number }[] = [
 
 /* ═══════════════════════ small number helpers ═══════════════════════ */
 
-/** Float slop guard — weights and points never differ by anything this small. */
+/** Float slop guard: weights and points never differ by anything this small. */
 const EPSILON = 1e-9;
 
 /** Round to one decimal: the precision every percentage is reported at. */
@@ -227,7 +227,7 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-/** Round UP to one decimal — used for "you need" numbers, never down. */
+/** Round UP to one decimal, used for "you need" numbers, never down. */
 function ceil1(value: number): number {
   return Math.ceil(value * 10) / 10;
 }
@@ -257,18 +257,18 @@ function clamp(value: number, low: number, high: number): number {
  * Add up one bucket: total points scored, total points available, and the
  * percentage between them.
  *
- * Returns **null** when the bucket has nothing to score yet — no entries at
+ * Returns **null** when the bucket has nothing to score yet: no entries at
  * all, or only malformed ones. Null is the signal a screen should render as
  * "nothing here yet" rather than as 0%, and it's what keeps an ungraded
  * bucket out of {@link courseEstimate}'s average entirely.
  *
  * Entries with a non-positive or non-finite `points_possible` are skipped
  * (the database forbids them, but optimistic local rows can be mid-typing).
- * `earned` may exceed `possible` — that's extra credit, and clamping it
+ * `earned` may exceed `possible`. That's extra credit, and clamping it
  * would quietly lie about the score.
  *
  * @param entries The bucket's scores, in any order.
- * @returns Points earned, points possible, and the percentage — or null.
+ * @returns Points earned, points possible, and the percentage, or null.
  */
 export function categoryScore(
   entries: readonly EntryScore[] | undefined
@@ -297,7 +297,7 @@ export function categoryScore(
 /** Weight totals for a course, in "weight points" on whatever scale the
  * syllabus declared. Every course-level number is derived from these three. */
 type Tally = {
-  /** Every category's weight summed — the scale treated as the whole grade. */
+  /** Every category's weight summed: the scale treated as the whole grade. */
   totalWeight: number;
   /** Weight belonging to categories that have at least one score. */
   gradedWeight: number;
@@ -340,7 +340,7 @@ function tally(
  * The course estimate, rescaled by what's actually been graded.
  *
  * A weighted average over ALL categories would read 12% in week three, when
- * the only thing back is one quiz — the missing 88% of the grade isn't a
+ * the only thing back is one quiz. The missing 88% of the grade isn't a
  * zero, it just hasn't happened. So this averages over **only the categories
  * that have entries** and divides by their combined weight. Two homework
  * scores and a midterm produce the grade you'd have if the rest of the
@@ -348,7 +348,7 @@ function tally(
  *
  * `gradedWeight` is the share of the syllabus's total weight that estimate
  * rests on, and `note` says so in a sentence. When the weights don't sum to
- * 100 the total they DO sum to is treated as the whole grade — see
+ * 100 the total they DO sum to is treated as the whole grade. See
  * {@link weightWarning}, which is what tells the student that's happening.
  *
  * @param categories       The course's buckets and their weights.
@@ -375,7 +375,7 @@ export function courseEstimate(
     return {
       pct: null,
       gradedWeight: 0,
-      note: "Nothing's graded yet — your first score starts the estimate.",
+      note: "Nothing's graded yet. Your first score starts the estimate.",
     };
   }
 
@@ -392,13 +392,13 @@ export function courseEstimate(
     pct,
     gradedWeight: share,
     note: allGraded
-      ? "Everything that counts has a score — this is your whole grade."
+      ? "Everything that counts has a score, so this is your whole grade."
       : `Based on the ${formatPct(share)}% of your grade that's been graded so far.`,
   };
 }
 
 /**
- * "What do I need on the rest?" — the average the ungraded weight has to hit
+ * "What do I need on the rest?" The average the ungraded weight has to hit
  * for the final grade to land on `targetPct`.
  *
  * The two edges are answered honestly rather than with a number:
@@ -434,7 +434,7 @@ export function whatIf(
       neededPct: null,
       reachable: false,
       message:
-        "Add your categories and weights first — then we can work out what's left.",
+        "Add your categories and weights first, then we can work out what's left.",
     };
   }
 
@@ -448,7 +448,7 @@ export function whatIf(
       neededPct: null,
       reachable,
       message: reachable
-        ? `Everything's graded and it landed at ${formatPct(landed)}% — you made your ${formatPct(target)}%.`
+        ? `Everything's graded and it landed at ${formatPct(landed)}%. You made your ${formatPct(target)}%.`
         : `Everything's graded, so this one lands at ${formatPct(landed)}%. Nothing left to move it.`,
     };
   }
@@ -469,7 +469,7 @@ export function whatIf(
     return {
       neededPct: ceil1(needed),
       reachable: false,
-      message: `Even a perfect finish lands around ${formatPct(best)}% — worth a talk with your instructor.`,
+      message: `Even a perfect finish lands around ${formatPct(best)}%. Worth a talk with your instructor.`,
     };
   }
 
@@ -479,7 +479,7 @@ export function whatIf(
     reachable: true,
     message:
       gradedWeight <= EPSILON
-        ? `Nothing's graded yet — averaging about ${formatPct(needs)}% from here lands you at ${formatPct(target)}%.`
+        ? `Nothing's graded yet. Averaging about ${formatPct(needs)}% from here lands you at ${formatPct(target)}%.`
         : `What's left needs to average about ${formatPct(needs)}% to land at ${formatPct(target)}%.`,
   };
 }
@@ -494,7 +494,7 @@ export function whatIf(
  * never as a grade of record.
  *
  * The percentage is rounded to one decimal before comparing, so the letter
- * always agrees with the number on screen — a displayed 90% never reads B+.
+ * always agrees with the number on screen: a displayed 90% never reads B+.
  * Null in, null out, so it can be handed {@link CourseEstimate.pct} directly.
  *
  * @param pct A percentage, 0-100 (above 100 with extra credit).
@@ -511,14 +511,14 @@ export function letterFor(pct: number | null): Letter | null {
 }
 
 /**
- * A warm heads-up when the weights don't add to 100 — usually a bucket
+ * A warm heads-up when the weights don't add to 100. Usually that's a bucket
  * that hasn't been entered yet, sometimes a syllabus that really is 110%
  * with extra credit built in.
  *
  * Either way the estimate treats whatever the weights DO add to as the whole
  * grade, and this sentence is where the student finds that out. Returns null
  * when the weights sum to 100 (within a rounding hair) or when there are no
- * categories yet — an empty course needs an empty state, not a warning.
+ * categories yet: an empty course needs an empty state, not a warning.
  *
  * @param categories The course's buckets and their weights.
  */
@@ -534,13 +534,13 @@ export function weightWarning(
   const rounded = round2(total);
 
   if (rounded <= 0) {
-    return "Your categories don't carry any weight yet — add the percentages from your syllabus.";
+    return "Your categories don't carry any weight yet. Add the percentages from your syllabus.";
   }
   if (Math.abs(rounded - 100) < 0.005) return null;
   if (rounded < 100) {
-    return `Your weights add to ${formatPct(rounded)}% — the estimate assumes that's the whole grade.`;
+    return `Your weights add to ${formatPct(rounded)}%, so the estimate assumes that's the whole grade.`;
   }
-  return `Your weights add to ${formatPct(rounded)}% — the estimate scales them back to fit.`;
+  return `Your weights add to ${formatPct(rounded)}%, so the estimate scales them back to fit.`;
 }
 
 /* ═══════════════════════════ the data half ══════════════════════════
@@ -550,7 +550,7 @@ export function weightWarning(
 
 /**
  * A grade-tracker failure with a message written for a person, not a log.
- * Render `err.message` straight into an inline error — it never leaks SQL,
+ * Render `err.message` straight into an inline error. It never leaks SQL,
  * ids, or PostgREST codes.
  */
 export class GradesError extends Error {
@@ -599,7 +599,7 @@ function str(raw: unknown): string | null {
 
 /**
  * The Supabase client here is untyped, and PostgREST can hand `numeric` back
- * as a string depending on the driver — so rows are narrowed rather than
+ * as a string depending on the driver, so rows are narrowed rather than
  * cast. A row missing anything the math depends on is dropped instead of
  * poisoning the estimate with NaN.
  */
@@ -707,7 +707,7 @@ function requireEarned(points: number): number {
   return round2(points);
 }
 
-/** Mirror `points_possible > 0`, warmly — including after 2-decimal rounding. */
+/** Mirror `points_possible > 0`, warmly, including after 2-decimal rounding. */
 function requirePossible(points: number): number {
   if (!Number.isFinite(points) || points > POINTS_MAX) {
     throw new GradesError("Points possible has to be a number above zero.");
@@ -720,10 +720,10 @@ function requirePossible(points: number): number {
 }
 
 /**
- * The caller's own id — theirs if they handed one over, otherwise read from
+ * The caller's own id: theirs if they handed one over, otherwise read from
  * the stored session (no network round trip). Every insert stamps it, because
  * the RLS write policies check `user_id = auth.uid()` and a mismatched id
- * fails the policy, not a constraint — which would surface as a confusing
+ * fails the policy, not a constraint, which would surface as a confusing
  * permissions error.
  */
 async function requireUserId(ctx?: GradesCtx): Promise<string> {
@@ -743,7 +743,7 @@ async function requireUserId(ctx?: GradesCtx): Promise<string> {
  * A course's whole gradebook: its categories in syllabus order, plus every
  * score grouped under the category it belongs to.
  *
- * Two queries, never N+1 — the categories come back first, then their
+ * Two queries, never N+1: the categories come back first, then their
  * entries in one `in(...)` lookup. RLS scopes both to the signed-in student,
  * so there's no user filter to forget. A course with no categories yet
  * returns empty and skips the second query entirely.
@@ -797,7 +797,7 @@ export async function fetchGradeBook(
 /* ------------------------- category writes ------------------------- */
 
 /**
- * Add a bucket to a course — "Homework, 20%".
+ * Add a bucket to a course: "Homework, 20%".
  *
  * `position` sorts the list; pass `categories.length` to append. Weights are
  * checked against the same 0-100 window the database enforces, so a typo
@@ -876,14 +876,14 @@ export async function updateCategory(
   }
 
   const category = normalizeCategory(data);
-  // Zero rows updated isn't an error to PostgREST — the row is gone.
+  // Zero rows updated isn't an error to PostgREST. The row is gone.
   if (!category) throw new GradesError("That category isn't there anymore.");
   return category;
 }
 
 /**
- * Delete a bucket. **Its scores go with it** — `grade_entries.category_id`
- * cascades — so confirm before calling, and mention what's being lost.
+ * Delete a bucket. **Its scores go with it**: `grade_entries.category_id`
+ * cascades, so confirm before calling, and mention what's being lost.
  *
  * @param id `grade_categories.id`.
  * @throws {GradesError} With copy that's ready to render.
@@ -904,7 +904,7 @@ export async function deleteCategory(
 /* --------------------------- entry writes -------------------------- */
 
 /**
- * Log a score inside a bucket — "Problem Set 3, 18 out of 20".
+ * Log a score inside a bucket: "Problem Set 3, 18 out of 20".
  *
  * `pointsEarned` may exceed `pointsPossible`; that's extra credit, and the
  * math carries it through rather than clamping. `recorded_at` defaults to now

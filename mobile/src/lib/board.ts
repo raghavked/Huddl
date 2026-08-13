@@ -1,13 +1,13 @@
 import type { Feather } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 
-/* The campus board — the data layer.
+/* The campus board: the data layer.
  *
  * One table, `board_posts`, for the things students actually need from each
  * other: a ride home for break, a lost water bottle, a couch that needs a new
  * apartment, an hour of tutoring. Seven categories, campus-scoped, author-
- * owned, and — this is the design decision the whole module is shaped around —
- * CLOSABLE RATHER THAN DELETABLE.
+ * owned, and CLOSABLE RATHER THAN DELETABLE. That last one is the design
+ * decision the whole module is shaped around.
  *
  * A post that got what it wanted stays readable. The ride that filled still
  * says who was driving and when, so the person who missed it knows to ask
@@ -19,9 +19,9 @@ import { supabase } from "@/lib/supabase";
  * Migration 0034 created the table with four policies and no RPCs, so every
  * rule here is enforced by RLS on a plain query:
  *
- *   select  university_id = current_university_id()  — your campus, all of it
+ *   select  university_id = current_university_id()  (your campus, all of it)
  *   insert  author_id = auth.uid() AND university_id = current_university_id()
- *   update  author_id = auth.uid()   — your post, your edits, your close
+ *   update  author_id = auth.uid()   (your post, your edits, your close)
  *   delete  author_id = auth.uid()
  *
  * The insert policy is why {@link createPost} resolves `university_id` from
@@ -34,7 +34,7 @@ import { supabase } from "@/lib/supabase";
  * empty result, which is what lets {@link closePost} and {@link reopenPost}
  * tell "already done" apart from "not yours".
  *
- * No React, no theme, no navigation in here — queries, narrowing, validation,
+ * No React, no theme, no navigation in here: queries, narrowing, validation,
  * and pure helpers that take `now` as an argument so a ticking screen and a
  * unit test get the same answers. Every failure arrives as a
  * {@link BoardError} whose message is warm, specific, and safe to drop
@@ -49,7 +49,7 @@ type FeatherName = keyof typeof Feather.glyphMap;
 /**
  * The seven kinds of post the board accepts, exactly as
  * `board_posts.category` stores them. Never build a filter or a chip from a
- * bare string — read {@link CATEGORIES}, or narrow with
+ * bare string. Read {@link CATEGORIES}, or narrow with
  * {@link asBoardCategory} when the value came from a route param.
  */
 export type BoardCategory =
@@ -67,21 +67,21 @@ export type BoardCategory =
  * fields the composer should bother offering.
  */
 export type BoardCategoryInfo = {
-  /** The stored value — what goes in the column and in a filter. */
+  /** The stored value: what goes in the column and in a filter. */
   key: BoardCategory;
   /** What a person calls it. Sentence case, short enough for a `Chip`. */
   label: string;
   /** The Feather glyph that rides with it, everywhere it appears. */
   icon: FeatherName;
   /**
-   * The composer's body placeholder — a question, not a label, because the
+   * The composer's body placeholder: a question, not a label, because the
    * hardest part of posting is knowing what detail the reader needs.
    */
   placeholder: string;
   /** Whether the composer should offer a price field for this kind of post. */
   wantsPrice: boolean;
   /**
-   * Whether the composer should offer a date. Only a ride has one — the
+   * Whether the composer should offer a date. Only a ride has one. The
    * column `happens_on` is null for everything else, and
    * {@link createPost} enforces that no matter what a screen sends.
    */
@@ -175,7 +175,7 @@ const CATEGORY_BY_KEY: ReadonlyMap<BoardCategory, BoardCategoryInfo> = new Map(
 );
 
 /**
- * The description of one category. Total by construction — the guard above
+ * The description of one category. Total by construction: the guard above
  * proves every category in the union is listed, so this never falls back.
  *
  * Pure.
@@ -187,8 +187,8 @@ export function categoryInfo(category: BoardCategory): BoardCategoryInfo {
 }
 
 /**
- * Narrow an untrusted string — a route param, a stored filter, a column from
- * a client that's newer than this one — to a category we can actually draw.
+ * Narrow an untrusted string (a route param, a stored filter, a column from
+ * a client that's newer than this one) to a category we can actually draw.
  * Anything unrecognised reads as null, which every caller should treat as
  * "the whole board" rather than as an error.
  *
@@ -209,12 +209,12 @@ export function asBoardCategory(value: unknown): BoardCategory | null {
  * The student behind a post, as a card byline renders them.
  *
  * A classmate who keeps their profile private is stripped to their handle
- * before anything renders — see {@link toAuthor}. Posting to a campus-wide
+ * before anything renders; see {@link toAuthor}. Posting to a campus-wide
  * board is a "here is a thing I need" signal, not consent to publish the
  * profile they deliberately closed.
  */
 export type BoardAuthor = {
-  /** Their `profiles.id` — push `/u/<id>` with it if the byline is tappable. */
+  /** Their `profiles.id`. Push `/u/<id>` with it if the byline is tappable. */
   id: string;
   /** Their handle, without the leading `@`. */
   handle: string;
@@ -223,7 +223,7 @@ export type BoardAuthor = {
    * Never blank.
    */
   display_name: string;
-  /** Their avatar, or null — fall back to initials via `@/components/avatar`. */
+  /** Their avatar, or null. Fall back to initials via `@/components/avatar`. */
   avatar_url: string | null;
   /**
    * True when this person keeps their profile private, so the byline has
@@ -234,13 +234,13 @@ export type BoardAuthor = {
   locked: boolean;
 };
 
-/** One `board_posts` row with its author attached — a board card, entire. */
+/** One `board_posts` row with its author attached: a board card, entire. */
 export type BoardPost = {
-  /** `board_posts.id` — your list key, and what every write takes. */
+  /** `board_posts.id`: your list key, and what every write takes. */
   id: string;
   /** The campus it belongs to. Always the caller's own; RLS sees to that. */
   university_id: string;
-  /** Who posted it (`profiles.id`). Never null — the column cascades. */
+  /** Who posted it (`profiles.id`). Never null; the column cascades. */
   author_id: string;
   /** Which of the seven boards it's on. */
   category: BoardCategory;
@@ -250,19 +250,19 @@ export type BoardPost = {
   body: string | null;
   /**
    * The asking price in **cents**, or null when there isn't one. Zero is a
-   * real value and means free — render it with {@link priceLabel}, never with
+   * real value and means free. Render it with {@link priceLabel}, never with
    * your own division.
    */
   price_cents: number | null;
   /**
    * For a ride, the day it leaves, as `"YYYY-MM-DD"`. Null for every other
-   * category. Read it with {@link parseBoardDay} — a bare `new Date()` on a
+   * category. Read it with {@link parseBoardDay}: a bare `new Date()` on a
    * date-only string lands on UTC midnight and reads as the day before in
    * every North American timezone.
    */
   happens_on: string | null;
   /**
-   * ISO timestamp the author marked it handled — the ride filled, the bottle
+   * ISO timestamp the author marked it handled: the ride filled, the bottle
    * came home, the couch went. Null while the post is open. Closed posts stay
    * readable and sink to the bottom of {@link fetchBoard}.
    */
@@ -271,7 +271,7 @@ export type BoardPost = {
   created_at: string;
   /**
    * The author's profile, or null when it isn't readable. Show a quiet
-   * "Someone at Davis" byline rather than hiding the post — a ride home still
+   * "Someone at Davis" byline rather than hiding the post. A ride home still
    * matters when the profile behind it didn't load.
    */
   author: BoardAuthor | null;
@@ -298,7 +298,7 @@ export type BoardPostInput = {
    */
   priceCents?: number | null;
   /**
-   * For a ride, the day it leaves — the local calendar day of this `Date` is
+   * For a ride, the day it leaves. The local calendar day of this `Date` is
    * what gets stored. Ignored (and stored as null) for every other category,
    * because `happens_on` only means anything on a ride.
    */
@@ -310,13 +310,13 @@ export type BoardFilter = {
   /** One board, or omit/null for all seven. */
   category?: BoardCategory | null;
   /**
-   * Whether to include posts the author already closed. Default false — the
+   * Whether to include posts the author already closed. Default false. The
    * live board is the point. Turn it on for an "everything" toggle or for a
    * student's own history.
    */
   includeClosed?: boolean;
   /**
-   * Fewest rows that will do, for a caller that only needs a preview — the
+   * Fewest rows that will do, for a caller that only needs a preview. The
    * Home card shows three and has no use for the other ninety-seven, each of
    * which carries a joined author. Clamped to {@link BOARD_LIMIT}; omit it on
    * the board itself, which wants everything.
@@ -333,16 +333,16 @@ export type BoardFilter = {
 /** Shortest title the database accepts, after trimming. */
 export const BOARD_TITLE_MIN = 3;
 
-/** Longest title the database accepts — cap your title TextInput here. */
+/** Longest title the database accepts. Cap your title TextInput here. */
 export const BOARD_TITLE_MAX = 120;
 
-/** Longest body the database accepts — cap your body TextInput here. */
+/** Longest body the database accepts. Cap your body TextInput here. */
 export const BOARD_BODY_MAX = 1500;
 
 /** The most anyone can ask, in whole dollars. Five thousand buys a car. */
 export const BOARD_PRICE_MAX_DOLLARS = 5000;
 
-/** {@link BOARD_PRICE_MAX_DOLLARS} in cents — the column's own ceiling. */
+/** {@link BOARD_PRICE_MAX_DOLLARS} in cents: the column's own ceiling. */
 export const BOARD_PRICE_MAX_CENTS = BOARD_PRICE_MAX_DOLLARS * 100;
 
 /** Most posts one {@link fetchBoard} call will ever return. */
@@ -357,7 +357,7 @@ export const BOARD_SELECT =
 
 /**
  * {@link BOARD_SELECT} plus the author, for the list. `is_public` rides along
- * because the board has to strip private profiles itself — see
+ * because the board has to strip private profiles itself; see
  * {@link toAuthor}.
  */
 const BOARD_LIST_SELECT = `${BOARD_SELECT}, author:profiles(id, handle, display_name, avatar_url, is_public)`;
@@ -366,7 +366,7 @@ const BOARD_LIST_SELECT = `${BOARD_SELECT}, author:profiles(id, handle, display_
 
 /**
  * A board failure with a message written for a person, not a log. Show
- * `err.message` directly in your inline error — it never leaks SQL, ids, or
+ * `err.message` directly in your inline error. It never leaks SQL, ids, or
  * PostgREST codes.
  */
 export class BoardError extends Error {
@@ -380,7 +380,7 @@ export class BoardError extends Error {
 const WRITE_FAILED = "That didn't post just now. Give it another go.";
 
 /** What we say when the post is gone, closed, or was never theirs. */
-const GONE = "We couldn't find that post — it may already have come down.";
+const GONE = "We couldn't find that post. It may already have come down.";
 
 /** PostgREST hands RLS refusals back as 42501, check violations as 23514. */
 function errorCode(raw: unknown): string {
@@ -430,7 +430,7 @@ function optionalCents(raw: unknown): number | null {
  * A classmate who set their profile private is stripped here, before anything
  * renders: their handle stands in for their name and nothing else of theirs
  * travels with the post. This is the same rule the directory, the new-message
- * picker, and `@/lib/study-buddy` follow, and it fails closed — anything other
+ * picker, and `@/lib/study-buddy` follow, and it fails closed: anything other
  * than an explicit `is_public: true` counts as private, so a select that
  * forgets the column strips rather than leaks.
  *
@@ -438,7 +438,7 @@ function optionalCents(raw: unknown): number | null {
  *
  * @param raw    The embed as PostgREST returned it.
  * @param myId   The caller's `profiles.id`, or null while the session is
- *   still resolving — in which case nothing counts as the caller's own.
+ *   still resolving, in which case nothing counts as the caller's own.
  */
 function toAuthor(raw: unknown, myId: string | null): BoardAuthor | null {
   const record = embedded(raw);
@@ -463,7 +463,7 @@ function toAuthor(raw: unknown, myId: string | null): BoardAuthor | null {
 
 /**
  * Narrow one joined row into a {@link BoardPost}, or null when it's missing
- * something a card can't be drawn without — an id, a campus, an author, a
+ * something a card can't be drawn without: an id, a campus, an author, a
  * recognised category, a title, or a timestamp. Better an honest drop than a
  * card with no words on it. A missing author profile is fine and stays null.
  */
@@ -508,7 +508,7 @@ function requireTitle(title: string): string {
   const trimmed = title.trim();
   if (trimmed.length < BOARD_TITLE_MIN) {
     throw new BoardError(
-      "Give your post a title — a few words is plenty, and it's what people scan."
+      "Give your post a title. A few words is plenty, and it's what people scan."
     );
   }
   if (trimmed.length > BOARD_TITLE_MAX) {
@@ -520,8 +520,8 @@ function requireTitle(title: string): string {
 }
 
 /**
- * Trim a proposed body against the 1500-character limit. Blank becomes null —
- * an empty string in the column would render as a gap under the title.
+ * Trim a proposed body against the 1500-character limit. Blank becomes null,
+ * since an empty string in the column would render as a gap under the title.
  *
  * @throws {BoardError} With copy that's ready to render.
  */
@@ -530,7 +530,7 @@ function cleanBody(body: string | undefined | null): string | null {
   if (trimmed.length === 0) return null;
   if (trimmed.length > BOARD_BODY_MAX) {
     throw new BoardError(
-      `Posts stop at ${BOARD_BODY_MAX} characters — trim it, and swap details in a message.`
+      `Posts stop at ${BOARD_BODY_MAX} characters. Trim it, and swap details in a message.`
     );
   }
   return trimmed;
@@ -564,7 +564,7 @@ function cleanPriceCents(cents: number | undefined | null): number | null {
 
 /**
  * Turn what a student typed into whole cents, so a composer never does float
- * arithmetic of its own — `45.50 * 100` is `4550.000000000001` in JavaScript,
+ * arithmetic of its own: `45.50 * 100` is `4550.000000000001` in JavaScript,
  * and a price that lands a hundredth of a cent off is a check-constraint
  * violation waiting to happen.
  *
@@ -581,7 +581,7 @@ export function priceCentsFrom(text: string | null | undefined): number | null {
   if (trimmed.length === 0) return null;
   if (!/^\d*(\.\d{0,2})?$/.test(trimmed) || trimmed === ".") {
     throw new BoardError(
-      "Write the price as a number — 45, or 45.50. Leave it blank if it's free."
+      "Write the price as a number: 45, or 45.50. Leave it blank if it's free."
     );
   }
   return cleanPriceCents(Math.round(Number(trimmed) * 100));
@@ -605,7 +605,7 @@ export function toBoardDay(date: Date): string {
  * Read a stored `happens_on` back as a `Date` at LOCAL midnight.
  *
  * `new Date("2026-08-14")` parses as UTC midnight, which is the 13th at 5pm in
- * California — every ride would read as leaving a day early. So we split the
+ * California, so every ride would read as leaving a day early. We split the
  * string ourselves. A value that isn't a real calendar day (`"2026-02-31"`,
  * a blank, a timestamp from a future column) reads as null.
  *
@@ -640,7 +640,7 @@ export function parseBoardDay(day: string | null | undefined): Date | null {
  * caller: `happens_on` is nulled for anything that isn't a ride, because the
  * column means nothing on the other six boards, and a price is kept for every
  * category (the database allows it) even though only three composers offer
- * the field — see {@link BoardCategoryInfo.wantsPrice}.
+ * the field; see {@link BoardCategoryInfo.wantsPrice}.
  *
  * @throws {BoardError} With copy that's ready to render.
  */
@@ -670,7 +670,7 @@ function cleanInput(input: BoardPostInput): {
 /* ═════════════════════════════ identity ══════════════════════════════ */
 
 /**
- * The caller's `profiles.id`, read from the stored session (no network hop —
+ * The caller's `profiles.id`, read from the stored session (no network hop;
  * supabase-js refreshes the token itself when it's stale).
  *
  * @throws {BoardError} When nobody's signed in.
@@ -684,7 +684,7 @@ async function requireUserId(): Promise<string> {
   return id;
 }
 
-/** The caller's `profiles.id`, or null — for reads, which work either way. */
+/** The caller's `profiles.id`, or null. For reads, which work either way. */
 async function currentUserId(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
   const id = data.session?.user.id;
@@ -694,7 +694,7 @@ async function currentUserId(): Promise<string | null> {
 /**
  * Who the caller is and which campus they're on. The insert policy pins
  * `university_id` to `current_university_id()`, so there is exactly one value
- * the database will accept — which is precisely why no screen should be
+ * the database will accept, which is precisely why no screen should be
  * passing one. Read it from the profile and be done.
  *
  * @throws {BoardError} With copy that's ready to render.
@@ -729,7 +729,7 @@ async function requireCampus(): Promise<{
 /* ══════════════════════════════ reads ════════════════════════════════ */
 
 /**
- * The campus board: open posts newest first, then — when you ask for them —
+ * The campus board: open posts newest first, then (when you ask for them)
  * the closed ones, also newest first, sunk to the bottom where they read as
  * history rather than as offers.
  *
@@ -739,7 +739,7 @@ async function requireCampus(): Promise<{
  *
  * The 100-row cap is applied by the database to the NEWEST posts, before the
  * open/closed partition happens here. With `includeClosed` on, closed posts
- * therefore eat into the same hundred — which is the honest behaviour for
+ * therefore eat into the same hundred, which is the honest behaviour for
  * "the last hundred things that happened", and the reason the default leaves
  * them out entirely.
  *
@@ -794,7 +794,7 @@ export async function fetchBoard({
 }
 
 /**
- * One post by id, with its author attached, or null when it isn't there —
+ * One post by id, with its author attached, or null when it isn't there:
  * already deleted, or on another campus, which RLS renders as the same thing.
  *
  * For a detail screen opened from a notification or a report, where the list
@@ -823,8 +823,8 @@ export async function fetchPost(id: string): Promise<BoardPost | null> {
 /**
  * Put something on the board.
  *
- * `university_id` is resolved from the caller's own profile — see
- * {@link requireCampus} — so a screen passes what the student typed and
+ * `university_id` is resolved from the caller's own profile (see
+ * {@link requireCampus}), so a screen passes what the student typed and
  * nothing else. Title, body, price and date are all trimmed and checked here
  * first, so the column constraints stay a backstop rather than an error path
  * anybody sees.
@@ -833,7 +833,7 @@ export async function fetchPost(id: string): Promise<BoardPost | null> {
  * the board never shows a post the database refused.
  *
  * @param input What the composer holds. See {@link BoardPostInput}.
- * @returns The inserted post, author attached — prepend it to your list.
+ * @returns The inserted post, author attached. Prepend it to your list.
  * @throws {BoardError} With copy that's ready to render.
  */
 export async function createPost(input: BoardPostInput): Promise<BoardPost> {
@@ -847,13 +847,13 @@ export async function createPost(input: BoardPostInput): Promise<BoardPost> {
     .single();
 
   if (error) {
-    // 42501 is the RLS refusal — the campus on the row didn't match the session.
+    // 42501 is the RLS refusal: the campus on the row didn't match the session.
     if (errorCode(error) === "42501") {
       throw new BoardError(
         "We couldn't post that to your campus board. Sign in again and try once more."
       );
     }
-    // 23514 is a length or range check we somehow let through — say which.
+    // 23514 is a length or range check we somehow let through. Say which.
     if (errorCode(error) === "23514") {
       throw new BoardError(
         `Titles run ${BOARD_TITLE_MIN}-${BOARD_TITLE_MAX} characters, details up to ${BOARD_BODY_MAX}, and prices up to $${BOARD_PRICE_MAX_DOLLARS.toLocaleString()}.`
@@ -872,13 +872,13 @@ export async function createPost(input: BoardPostInput): Promise<BoardPost> {
  * a save of the whole composer: every editable column is written, so a post
  * that stops being for sale doesn't keep a price nobody meant to leave on it.
  *
- * Author-scoped twice over — the update policy is `author_id = auth.uid()`,
+ * Author-scoped twice over: the update policy is `author_id = auth.uid()`,
  * and the query filters on it too, so a post that isn't yours comes back as an
  * honest "not found" instead of a silent no-op.
  *
  * @param id    The post's `board_posts.id`.
  * @param input The composer's whole contents. See {@link BoardPostInput}.
- * @returns The saved post, author attached — swap it into your list.
+ * @returns The saved post, author attached. Swap it into your list.
  * @throws {BoardError} When the post is gone, isn't yours, or the input
  *   doesn't pass. Copy is ready to render.
  */
@@ -912,7 +912,7 @@ export async function updatePost(
 }
 
 /**
- * Mark a post handled — the ride filled, the bottle came home, the couch went.
+ * Mark a post handled: the ride filled, the bottle came home, the couch went.
  *
  * This is the ordinary end of a post's life, and it is not a delete: the row
  * stays readable and {@link fetchBoard} sinks it below the open ones when the
@@ -920,8 +920,8 @@ export async function updatePost(
  * for something that shouldn't have been written.
  *
  * Only touches rows that are still open, so a double tap can't move the time
- * it closed. Closing something already closed — or something that isn't yours,
- * which the policy hides — resolves with null rather than throwing: the
+ * it closed. Closing something already closed (or something that isn't yours,
+ * which the policy hides) resolves with null rather than throwing: the
  * author's intent already holds.
  *
  * Safe to run optimistically: grey the card, call this, and un-grey it with a
@@ -948,7 +948,7 @@ export async function closePost(id: string): Promise<BoardPost | null> {
 }
 
 /**
- * Put a closed post back on the board — the ride fell through, the couch came
+ * Put a closed post back on the board: the ride fell through, the couch came
  * back. Clears `closed_at` and nothing else, so the post returns with its
  * original date on it; a stale one should be edited or reposted rather than
  * quietly reopened, and {@link isStale} is how a screen can say so.
@@ -981,15 +981,15 @@ export async function reopenPost(id: string): Promise<BoardPost | null> {
 /**
  * Take a post off the board for good.
  *
- * The board's normal ending is {@link closePost} — closed posts stay readable,
+ * The board's normal ending is {@link closePost}: closed posts stay readable,
  * and that is the whole reason the column exists. Delete is for a post that
  * shouldn't have been written: the wrong number in the body, a duplicate, a
  * thing the author would rather leave no trace of. Confirmation copy should
  * name that consequence ("It comes off the board and nobody can read it
  * again") rather than asking whether they're sure.
  *
- * A row that's already gone — or that isn't the caller's, which the policy
- * hides — resolves quietly: the intent already holds. That makes this safe to
+ * A row that's already gone (or that isn't the caller's, which the policy
+ * hides) resolves quietly: the intent already holds. That makes this safe to
  * run optimistically.
  *
  * Any reports filed against the post survive it; `reports.board_post_id` is
@@ -1035,7 +1035,7 @@ function calendarDaysUntil(now: Date, day: Date): number {
  * What a price says on a card: `null` when there isn't one, `"Free"` at zero,
  * `"$45"` at whole dollars, `"$12.50"` when there are cents.
  *
- * Zero is deliberately a word rather than `$0` — "Free" is the thing a student
+ * Zero is deliberately a word rather than `$0`: "Free" is the thing a student
  * is scanning for, and `$0.00` reads like a bug. Missing is null rather than a
  * dash, so a card with no price renders nothing at all instead of a placeholder.
  *
@@ -1059,7 +1059,7 @@ export function priceLabel(cents: number | null | undefined): string | null {
 /**
  * When a ride leaves, said the way a person would: "Leaving today", "Leaving
  * tomorrow", "Leaving Friday" inside the coming week, "Leaving Nov 14" beyond
- * it — and in the past tense once the day has gone: "Left yesterday", "Left
+ * it, then the past tense once the day has gone: "Left yesterday", "Left
  * Friday", "Left last week", "Left Nov 14".
  *
  * The past tense is the point. A ride whose day has passed is still on the
@@ -1067,13 +1067,13 @@ export function priceLabel(cents: number | null | undefined): string | null {
  * so the label has to be the thing that tells a reader not to bother. Pair it
  * with {@link isStale}, which draws the same line for the list's sorting.
  *
- * Returns null for a post that isn't a ride or has no date — render nothing
+ * Returns null for a post that isn't a ride or has no date. Render nothing
  * rather than a placeholder.
  *
  * Pure: pass the moment in, from a screen's state or a test.
  *
  * @param happensOn `board_posts.happens_on`, straight off the row.
- * @param now       The current moment — never read from the clock in here.
+ * @param now       The current moment. Never read the clock in here.
  */
 export function rideLabel(
   happensOn: string | null | undefined,
@@ -1098,7 +1098,7 @@ export function rideLabel(
   return `Left ${monthDay(day)}`;
 }
 
-/** "Nov 14" — the same short date the calendar and the club page print. */
+/** "Nov 14", the same short date the calendar and the club page print. */
 function monthDay(day: Date): string {
   return day.toLocaleDateString([], { month: "short", day: "numeric" });
 }
@@ -1108,7 +1108,7 @@ function monthDay(day: Date): string {
  * been and gone, or anything at all that's been up for more than
  * {@link BOARD_STALE_DAYS} days.
  *
- * This is not a hidden state and not a database column — nothing expires. It
+ * This is not a hidden state and not a database column. Nothing expires. It
  * is the list's own judgement, so a board that nobody has tidied still reads
  * as a live board: stale posts sink under the fresh ones, draw quieter, and
  * stay perfectly readable and perfectly tappable for the student who wants
@@ -1134,7 +1134,7 @@ export function isStale(
 }
 
 /**
- * Whether the signed-in student wrote this post — the client-side twin of the
+ * Whether the signed-in student wrote this post: the client-side twin of the
  * `author_id = auth.uid()` policies. Use it to decide whether a card offers
  * edit, close, and delete at all, so nobody taps an action RLS will refuse,
  * and to decide whether the card offers "report" instead.

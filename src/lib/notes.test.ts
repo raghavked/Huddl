@@ -12,7 +12,7 @@ import {
 /* The pure half of note tags: counting them for the filter bar, and comparing
  * a word a student just typed against words the database already normalized.
  *
- * Nothing here trims or lowercases on the way to storage — 0032's trigger owns
+ * Nothing here trims or lowercases on the way to storage. 0032's trigger owns
  * that, and re-implementing it would be two opinions about one rule. What
  * these functions do is read what came back and tell a composer whether a chip
  * is already on.
@@ -28,7 +28,7 @@ describe("the caps a composer has to respect", () => {
 
 /* -------------------------------- toTagList ------------------------------- */
 
-describe("toTagList — a text[] off the wire", () => {
+describe("toTagList: a text[] off the wire", () => {
   it("keeps the strings", () => {
     expect(toTagList(["lecture", "week 5"])).toEqual(["lecture", "week 5"]);
   });
@@ -49,7 +49,7 @@ describe("toTagList — a text[] off the wire", () => {
 
 /* ------------------------------ tagKey/hasTag ----------------------------- */
 
-describe("tagKey and hasTag — before anything has been near the database", () => {
+describe("tagKey and hasTag: before anything has been near the database", () => {
   it("reads a typed tag the way the trigger will", () => {
     expect(tagKey("  Midterm 2 ")).toBe("midterm 2");
   });
@@ -63,7 +63,7 @@ describe("tagKey and hasTag — before anything has been near the database", () 
 
 /* -------------------------------- tallyTags ------------------------------- */
 
-describe("tallyTags — the filter bar's ordering", () => {
+describe("tallyTags: the filter bar's ordering", () => {
   it("counts notes, busiest first", () => {
     expect(
       tallyTags([

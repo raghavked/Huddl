@@ -45,7 +45,7 @@ export default async function ManualSetupPage() {
         backHref="/setup"
         backLabel="Setup"
         title="Pick your courses"
-        description={`Check off your ${user.university.short_name} classes — each one comes with its own chat channel full of your classmates.`}
+        description={`Check off your ${user.university.short_name} classes. Each one comes with its own chat channel full of your classmates.`}
       />
       <div className="mt-8 animate-fade-up">
         <ManualPicker

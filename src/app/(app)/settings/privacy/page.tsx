@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     "The signal you can switch off, the people you've blocked, and the audit trail for any image you stored in the past.",
 };
 
-/* Privacy — the signal, the people, then the receipts.
+/* Privacy: the signal, the people, then the receipts.
  *
  * The top of the page is a choice: typing indicators, on by default
  * (migration 0033, `not null default true`) and RECIPROCAL by design.
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
  * coming in. A one-sided view of who is composing is a trap, not a feature,
  * so the caption says both halves out loud.
  *
- * The middle is the block list — the one privacy control whose effect the
+ * The middle is the block list, the one privacy control whose effect the
  * student can never observe, because blocking is silent by design. Nobody is
  * told and nothing changes on their side, so the list is the only receipt
  * there is.
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
  * shipped. Huddl draws no read receipt anywhere: no screen tells one person
  * whether another has opened a message. The only thing the column could have
  * gated is `channel_members.last_read_at` / `dm_participants.last_read_at`,
- * which is the app's own unread cursor — the thing that decides whether YOUR
+ * which is the app's own unread cursor: the thing that decides whether YOUR
  * rooms show a dot. Freezing it wouldn't hide a receipt nobody draws; it
  * would light up every room you'd already read, forever, as the price of a
  * privacy switch.
@@ -56,12 +56,12 @@ export const metadata: Metadata = {
  * So the switch is gone rather than left inert. A toggle that writes a column
  * nothing consults, under a caption promising classmates "stop seeing when
  * you've read a message", is a false statement to a student about their own
- * privacy — and it quietly discredits the one beside it that genuinely works.
+ * privacy, and it quietly discredits the one beside it that genuinely works.
  * The native app removed it first; see the long note at the top of
  * `mobile/src/hooks/use-privacy-prefs.ts`.
  *
  * The column stays in the database. The day Huddl actually renders a receipt,
- * the switch comes back here — gated at the surface that draws it, not at the
+ * the switch comes back here, gated at the surface that draws it, not at the
  * cursor that tracks unread. Until then, don't re-add it.
  *
  * The switch is a plain form posting to a server action, so it works before a
@@ -81,7 +81,7 @@ type SharingToggle = {
 };
 
 /* One entry, and a list anyway: a second honest signal would slot in here
-   without touching the markup. Read receipts were the other one — see above
+   without touching the markup. Read receipts were the other one; see above
    for why they left and what has to be true before they come back. */
 const TOGGLES: readonly SharingToggle[] = [
   {
@@ -89,13 +89,13 @@ const TOGGLES: readonly SharingToggle[] = [
     icon: PencilLine,
     label: "Typing indicators",
     caption:
-      "Turn this off and nobody sees you composing a message — and you stop seeing them, too.",
+      "Turn this off and nobody sees you composing a message. You stop seeing them, too.",
   },
 ];
 
 /**
  * What the current setting actually means, in one sentence under the card.
- * Pure — it takes the boolean and nothing else, so the copy can be read (and
+ * Pure: it takes the boolean and nothing else, so the copy can be read (and
  * changed) without chasing state around the page.
  */
 function sharingSentence(typing: boolean): string {
@@ -113,7 +113,7 @@ const ERRORS: Record<string, string> = {
 
 /**
  * Flip one sharing preference. The column is `not null default true`, so this
- * only ever writes an explicit boolean — there is no "unset" to fall back to
+ * only ever writes an explicit boolean. There is no "unset" to fall back to
  * and nothing to clean up when someone turns a signal back on.
  *
  * The allow-list is a single name today and stays an allow-list: `column`
@@ -302,7 +302,7 @@ export default async function PrivacySettingsPage({
           They can&apos;t DM you, and their posts stay out of sight. They were
           never told, so this list is the only place a block shows up.
         </p>
-        {/* Loads itself — see the note in `blocked-list.tsx`. */}
+        {/* Loads itself; see the note in `blocked-list.tsx`. */}
         <BlockedList userId={user.userId} />
       </section>
 
@@ -320,8 +320,8 @@ export default async function PrivacySettingsPage({
               <h2 className="font-semibold">The receipt guarantee</h2>
               <p className="mt-1 text-sm text-muted">
                 If you stored an image here in the past, this is its full
-                record. Every event below — processing, storing, accessing,
-                deleting — was written to an audit log, and a database trigger
+                record. Every event below (processing, storing, accessing,
+                deleting) was written to an audit log, and a database trigger
                 turns each logged event into a notification to you. That last
                 step can&apos;t be silently skipped, so if anything touches a
                 stored image, you hear about it.
@@ -344,7 +344,7 @@ export default async function PrivacySettingsPage({
                 illustration={<ShieldScene />}
                 icon={ShieldCheck}
                 title="Nothing stored, nothing to audit"
-                description="You've never stored an image with Huddl. If you had, its full audit trail would live here — every access logged, every log a notification."
+                description="You've never stored an image with Huddl. If you had, its full audit trail would live here: every access logged, every log a notification."
               />
             </div>
           ) : (

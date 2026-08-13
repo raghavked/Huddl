@@ -56,7 +56,7 @@ export function Hint({
   return <p className={cn("text-xs text-muted", className)} {...props} />;
 }
 
-/** Inline error line — pair with aria-describedby on the control. */
+/** Inline error line. Pair with aria-describedby on the control. */
 export function FieldError({
   className,
   ...props

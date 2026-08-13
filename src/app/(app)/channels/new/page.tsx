@@ -18,7 +18,7 @@ const PERKS = [
   },
   {
     icon: Hash,
-    text: "It gets a #handle that's yours — first come, first served",
+    text: "It gets a #handle that's yours: first come, first served",
   },
 ] as const;
 
@@ -30,7 +30,7 @@ export default async function NewChannelPage() {
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
         title="Start a topic channel"
-        description={`Dorm gossip, intramural soccer, late-night ramen runs — if it's a thing at ${user.university.short_name}, it deserves a channel.`}
+        description={`Dorm gossip, intramural soccer, late-night ramen runs. If it's a thing at ${user.university.short_name}, it deserves a channel.`}
         backHref="/channels"
         backLabel="All channels"
       />

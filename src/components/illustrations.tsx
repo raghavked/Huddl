@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
-/* Huddl illustration library — original SVG scenes in a warm,         */
+/* Huddl illustration library: original SVG scenes in a warm,          */
 /* hand-drawn style: tilted shapes, steam curls, crumb dots, stitch    */
 /* dashes. Everything is token-driven (fill-brand, fill-accent-soft,   */
 /* …) so scenes recolor with the theme and stay on-palette by          */
@@ -31,7 +31,7 @@ function Scene({
 
 type AccentProps = { x: number; y: number; className?: string };
 
-/** Three short S-curves of rising steam — kettle-warm, drawn loose. */
+/** Three short S-curves of rising steam, kettle-warm, drawn loose. */
 function Steam({ x, y, className }: AccentProps) {
   return (
     <g
@@ -48,7 +48,7 @@ function Steam({ x, y, className }: AccentProps) {
   );
 }
 
-/** A scatter of three tiny round crumbs — someone's been snacking here. */
+/** A scatter of three tiny round crumbs. Someone's been snacking here. */
 function Crumbs({ x, y, className }: AccentProps) {
   return (
     <g className={cn("fill-brand-2", className)} opacity="0.7">
@@ -59,7 +59,7 @@ function Crumbs({ x, y, className }: AccentProps) {
   );
 }
 
-/** A short dashed arc — a stitch of thread on fabric. */
+/** A short dashed arc: a stitch of thread on fabric. */
 function Stitch({ x, y, className }: AccentProps) {
   return (
     <path
@@ -73,7 +73,7 @@ function Stitch({ x, y, className }: AccentProps) {
   );
 }
 
-/** Two speech bubbles leaning into each other — chat, DMs, channels. */
+/** Two speech bubbles leaning into each other: chat, DMs, channels. */
 export function ChatScene({ className }: SceneProps) {
   return (
     <Scene className={className}>
@@ -99,7 +99,7 @@ export function ChatScene({ className }: SceneProps) {
   );
 }
 
-/** Calendar with a confirmed day — events, study sessions. */
+/** Calendar with a confirmed day: events, study sessions. */
 export function CalendarScene({ className }: SceneProps) {
   return (
     <Scene className={className}>
@@ -123,7 +123,7 @@ export function CalendarScene({ className }: SceneProps) {
   );
 }
 
-/** Stacked note sheets — files and note sharing. */
+/** Stacked note sheets: files and note sharing. */
 export function NotesScene({ className }: SceneProps) {
   return (
     <Scene className={className}>
@@ -146,7 +146,7 @@ export function NotesScene({ className }: SceneProps) {
   );
 }
 
-/** Three figures leaning into a huddle — people, clubs, community. */
+/** Three figures leaning into a huddle: people, clubs, community. */
 export function HuddleScene({ className }: SceneProps) {
   return (
     <Scene className={className}>
@@ -173,7 +173,7 @@ export function HuddleScene({ className }: SceneProps) {
   );
 }
 
-/** Shield with a check — privacy, verification, trust. */
+/** Shield with a check: privacy, verification, trust. */
 export function ShieldScene({ className }: SceneProps) {
   return (
     <Scene className={className}>
@@ -201,7 +201,7 @@ export function ShieldScene({ className }: SceneProps) {
   );
 }
 
-/** Compass and route — discovery, browsing, setup. */
+/** Compass and route: discovery, browsing, setup. */
 export function DiscoverScene({ className }: SceneProps) {
   return (
     <Scene className={className}>

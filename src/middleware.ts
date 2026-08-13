@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isProtectedPath } from "@/lib/protected-routes";
 
 // The list this used to keep itself now lives in lib/protected-routes, shared
-// with robots.ts — see the note there for why one copy beat three. This is the
+// with robots.ts. See the note there for why one copy beat three. This is the
 // only one of the three that carries `?next=`, so a route missing from the
 // list survives login by dumping the student on /home instead of the board
 // post or /plan link they actually followed.
@@ -14,7 +14,7 @@ export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) {
-    // Unconfigured (fresh clone) — let marketing pages render, keep the app
+    // Unconfigured (fresh clone): let marketing pages render, keep the app
     // area behind a setup notice instead of crashing.
     return response;
   }
@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
   });
 
   // Refresh the session token if needed. Do not add logic between client
-  // creation and getUser() — the refresh is a side effect of this call.
+  // creation and getUser(), because the refresh is a side effect of this call.
   const {
     data: { user },
   } = await supabase.auth.getUser();

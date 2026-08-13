@@ -1,8 +1,8 @@
 import Svg, { Path } from "react-native-svg";
 
 /* Hand-drawn marks for Huddl's quiet moments. Ten small stroke
-   illustrations, deliberately imperfect — gentle quadratic wobble, round
-   caps, no geometric-perfect circles — so an empty screen feels like a
+   illustrations, deliberately imperfect (gentle quadratic wobble, round
+   caps, no geometric-perfect circles) so an empty screen feels like a
    note left on the kitchen table, not a dashboard placeholder.
 
    Callers pass both colors from the theme: `color` for the strokes
@@ -13,9 +13,9 @@ import Svg, { Path } from "react-native-svg";
 export type IllustrationProps = {
   /** Rendered width and height, in px. ~96 standing alone, ~72 in a card. */
   size?: number;
-  /** Stroke color — a theme token, e.g. theme.muted or theme.brand. */
+  /** Stroke color: a theme token, e.g. theme.muted or theme.brand. */
   color: string;
-  /** Soft blob fill — a theme token, e.g. theme.surface2 or theme.brandSoft. */
+  /** Soft blob fill: a theme token, e.g. theme.surface2 or theme.brandSoft. */
   softColor: string;
 };
 
@@ -28,7 +28,7 @@ const stroke = {
 
 /**
  * The house motif: a round mug with two curls of steam, still warm.
- * Mood — settle in, the kettle's on; nothing here is a problem.
+ * Mood: settle in, the kettle's on; nothing here is a problem.
  */
 export function Mug({ size = 96, color, softColor }: IllustrationProps) {
   return (
@@ -51,7 +51,7 @@ export function Mug({ size = 96, color, softColor }: IllustrationProps) {
 
 /**
  * An ajar door with a sliver of warm light spilling through the gap.
- * Mood — there's a room waiting on the other side; you're invited,
+ * Mood: there's a room waiting on the other side; you're invited,
  * not locked out. For places you haven't joined yet.
  */
 export function Doorway({ size = 96, color, softColor }: IllustrationProps) {
@@ -79,7 +79,7 @@ export function Doorway({ size = 96, color, softColor }: IllustrationProps) {
 
 /**
  * A folded paper plane climbing, a dashed wobble of a trail behind it.
- * Mood — the first message is already halfway there; someone just has
+ * Mood: the first message is already halfway there; someone just has
  * to let go. For conversations waiting to happen.
  */
 export function PaperPlane({ size = 96, color, softColor }: IllustrationProps) {
@@ -111,7 +111,7 @@ export function PaperPlane({ size = 96, color, softColor }: IllustrationProps) {
 
 /**
  * A little campus pennant on a pole, caught mid-wave.
- * Mood — school spirit at kitchen-table scale; somebody should start
+ * Mood: school spirit at kitchen-table scale; somebody should start
  * the club, and it might as well be you.
  */
 export function Pennant({ size = 96, color, softColor }: IllustrationProps) {
@@ -134,7 +134,7 @@ export function Pennant({ size = 96, color, softColor }: IllustrationProps) {
 
 /**
  * A hand lantern with a small steady flame and a soft pool of glow.
- * Mood — hold the light up and look around; what you're after is out
+ * Mood: hold the light up and look around; what you're after is out
  * there somewhere. For search and discovery.
  */
 export function Lantern({ size = 96, color, softColor }: IllustrationProps) {
@@ -158,7 +158,7 @@ export function Lantern({ size = 96, color, softColor }: IllustrationProps) {
 
 /**
  * One blank note held to a board by a pushpin, two faint rules on it.
- * Mood — the board is up and nothing is on it yet, so the first thing
+ * Mood: the board is up and nothing is on it yet, so the first thing
  * posted is the thing everybody reads. For a board with no posts.
  */
 export function PinnedNote({ size = 96, color, softColor }: IllustrationProps) {
@@ -190,7 +190,7 @@ export function PinnedNote({ size = 96, color, softColor }: IllustrationProps) {
 /**
  * A wall calendar hung on two rings, its days a loose scatter of ticks
  * with one of them sitting in a soft square.
- * Mood — a whole term laid out flat, and you are somewhere in the middle
+ * Mood: a whole term laid out flat, and you are somewhere in the middle
  * of it. For a semester overview and for a week with nothing on it.
  */
 export function WallCalendar({ size = 96, color, softColor }: IllustrationProps) {
@@ -225,7 +225,7 @@ export function WallCalendar({ size = 96, color, softColor }: IllustrationProps)
 
 /**
  * A hand lens tilted over three specks of something small.
- * Mood — curious, not defeated; whatever you asked for is not here, but
+ * Mood: curious, not defeated; whatever you asked for is not here, but
  * looking closer is still the fun part. For a search that came back empty.
  */
 export function MagnifyingGlass({
@@ -246,7 +246,7 @@ export function MagnifyingGlass({
         stroke={color}
         {...stroke}
       />
-      {/* Three specks climbing away under the lens — scattered, never
+      {/* Three specks climbing away under the lens, scattered, never
           arranged into a face. */}
       <Path
         d="M35.5 47 Q37 45.5 38.5 47 M42.5 42 Q44 40.5 45.5 42 M49.5 37 Q51 35.5 52.5 37"
@@ -259,7 +259,7 @@ export function MagnifyingGlass({
 
 /**
  * A shallow desk tray on two little feet, with nothing left in it.
- * Mood — relief, and the quiet after it; everything that needed a person
+ * Mood: relief, and the quiet after it; everything that needed a person
  * has had one. For a review queue that is all caught up.
  */
 export function Tray({ size = 96, color, softColor }: IllustrationProps) {
@@ -289,7 +289,7 @@ export function Tray({ size = 96, color, softColor }: IllustrationProps) {
 /**
  * A shoebox with its lid set back on a little crooked, something written
  * on the side in two short lines.
- * Mood — put away, not thrown out; it keeps until you want it back. For
+ * Mood: put away, not thrown out; it keeps until you want it back. For
  * shelved courses, saved things, and a copy of your own data.
  */
 export function Shoebox({ size = 96, color, softColor }: IllustrationProps) {

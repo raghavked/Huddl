@@ -11,7 +11,7 @@ export default function ProfileLoading() {
       {/* Back link ghost */}
       <Skeleton className="h-4 w-20 rounded-full" />
 
-      {/* Hero card ghost — centered on mobile, row on sm+ like the real page */}
+      {/* Hero card ghost: centered on mobile, row on sm+ like the real page */}
       <div className="mt-3 rounded-card border border-border bg-surface p-6 shadow-soft sm:p-8">
         <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
           <Skeleton className="size-24 shrink-0 rounded-full" />

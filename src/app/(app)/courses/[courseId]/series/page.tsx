@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Add a weekly pattern" };
  * Set a weekly class meeting up once and every week of it lands on the shared
  * class calendar.
  *
- * There is no recurrence engine behind this — a pattern becomes ordinary
+ * There is no recurrence engine behind this. A pattern becomes ordinary
  * calendar rows that happen to share a `series_id`, so each one can be opened,
  * reminded about, or removed on its own afterwards. See `@/lib/series`.
  *
@@ -42,7 +42,7 @@ export default async function CourseSeriesPage({
     .eq("course_id", course.id)
     .eq("user_id", user.userId)
     .maybeSingle();
-  // Writing the class schedule is for classmates — the course page has the
+  // Writing the class schedule is for classmates. The course page has the
   // join door, and the INSERT policy would refuse this anyway.
   if (!enrollment) redirect(`/courses/${course.id}`);
 

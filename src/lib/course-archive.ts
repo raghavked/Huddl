@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { EnrollmentSource } from "@/lib/types";
 
-/* Course archiving — the data layer.
+/* Course archiving: the data layer.
  *
  * SHELVING IS NOT DROPPING. Say it out loud, because the whole feature rests
  * on the difference:
@@ -15,7 +15,7 @@ import type { EnrollmentSource } from "@/lib/types";
  *   row survives. The `channel_members` row survives with it, so last
  *   quarter's chat stays reachable, notes stay readable, and every message
  *   the student ever sent is still theirs. Nothing here touches
- *   `channel_members`, and nothing here deletes anything — if you find
+ *   `channel_members`, and nothing here deletes anything. If you find
  *   yourself reaching for a delete while working on archiving, you are
  *   writing the drop path instead, and that already lives in the courses
  *   page.
@@ -31,8 +31,8 @@ import type { EnrollmentSource } from "@/lib/types";
  * shelved" without a second request.
  *
  * WHERE THIS GETS READ FROM
- * Every other surface that lists classes — the study plan, the calendar,
- * home, the course pickers in focus sessions and grades — should read
+ * Every other surface that lists classes (the study plan, the calendar,
+ * home, the course pickers in focus sessions and grades) should read
  * **active courses only**. That is the entire point of the feature: a
  * finished class stops crowding this quarter.
  *
@@ -58,7 +58,7 @@ import type { EnrollmentSource } from "@/lib/types";
  * Until that lands, {@link archiveCourse} and {@link unarchiveCourse} will
  * fail warmly every time, which is the honest behaviour.
  *
- * No React, no theme, no routing in here — queries, narrowing, and one pure
+ * No React, no theme, no routing in here: queries, narrowing, and one pure
  * grouping helper. Every failure arrives as a {@link CourseArchiveError}
  * whose message is warm, specific, and safe to drop straight into an inline
  * error.
@@ -71,15 +71,15 @@ import type { EnrollmentSource } from "@/lib/types";
 
 /* ══════════════════════════════ shapes ══════════════════════════════ */
 
-/** The Supabase client these queries run against — server or browser. */
+/** The Supabase client these queries run against: server or browser. */
 type Db = SupabaseClient;
 
 /**
  * How a caller tells this module which Supabase client to use.
  *
  * @property client Request-scoped server client. Omit in the browser.
- * @property userId The caller's `profiles.id` when it's already known —
- *   server components have it from `getCurrentUser()`, and passing it keeps
+ * @property userId The caller's `profiles.id` when it's already known.
+ *   Server components have it from `getCurrentUser()`, and passing it keeps
  *   this module off `auth.getSession()` on the server.
  */
 export type CourseArchiveCtx = {
@@ -88,7 +88,7 @@ export type CourseArchiveCtx = {
 };
 
 /**
- * One of the student's enrollments with its course flattened onto it — the
+ * One of the student's enrollments with its course flattened onto it: the
  * exact shape a row on the courses page renders, on either shelf.
  *
  * Flattened rather than nested because every caller wants all of it at once:
@@ -96,7 +96,7 @@ export type CourseArchiveCtx = {
  * be read are dropped by the narrowing rather than handed over half-built.
  */
 export type MyCourse = {
-  /** `enrollments.id` — the id both writes in this module take. */
+  /** `enrollments.id`, the id both writes in this module take. */
   enrollment_id: string;
   /** `courses.id`. What every other course surface keys off. */
   course_id: string;
@@ -109,7 +109,7 @@ export type MyCourse = {
   /**
    * `terms.starts_on` as an ISO date ("2025-09-24"), or null. Carried purely
    * so {@link groupByTerm} can put the newest term first without guessing at
-   * the name — see that function for the fallback when it's missing.
+   * the name. See that function for the fallback when it's missing.
    */
   term_starts_on: string | null;
   /**
@@ -130,7 +130,7 @@ export type MyCourse = {
  * code; both can be empty.
  */
 export type MyCourses = {
-  /** This quarter's classes — `archived_at is null`. */
+  /** This quarter's classes: `archived_at is null`. */
   active: MyCourse[];
   /** Shelved classes, newest term first once run through {@link groupByTerm}. */
   archived: MyCourse[];
@@ -152,7 +152,7 @@ type Termed = Pick<MyCourse, "term" | "term_starts_on">;
 /**
  * Where courses with no term land. A real bucket with a real name, not a
  * blank header: a class that arrived by schedule photo may never have been
- * matched to a term, and "Earlier" is truthful about it — it's shelved, so it
+ * matched to a term, and "Earlier" is truthful about it: it's shelved, so it
  * is by definition behind you.
  */
 export const EARLIER_TERM = "Earlier";
@@ -165,7 +165,7 @@ export const MY_COURSES_SELECT =
 
 /**
  * A course-archiving failure with a message written for a person, not a log.
- * Show `err.message` directly in your inline error — it never leaks SQL, ids,
+ * Show `err.message` directly in your inline error. It never leaks SQL, ids,
  * or PostgREST codes.
  */
 export class CourseArchiveError extends Error {
@@ -229,7 +229,7 @@ function toSource(raw: unknown): EnrollmentSource {
 
 /**
  * Narrow one joined enrollment row into a {@link MyCourse}. Returns null when
- * the row is missing something a course row can't be drawn without — the
+ * the row is missing something a course row can't be drawn without: the
  * enrollment id, the course, its id, or its code. A course with no readable
  * title keeps its code and shows an empty title rather than vanishing, since
  * the code is what students actually navigate by.
@@ -285,9 +285,9 @@ function byCode(a: MyCourse, b: MyCourse): number {
 /* ════════════════════════════════ auth ══════════════════════════════ */
 
 /**
- * The caller's `profiles.id` — theirs if they handed one over, otherwise read
- * from the stored session (no network hop — supabase-js refreshes the token
- * itself when it's stale).
+ * The caller's `profiles.id`: theirs if they handed one over, otherwise read
+ * from the stored session (no network hop, since supabase-js refreshes the
+ * token itself when it's stale).
  *
  * @throws {CourseArchiveError} When nobody's signed in.
  */
@@ -310,7 +310,7 @@ async function requireUserId(ctx?: CourseArchiveCtx): Promise<string> {
  *
  * One query, split here. The SELECT policy on `enrollments` also lets a
  * student see their classmates' rows, so this filters on `user_id`
- * explicitly — never rely on RLS alone to scope a "mine" list.
+ * explicitly. Never rely on RLS alone to scope a "mine" list.
  *
  * A student with no classes yet gets two empty arrays, not an error: that's an
  * empty state inviting them to add their first course, and the courses page
@@ -357,7 +357,7 @@ export async function fetchMyCourses(
  * never be touched, and asks for the changed row back: with no UPDATE policy
  * on `enrollments` a refused write returns zero rows and no error, and a
  * silent no-op that renders as success is the one outcome worse than a
- * failure. No row back means the write didn't happen — say so.
+ * failure. No row back means the write didn't happen, so say so.
  *
  * @param enrollmentId `enrollments.id` to move.
  * @param value        ISO timestamp to shelve, or null to bring it back.
@@ -395,7 +395,7 @@ async function setArchivedAt(
  *
  * This is shelving, not dropping. The enrollment row stays, the student stays
  * in the course channel, and the chat, the notes and the calendar history all
- * stay reachable — the class simply stops appearing in this quarter's lists.
+ * stay reachable. The class stops appearing in this quarter's lists.
  * Nothing is deleted, and nothing about it is announced to anyone.
  *
  * Shelving something already shelved quietly re-stamps the timestamp rather
@@ -404,7 +404,7 @@ async function setArchivedAt(
  * Safe to run optimistically: move the course to the archived list with
  * `archived_at` set to now, call this, and move it back if it throws.
  *
- * @param enrollmentId `enrollments.id` — {@link MyCourse.enrollment_id}, not
+ * @param enrollmentId `enrollments.id`: {@link MyCourse.enrollment_id}, not
  *   the course id.
  * @returns The stored shelved-at timestamp, for reconciling the optimistic row.
  * @throws {CourseArchiveError} With copy that's ready to render.
@@ -432,13 +432,13 @@ export async function archiveCourse(
  * removed on the way in, so nothing has to be rebuilt on the way out. The
  * channel membership was never dropped, so the chat is exactly where it was.
  *
- * Unshelving something already active quietly succeeds — the student's intent
+ * Unshelving something already active quietly succeeds. The student's intent
  * ("this class is current") already holds.
  *
  * Safe to run optimistically: move the course to the active list, call this,
  * and put it back on the shelf if it throws.
  *
- * @param enrollmentId `enrollments.id` — {@link MyCourse.enrollment_id}, not
+ * @param enrollmentId `enrollments.id`: {@link MyCourse.enrollment_id}, not
  *   the course id.
  * @throws {CourseArchiveError} With copy that's ready to render.
  */
@@ -494,7 +494,7 @@ function byRecency(a: number, b: number): number {
  * place at all keep a stable alphabetical order at the bottom, and
  * {@link EARLIER_TERM} is always last no matter how many courses are in it.
  *
- * Course order inside each group is left exactly as it arrived — hand it the
+ * Course order inside each group is left exactly as it arrived. Hand it the
  * `archived` list from {@link fetchMyCourses} and each term stays sorted by
  * course code. Empty groups are never produced, so `groups.length === 0`
  * means the shelf is empty and the page should show its empty state.
@@ -519,7 +519,7 @@ export function groupByTerm<T extends Termed>(
   type Keyed = { group: TermGroup<T>; earlier: boolean; recency: number };
   const keyed: Keyed[] = [];
   for (const [term, grouped] of buckets) {
-    // Any course in the term can carry the date — take the first that does,
+    // Any course in the term can carry the date, so take the first that does,
     // so one row with a missing embed doesn't misdate the whole group.
     const dated = grouped.find((course) => course.term_starts_on !== null);
     keyed.push({
@@ -531,7 +531,7 @@ export function groupByTerm<T extends Termed>(
 
   return keyed
     .sort((a, b) => {
-      // "Earlier" is a bucket, not a term — it sinks past every real one.
+      // "Earlier" is a bucket, not a term, so it sinks past every real one.
       if (a.earlier !== b.earlier) return a.earlier ? 1 : -1;
       return (
         byRecency(a.recency, b.recency) ||

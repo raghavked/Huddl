@@ -17,19 +17,19 @@ import { createClient } from "@/lib/supabase/client";
 /* Leaving for good.
  *
  * The Terms and the privacy policy both tell students "Settings, then Delete
- * account", and until now the web app had no such thing — only the native app
+ * account", and until now the web app had no such thing. Only the native app
  * did. This is that door.
  *
  * WHY IT LOOKS NOTHING LIKE THE NATIVE ONE. On the phone this is two stacked
  * OS alerts, because that is the only modal a native app gets and tapping
  * through two of them is genuinely deliberate. A browser dialog is not that:
  * it is a thing people dismiss reflexively, and `confirm()` in particular is
- * one keypress away from gone. So the confirmation here is typing — your own
- * handle, exactly — in a field that starts empty and stays visible. There is
+ * one keypress away from gone. So the confirmation here is typing (your own
+ * handle, exactly) in a field that starts empty and stays visible. There is
  * no hidden step and no second dialog, because the typing *is* the second
  * step, and nothing a mouse can do on its own reaches the button.
  *
- * WHAT IT CALLS. `delete_own_account()` from migration 0021 — security
+ * WHAT IT CALLS. `delete_own_account()` from migration 0021: security
  * definer, granted to `authenticated` only, filtered on `auth.uid()`. It
  * sweeps the student's storage folders and then deletes the auth row, which
  * cascades through profiles to every table. The same RPC the native app
@@ -48,7 +48,7 @@ type Phase = "idle" | "working" | "error" | "done";
 /** Exactly what goes, named out loud, because §6 says confirmations do that. */
 const WHAT_GOES: readonly string[] = [
   "Your profile, your photo and your place in the people directory",
-  "Every message you've written — channels, threads and DMs",
+  "Every message you've written in channels, threads and DMs",
   "Your notes, uploads and schedule files",
   "Your courses, clubs, events and RSVPs",
   "Your saved messages, your blocks and your push tokens",
@@ -100,7 +100,7 @@ export function DeleteAccount({ handle }: { handle: string }) {
         <p className="mx-auto mt-3 max-w-sm text-sm text-muted text-pretty">
           Everything of yours is gone from Huddl, and you&apos;re signed out on
           this device too. If you ever come back, you&apos;ll start from a
-          blank page — which is a fine way to start a semester.
+          blank page, which is a fine way to start a semester.
         </p>
         <Link
           href="/"
@@ -113,8 +113,8 @@ export function DeleteAccount({ handle }: { handle: string }) {
   }
 
   /* Hand-built rather than <Card> so the hairline can be danger-tinted
-     without two border-colour utilities fighting over the same element —
-     the same reason `notification-list` builds its unread row by hand. The
+     without two border-colour utilities fighting over the same element, the
+     same reason `notification-list` builds its unread row by hand. The
      tint is the only visual warning the section needs; the tile and the
      button carry the rest. */
   return (
@@ -183,7 +183,7 @@ export function DeleteAccount({ handle }: { handle: string }) {
           {mistyped ? (
             <FieldError className="flex items-start gap-1.5 text-xs">
               <AlertCircle className="mt-px size-3.5 shrink-0" aria-hidden />
-              That&apos;s not your handle yet — it&apos;s @{handle}.
+              That&apos;s not your handle yet. It&apos;s @{handle}.
             </FieldError>
           ) : (
             <Hint>

@@ -7,7 +7,7 @@ import { Badge, Button, cardClasses } from "@/components/ui";
 import { joinClub, leaveClub } from "@/features/clubs/actions";
 import type { Club, ClubCategory, ClubMember } from "@/lib/types";
 
-/** "academic" -> "Academic" — every category is a single word. */
+/** "academic" -> "Academic". Every category is a single word. */
 export function categoryLabel(category: ClubCategory): string {
   return category.charAt(0).toUpperCase() + category.slice(1);
 }
@@ -27,7 +27,7 @@ export function CategoryBadge({
 }
 
 /**
- * Lightweight confirm dialog — bottom sheet on mobile, centered on larger
+ * Lightweight confirm dialog: bottom sheet on mobile, centered on larger
  * screens. Shared by the leave and disband flows.
  */
 export function ConfirmDialog({
@@ -92,7 +92,7 @@ export function ConfirmDialog({
 }
 
 /**
- * Join / Leave controls for the club detail page. Owners get neither —
+ * Join / Leave controls for the club detail page. Owners get neither, since
  * their exit is the disband flow.
  */
 export function MembershipActions({

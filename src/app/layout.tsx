@@ -6,7 +6,7 @@ import {
 } from "next/font/google";
 import "./globals.css";
 
-/* Type system — open-source (OFL) humanist pairing:
+/* Type system. Open-source (OFL) humanist pairing:
    Bricolage Grotesque for display (vibrant, characterful headings),
    Plus Jakarta Sans for body/UI (warm, highly readable),
    JetBrains Mono for codes and technical identifiers. */
@@ -27,19 +27,19 @@ const monoFont = JetBrains_Mono({
 
 const siteUrl = process.env.SITE_URL ?? "https://huddl.app";
 const description =
-  "Huddl is the all-in-one platform for college students: a chat for every class you add, study sessions, note sharing, meetups, voice rooms and DMs — verified with your university email.";
+  "Huddl is one app for college life: a chat for every class you add, study sessions, note sharing, meetups, voice rooms and DMs. Verified with your university email.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Huddl — Your campus, in one huddle",
+    default: "Huddl · Your campus, in one huddle",
     template: "%s · Huddl",
   },
   description,
   openGraph: {
     type: "website",
     siteName: "Huddl",
-    title: "Huddl — Your campus, in one huddle",
+    title: "Huddl · Your campus, in one huddle",
     description,
     url: "/",
   },
@@ -68,8 +68,8 @@ export const viewport: Viewport = {
    No stored value (or "system") leaves the media query in charge. */
 // Replayed before first paint so the saved appearance never flashes: the
 // theme choice, then the text scale (every size in the app is a rem, so one
-// root font-size carries the whole ladder). Both are per-device settings —
-// see /settings/appearance.
+// root font-size carries the whole ladder). Both are per-device settings.
+// See /settings/appearance.
 const themeInit = `try{var t=localStorage.getItem("huddl-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}try{var s=parseFloat(localStorage.getItem("huddl-text-size"));if(s>=0.9&&s<=1.4&&s!==1){document.documentElement.style.setProperty("--huddl-text-scale",String(s));document.documentElement.style.fontSize=Math.round(s*100)+"%"}}catch(e){}`;
 
 export default function RootLayout({

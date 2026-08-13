@@ -71,7 +71,7 @@ type FeatherName = ComponentProps<typeof Feather>["name"];
 
 type ChannelKind = "campus" | "course" | "topic" | "club";
 
-/** Minimal local row shapes — the web app's types live outside this tsconfig. */
+/** Minimal local row shapes. The web app's types live outside this tsconfig. */
 type ChannelRow = {
   id: string;
   kind: ChannelKind;
@@ -108,7 +108,7 @@ type MessageRow = {
   author: Author | null;
 };
 
-/** Raw realtime payload row — no joined author. */
+/** Raw realtime payload row, no joined author. */
 type RawMessageRow = {
   id: string;
   channel_id: string;
@@ -133,7 +133,7 @@ type OpenPoll = {
   created_at: string;
 };
 
-/** One row of message_reactions — same shape the web app reads. */
+/** One row of message_reactions, the same shape the web app reads. */
 type ReactionRow = {
   message_id: string;
   user_id: string;
@@ -156,10 +156,10 @@ const NOTIFICATION_SWEEP_MS = 5000;
 
 /** The opening words `create_availability_poll` posts to announce a poll.
     Used ONLY as a hint that a poll may have just appeared and the strip is
-    worth refetching — never to bind a poll to a message. See the strip. */
+    worth refetching, never to bind a poll to a message. See the strip. */
 const AVAILABILITY_ANNOUNCE = "When can everyone meet? ";
 
-/** The message-body text style — MentionText needs it spelled out. */
+/** The message-body text style. MentionText needs it spelled out. */
 const BODY_TEXT = {
   fontFamily: fonts.body,
   fontSize: 15,
@@ -170,7 +170,7 @@ const BODY_TEXT = {
     web users send (their picker is wider), so nothing gets lost cross-client. */
 const REACTION_EMOJI = ["👍", "❤️", "😂", "🎉"] as const;
 
-/** Group raw reaction rows into ordered pills — quick-react emoji first (in
+/** Group raw reaction rows into ordered pills: quick-react emoji first (in
     canonical order), anything else after, mirroring the web's grouping. */
 function groupReactions(
   rows: ReactionRow[] | undefined,
@@ -263,7 +263,7 @@ function membersLine(count: number): string {
   return `You and ${others} others are in here.`;
 }
 
-/** Avatar and name are the way out of a message to the person who sent it —
+/** Avatar and name are the way out of a message to the person who sent it,
     the route that makes reporting and blocking reachable from a bad message
     instead of from the directory. Falls back to a plain view when the row
     arrived without a handle (an optimistic send, a deleted account). */
@@ -340,7 +340,7 @@ function BackChevron({ onPress }: { onPress: () => void }) {
   );
 }
 
-/** A chat image at thumb size — resolves its signed URL through the room's
+/** A chat image at thumb size. Resolves its signed URL through the room's
     per-path cache, then taps open the full-screen viewer. */
 function AttachmentImage({
   path,
@@ -431,14 +431,14 @@ export default function ChannelRoomScreen() {
      votes: a fetch that overlapped one of our toggles came back with a
      snapshot from before it, and landing that would erase the pill.
      message_reactions isn't in the realtime publication, so nothing would
-     ever put the pill back — so an overlapped response is dropped, and the
+     ever put the pill back, so an overlapped response is dropped and the
      read happens again once the write has settled. */
   const reactionWritesRef = useRef(0);
   const reactionWritesDoneRef = useRef(0);
   const deferredReactionsRef = useRef(new Set<string>());
   // Who replied, not how many: the badge has to drop blocked classmates the
   // way the thread screen does, and `blocked` can change while the room is
-  // open — so the count is derived at render, from these author ids.
+  // open, so the count is derived at render, from these author ids.
   const [replyAuthors, setReplyAuthors] = useState<Record<string, string[]>>(
     {}
   );
@@ -468,11 +468,11 @@ export default function ChannelRoomScreen() {
   const inputRef = useRef<TextInput>(null);
   const { blocked, refresh: refreshBlocked } = useBlockedIds();
 
-  // Notifications for this room, and whether it's muted — both read off
+  // Notifications for this room, and whether it's muted. Both read off
   // channel_members alongside the read cursor.
   const [muted, setMuted] = useState(false);
   const [roomMenuOpen, setRoomMenuOpen] = useState(false);
-  // How many people are actually in here — only asked for, and only shown,
+  // How many people are actually in here. Only asked for, and only shown,
   // when the room has nothing in it yet.
   const [memberCount, setMemberCount] = useState<number | null>(null);
 
@@ -498,7 +498,7 @@ export default function ChannelRoomScreen() {
   const [forwardNote, setForwardNote] = useState<string | null>(null);
   const noteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Display names behind forwarded_author_id, fetched in one batch per page
-  // rather than embedded — `messages` has two foreign keys into `profiles`,
+  // rather than embedded. `messages` has two foreign keys into `profiles`,
   // and a mis-hinted embed would take the whole room's query down with it.
   const [forwardedNames, setForwardedNames] = useState<Record<string, string>>(
     {}
@@ -507,11 +507,11 @@ export default function ChannelRoomScreen() {
   forwardedNamesRef.current = forwardedNames;
 
   // Availability polls. They do NOT hang off messages.poll_id, so the room
-  // carries them as their own strip above the composer — see the strip.
+  // carries them as their own strip above the composer. See the strip.
   const [openPolls, setOpenPolls] = useState<OpenPoll[]>([]);
   const [pollsExpanded, setPollsExpanded] = useState(false);
 
-  // In-room search — a reading surface over this channel's history.
+  // In-room search: a reading surface over this channel's history.
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<MessageRow[]>([]);
@@ -528,7 +528,7 @@ export default function ChannelRoomScreen() {
 
   /* Reading the room has to be what makes the bell go dark. `last_read_at`
      only clears the dot on the lists, so the notifications this room wrote
-     get cleared here too — the ones whose link points straight at it, which
+     get cleared here too: the ones whose link points straight at it, which
      is every mention. A thread reply's link carries `?thread=…` and is
      deliberately left alone: the room doesn't show the reply, so reading the
      room is no reason to say she's seen it.
@@ -538,7 +538,7 @@ export default function ChannelRoomScreen() {
   const notifSweptAtRef = useRef(0);
   const markRead = useCallback(() => {
     if (!channelId || !userId) return;
-    // PostgrestBuilder only runs once awaited/then'd — fire and forget.
+    // PostgrestBuilder only runs once awaited/then'd, so fire and forget.
     void supabase
       .from("channel_members")
       .update({ last_read_at: new Date().toISOString() })
@@ -558,7 +558,7 @@ export default function ChannelRoomScreen() {
   }, [channelId, userId]);
 
   /** Jump the stream to one message and ring it. The scroll itself waits for
-      the list to exist — a tap out of search remounts it. */
+      the list to exist, because a tap out of search remounts it. */
   const focusMessage = useCallback((messageId: string) => {
     pendingFocusRef.current = messageId;
     setHighlightId(messageId);
@@ -593,11 +593,11 @@ export default function ChannelRoomScreen() {
     []
   );
 
-  /** One batched fetch of reactions for a page of messages — web's pattern. */
+  /** One batched fetch of reactions for a page of messages, the web's pattern. */
   const loadReactions = useCallback(async (messageIds: string[]) => {
     if (messageIds.length === 0) return;
     // Read until a snapshot comes back that none of our toggles moved
-    // underneath it — the updater below resets each message's list, so an
+    // underneath it. The updater below resets each message's list, so an
     // older snapshot would erase an optimistic pill for good.
     for (;;) {
       const writesDone = reactionWritesDoneRef.current;
@@ -646,7 +646,7 @@ export default function ChannelRoomScreen() {
     setReplyAuthors(authors);
   }, []);
 
-  /** Which of these messages I've saved — one query per loaded page keeps
+  /** Which of these messages I've saved. One query per loaded page keeps
       the long-press menu label truthful. */
   const loadSaved = useCallback(
     async (messageIds: string[]) => {
@@ -734,7 +734,7 @@ export default function ChannelRoomScreen() {
     []
   );
 
-  /** Optimistic toggle in message_reactions — the pill flips instantly, and
+  /** Optimistic toggle in message_reactions: the pill flips instantly, and
       anything but a double-tap race (23505) reverts to server truth. */
   const toggleReaction = useCallback(
     async (messageId: string, emoji: string) => {
@@ -783,7 +783,7 @@ export default function ChannelRoomScreen() {
       }
       if (reactError && reactError.code !== "23505") {
         await loadReactions([messageId]);
-        setSendError("That reaction didn't save — give it another tap.");
+        setSendError("That reaction didn't save. Give it another tap.");
       }
       // Whatever a fetch held back while we were writing gets its re-read now
       // that the server has our row.
@@ -856,7 +856,7 @@ export default function ChannelRoomScreen() {
       setStatus("error");
       return;
     }
-    // Newest first — exactly what an inverted FlatList wants. Deleted rows
+    // Newest first, exactly what an inverted FlatList wants. Deleted rows
     // stay in the stream as tombstones, matching the web room.
     const rows = (messagesRes.data ?? []) as unknown as MessageRow[];
     setMessages(rows);
@@ -888,7 +888,7 @@ export default function ChannelRoomScreen() {
 
   /* Being first into a room says nothing about how many people will read it.
      `channel_member_counts()` is security definer precisely so a screen can
-     count past RLS — asked for only when the room turns out to be empty,
+     count past RLS. Asked for only when the room turns out to be empty,
      which is the only place the number is shown. */
   const roomEmpty = status === "ready" && messages.length === 0;
   useEffect(() => {
@@ -905,7 +905,7 @@ export default function ChannelRoomScreen() {
     };
   }, [roomEmpty, channelId, memberCount]);
 
-  /** Mute or unmute this room, optimistically — the same `channel_members`
+  /** Mute or unmute this room, optimistically, on the same `channel_members`
       flag the lists read when they decide whether to draw a dot. */
   const handleToggleMute = useCallback(async () => {
     if (!channelId || !userId) return;
@@ -920,8 +920,8 @@ export default function ChannelRoomScreen() {
       setMuted(!next);
       setSendError(
         next
-          ? "Couldn't mute this room — give it another try."
-          : "Couldn't unmute this room — give it another try."
+          ? "Couldn't mute this room. Give it another try."
+          : "Couldn't unmute this room. Give it another try."
       );
     }
   }, [channelId, userId, muted]);
@@ -940,7 +940,7 @@ export default function ChannelRoomScreen() {
       } catch {
         setBlockFor(null);
         setActionsFor(null);
-        setSendError("Couldn't block them just now — give it another try.");
+        setSendError("Couldn't block them just now. Give it another try.");
       } finally {
         setBlocking(false);
       }
@@ -951,7 +951,7 @@ export default function ChannelRoomScreen() {
   /* ------------------------ drafts and the queue ----------------------- */
 
   // Restore what was left mid-sentence, but never over something already
-  // typed — a slow read must not overwrite a fast typist.
+  // typed: a slow read must not overwrite a fast typist.
   useEffect(() => {
     let cancelled = false;
     void loadDraft(conversationKey).then((saved) => {
@@ -970,7 +970,7 @@ export default function ChannelRoomScreen() {
       draftTimerRef.current = setTimeout(() => {
         draftTimerRef.current = null;
         // While editing, the composer holds someone's published words, not a
-        // draft — the real draft is parked in draftBeforeEditRef.
+        // draft. The real draft is parked in draftBeforeEditRef.
         if (editingRef.current) return;
         void saveDraft(conversationKey, text);
       }, DRAFT_SAVE_MS);
@@ -1032,7 +1032,7 @@ export default function ChannelRoomScreen() {
       // The queue itself couldn't be read; the refresh below still tells the
       // truth about what's waiting.
     }
-    // Retire the pending bubbles BEFORE the real rows arrive — the other
+    // Retire the pending bubbles BEFORE the real rows arrive. The other
     // order shows both for a frame, which reads as a message sent twice.
     await refreshPending();
     if (landed.length > 0) {
@@ -1075,7 +1075,7 @@ export default function ChannelRoomScreen() {
     [refreshPending]
   );
 
-  // Landing in the room and leaving it both count as caught up — the focus
+  // Landing in the room and leaving it both count as caught up. The focus
   // effect's cleanup runs on blur and unmount alike, clearing the lists' dots.
   // Arriving is also when anything the queue is holding gets another go.
   useFocusEffect(
@@ -1148,13 +1148,13 @@ export default function ChannelRoomScreen() {
           const row = payload.new;
           markRead();
           if (row.parent_id) {
-            // Replies never join the main list — just bump the badge.
+            // Replies never join the main list; just bump the badge.
             bumpReplyCount(row.parent_id, row.id, row.author_id);
             return;
           }
           if (row.author_id === userId) return;
           // A poll announcement is a hint that a poll may have just started,
-          // never a binding — see the availability strip below.
+          // never a binding. See the availability strip below.
           if (row.content.startsWith(AVAILABILITY_ANNOUNCE)) {
             void refreshOpenPolls();
           }
@@ -1227,7 +1227,7 @@ export default function ChannelRoomScreen() {
             return changed ? next : prev;
           });
           // Pins can flip on rows outside the loaded window, and deleting a
-          // pinned message unlists it — refetch whenever the state differs.
+          // pinned message unlists it, so refetch whenever the state differs.
           const isPinnedNow = Boolean(row.pinned_at) && !row.deleted_at;
           if (pinnedIdsRef.current.has(row.id) !== isPinnedNow) {
             void refreshPinned();
@@ -1249,7 +1249,7 @@ export default function ChannelRoomScreen() {
     loadForwardedNames,
   ]);
 
-  // Own display name — broadcast alongside typing events so other clients
+  // Own display name, broadcast alongside typing events so other clients
   // (web included) can show "Ada is typing…".
   useEffect(() => {
     if (!userId) return;
@@ -1268,7 +1268,7 @@ export default function ChannelRoomScreen() {
     };
   }, [userId]);
 
-  // Live typing layer — same broadcast protocol as the web room, keyed by
+  // Live typing layer, on the same broadcast protocol as the web room, keyed by
   // channel id, so typers show across runtimes. Idle until the room is ready.
   const { typers, noteTyping } = useTyping(isReady ? channelId : "", {
     id: userId ?? "",
@@ -1308,7 +1308,7 @@ export default function ChannelRoomScreen() {
     const tempId = `temp-${Date.now().toString(36)}-${Math.random()
       .toString(36)
       .slice(2, 10)}`;
-    // Optimistic bubble — own messages don't render the author, so null is fine.
+    // Optimistic bubble. Own messages don't render the author, so null is fine.
     const optimistic: MessageRow = {
       id: tempId,
       channel_id: channelId,
@@ -1332,7 +1332,7 @@ export default function ChannelRoomScreen() {
     // Queue it first, then send the queue's own row. The point is the id: both
     // attempts carry the same primary key, so a send that commits but never
     // answers is retried as a unique violation the queue reads as "it already
-    // landed" — rather than as a second copy of the message. See
+    // landed", rather than as a second copy of the message. See
     // QueuedMessage.id in drafts.ts.
     let queued: QueuedMessage | null = null;
     let queueError: unknown = null;
@@ -1343,7 +1343,7 @@ export default function ChannelRoomScreen() {
         payload: { channel_id: channelId, author_id: userId, content },
       });
     } catch (thrown) {
-      // The device wouldn't hold it. Still worth the wire — this one send
+      // The device wouldn't hold it. Still worth the wire; this one send
       // just goes out with nothing behind it if it fails.
       queueError = thrown;
     }
@@ -1359,12 +1359,12 @@ export default function ChannelRoomScreen() {
       noteConnectivity(!isLikelyOffline(insertError));
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       if (!queued) {
-        // Nothing is holding it — give the words back.
+        // Nothing is holding it, so give the words back.
         setDraft(content);
         setSendError(
           queueError instanceof DraftError
             ? queueError.message
-            : "Couldn't send that — check your connection and try again."
+            : "Couldn't send that. Check your connection and try again."
         );
         return;
       }
@@ -1455,7 +1455,7 @@ export default function ChannelRoomScreen() {
       markRead();
     } catch {
       setSendError(
-        "Couldn't send your photo — check your connection and try again."
+        "Couldn't send your photo. Check your connection and try again."
       );
     } finally {
       setUploading(false);
@@ -1485,7 +1485,7 @@ export default function ChannelRoomScreen() {
 
   /** `create_availability_poll` writes the poll, its times, and the message
       announcing it in one transaction. We get the poll id back; the message
-      arrives with no id of its own, and our own echoes are skipped — so pull
+      arrives with no id of its own, and our own echoes are skipped, so pull
       the newest row in and refresh the strip. */
   const handleAvailabilityCreated = useCallback(
     (pollId: string) => {
@@ -1573,7 +1573,7 @@ export default function ChannelRoomScreen() {
       .eq("author_id", userId);
     if (updateError) {
       setMessages((prev) => prev.map((m) => (m.id === target.id ? target : m)));
-      setSendError("Couldn't save your edit — give it another try.");
+      setSendError("Couldn't save your edit. Give it another try.");
     }
   }, [editing, userId, draft, mentions]);
 
@@ -1600,13 +1600,13 @@ export default function ChannelRoomScreen() {
           prev.map((m) => (m.id === target.id ? target : m))
         );
         if (target.pinned_at) void refreshPinned();
-        setSendError("Couldn't delete that — give it another try.");
+        setSendError("Couldn't delete that. Give it another try.");
       }
     },
     [userId, refreshPinned]
   );
 
-  /** Any member can pin or unpin — the RPC enforces membership server-side. */
+  /** Any member can pin or unpin. The RPC enforces membership server-side. */
   const handleTogglePin = useCallback(
     async (target: MessageRow, pin: boolean) => {
       if (!userId) return;
@@ -1641,15 +1641,15 @@ export default function ChannelRoomScreen() {
         void refreshPinned();
         setSendError(
           pin
-            ? "Couldn't pin that — give it another try."
-            : "Couldn't unpin that — give it another try."
+            ? "Couldn't pin that. Give it another try."
+            : "Couldn't unpin that. Give it another try."
         );
       }
     },
     [userId, refreshPinned]
   );
 
-  /** Optimistic save/remove in message_bookmarks — a private keep-it-handy
+  /** Optimistic save/remove in message_bookmarks, a private keep-it-handy
       flag. A double-tap race (23505) already means saved, so it stands. */
   const handleToggleSaved = useCallback(
     async (messageId: string, save: boolean) => {
@@ -1679,8 +1679,8 @@ export default function ChannelRoomScreen() {
         });
         setSendError(
           save
-            ? "Couldn't save that — give it another try."
-            : "Couldn't remove that from saved — give it another try."
+            ? "Couldn't save that. Give it another try."
+            : "Couldn't remove that from saved. Give it another try."
         );
       }
     },
@@ -1717,7 +1717,7 @@ export default function ChannelRoomScreen() {
     }, 5000);
   }, []);
 
-  // Blocked students' messages never render — filtering happens at the edge
+  // Blocked students' messages never render. Filtering happens at the edge
   // so realtime, optimistic, and initial rows all pass through one gate.
   const visibleMessages = useMemo(
     () => messages.filter((m) => !blocked.has(m.author_id)),
@@ -1729,7 +1729,7 @@ export default function ChannelRoomScreen() {
   );
   // Same gate on the reply badge: the thread screen hides blocked classmates'
   // replies, so counting them here would leave a pill that opens an empty
-  // thread — and quietly report that someone you blocked is still talking.
+  // thread, and quietly report that someone you blocked is still talking.
   const replyCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const [parentId, authors] of Object.entries(replyAuthors)) {
@@ -1832,7 +1832,7 @@ export default function ChannelRoomScreen() {
                     </AppText>
                   </MessageBubble>
                 ) : item.poll_id ? (
-                  // The message is a poll carrier — render the live poll in
+                  // The message is a poll carrier, so render the live poll in
                   // place of the text (content duplicates the question).
                   <PollBubble pollId={item.poll_id} />
                 ) : (
@@ -1901,7 +1901,7 @@ export default function ChannelRoomScreen() {
                     <Pressable
                       key={emoji}
                       accessibilityRole="button"
-                      accessibilityLabel={`${emoji} — ${group.count} ${
+                      accessibilityLabel={`${emoji}, ${group.count} ${
                         group.count === 1 ? "reaction" : "reactions"
                       }${group.mine ? ", including yours" : ""}`}
                       onPress={() => void toggleReaction(item.id, emoji)}
@@ -1939,7 +1939,7 @@ export default function ChannelRoomScreen() {
               {replyCount > 0 ? (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Open thread — ${
+                  accessibilityLabel={`Open thread, ${
                     replyCount === 1 ? "1 reply" : `${replyCount} replies`
                   }`}
                   onPress={() => openThread(item.id)}
@@ -1998,7 +1998,7 @@ export default function ChannelRoomScreen() {
     });
   }, [visibleMessages]);
 
-  // A messageId in the route — saved messages, a deep link — is a request to
+  // A messageId in the route (saved messages, a deep link) is a request to
   // open at that message rather than at the bottom. Once per arrival.
   const focusHandledRef = useRef<string | null>(null);
   useEffect(() => {
@@ -2132,7 +2132,7 @@ export default function ChannelRoomScreen() {
                 muted
                 style={{ textAlign: "center", maxWidth: 280 }}
               >
-                {kind === "campus" ? "Campus channel" : "Topic channel"} — open
+                {kind === "campus" ? "Campus channel" : "Topic channel"}, open
                 to everyone at your school.
               </AppText>
               <Button
@@ -2192,15 +2192,15 @@ export default function ChannelRoomScreen() {
   const subtitle = channelSubtitle(channel);
   const canSend = draft.trim().length > 0 && !sending;
   const searchActive = searchOpen && searchQuery.trim() !== "";
-  // A course chat is not a one-way door: its own hub — rooms, calendar,
-  // notes, flashcards, grades — is one tap off the header.
+  // A course chat is not a one-way door: its own hub (rooms, calendar,
+  // notes, flashcards, grades) is one tap off the header.
   const courseId =
     channel.kind === "course" ? (channel.course?.id ?? null) : null;
   const courseCode = channel.course?.code ?? null;
   const blockName =
     blockFor?.author?.display_name ??
     (blockFor?.author?.handle ? `@${blockFor.author.handle}` : "this person");
-  // Blocked students stay hidden in search too — same gate as the stream.
+  // Blocked students stay hidden in search too, on the same gate as the stream.
   const visibleResults = searchResults.filter((m) => !blocked.has(m.author_id));
   // The long-press sheet reads the live row, so pin state stays fresh.
   const actionsMessage = actionsFor
@@ -2355,7 +2355,7 @@ export default function ChannelRoomScreen() {
               borderColor: theme.border,
               borderRadius: 22,
               backgroundColor: theme.background,
-              /* 14 across, the same as Field — an input is an input. */
+              /* 14 across, the same as Field. An input is an input. */
               paddingHorizontal: 14,
               fontFamily: fonts.body,
               fontSize: 15,
@@ -2383,7 +2383,7 @@ export default function ChannelRoomScreen() {
       {visiblePinned.length > 0 ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`View pinned messages — ${
+          accessibilityLabel={`View pinned messages, ${
             visiblePinned.length === 1
               ? "1 pinned"
               : `${visiblePinned.length} pinned`
@@ -2419,7 +2419,7 @@ export default function ChannelRoomScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         {searchActive ? (
-          // Search results replace the stream while a query is typed — a
+          // Search results replace the stream while a query is typed: a
           // reading surface only; rows don't jump into the conversation.
           searching && visibleResults.length === 0 ? (
             <View
@@ -2457,7 +2457,7 @@ export default function ChannelRoomScreen() {
               keyboardShouldPersistTaps="handled"
             >
               {/* A hit is a place in the conversation: tapping one goes
-                  there. A photo shows the photo, not the word "Photo" —
+                  there. A photo shows the photo, not the word "Photo", and
                   tapping the thumbnail opens it full screen. */}
               {visibleResults.map((m, i) => (
                 <Pressable
@@ -2537,7 +2537,7 @@ export default function ChannelRoomScreen() {
             </View>
             <AppText variant="title">It's quiet in here</AppText>
             <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
-              Nobody's said anything yet — be the first to say hi.
+              Nobody's said anything yet. Be the first to say hi.
             </AppText>
             {/* Going first is easier when you know who'll read it. */}
             {memberCount !== null ? (
@@ -2567,7 +2567,7 @@ export default function ChannelRoomScreen() {
             onLayout={drainFocus}
             onContentSizeChange={drainFocus}
             // Rows are variable height, so an offscreen target can miss on
-            // the first pass — settle where we can and try once more.
+            // the first pass, so settle where we can and try once more.
             onScrollToIndexFailed={({ index, averageItemLength }) => {
               listRef.current?.scrollToOffset({
                 offset: index * Math.max(averageItemLength, 1),
@@ -2581,7 +2581,7 @@ export default function ChannelRoomScreen() {
                 });
               }, 120);
             }}
-            // In an inverted list the header sits at the visual bottom — the
+            // In an inverted list the header sits at the visual bottom, the
             // right home for messages that haven't gone out yet, oldest of
             // them first, right where they were typed.
             ListHeaderComponent={
@@ -2598,7 +2598,7 @@ export default function ChannelRoomScreen() {
                 </View>
               ) : null
             }
-            // …and the footer at the visual top — the right home for a
+            // …and the footer at the visual top, the right home for a
             // "beginning of the channel" note.
             ListFooterComponent={
               visibleMessages.length < PAGE_SIZE ? (
@@ -2635,7 +2635,7 @@ export default function ChannelRoomScreen() {
             message bubble, and that is a deliberate call. Unlike a poll, an
             availability poll has no `messages.poll_id` to hang off: the RPC
             posts a plain "When can everyone meet? …" message, so binding a
-            poll to a message would mean guessing from that text — and the
+            poll to a message would mean guessing from that text. The
             moment somebody types those words themselves, or the announcing
             message is edited or deleted, the guess attaches a live poll to
             the wrong row. A strip can't misfire: it asks the channel for its
@@ -2659,7 +2659,7 @@ export default function ChannelRoomScreen() {
               accessibilityLabel={
                 pollsExpanded
                   ? "Hide when everyone's free"
-                  : `Say when you're free — ${openPolls[0].title}`
+                  : `Say when you're free: ${openPolls[0].title}`
               }
               onPress={() => {
                 const next = !pollsExpanded;
@@ -2970,7 +2970,7 @@ export default function ChannelRoomScreen() {
         onCreated={handleAvailabilityCreated}
       />
 
-      {/* Pinned messages list — a reading surface, so the sheet's children
+      {/* Pinned messages list: a reading surface, so the sheet's children
           are a scroller rather than action rows. */}
       <Sheet
         visible={pinnedOpen}
@@ -3047,7 +3047,7 @@ export default function ChannelRoomScreen() {
         )}
       </Sheet>
 
-      {/* Full-screen photo viewer — tap anywhere to close. */}
+      {/* Full-screen photo viewer. Tap anywhere to close. */}
       <Modal
         visible={viewerUrl !== null}
         transparent
@@ -3073,8 +3073,8 @@ export default function ChannelRoomScreen() {
 
       {/* The composer's "+" menu wears the sheet's rows but keeps its own
           in-tree scrim: every choice hands off to another native surface in
-          the same tick — the system photo picker, and the poll and
-          availability composers' own Modals — and a Modal dismissing
+          the same tick (the system photo picker, and the poll and
+          availability composers' own Modals), and a Modal dismissing
           underneath any of them is how you get a picker that never appears.
           Everything else here is `Sheet`. */}
       {composerMenuOpen ? (
@@ -3143,7 +3143,7 @@ export default function ChannelRoomScreen() {
 
       {/* The long-press menu: quick reactions on top, then the actions.
           Blocking asks its question inside the same sheet rather than
-          opening a second one — a Modal dismissing while another presents
+          opening a second one, because a Modal dismissing while another presents
           is how you get a sheet that never appears. */}
       <Sheet
         visible={actionsMessage !== null}
@@ -3231,7 +3231,7 @@ export default function ChannelRoomScreen() {
             }}
           />
           {/* A poll carrier's words are the question, and the poll itself
-              doesn't travel — so there's nothing honest to forward. */}
+              doesn't travel, so there's nothing honest to forward. */}
           {actionsMessage && !actionsMessage.poll_id ? (
             <Sheet.Row
               icon="corner-up-right"

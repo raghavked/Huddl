@@ -25,12 +25,12 @@ type ChipMetrics = {
   lineHeight: number;
   icon: number;
   gap: number;
-  /** [static, interactive] — a tappable pill carries a little more air. */
+  /** [static, interactive]: a tappable pill carries a little more air. */
   paddingHorizontal: [number, number];
   paddingVertical: [number, number];
 };
 
-/* These numbers are the ones already drawn by hand across the app — the
+/* These numbers are the ones already drawn by hand across the app. The
    static pair matches the metadata pills in plan / course / club, and the
    interactive `md` pair matches the kind picker in course/calendar exactly,
    hairline and all. Adoption should be a visual no-op. */
@@ -55,7 +55,7 @@ const SIZES: Record<ChipSize, ChipMetrics> = {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-/* A chosen chip swells a hair and settles back — the pill acknowledging
+/* A chosen chip swells a hair and settles back, the pill acknowledging
    the tap in its own right, so selection is not carried by color alone.
    Only on the way *in*: deselecting is a removal, and removals do not get
    a flourish. */
@@ -81,9 +81,9 @@ function toneColors(tone: ChipTone, theme: Palette): { bg: string; fg: string } 
  * filter toggles.
  *
  * Two jobs, one component:
- * - **Static** (no `onPress`) — a label about the row it sits in. Filled
+ * - **Static** (no `onPress`): a label about the row it sits in. Filled
  *   with the tone's soft color, no border, hugging its content.
- * - **Interactive** (`onPress`, usually with `selected`) — a filter or a
+ * - **Interactive** (`onPress`, usually with `selected`): a filter or a
  *   picker. Gains a hairline border, a little more padding, and enough
  *   `hitSlop` to reach a 44px touch target no matter which size it is.
  *   Unselected reads quiet (surface + border + muted text); selected fills
@@ -95,7 +95,7 @@ function toneColors(tone: ChipTone, theme: Palette): { bg: string; fg: string } 
  * notice (overdue, removed, blocked).
  *
  * An interactive chip becoming `selected` swells 5% and settles back, so
- * the choice registers as an event and not only as a color — which matters
+ * the choice registers as an event and not only as a color, which matters
  * in a filter row where the difference is a soft fill two shades apart.
  * Under reduce motion the fill simply changes.
  *
@@ -119,7 +119,7 @@ export function Chip({
   tone?: ChipTone;
   size?: ChipSize;
   icon?: FeatherName;
-  /** Only meaningful with `onPress` — drives the fill and a11y state. */
+  /** Only meaningful with `onPress`. Drives the fill and a11y state. */
   selected?: boolean;
   onPress?: () => void;
   accessibilityLabel?: string;

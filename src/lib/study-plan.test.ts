@@ -8,7 +8,7 @@ import {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-// A fixed Wednesday at noon local time — mid-June dodges DST transitions.
+// A fixed Wednesday at noon local time. Mid-June dodges DST transitions.
 const NOW = new Date(2026, 5, 17, 12, 0, 0);
 
 function item(
@@ -42,7 +42,7 @@ describe("toPlanKind", () => {
   });
 });
 
-describe("buildPlan — grouping", () => {
+describe("buildPlan: grouping", () => {
   it("buckets entries into ordered groups and drops empty ones", () => {
     const plan = buildPlan(
       [
@@ -110,7 +110,7 @@ describe("buildPlan — grouping", () => {
   });
 });
 
-describe("buildPlan — stats", () => {
+describe("buildPlan: stats", () => {
   it("counts handled items and surfaces the earliest unhandled as nextUp", () => {
     const overdue = item("1", new Date(NOW.getTime() - DAY_MS));
     const soon = item("2", new Date(NOW.getTime() + DAY_MS));
@@ -122,7 +122,7 @@ describe("buildPlan — stats", () => {
     expect(plan.stats.nextUp?.id).toBe("2");
   });
 
-  it("includes overdue items in nextUp — catching up comes first", () => {
+  it("includes overdue items in nextUp: catching up comes first", () => {
     const overdue = item("late", new Date(NOW.getTime() - DAY_MS));
     const soon = item("soon", new Date(NOW.getTime() + DAY_MS));
     const plan = buildPlan([soon, overdue], new Set(), NOW);
@@ -138,7 +138,7 @@ describe("buildPlan — stats", () => {
   });
 });
 
-describe("buildPlan — study blocks", () => {
+describe("buildPlan: study blocks", () => {
   it("gives an exam due in 10 days all three blocks at −7/−3/−1 days", () => {
     const due = new Date(NOW.getTime() + 10 * DAY_MS);
     const exam = item("mid", due, { kind: "exam", title: "Midterm 1" });
@@ -151,7 +151,7 @@ describe("buildPlan — study blocks", () => {
       due.getTime() - 1 * DAY_MS,
     ]);
     expect(blocks?.[0]?.key).toBe("study:mid:1");
-    expect(blocks?.[1]?.label).toBe("Study block 2 of 3 — ECS 36A Midterm 1");
+    expect(blocks?.[1]?.label).toBe("Study block 2 of 3: ECS 36A Midterm 1");
   });
 
   it("skips blocks already in the past but keeps their n-of-3 position", () => {

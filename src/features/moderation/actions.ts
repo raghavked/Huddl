@@ -9,14 +9,14 @@ import { createClient } from "@/lib/supabase/server";
  * one of them: a channel message, a direct message, or a person. (A board post
  * is the fourth, and it files itself through `@/features/board/actions`.)
  * Direct messages were the gap until migration 0038 gave them a column of
- * their own — before that a reported DM had to be filed against the PERSON
+ * their own. Before that a reported DM had to be filed against the PERSON
  * with the words retyped into the reason box, and the moderator triaged a
  * harassment report with no evidence attached.
  *
  * Whichever subject it is, the reported student rides along in
  * `reported_user_id`. Every subject column is `on delete set null`, so a
  * report that named only a message loses its subject the moment that message
- * is hard-deleted — which is the most likely moment for someone to try.
+ * is hard-deleted, which is the most likely moment for someone to try.
  * Pinning the author at filing time is what keeps the queue's row about a
  * person after the thing it named is gone.
  *
@@ -29,7 +29,7 @@ import { createClient } from "@/lib/supabase/server";
  * The categories are not this file's to define. They live in `@/lib/moderation`
  * as `ReportCategory` and `categoryLabel`, matching the `reports.category`
  * check constraint from 0020, and a "use server" module may only export async
- * functions — so a category picker imports its values and labels from there,
+ * functions, so a category picker imports its values and labels from there,
  * never from here. */
 
 export type ModerationActionResult = { error?: string };
@@ -48,7 +48,7 @@ const RETRY_WINDOW_MS = 5 * 60 * 1000;
    the native report screen uses. It is the one failure that retrying will
    never fix, so it must not reach the student as "please try again". */
 const RATE_LIMIT_MESSAGE =
-  "You've filed a lot of reports this hour — we're on it. Try again later.";
+  "You've filed a lot of reports this hour. We're on it. Try again later.";
 
 /* Both ways an insert can fail read the same to the person reporting: the
    report isn't filed, and the thing to do is send it again. */
@@ -60,7 +60,7 @@ type Db = Awaited<ReturnType<typeof createClient>>;
 /**
  * What a report points at: exactly one of the two message columns, or neither
  * for a report about a person. `reported_user_id` is never null on anything
- * filed here — see the module note on why it's pinned rather than derived from
+ * filed here. See the module note on why it's pinned rather than derived from
  * the message later.
  */
 type ReportTarget = {
@@ -76,7 +76,7 @@ type Filing = { supabase: Db; reporterId: string; reason: string };
  * The checks all three entry points share, done before anything is looked up:
  * the reason is sayable, the category is real, and somebody is signed in.
  *
- * @param signedOut The sentence to show when nobody is — each surface says it
+ * @param signedOut The sentence to show when nobody is. Each surface says it
  *   in its own words.
  */
 async function preflight(
@@ -94,7 +94,7 @@ async function preflight(
      the caller made in TypeScript and nothing more. `isReportCategory` is the
      web's one runtime view of the eight the check constraint allows: a value
      it can't put a name to isn't one of them. Refusing here is what stops an
-     older client — one that still sends only a reason — from writing nothing
+     older client (one that still sends only a reason) from writing nothing
      to the column and having the `other` default land it in the queue as
      "Something else", which is the whole bug this flow exists to end. */
   if (!isReportCategory(category)) {
@@ -130,8 +130,8 @@ async function fileReport(
   /* A report has to survive a bad connection, and the two ways to lose one
      pull against each other: a write nobody can confirm has to read as a
      failure so the student sends it again, and sending it again must not turn
-     one report into two. Duplicates aren't free — they spend a limited hourly
-     budget (0020) and cost a moderator a second read of the same words — so a
+     one report into two. Duplicates aren't free: they spend a limited hourly
+     budget (0020) and cost a moderator a second read of the same words. So a
      retry of this exact filing inside RETRY_WINDOW_MS is answered as the
      success it already is. Anything the student changed, including the words,
      is a new report and gets filed as one. */
@@ -152,8 +152,8 @@ async function fileReport(
       row.message_id === target.message_id &&
       row.dm_message_id === target.dm_message_id &&
       // `board_post_id` is the fourth subject column (0034) and nothing in
-      // this module writes it — but src/features/board/actions.ts does, and
-      // without this line a board report and a profile report against the
+      // this module writes it. src/features/board/actions.ts does, though,
+      // and without this line a board report and a profile report against the
       // same person, with the same words, are indistinguishable here. The
       // second one would be answered "already filed" and never written.
       row.board_post_id === null &&
@@ -186,7 +186,7 @@ async function fileReport(
 
   /* Silence is the one answer a report can't be given. The reporter-scoped
      select policy from 0015 reads the row straight back, so nothing coming
-     back means nothing was written — better to send them round again than to
+     back means nothing was written. Better to send them round again than to
      draw a confirmation over an empty queue. */
   if (!data) return { error: INSERT_FAILED };
 
@@ -224,11 +224,11 @@ export async function reportMessage(
 
   /* A dropped request and a missing row are not the same answer, and the
      difference is the whole advice. "It may have been deleted" tells a
-     student there is nothing to retry — on exactly the bad connection the
+     student there is nothing to retry, on exactly the bad connection the
      write path below is written to survive. */
   if (lookupError) return { error: INSERT_FAILED };
   if (!message) {
-    return { error: "Couldn't find that message — it may have been deleted." };
+    return { error: "Couldn't find that message. It may have been deleted." };
   }
   if (message.author_id === filing.reporterId) {
     return { error: "You can't report your own message." };
@@ -268,9 +268,9 @@ export async function reportDmMessage(
      audience: `dm_messages` is readable only to its participants
      (`is_dm_participant`, 0005), minus any author the reader has blocked
      (0042). So a row that comes back here is a message already sitting in the
-     reporter's own conversation, and a row that doesn't is not theirs to name
-     — the same guarantee the channel lookup gives, arrived at through the one
-     policy that applies. It also hands over the author to pin, which matters
+     reporter's own conversation, and a row that doesn't is not theirs to name.
+     That's the same guarantee the channel lookup gives, arrived at through the
+     one policy that applies. It also hands over the author to pin, which matters
      more here than anywhere: `dm_message_id` nulls out on a hard delete and
      nobody but the two of them can ever look the sender up again. */
   const { data: dm, error: lookupError } = await filing.supabase
@@ -282,14 +282,14 @@ export async function reportDmMessage(
   if (lookupError) return { error: INSERT_FAILED };
   if (!dm) {
     /* Two ways to land here, and the copy has to cover both. The row may
-       genuinely be gone — but 0042 also subtracts authors the reader has
+       genuinely be gone, but 0042 also subtracts authors the reader has
        blocked from `dm_messages`, so blocking someone and then reporting
        something they sent earlier reads as "not found" too. Blocking first
        and reporting second is an ordinary order to do those in, and telling
        that student their message was deleted would be a lie. */
     return {
       error:
-        "We can't reach that message any more. If you've blocked them since, unblock to report it — or report their profile instead.",
+        "We can't reach that message any more. If you've blocked them since, unblock to report it, or report their profile instead.",
     };
   }
   if (dm.author_id === filing.reporterId) {
@@ -308,7 +308,7 @@ export async function reportDmMessage(
 }
 
 /**
- * Report a person — their profile, or a pattern of behaviour that no single
+ * Report a person: their profile, or a pattern of behaviour that no single
  * message carries on its own. No message reference at all: `reported_user_id`
  * is the entire subject, which `reports_have_subject` has allowed since 0015.
  *
@@ -343,7 +343,7 @@ export async function reportProfile(
 
   if (lookupError) return { error: INSERT_FAILED };
   if (!profile) {
-    return { error: "Couldn't find that person — their account may be gone." };
+    return { error: "Couldn't find that person. Their account may be gone." };
   }
 
   return fileReport(

@@ -15,8 +15,8 @@ type TypingPayload = { userId: string; name: string; at: number };
 
 /**
  * Live "who's typing" over a Supabase Realtime broadcast channel
- * (`typing:${channelKey}`). Call `noteTyping()` from the composer's onChange —
- * it throttles itself to one broadcast per ~2s. `typers` holds the display
+ * (`typing:${channelKey}`). Call `noteTyping()` from the composer's onChange.
+ * It throttles itself to one broadcast per ~2s. `typers` holds the display
  * names of OTHER people whose latest event is fresh (<4s), pruned on an
  * interval so names fade shortly after they stop. Mirrors the channel
  * lifecycle idiom of `useRealtimeInserts` (subscribe in effect, removeChannel

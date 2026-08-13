@@ -13,7 +13,7 @@ type FeatherName = ComponentProps<typeof Feather>["name"];
  * One 44px row inside a Sheet: soft icon tile, label, optional danger tone,
  * optional `selected` check.
  *
- * `selected` is for the sheet that is a picker — a reminder ladder, a quiet
+ * `selected` is for the sheet that is a picker: a reminder ladder, a quiet
  * hours time, a sort order. It draws the check on the trailing edge *and*
  * hands the row `accessibilityState={{ selected }}`, which is the half
  * every hand-drawn version of this row forgot: a check a screen reader
@@ -88,7 +88,7 @@ function SheetRow({
  * from the bottom edge.
  *
  * Reach for it when a tap needs two to five follow-up choices and a full
- * screen would be too much ceremony — the "…" on a message, the owner menu
+ * screen would be too much ceremony: the "…" on a message, the owner menu
  * on a club, the overflow on an event. Anything longer than five rows wants
  * a real screen instead.
  *
@@ -98,7 +98,7 @@ function SheetRow({
  * carries its own accessibility label so screen readers get an exit.
  *
  * The card sits on `floating` elevation, respects the home indicator, and
- * caps at 85% of the screen — pass a `ScrollView` as `children` if the
+ * caps at 85% of the screen. Pass a `ScrollView` as `children` if the
  * content can outgrow that.
  *
  * `Sheet.Row` is the row every caller was drawing by hand: 44px tall, soft
@@ -106,7 +106,7 @@ function SheetRow({
  * sheet in the row's own `onPress` before doing the work.
  *
  * When the sheet is a picker rather than a menu, mark the current choice
- * with `selected` — it draws the trailing check and, more importantly,
+ * with `selected`. It draws the trailing check and, more importantly,
  * announces the row as selected. Never spell the state into the label
  * instead ("6:00 PM · current"); the prop says it to everyone.
  *

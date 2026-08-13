@@ -15,18 +15,18 @@ export type MentionTextProps = {
   /** The raw message content to render (e.g. `messages.content`). */
   text: string;
   /**
-   * Style for the non-mention text — pass whatever the plain message text
+   * Style for the non-mention text. Pass whatever the plain message text
    * currently uses (font, size, color). Mention tokens inherit everything
    * from it except `fontFamily` and `color`, which they override.
    */
   baseStyle?: StyleProp<TextStyle>;
   /**
-   * Color for mention tokens. Pick per bubble so contrast holds — e.g.
+   * Color for mention tokens. Pick per bubble so contrast holds, e.g.
    * `theme.brandInk` on other people's bubbles and `theme.onSolid` (or the
    * bubble's own text color) on your own brand-colored bubble.
    */
   highlightColor: string;
-  /** Forwarded to the outer `Text` — same truncation behavior as before. */
+  /** Forwarded to the outer `Text`. Same truncation behavior as before. */
   numberOfLines?: number;
 };
 
@@ -36,7 +36,7 @@ export type MentionTextProps = {
  * on mention tokens and renders them semibold in `highlightColor`, leaving
  * every other segment styled by `baseStyle` alone.
  *
- * Pure display — no network, no navigation, no touch handling. The mention
+ * Pure display: no network, no navigation, no touch handling. The mention
  * notification already fires from a database trigger on message insert, so
  * rendering is the only client-side job.
  *
@@ -81,7 +81,7 @@ export function MentionText({
 }
 
 /**
- * Whether `text` mentions `handle` as a whole token — the exact same
+ * Whether `text` mentions `handle` as a whole token, using the exact same
  * tokenization {@link MentionText} highlights, so "does this message mention
  * me" always agrees with what the user sees. Case-insensitive; a leading `@`
  * on `handle` is tolerated. Partial matches don't count: `"hi @samantha"`

@@ -33,9 +33,9 @@ function VerifyContent() {
     });
     if (resendError) {
       setResendState("idle");
-      // Warm words, not raw API text — the fix is the same either way.
+      // Warm words instead of raw API text. The fix is the same either way.
       setError(
-        "That resend didn't go through — give it a minute, then try again."
+        "That resend didn't go through. Give it a minute, then try again."
       );
       return;
     }
@@ -81,7 +81,7 @@ function VerifyContent() {
           className="mt-5 flex items-center justify-center gap-2 text-sm font-medium text-success"
         >
           <MailCheck className="size-4" aria-hidden />
-          Sent — check your inbox (and spam).
+          Sent. Check your inbox (and spam).
         </p>
       ) : (
         <Button

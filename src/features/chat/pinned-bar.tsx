@@ -8,8 +8,8 @@ import { formatMessageTime } from "@/lib/utils";
 
 /**
  * Slim strip above the message list once a channel has pinned messages.
- * Tapping it unfolds the full pinned list, each row with its own Unpin —
- * any member can pin or unpin, campus rooms are small and self-governing.
+ * Tapping it unfolds the full pinned list, each row with its own Unpin. Any
+ * member can pin or unpin: campus rooms are small and self-governing.
  */
 export function PinnedBar({
   pinned,

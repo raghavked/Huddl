@@ -7,13 +7,13 @@ import { buttonClasses } from "@/components/ui";
 export const metadata: Metadata = { title: "Page not found" };
 
 /**
- * On-brand 404. Works for signed-in and signed-out visitors alike —
- * no auth calls, no data, just a nudge back toward campus.
+ * On-brand 404. Works for signed-in and signed-out visitors alike: no auth
+ * calls, no data, just a nudge back toward campus.
  */
 export default function NotFound() {
   return (
     <div className="flex min-h-dvh flex-col items-center px-4 pb-16 pt-10 sm:justify-center sm:pt-6">
-      {/* Ambient wash — subtle, token-built (mirrors the auth shell). */}
+      {/* Ambient wash: subtle, token-built (mirrors the auth shell). */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-80 bg-linear-to-b from-brand/[0.07] via-transparent to-transparent"
@@ -40,8 +40,7 @@ export default function NotFound() {
             This page wandered off
           </h1>
           <p className="mx-auto mt-2 max-w-sm text-sm text-muted text-pretty">
-            The link might be old, or this page moved somewhere new. Campus is
-            still buzzing, though — head back and jump in.
+            The link might be old, or this page moved somewhere new.
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-3">

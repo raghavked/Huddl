@@ -9,7 +9,7 @@ import {
 } from "./content";
 
 /**
- * The legal copy exists twice — mobile/src/lib/legal-content.ts is the source
+ * The legal copy exists twice. mobile/src/lib/legal-content.ts is the source
  * of truth, and this directory's content.ts is a verbatim duplicate, because
  * the web tsconfig can't reach into mobile/. docs/LEGAL.md says the two must
  * stay identical, and until now nothing enforced that.
@@ -17,7 +17,7 @@ import {
  * They had already come apart. The native copy had been revised to disclose
  * three things the web copy still denied or omitted: that a forwarded message
  * outlives the account it came from, that avatars are served from a public
- * link, and that a block is one-way — the web privacy policy was still
+ * link, and that a block is one-way. The web privacy policy was still
  * telling students that someone they blocked "can't message you or see your
  * posts", the second half of which was never true. A privacy policy that is
  * accurate on a phone and wrong in a browser is worse than one that is merely

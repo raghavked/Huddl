@@ -27,7 +27,7 @@ function daysInMonth(month: number, year: number): number {
   return new Date(year, month, 0).getDate();
 }
 
-/** "Sat, Aug 9 · 3:00 PM" — how the plan reads in the class chat. */
+/** "Sat, Aug 9 · 3:00 PM", how the plan reads in the class chat. */
 function announceWhen(d: Date): string {
   const day = d.toLocaleDateString(undefined, {
     weekday: "short",
@@ -81,17 +81,17 @@ export default function NewEventScreen() {
   const [linkedCourseId, setLinkedCourseId] = useState<string | null>(
     courseId ?? null
   );
-  // Same deal for the club link — officers land here from the club page.
+  // Same deal for the club link. Officers land here from the club page.
   const [linkedClubId, setLinkedClubId] = useState<string | null>(
     clubId ?? null
   );
 
-  // Club plans lean social, so they start as meetups — same as the web.
+  // Club plans lean social, so they start as meetups, same as the web.
   const [kind, setKind] = useState<EventKind>(
     clubId ? "meetup" : "study_session"
   );
   // "Make it an event" on a closed availability poll arrives with the title
-  // and the winning time already decided — the whole point of the poll — so
+  // and the winning time already decided (the whole point of the poll), so
   // the form opens holding them instead of asking for them a second time.
   const [title, setTitle] = useState(titleParam ?? "");
   const [description, setDescription] = useState("");
@@ -114,27 +114,27 @@ export default function NewEventScreen() {
     const cleanTitle = title.trim();
     if (cleanTitle === "") {
       setFormError(
-        "Give it a title — “Midterm grind at Shields”, that kind of thing."
+        "Give it a title: “Midterm grind at Shields”, that kind of thing."
       );
       return;
     }
 
     const dateMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(date.trim());
     if (!dateMatch) {
-      setFormError("Dates look like YYYY-MM-DD — try 2026-10-14.");
+      setFormError("Dates look like YYYY-MM-DD, as in 2026-10-14.");
       return;
     }
     const year = Number(dateMatch[1]);
     const month = Number(dateMatch[2]);
     const day = Number(dateMatch[3]);
     if (month < 1 || month > 12 || day < 1 || day > daysInMonth(month, year)) {
-      setFormError("That day doesn't exist — double-check the month and day.");
+      setFormError("That day doesn't exist. Double-check the month and day.");
       return;
     }
 
     const start = parseTime(startTime.trim());
     if (!start) {
-      setFormError("Start times look like HH:MM — try 15:00.");
+      setFormError("Start times look like HH:MM, as in 15:00.");
       return;
     }
     const startsAt = new Date(year, month - 1, day, start.hours, start.minutes);
@@ -143,7 +143,7 @@ export default function NewEventScreen() {
     if (endTime.trim() !== "") {
       const end = parseTime(endTime.trim());
       if (!end) {
-        setFormError("End times look like HH:MM — try 17:00, or leave it blank.");
+        setFormError("End times look like HH:MM, as in 17:00, or leave it blank.");
         return;
       }
       // One date field, two times: an end that lands at or before the start
@@ -160,7 +160,7 @@ export default function NewEventScreen() {
       capacityNumber = Number(capacity.trim());
       if (!Number.isInteger(capacityNumber) || capacityNumber < 1) {
         setFormError(
-          "Capacity is a whole number of spots — or leave it blank for no cap."
+          "Capacity is a whole number of spots, or leave it blank for no cap."
         );
         return;
       }
@@ -169,7 +169,7 @@ export default function NewEventScreen() {
     setFormError(null);
     setPending(true);
 
-    // The event lives on your campus — grab it from your profile.
+    // The event lives on your campus, so grab it from your profile.
     const profileRes = await supabase
       .from("profiles")
       .select("university_id")
@@ -208,7 +208,7 @@ export default function NewEventScreen() {
     }
     const eventId = (insertRes.data as unknown as { id: string }).id;
 
-    // You're hosting — you're going. Best-effort: the event exists either way.
+    // You're hosting, so you're going. Best-effort: the event exists either way.
     await supabase
       .from("event_rsvps")
       .upsert(
@@ -218,18 +218,18 @@ export default function NewEventScreen() {
 
     // A plan that came out of an availability poll points back at it, so the
     // bubble in the chat reads "open the study session" instead of sitting
-    // there closed and unresolved. Best-effort on purpose — a link that
+    // there closed and unresolved. Best-effort on purpose: a link that
     // didn't take shouldn't cost the student the plan they just made.
     if (availabilityPollId) {
       try {
         await attachEvent(availabilityPollId, eventId);
       } catch {
-        // Someone else's poll, or a hiccup — either way, carry on.
+        // Someone else's poll, or a hiccup. Either way, carry on.
       }
     }
 
     // Course-linked plans get a quiet heads-up in the class's front room.
-    // Best-effort on purpose — a chat hiccup shouldn't eat the event.
+    // Best-effort on purpose: a chat hiccup shouldn't eat the event.
     if (linkedCourseId) {
       try {
         const channelRes = await supabase
@@ -249,12 +249,12 @@ export default function NewEventScreen() {
           });
         }
       } catch {
-        // The announcement is a bonus — carry on to the event.
+        // The announcement is a bonus. Carry on to the event.
       }
     }
 
     // Club events get the same quiet heads-up in the club's chat channel.
-    // Best-effort on purpose — a chat hiccup shouldn't eat the event.
+    // Best-effort on purpose: a chat hiccup shouldn't eat the event.
     if (linkedClubId) {
       try {
         const channelRes = await supabase
@@ -273,7 +273,7 @@ export default function NewEventScreen() {
           });
         }
       } catch {
-        // The announcement is a bonus — carry on to the event.
+        // The announcement is a bonus. Carry on to the event.
       }
     }
 
@@ -295,7 +295,7 @@ export default function NewEventScreen() {
     router,
   ]);
 
-  // Deep links land here directly — signed-out visitors get a proper door.
+  // Deep links land here directly, so signed-out visitors get a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -338,7 +338,7 @@ export default function NewEventScreen() {
           <View style={{ gap: space.snug }}>
             <AppText variant="display">Plan something</AppText>
             <AppText variant="caption" muted>
-              Put it on the campus calendar — classmates can RSVP right away.
+              Put it on the campus calendar. Classmates can RSVP right away.
             </AppText>
           </View>
 

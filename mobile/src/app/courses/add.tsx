@@ -49,7 +49,7 @@ type EnrollmentRow = {
   course: { code: string } | null;
 };
 
-/* A catalog row a pasted code matched — for its real, properly-cased title. */
+/* A catalog row a pasted code matched: its real, properly-cased title. */
 type CatalogRow = {
   id: string;
   subject_code: string;
@@ -74,8 +74,8 @@ function formatUnits(units: SearchRow["units"]): string | null {
   return `${n} ${n === 1 ? "unit" : "units"}`;
 }
 
-/** How a code reads on both sides of the "are you already in this?" check —
-    the student's typing and the catalog's spelling meet in the middle. */
+/** How a code reads on both sides of the "are you already in this?" check.
+    The student's typing and the catalog's spelling meet in the middle. */
 function codeKey(code: string): string {
   return normalizeCourseCode(code) ?? code.trim().toUpperCase();
 }
@@ -102,7 +102,7 @@ function pasteReport(
   }
   if (missed.length > 0) {
     tail.push(
-      `${joinCodes(missed)} didn't go through — give ${missed.length === 1 ? "it" : "them"} another try`
+      `${joinCodes(missed)} didn't go through, so give ${missed.length === 1 ? "it" : "them"} another try`
     );
   }
   if (landed.length === 0) {
@@ -110,10 +110,10 @@ function pasteReport(
   }
   if (tail.length === 0) {
     return landed.length === 1
-      ? "1 class added — its chat is open."
-      : `${landed.length} classes added — their chats are open.`;
+      ? "1 class added. Its chat is open."
+      : `${landed.length} classes added. Their chats are open.`;
   }
-  return `${landed.length} added — ${tail.join(". ")}.`;
+  return `${landed.length} added. ${tail.join(". ")}.`;
 }
 
 /** What a banner can offer besides the news: one door, named. */
@@ -128,7 +128,7 @@ function InlineBanner({
   tone: "warm" | "danger";
   icon: React.ComponentProps<typeof Feather>["name"];
   text: string;
-  /** The next move, when there is one — a class you just added, say. */
+  /** The next move, when there is one: a class you just added, say. */
   action?: BannerAction;
 }) {
   const theme = useTheme();
@@ -224,9 +224,9 @@ function ResultRow({
         ) : null}
       </View>
       {/* The term line is information, never a gate. `offered_now` is false
-          for every catalog row whenever no term spans today — which is
-          exactly move-in week, when a student most needs to add classes —
-          and the backend has allowed the add since migration 0017: "the
+          for every catalog row whenever no term spans today (exactly
+          move-in week, when a student most needs to add classes), and the
+          backend has allowed the add since migration 0017: "the
           catalog is a typeahead convenience, never a gate." So the caption
           says what the catalog knows and the button stays live either way. */}
       <View style={{ alignItems: "flex-end", gap: space.snug }}>
@@ -293,7 +293,7 @@ function ResultRow({
 
 /* One pasted class, still yours to shape: the code we read, a title you can
    fix, and a way to drop it. A row we could only read a bare code out of says
-   so quietly — it never blocks the add, because the code alone is enough. */
+   so quietly. It never blocks the add, because the code alone is enough. */
 function PasteDraftRow({
   row,
   busy,
@@ -371,7 +371,7 @@ function PasteDraftRow({
         >
           <Feather name="alert-circle" size={12} color={theme.brandInk} />
           <AppText variant="caption" style={{ color: theme.brandInk, flex: 1 }}>
-            just the code came through — add a title if you want one
+            just the code came through, so add a title if you want one
           </AppText>
         </View>
       ) : null}
@@ -450,7 +450,7 @@ export default function AddCoursesScreen() {
     async (row: SearchRow) => {
       setAddError(null);
       setPendingId(row.id);
-      // Returns the course id — the hub, where the chat, the calendar and
+      // Returns the course id: the hub, where the chat, the calendar and
       // the classmates all are.
       const { data, error } = await supabase.rpc("enroll_from_catalog", {
         p_catalog_course_id: row.id,
@@ -467,7 +467,7 @@ export default function AddCoursesScreen() {
       setEnrolledCodes((prev) => new Set(prev).add(codeKey(row.code)));
       const courseId = typeof data === "string" ? data : null;
       setToast({
-        text: `${row.code} added — its chat is open.`,
+        text: `${row.code} added. Its chat is open.`,
         action: courseId ? openCourse(row.code, courseId) : undefined,
       });
     },
@@ -550,7 +550,7 @@ export default function AddCoursesScreen() {
   /* The one write path for a self-input class: create-or-find the course row
      for a code, then upsert the caller's enrollment. Both the hand-add card
      and the paste sheet go through here, so a pasted class lands exactly the
-     way a typed one does — same row, same chat, same 'manual' source.
+     way a typed one does: same row, same chat, same 'manual' source.
 
      Hands back the course id on success (null on failure), so whatever
      called it can offer the door into the class it just made. */
@@ -572,7 +572,7 @@ export default function AddCoursesScreen() {
           .select("id")
           .single();
         if (insertError) {
-          // Probably created by a classmate moments ago — look it up instead.
+          // Probably created by a classmate moments ago, so look it up instead.
           const { data: found } = await supabase
             .from("courses")
             .select("id")
@@ -615,7 +615,7 @@ export default function AddCoursesScreen() {
     }
     setEnrolledCodes((prev) => new Set(prev).add(codeKey(code)));
     setFbDone({
-      text: `${code} added — you're in its chat.`,
+      text: `${code} added. You're in its chat.`,
       action: openCourse(code, courseId),
     });
     setFbCode("");
@@ -631,7 +631,7 @@ export default function AddCoursesScreen() {
   const [pasteNote, setPasteNote] = useState<string | null>(null);
   /* Codes the student crossed off, so re-parsing never resurrects them. */
   const dismissedRef = useRef<Set<string>>(new Set());
-  /* Catalog titles by code — a convenience the parse reads, never a gate. */
+  /* Catalog titles by code: a convenience the parse reads, never a gate. */
   const catalogRef = useRef<Map<string, { id: string; title: string }>>(
     new Map()
   );
@@ -718,7 +718,7 @@ export default function AddCoursesScreen() {
 
   /* The sheet is a Modal, so the keyboard slides over it instead of resizing
      it. The card is anchored to the bottom edge, so a spacer beneath the
-     button grows it upward and keeps the preview in view. iOS only — Android
+     button grows it upward and keeps the preview in view. iOS only. Android
      resizes the modal window itself. */
   const [keyboardInset, setKeyboardInset] = useState(0);
   useEffect(() => {
@@ -763,7 +763,7 @@ export default function AddCoursesScreen() {
     const landed: string[] = [];
     const already: string[] = [];
     const missed: string[] = [];
-    // Only useful when exactly one class landed — with six, there is no
+    // Only useful when exactly one class landed. With six, there is no
     // single door to offer, and the list they came from is the right one.
     let lastCourseId: string | null = null;
     for (const row of drafts) {
@@ -845,18 +845,18 @@ export default function AddCoursesScreen() {
     : searching
       ? "Searching the catalog…"
       : results === null
-        ? "Search by code or title — try “MAT 21A” or “calculus”."
+        ? "Search by code or title, like “MAT 21A” or “calculus”."
         : results.length === 0
-          ? `Nothing in the catalog matching “${q}” — add it by hand below.`
+          ? `Nothing in the catalog matching “${q}”. Add it by hand below.`
           : null;
 
   const draftCount = drafts.length;
   const pasteCaption =
     pasteText.trim() === ""
-      ? "Paste the whole thing — a registrar table, a list, or just the codes."
+      ? "Paste the whole thing: a registrar table, a list, or just the codes."
       : draftCount === 0
         ? "No course codes in there yet. They look like MAT 21A or ECS 36A."
-        : `Found ${draftCount} ${draftCount === 1 ? "class" : "classes"} — fix any titles, drop what you're not taking.${
+        : `Found ${draftCount} ${draftCount === 1 ? "class" : "classes"}. Fix any titles, drop what you're not taking.${
             draftCount >= MAX_PASTED_COURSES
               ? ` ${MAX_PASTED_COURSES} at a time is our limit.`
               : ""
@@ -903,7 +903,7 @@ export default function AddCoursesScreen() {
             Add courses
           </AppText>
           <AppText variant="caption" muted style={{ marginTop: space.snug }}>
-            Your classes, your call — search the catalog to save some typing,
+            Your classes, your call. Search the catalog to save some typing,
             or add any class by hand.
           </AppText>
 
@@ -1022,7 +1022,7 @@ export default function AddCoursesScreen() {
                       <AppText variant="bodySemi">Paste your schedule</AppText>
                       <AppText variant="caption" muted>
                         Copy it out of the registrar and drop the whole thing
-                        in — we'll pull the classes out.
+                        in. We'll pull the classes out.
                       </AppText>
                     </View>
                     <Feather
@@ -1077,7 +1077,7 @@ export default function AddCoursesScreen() {
                 <AppText variant="caption" muted>
                   The catalog covers common classes and just saves you the
                   typing. Anything it's missing you can add by hand right
-                  here — it counts exactly the same.
+                  here, and it counts exactly the same.
                 </AppText>
                 <View
                   style={{

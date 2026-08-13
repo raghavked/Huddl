@@ -8,9 +8,9 @@ import { supabase } from "@/lib/supabase";
 export type MentionSuggestion = {
   /** The member's user id (`profiles.id`). */
   id: string;
-  /** The member's handle, without the `@` — what gets inserted in the draft. */
+  /** The member's handle, without the `@`: what gets inserted in the draft. */
   handle: string;
-  /** The member's display name — show it next to the handle in the row. */
+  /** The member's display name. Show it next to the handle in the row. */
   displayName: string;
 };
 
@@ -32,20 +32,20 @@ export type MentionSuggestionsApi = {
   /**
    * Call on every composer text change, with the full draft, alongside your
    * own `setDraft`. It watches for a trailing `@partial` token and flips
-   * `active`/`suggestions` accordingly. Cheap and synchronous — no I/O.
+   * `active`/`suggestions` accordingly. Cheap and synchronous, with no I/O.
    */
   onDraftChange: (draft: string) => void;
   /**
    * Call when the user taps a suggestion. Replaces the trailing `@partial`
    * token in `draft` with `@handle ` (trailing space included, ready to keep
-   * typing) and returns the new draft — set it as your composer value. Also
+   * typing) and returns the new draft. Set that as your composer value. Also
    * deactivates the suggestion strip. If the draft no longer ends in a
    * mention token it is returned unchanged.
    */
   applyMention: (draft: string, handle: string) => string;
   /**
-   * Hide the strip without touching the draft — call after sending a message
-   * or when the composer loses focus/dismisses.
+   * Hide the strip without touching the draft. Call it after sending a
+   * message, or when the composer loses focus or dismisses.
    */
   reset: () => void;
 };
@@ -58,7 +58,7 @@ const MAX_SUGGESTIONS = 5;
 /**
  * Best-effort normalization of the joined rows. The client is untyped, and
  * PostgREST can hand the embedded `profiles` back as an object or a
- * one-element array depending on how it resolves the relationship — accept
+ * one-element array depending on how it resolves the relationship. Accept
  * both, and drop any row missing an id or handle.
  */
 function normalizeMembers(rows: unknown): MentionSuggestion[] {
@@ -89,9 +89,10 @@ function normalizeMembers(rows: unknown): MentionSuggestion[] {
 
 /**
  * Composer-side mention autocomplete for a channel. Loads the channel's
- * member list once per `channelId` (silently — a failed load just means no
- * suggestions, typing `@handle` by hand still works), then matches a trailing
- * `@partial` token in the draft against member handles and display names.
+ * member list once per `channelId` (silently: a failed load just means no
+ * suggestions, and typing `@handle` by hand still works), then matches a
+ * trailing `@partial` token in the draft against member handles and display
+ * names.
  *
  * Wiring into a message bar:
  *
@@ -112,7 +113,7 @@ function normalizeMembers(rows: unknown): MentionSuggestion[] {
  * // After sending: mentions.reset()
  * ```
  *
- * Pass `null` while the channel id is still resolving — the hook stays idle.
+ * Pass `null` while the channel id is still resolving; the hook stays idle.
  * The mention NOTIFICATION is created server-side by a database trigger when
  * the message row is inserted; the client never writes anything for mentions.
  */
@@ -124,7 +125,7 @@ export function useMentionSuggestions(
   const [partial, setPartial] = useState("");
 
   useEffect(() => {
-    // New channel, clean slate — no stale strip or member list carries over.
+    // New channel, clean slate: no stale strip or member list carries over.
     setMembers([]);
     setActive(false);
     setPartial("");

@@ -29,7 +29,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-/* Pinned course links — the syllabus, the textbook, wherever class lives.
+/* Pinned course links: the syllabus, the textbook, wherever class lives.
    Any classmate pins one; authors can take their own down. Mirrors the
    native course links screen, kind chips and all. */
 
@@ -87,7 +87,7 @@ const KIND_ORDER: Record<CourseLinkKind, number> = {
 };
 
 /** Quiet chip palette: the syllabus glows ember-clay, references lean sage,
-    the rest stay neutral — same recipe as the calendar's kind chips. */
+    the rest stay neutral, same recipe as the calendar's kind chips. */
 function kindChipClasses(kind: CourseLinkKind): string {
   switch (kind) {
     case "syllabus":
@@ -207,7 +207,7 @@ export function CourseLinks({
     if (error || !data) {
       setAddError(
         error?.code === "42501"
-          ? "Links are pinned by classmates — add this course to your classes first."
+          ? "Links are pinned by classmates. Add this course to your classes first."
           : "We couldn't pin that link just now. Give it another try."
       );
       return;
@@ -240,7 +240,7 @@ export function CourseLinks({
           <EmptyState
             icon={Link2}
             title="No links yet"
-            description="Pin the syllabus, the textbook, wherever office hours live — the class will thank you."
+            description="Pin the syllabus, the textbook, wherever office hours live. The class will thank you."
             className="py-8"
           />
         </div>
@@ -367,7 +367,7 @@ export function CourseLinks({
               </button>
             </div>
             <p className="mt-1.5 text-sm text-muted">
-              Anything the class keeps hunting for — pin it once and it&apos;s
+              Anything the class keeps hunting for: pin it once and it&apos;s
               here for everyone.
             </p>
             <div

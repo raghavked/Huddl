@@ -14,20 +14,20 @@ checklist.
 
 **Description**:
 
-> Huddl is your whole campus in one app — every class, club, and study
+> Huddl is your whole campus in one app: every class, club, and study
 > session, with the people actually in them.
 >
 > Add your classes in seconds: type a course code and the campus catalog
 > fills in the rest, or add any class by hand. Each course opens into a
-> home of its own — a main chat, rooms for lectures and study groups, a
+> home of its own: a main chat, rooms for lectures and study groups, a
 > shared class calendar, flashcard decks, pinned links, and shared notes.
 > When the quarter ends, shelve the class; the chat and the notes stay
 > exactly where you left them.
 >
 > Paste your syllabus and the whole quarter lands on the class calendar:
 > assignment due dates, quizzes, midterms, finals. Your personal study
-> plan sorts everything across your classes — what's overdue, what's due
-> today, what's coming — with recommended study blocks before every exam,
+> plan sorts everything across your classes by what's overdue, what's due
+> today, and what's coming, with recommended study blocks before every exam,
 > and one month view merges all of it with the events you've said yes to.
 > Set your own reminder on anything, from fifteen minutes out to two weeks.
 >
@@ -41,13 +41,13 @@ checklist.
 > paste-a-study-guide importer. A focus timer that shows who else on
 > campus is heads-down right now, so you're never grinding alone. Study
 > partners you opt into course by course. And a grade tracker that is
-> private to you — weighted categories off your syllabus, an honest
+> private to you: weighted categories off your syllabus, an honest
 > estimate of where you stand, and exactly what you need on the final.
 >
 > Chat is built for classmates: photos, polls, @mentions, pinned
 > messages, threads, and reactions, with typing indicators and read
 > state. DMs for the people you know, group DMs for the people you're
-> working with. Clubs get their own space — chat, roster, events, and
+> working with. Clubs get their own space: chat, roster, events, and
 > announcements from the officers. Study sessions and meetups take RSVPs
 > and nudge everyone about an hour out.
 >
@@ -58,14 +58,14 @@ checklist.
 > Every account is verified with a university email, so your campus is a
 > real, closed community. Blocking, reporting, and a 24-hour moderation
 > promise are built in. Read receipts and typing indicators are yours to
-> switch off — and when you do, you stop seeing other people's too. You
-> can export everything Huddl holds that's yours in one tap, and delete
-> your account — and everything in it — anytime, right from Settings.
+> switch off. When you do, you stop seeing other people's too. You can
+> export everything Huddl holds that's yours in one tap, and delete your
+> account and everything in it anytime, right from Settings.
 >
 > Launching at UC Davis. Your campus is next.
 
 - **Promotional text** (170 chars): Every class, club, and study night on
-  your campus — one app. Syllabus in, study plan out, decks and grades in
+  your campus, in one app. Syllabus in, study plan out, decks and grades in
   your pocket, and the chat is your classmates.
 - **Support URL**: https://huddl.app (privacy: https://huddl.app/legal/privacy)
 - **Marketing URL**: https://huddl.app
@@ -84,7 +84,7 @@ checklist.
 - **Data export** (Guideline 5.1.1(v) companion): Settings → Privacy → Your
   data. Returns the caller's own rows as one JSON document; self-only by
   construction, since every subquery in the function filters on `auth.uid()`.
-- **Moderation is staffed, not just promised**: reports from the in-app flow
+- **Moderation is staffed**: reports from the in-app flow
   land in a queue that campus moderators triage inside the app (open /
   reviewed / dismissed, with the reported content shown in place). The
   moderator flag is a service-role write and is excluded from the
@@ -104,18 +104,18 @@ checklist.
 
 ## Screenshot plan (6.7" + 6.1", both themes)
 
-1. Home — today strip + plan card ("Your campus, in one huddle")
-2. Course home — the six-doorway grid ("Every class is a home")
+1. Home: today strip + plan card ("Your campus, in one huddle")
+2. Course home: the six-doorway grid ("Every class is a home")
 3. Syllabus import preview ("Paste the syllabus, get the quarter")
 4. Study plan ("Always know what's next")
 5. Flashcards mid-flip ("Decks your whole class builds")
-6. Focus — timer running, studying-now list ("Nobody studies alone")
-7. Grades — categories + what-if ("Private. Only you see this.")
+6. Focus: timer running, studying-now list ("Nobody studies alone")
+7. Grades: categories + what-if ("Private. Only you see this.")
 8. Channel chat with a poll + photo ("Chat that carries the class")
-9. Campus board — a rides list before break ("Ask your campus")
-10. Semester overview — the term on one screen ("How the quarter's going")
+9. Campus board: a rides list before break ("Ask your campus")
+10. Semester overview: the term on one screen ("How the quarter's going")
 
-Shoot the dark theme for Focus and Flashcards — the candle-lit palette is
+Shoot the dark theme for Focus and Flashcards. The candle-lit palette is
 the most distinctive thing on the shelf, and those are the late-night
 screens anyway. Shoot the board in light: it's the one screen a browsing
 stranger understands with no context, so it earns a slot near the front.
@@ -125,8 +125,8 @@ stranger understands with no context, so it earns a slot near the front.
 - [ ] Apple Developer Program membership active
 - [ ] `eas build --platform ios --profile production`
 - [ ] `eas submit --platform ios` (uses mobile/eas.json)
-- [ ] EAS projectId written into app.json by `eas init` — this also
-      activates production push delivery end to end
+- [ ] EAS projectId written into app.json by `eas init` (this also
+      activates production push delivery end to end)
 - [ ] Legal docs attorney-reviewed (docs/LEGAL.md checklist)
 - [ ] hello@huddl.app mailbox live (referenced by Terms + Privacy)
 - [ ] Supabase Auth: enable leaked-password protection (dashboard)

@@ -1,6 +1,6 @@
 import type { DmThread } from "@/lib/types";
 
-/* Group DMs — the shared contract.
+/* Group DMs: the shared contract.
  *
  * Migration 0028 gave dm_threads two shapes that share one table: a 1:1
  * thread (is_group = false, no title) and a named group of 3-16 people
@@ -10,7 +10,7 @@ import type { DmThread } from "@/lib/types";
  *
  * This module is the pure half: limits, warm failure copy, and the naming
  * and preview rules the thread list, the room header, and the group panel
- * all read from — so they can never drift apart. No React, no Supabase, no
+ * all read from, so they can never drift apart. No React, no Supabase, no
  * clock, which means it runs unchanged in a server component, in the
  * browser, and under Vitest. Every write lives next door in
  * `./group-actions`, which needs the browser client.
@@ -18,7 +18,7 @@ import type { DmThread } from "@/lib/types";
 
 /* ------------------------------ shapes ------------------------------ */
 
-/** One person in a thread — enough to render a row, a chip, or an avatar. */
+/** One person in a thread: enough to render a row, a chip, or an avatar. */
 export interface ThreadPerson {
   /** `profiles.id`. */
   id: string;
@@ -26,7 +26,7 @@ export interface ThreadPerson {
   display_name: string;
   /** Their handle, without the leading `@`. */
   handle: string;
-  /** Their avatar, or null — the Avatar primitive falls back to initials. */
+  /** Their avatar, or null; the Avatar primitive falls back to initials. */
   avatar_url: string | null;
 }
 
@@ -38,21 +38,21 @@ export interface ThreadDisplay {
   subtitle: string | null;
 }
 
-/** The thread columns naming needs — a full {@link DmThread} works too. */
+/** The thread columns naming needs. A full {@link DmThread} works too. */
 export type NamedThread = Pick<DmThread, "is_group" | "title">;
 
 /* ---------------------------- the limits ---------------------------- */
 
-/** Smallest a group can be, counting you — matches create_group_thread. */
+/** Smallest a group can be, counting you. Matches create_group_thread. */
 export const GROUP_MIN_PEOPLE = 3;
 
-/** Largest a group can be, counting you — matches add_to_group_thread. */
+/** Largest a group can be, counting you. Matches add_to_group_thread. */
 export const GROUP_MAX_PEOPLE = 16;
 
 /** Shortest a group name may be, after trimming. */
 export const GROUP_TITLE_MIN = 2;
 
-/** Longest a group name may be, after trimming — cap your input here. */
+/** Longest a group name may be, after trimming. Cap your input here. */
 export const GROUP_TITLE_MAX = 60;
 
 /** Columns every screen needs off `dm_threads`. Keep selects consistent. */
@@ -62,7 +62,7 @@ export const GROUP_THREAD_SELECT = "id, created_at, is_group, title, created_by"
 
 /**
  * A group-DM failure with a message written for a person, not a log. Show
- * `err.message` directly in your inline error — it never leaks SQL, ids, or
+ * `err.message` directly in your inline error; it never leaks SQL, ids, or
  * PostgREST codes.
  */
 export class GroupDmError extends Error {
@@ -76,7 +76,8 @@ export class GroupDmError extends Error {
  * The RPCs raise plain lowercase sentences (`raise exception 'this group is
  * full at 16'`). PostgREST hands those back verbatim as `error.message`, so
  * we match on a distinctive fragment of each and swap in the warm version.
- * Fragment order matters only where two could both match — they don't today.
+ * Fragment order matters only where two could both match, and they don't
+ * today.
  */
 const WARM_BY_FRAGMENT: readonly (readonly [string, string])[] = [
   ["group names run", "Group names run 2 to 60 characters."],
@@ -93,7 +94,7 @@ const WARM_BY_FRAGMENT: readonly (readonly [string, string])[] = [
 
 /**
  * Map a raised database message to warm copy, or fall back to `fallback`.
- * Accepts whatever PostgREST handed back — an error object, a string, or
+ * Accepts whatever PostgREST handed back: an error object, a string, or
  * nothing at all.
  */
 export function warmGroupMessage(raw: unknown, fallback: string): string {
@@ -140,7 +141,7 @@ export function uniqueIds(userIds: readonly string[]): string[] {
 
 /* ------------------------------ naming ------------------------------ */
 
-/** Shown when a group somehow has no title — a group always deserves a name. */
+/** Shown when a group somehow has no title. A group always deserves a name. */
 const UNTITLED_GROUP = "Group chat";
 
 /** Shown before `people` has loaded, when there's nothing honest to say yet. */
@@ -153,9 +154,9 @@ const DEPARTED_PERSON = "Someone who left";
  * The naming rule, in one place: a group shows its title with "N people"
  * underneath; a 1:1 shows the other person's name and nothing underneath.
  * Use it for the thread header, the messages list row, and anywhere else a
- * thread needs a name — so they never drift apart.
+ * thread needs a name, so they never drift apart.
  *
- * Pure: no I/O, no clock. Pass whatever you have and it degrades sensibly —
+ * Pure: no I/O, no clock. Pass whatever you have and it degrades sensibly:
  * an empty `people` (still loading) yields a neutral placeholder rather than
  * a wrong name.
  *
@@ -205,13 +206,13 @@ export function threadPreview(thread: {
   latest: { content: string; deleted_at: string | null } | null;
   /** Whether the signed-in student wrote the latest message. */
   latestIsMine: boolean;
-  /** Who wrote it, for a group — a first name, or null if they've left. */
+  /** Who wrote it, for a group: a first name, or null if they've left. */
   latestAuthorName: string | null;
 }): string {
   if (!thread.latest) {
     return thread.isGroup
-      ? "No messages yet — get it started."
-      : "No messages yet — say hi!";
+      ? "No messages yet. Get it started."
+      : "No messages yet. Say hi.";
   }
   if (thread.latest.deleted_at) return "Message deleted";
   const body = thread.latest.content.replace(/\s+/g, " ").trim();

@@ -1,9 +1,9 @@
-/* @Mention helpers — pure string logic, unit tested. The server side
+/* @Mention helpers: pure string logic, unit tested. The server side
    (migration 0019) notifies any channel member whose handle appears as
    `@handle` in a new message; these helpers keep the client's autocomplete
    and highlighting in step with that trigger's `@([a-z0-9_]{3,24})` match. */
 
-/** Handles are 3-24 chars of [a-z0-9_] — same shape the DB trigger scans. */
+/** Handles are 3-24 chars of [a-z0-9_], the same shape the DB trigger scans. */
 const HANDLE_BODY = "[a-z0-9_]";
 
 export type MentionSegment = { text: string; mention: boolean };
@@ -31,7 +31,7 @@ export function splitMentions(content: string): MentionSegment[] {
 }
 
 /**
- * The partial handle being typed at the caret — `"jo"` for `"hey @jo"`,
+ * The partial handle being typed at the caret: `"jo"` for `"hey @jo"`,
  * `""` right after `@`, or null when the caret isn't inside an @-token.
  * The `@` must start the text or follow whitespace so emails don't trigger
  * the picker mid-word.

@@ -27,14 +27,14 @@ export const metadata: Metadata = {
 };
 
 /**
- * What each board says when it's empty. The all-boards empty recruits — an
+ * What each board says when it's empty. The all-boards empty recruits: an
  * empty board is a board nobody has tried yet. A single quiet category is
  * usually just quiet, so those reassure first and invite second.
  */
 const EMPTIES: Record<BoardCategory, { title: string; body: string }> = {
   ride: {
     title: "No rides up yet",
-    body: "Nobody's posted a drive home. If you're going, say where and when — the seats fill fast.",
+    body: "Nobody's posted a drive home. If you're going, say where and when. The seats fill fast.",
   },
   lost: {
     title: "Nothing lost",
@@ -54,7 +54,7 @@ const EMPTIES: Record<BoardCategory, { title: string; body: string }> = {
   },
   ask: {
     title: "Nobody's asking",
-    body: "No one needs a hand this minute. Ask when you do — people around here answer.",
+    body: "No one needs a hand this minute. Ask when you do. People around here answer.",
   },
   offer: {
     title: "No offers up",
@@ -63,19 +63,19 @@ const EMPTIES: Record<BoardCategory, { title: string; body: string }> = {
 };
 
 /**
- * The campus board — everything the room is offering and asking for.
+ * The campus board: everything the room is offering and asking for.
  *
  * Two things sink rather than disappear, and the difference matters:
  *
- *   closed — the author marked it sorted. It stays readable at the bottom
- *            with a fern "Sorted" chip, because a ride that filled still
- *            tells you who drives to LA on Fridays.
- *   stale  — nobody's judgement but the list's: a ride whose day has gone, or
- *            anything a month old. It keeps its place in the open run but
- *            settles under the fresh posts. See `isStale`.
+ *   closed: the author marked it sorted. It stays readable at the bottom
+ *           with a fern "Sorted" chip, because a ride that filled still
+ *           tells you who drives to LA on Fridays.
+ *   stale:  nobody's judgement but the list's. A ride whose day has gone, or
+ *           anything a month old. It keeps its place in the open run but
+ *           settles under the fresh posts. See `isStale`.
  *
- * Closed posts are asked for on purpose — they belong at the bottom of the
- * board, not off it — which does mean they eat into the hundred-row cap.
+ * Closed posts are asked for on purpose (they belong at the bottom of the
+ * board, not off it), which does mean they eat into the hundred-row cap.
  */
 export default async function BoardPage({
   searchParams,
@@ -101,7 +101,7 @@ export default async function BoardPage({
 
        It is the half that must not fail soft. An empty set would quietly put a
        blocked classmate back on the board, so a `blocks` read that didn't land
-       throws into the same catch as a board read that didn't — the reader gets
+       throws into the same catch as a board read that didn't. The reader gets
        the error card and a retry, not a board with the wrong people on it. */
     const [board, blocks] = await Promise.all([
       fetchBoard(
@@ -120,7 +120,7 @@ export default async function BoardPage({
       )
     );
     /* Dropped here rather than excluded in the query, because `fetchBoard`
-       takes no author filter — which means a reader who has blocked someone
+       takes no author filter, which means a reader who has blocked someone
        sees fewer than the hundred rows the cap allows, on the rare board
        that's over it. Trimming the tail is the safe direction to be wrong in. */
     posts = board.filter((post) => !blocked.has(post.author_id));
@@ -131,7 +131,7 @@ export default async function BoardPage({
         : "We couldn't load the board. Check your connection and give it another go.";
   }
 
-  /* Open posts first, then the ones that have quietly gone past — then the
+  /* Open posts first, then the ones that have quietly gone past, then the
      ones the author closed. `sort` is stable, so each tier keeps the
      newest-first order the query gave it. */
   const rank = (post: BoardPost): number =>
@@ -173,7 +173,7 @@ export default async function BoardPage({
               illustration={<DiscoverScene />}
               icon={Pin}
               title="Nothing on the board"
-              description="Put the first thing up — a ride home, a couch, a question."
+              description="Put the first thing up: a ride home, a couch, a question."
               action={postButton}
             />
           ) : (

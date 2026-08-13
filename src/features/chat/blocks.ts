@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 /* Blocking (migration 0019) is one-way and private: the blocked person
    never finds out. The server refuses new DM threads across a block,
    silences notifications, and since 0042 drops their direct messages from
-   the blocker's reads — their sends still succeed and still appear in their
+   the blocker's reads. Their sends still succeed and still appear in their
    own copy of the thread, which is what keeps the block invisible. Hiding
    everything else, channel messages and board posts included, is still the
    client's job, driven by the id set below.
@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/client";
    For a long time this module could only take a block off. That meant a
    student being hassled on their laptop had to pick up their phone to make
    it stop, which is exactly the wrong moment to ask someone to change
-   devices — so `blockUser` is here now, same upsert the native app uses. */
+   devices. So `blockUser` is here now, same upsert the native app uses. */
 
 /**
  * Block someone. Upsert rather than insert: the primary key is
@@ -69,7 +69,7 @@ export function useBlockedIds(userId: string) {
       .then((ids) => {
         if (active) setBlockedIds(ids);
       })
-      // A failed load just means no filtering this visit — never block chat.
+      // A failed load just means no filtering this visit. Never block chat.
       .catch(() => undefined);
     return () => {
       active = false;

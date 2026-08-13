@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/client";
  * as the presence key, so the returned Set holds the user ids currently
  * online (including our own). Attaching the presence listeners before
  * `subscribe()` opts this client into receiving presence state; `track()` on
- * SUBSCRIBED makes us visible to everyone else — and re-fires on reconnect,
+ * SUBSCRIBED makes us visible to everyone else, and re-fires on reconnect,
  * so presence survives network blips. Channel is removed on unmount,
  * mirroring `useRealtimeInserts`.
  */

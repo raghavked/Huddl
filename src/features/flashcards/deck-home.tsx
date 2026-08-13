@@ -32,9 +32,9 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 /* Deck home + study mode on one page: the shared card list with a big Study
-   door, and — once the door opens — one card at a time, click to flip, three
+   door, and, once the door opens, one card at a time, click to flip, three
    honest buttons. Any classmate adds cards; authors edit or remove their own.
-   Due counts are yours alone — nobody else sees how you're doing. */
+   Due counts are yours alone. Nobody else sees how you're doing. */
 
 /** Serializable rows the deck page passes down. */
 export type DeckCardRow = {
@@ -60,7 +60,7 @@ export type DeckInfo = {
 
 type ReviewsMap = Map<string, { streak: number; dueAt: Date }>;
 
-/** Which card form is open — one at a time, both closed by default. */
+/** Which card form is open. One at a time, both closed by default. */
 type Composer = "none" | "single" | "paste";
 
 const CARD_SELECT = "id, deck_id, created_by, front, back, position, created_at";
@@ -70,13 +70,14 @@ const CARD_SELECT = "id, deck_id, created_by, front, back, position, created_at"
 type ParsedCard = { front: string; back: string };
 
 /** Separators a pasted line can use, checked in this order. */
-const PASTE_SEPARATORS = [" - ", " — ", ": ", "\t"] as const;
+const PASTE_SEPARATORS = [" - ", " \u2014 ", ": ", "\t"] as const;
 
 /**
- * One card per line: split on the first " - ", " — ", ": ", or tab (in that
- * priority), trim both sides, and skip anything that doesn't make a card —
- * no separator, an empty side, an oversized side, or a front the deck (or an
- * earlier line) already has, compared case-insensitively.
+ * One card per line: split on the first separator in {@link PASTE_SEPARATORS}
+ * (spaced hyphen, spaced em dash, colon, then tab), trim both sides, and skip
+ * anything that doesn't make a card: no separator, an empty side, an oversized
+ * side, or a front the deck (or an earlier line) already has, compared
+ * case-insensitively.
  */
 function parsePastedCards(
   text: string,
@@ -123,7 +124,7 @@ type Counts = { again: number; good: number; easy: number };
 
 const ZERO_COUNTS: Counts = { again: 0, good: 0, easy: 0 };
 
-/** "10 min", "1 day", "30 days" — what pressing a button buys you. */
+/** "10 min", "1 day", "30 days": what pressing a button buys you. */
 function intervalPreview(
   prev: { streak: number } | null,
   grade: Grade,
@@ -137,7 +138,7 @@ function intervalPreview(
 }
 
 const GRADE_BUTTON: Record<Grade, { label: string; className: string }> = {
-  // "Again" is a soft danger — a nudge, not an alarm.
+  // "Again" is a soft danger: a nudge, not an alarm.
   again: {
     label: "Again",
     className:
@@ -164,7 +165,7 @@ function GradeButton({
   return (
     <button
       type="button"
-      aria-label={`${meta.label} — next look in ${sublabel}`}
+      aria-label={`${meta.label}, next look in ${sublabel}`}
       disabled={disabled}
       onClick={onClick}
       className={cn(
@@ -220,7 +221,7 @@ export function DeckHome({
   const [againIds, setAgainIds] = useState<string[]>([]);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
-  // The card forms — one card at a time, or a whole pasted stack. Both stay
+  // The card forms: one card at a time, or a whole pasted stack. Both stay
   // tucked behind their buttons until needed.
   const [composer, setComposer] = useState<Composer>("none");
   const [front, setFront] = useState("");
@@ -238,14 +239,14 @@ export function DeckHome({
   const [editBack, setEditBack] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
 
-  // Removing one of your own cards — inline confirm, no modal.
+  // Removing one of your own cards: inline confirm, no modal.
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   /* ---------------------------- study session ---------------------------- */
 
   function startStudy() {
-    // New cards first, then oldest-due — capped so it stays one sitting.
+    // New cards first, then oldest-due, capped so it stays one sitting.
     setQueue(buildQueue(cards, reviews, new Date()));
     setIndex(0);
     setRevealed(false);
@@ -267,7 +268,7 @@ export function DeckHome({
     );
     setSessionError(null);
     setGrading(grade);
-    // Save first, advance after — so leaving mid-stack never loses a grade.
+    // Save first, advance after, so leaving mid-stack never loses a grade.
     const supabase = createClient();
     const { error } = await supabase.from("card_reviews").upsert(
       {
@@ -282,7 +283,7 @@ export function DeckHome({
     );
     setGrading(null);
     if (error) {
-      setSessionError("That grade didn't save — give the button another click.");
+      setSessionError("That grade didn't save. Give the button another click.");
       return;
     }
     setReviews((prev) =>
@@ -302,7 +303,7 @@ export function DeckHome({
     setIndex((prev) => prev + 1);
   }
 
-  /** Re-run just the cards graded "again" — they're due back in minutes. */
+  /** Re-run just the cards graded "again". They're due back in minutes. */
   function studyAgain() {
     const rerun = new Set(againIds);
     const nextQueue = queue.filter((card) => rerun.has(card.id));
@@ -329,11 +330,11 @@ export function DeckHome({
     const frontText = front.trim();
     const backText = back.trim();
     if (frontText.length === 0 || backText.length === 0) {
-      setAddError("A card needs both sides — a prompt up front, the answer behind.");
+      setAddError("A card needs both sides: a prompt up front, the answer behind.");
       return;
     }
     if (frontText.length > 1000 || backText.length > 2000) {
-      setAddError("That's a lot of card — trim it down a little.");
+      setAddError("That's a lot of card. Trim it down a little.");
       return;
     }
     setAddError(null);
@@ -356,13 +357,13 @@ export function DeckHome({
     if (error || !data) {
       setAddError(
         error?.message.includes("row-level security")
-          ? "Cards are for classmates — add this course to your classes first."
+          ? "Cards are for classmates. Add this course to your classes first."
           : "We couldn't add that card just now. Give it another try."
       );
       return;
     }
     setCards((prev) => [...prev, data as unknown as DeckCardRow]);
-    // Keep the form open and clear — card entry comes in bursts.
+    // Keep the form open and clear. Card entry comes in bursts.
     setFront("");
     setBack("");
   }
@@ -392,7 +393,7 @@ export function DeckHome({
     const ready = parsed.cards;
     if (ready.length === 0) {
       setPasteError(
-        "Nothing to add yet — paste a few lines, one card per line."
+        "Nothing to add yet. Paste a few lines, one card per line."
       );
       return;
     }
@@ -418,7 +419,7 @@ export function DeckHome({
     if (error || !data) {
       setPasteError(
         error?.message.includes("row-level security")
-          ? "Cards are for classmates — add this course to your classes first."
+          ? "Cards are for classmates. Add this course to your classes first."
           : "Those cards didn't make it in. Give it another try."
       );
       return;
@@ -429,7 +430,7 @@ export function DeckHome({
     setCards((prev) => [...prev, ...inserted]);
     setPasteText("");
     setPasteSuccess(
-      `${inserted.length === 1 ? "1 card" : `${inserted.length} cards`} in — the class thanks you.`
+      `${inserted.length === 1 ? "1 card" : `${inserted.length} cards`} in. The class thanks you.`
     );
   }
 
@@ -454,11 +455,11 @@ export function DeckHome({
     const frontText = editFront.trim();
     const backText = editBack.trim();
     if (frontText.length === 0 || backText.length === 0) {
-      setEditError("A card needs both sides — keep a prompt and an answer.");
+      setEditError("A card needs both sides: keep a prompt and an answer.");
       return;
     }
     if (frontText.length > 1000 || backText.length > 2000) {
-      setEditError("That's a lot of card — trim it down a little.");
+      setEditError("That's a lot of card. Trim it down a little.");
       return;
     }
     // Optimistic: the row updates now, and reverts if the server minds.
@@ -476,7 +477,7 @@ export function DeckHome({
       .eq("id", card.id);
     if (error) {
       setCards(before);
-      setActionError("That edit didn't stick — give it another try.");
+      setActionError("That edit didn't stick. Give it another try.");
     }
   }
 
@@ -527,7 +528,7 @@ export function DeckHome({
             <EmptyState
               icon={Coffee}
               title="Nothing due right now"
-              description="The schedule knows what it's doing — check back tomorrow."
+              description="The schedule knows what it's doing. Check back tomorrow."
               action={
                 <Button variant="soft" size="sm" onClick={() => setStudying(false)}>
                   Back to the deck
@@ -639,7 +640,7 @@ export function DeckHome({
             ) : null}
 
             <p className="mt-4 text-center text-xs text-muted">
-              Leave anytime — every grade saves as you go.
+              Leave anytime. Every grade saves as you go.
             </p>
           </div>
         ) : null}
@@ -687,7 +688,7 @@ export function DeckHome({
           <p className="mt-2 text-xs text-muted">
             {cards.length === 0
               ? "Add the first card and the studying can start."
-              : "Nothing due — check back tomorrow."}
+              : "Nothing due. Check back tomorrow."}
           </p>
         ) : null}
       </div>
@@ -799,7 +800,7 @@ export function DeckHome({
               >
                 <div className="mt-3">
                   <Label htmlFor="card-paste">
-                    One card per line — front and back separated by a dash,
+                    One card per line, front and back separated by a dash,
                     colon, or tab
                   </Label>
                   <Textarea
@@ -826,7 +827,7 @@ export function DeckHome({
                   {pasteText.trim().length === 0
                     ? null
                     : readyCount === 0
-                      ? "No cards in there yet — try lines like “osmosis - water moving across a membrane”, one per line."
+                      ? "No cards in there yet. Try lines like “osmosis - water moving across a membrane”, one per line."
                       : `${readyCount === 1 ? "1 card ready" : `${readyCount} cards ready`} · ${
                           parsed.skipped === 1
                             ? "1 line skipped"

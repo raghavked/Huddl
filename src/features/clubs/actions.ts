@@ -23,7 +23,7 @@ function revalidateClub(clubId: string) {
 }
 
 /**
- * Join a club (open join — RLS restricts to own row at own university).
+ * Join a club (open join; RLS restricts to own row at own university).
  * A DB trigger mirrors the membership into the club's chat channel.
  */
 export async function joinClub(clubId: string): Promise<ClubActionResult> {
@@ -46,7 +46,7 @@ export async function joinClub(clubId: string): Promise<ClubActionResult> {
 }
 
 /**
- * Leave a club. Owners are blocked here — an ownerless club would be stuck,
+ * Leave a club. Owners are blocked here, since an ownerless club would be stuck,
  * so the owner path is disbandClub (or promoting a successor first).
  * A DB trigger removes the member from the club's chat channel.
  */
@@ -65,14 +65,14 @@ export async function leaveClub(clubId: string): Promise<ClubActionResult> {
     .maybeSingle();
 
   if (!membership) {
-    // Nothing to leave — refresh so the UI settles.
+    // Nothing to leave. Refresh so the UI settles.
     revalidateClub(clubId);
     return {};
   }
   if (membership.role === "owner") {
     return {
       error:
-        "Owners can't leave their own club — promote a new owner or disband it instead.",
+        "Owners can't leave their own club. Promote a new owner, or disband it instead.",
     };
   }
 

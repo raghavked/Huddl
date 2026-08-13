@@ -16,9 +16,9 @@ import { formatFileSize } from "@/lib/utils";
 import type { Note } from "@/lib/types";
 
 /**
- * A freshly shared note. `tags` comes back normalized by 0032's trigger — the
- * words the database settled on, never the words that were sent — so the list
- * above can render the saved truth without a refetch.
+ * A freshly shared note. `tags` comes back normalized by 0032's trigger: the
+ * words the database settled on, not the words that were sent. That lets the
+ * list above render the saved truth without a refetch.
  */
 export type UploadedNote = Note & { tags: string[] };
 
@@ -76,7 +76,7 @@ export function NoteUpload({
   /** Words this course already files notes under, offered in the picker. */
   courseTags?: readonly string[];
   /**
-   * Tags to start the composer with — whatever the list is filtered by, which
+   * Tags to start the composer with: whatever the list is filtered by, which
    * is almost always what this note is too. Taking them back off is one click.
    */
   seedTags?: readonly string[];
@@ -127,7 +127,7 @@ export function NoteUpload({
     if (!title.trim()) return "Give your note a title.";
     if (!file) return "Choose a file to share.";
     if (file.size > MAX_FILE_BYTES) {
-      return `That file is ${formatFileSize(file.size)} — the limit is 25 MB.`;
+      return `That file is ${formatFileSize(file.size)}. The limit is 25 MB.`;
     }
     if (!ACCEPTED_EXTENSIONS.includes(fileExtension(file.name))) {
       return "That file type isn't supported. Share a document, slides, spreadsheet or image.";
@@ -174,7 +174,7 @@ export function NoteUpload({
         file_name: file.name,
         file_size: file.size,
         mime_type: file.type || null,
-        // Sent exactly as typed — 0032's trigger does the trimming,
+        // Sent exactly as typed. 0032's trigger does the trimming,
         // lowercasing and capping, and the row that comes back carries its
         // answer rather than ours.
         tags,

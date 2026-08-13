@@ -23,7 +23,7 @@ const KIND_OPTIONS: readonly { value: EventKind; label: string }[] = [
   { value: "meetup", label: "Meetup" },
 ];
 
-/** Minimal local row shape — the web app's types live outside this tsconfig. */
+/** Minimal local row shape. The web app's types live outside this tsconfig. */
 type EventRow = {
   id: string;
   kind: EventKind;
@@ -73,7 +73,7 @@ function toTimeInput(iso: string): string {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Whole local days from the start's calendar day to the end's — 0 for an
+ * Whole local days from the start's calendar day to the end's: 0 for an
  * afternoon, 1 for a session that runs past midnight, more for a weekend.
  * The web form has two datetime inputs and makes these freely; this screen
  * has one date field, so the span has to ride along rather than be re-guessed
@@ -110,7 +110,7 @@ export default function EditEventScreen() {
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  // How many days after the start day the end lands. Not a field — the
+  // How many days after the start day the end lands. Not a field, but the
   // event's own span, carried across the save so editing the location can't
   // quietly shorten a two-day plan back to one afternoon.
   const [endDayOffset, setEndDayOffset] = useState(0);
@@ -146,7 +146,7 @@ export default function EditEventScreen() {
       setStatus("notFound");
       return;
     }
-    // Only the creator edits — everyone else steps quietly back.
+    // Only the creator edits. Everyone else steps quietly back.
     if (row.creator_id !== userId) {
       goBack();
       return;
@@ -174,27 +174,27 @@ export default function EditEventScreen() {
     const cleanTitle = title.trim();
     if (cleanTitle === "") {
       setFormError(
-        "Give it a title — “Midterm grind at Shields”, that kind of thing."
+        "Give it a title: “Midterm grind at Shields”, that kind of thing."
       );
       return;
     }
 
     const dateMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(date.trim());
     if (!dateMatch) {
-      setFormError("Dates look like YYYY-MM-DD — try 2026-10-14.");
+      setFormError("Dates look like YYYY-MM-DD, as in 2026-10-14.");
       return;
     }
     const year = Number(dateMatch[1]);
     const month = Number(dateMatch[2]);
     const day = Number(dateMatch[3]);
     if (month < 1 || month > 12 || day < 1 || day > daysInMonth(month, year)) {
-      setFormError("That day doesn't exist — double-check the month and day.");
+      setFormError("That day doesn't exist. Double-check the month and day.");
       return;
     }
 
     const start = parseTime(startTime.trim());
     if (!start) {
-      setFormError("Start times look like HH:MM — try 15:00.");
+      setFormError("Start times look like HH:MM, as in 15:00.");
       return;
     }
     const startsAt = new Date(year, month - 1, day, start.hours, start.minutes);
@@ -203,11 +203,11 @@ export default function EditEventScreen() {
     if (endTime.trim() !== "") {
       const end = parseTime(endTime.trim());
       if (!end) {
-        setFormError("End times look like HH:MM — try 17:00, or leave it blank.");
+        setFormError("End times look like HH:MM, as in 17:00, or leave it blank.");
         return;
       }
       // The end keeps the span it came in with, and an end that still lands
-      // at or before the start is an overnight session — roll it forward
+      // at or before the start is an overnight session, so roll it forward
       // rather than dead-ending on a field this screen doesn't have.
       endsAt = new Date(
         year,
@@ -232,7 +232,7 @@ export default function EditEventScreen() {
       capacityNumber = Number(capacity.trim());
       if (!Number.isInteger(capacityNumber) || capacityNumber < 1) {
         setFormError(
-          "Capacity is a whole number of spots — or leave it blank for no cap."
+          "Capacity is a whole number of spots, or leave it blank for no cap."
         );
         return;
       }
@@ -241,7 +241,7 @@ export default function EditEventScreen() {
     setFormError(null);
     setPending(true);
 
-    // No announcement post on edits — the plan already made its entrance.
+    // No announcement post on edits. The plan already made its entrance.
     const { error: updateError } = await supabase
       .from("events")
       .update({
@@ -278,7 +278,7 @@ export default function EditEventScreen() {
     goBack,
   ]);
 
-  // Deep links land here directly — signed-out visitors get a proper door.
+  // Deep links land here directly, so signed-out visitors get a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -416,11 +416,11 @@ export default function EditEventScreen() {
           <View style={{ gap: space.snug }}>
             <AppText variant="display">Edit your event</AppText>
             <AppText variant="caption" muted>
-              Fix the details — everyone who RSVP'd keeps their spot.
+              Fix the details. Everyone who RSVP'd keeps their spot.
             </AppText>
           </View>
 
-          {/* The course/club link is set when the plan is made — shown here,
+          {/* The course/club link is set when the plan is made. Shown here,
               not editable. */}
           {event.course ? (
             <View
@@ -570,7 +570,7 @@ export default function EditEventScreen() {
               /* One date field can't show an end that isn't on the start
                  day, so it says so instead of letting the span vanish. */
               <AppText variant="caption" muted>
-                The end time lands on a later day — saving keeps this one
+                The end time lands on a later day. Saving keeps this one
                 running past midnight.
               </AppText>
             ) : null}

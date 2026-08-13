@@ -2,12 +2,12 @@ import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { computeDayStreak } from "@/lib/study-plan";
 import { supabase } from "@/lib/supabase";
 
-/* Focus sessions — "studying now" — as a data layer.
+/* Focus sessions ("studying now") as a data layer.
  *
  * A focus session is one student sitting down to work: a goal in minutes, an
  * optional course, an optional one-line note about what they're doing. While
  * `ended_at` is null the row is OPEN, and open rows are the campus's
- * "studying now" list — proof that nobody's grinding alone at 11pm. Closed
+ * "studying now" list: proof that nobody's grinding alone at 11pm. Closed
  * rows are the quiet history behind the streak.
  *
  * Migration 0028 created `focus_sessions` with two policies: campus-scoped
@@ -16,14 +16,14 @@ import { supabase } from "@/lib/supabase";
  * publication, so {@link subscribeStudyingNow} works without any extra setup.
  *
  * Two migrations have narrowed that read since. 0031 made CLOSED sessions
- * private to their owner — a study history is nobody's business — and 0040
+ * private to their owner (a study history is nobody's business), and 0040
  * added `is_private`, which keeps an OPEN one off the campus list too. Both
  * are read-side only: a private session runs, ticks and counts toward the
  * streak exactly like any other, it simply isn't in anyone else's query.
  * Nothing in this file has to filter for either, because the SELECT policy
- * already does — {@link fetchStudyingNow} never sees a row it shouldn't.
+ * already does: {@link fetchStudyingNow} never sees a row it shouldn't.
  *
- * Everything here is either a query or a pure function — no React, no theme,
+ * Everything here is either a query or a pure function: no React, no theme,
  * no navigation. The I/O functions read the clock; the pure ones take `now`
  * as an argument so a ticking screen and a unit test get the same answers.
  * Failures arrive as a {@link FocusError} whose message is warm, specific,
@@ -52,8 +52,8 @@ export type FocusSession = {
    * True when this session is being timed off the campus list: nobody else
    * ever sees the row, open or closed. The owner still does, and it still
    * counts toward their streak. Always false on a row that reached you
-   * through {@link fetchStudyingNow} — a private session of somebody else's
-   * is not readable at all.
+   * through {@link fetchStudyingNow}, since a private session of somebody
+   * else's is not readable at all.
    */
   is_private: boolean;
 };
@@ -63,14 +63,14 @@ export type FocusPerson = {
   /** `profiles.id`. */
   id: string;
   /**
-   * What to call them. Their display name — or, for a student whose profile
-   * is private, their handle. See {@link toFocusPerson}: a private profile
+   * What to call them. Their display name, or their handle for a student
+   * whose profile is private. See {@link toFocusPerson}: a private profile
    * never lends its real name to this list.
    */
   display_name: string;
   /** Their handle, without the leading `@`. */
   handle: string;
-  /** Their avatar, or null — fall back to initials via `@/components/avatar`. */
+  /** Their avatar, or null. Fall back to initials via `@/components/avatar`. */
   avatar_url: string | null;
 };
 
@@ -87,7 +87,7 @@ export type StudyingNow = FocusSession & {
 
 /** What {@link subscribeStudyingNow} hands its listener on every change. */
 export type FocusChange = {
-  /** `"INSERT"` — someone just sat down. `"UPDATE"` — usually someone standing up. */
+  /** `"INSERT"` is someone sitting down. `"UPDATE"` is usually someone standing up. */
   event: "INSERT" | "UPDATE";
   /**
    * The row as the database now has it. Realtime payloads are bare table
@@ -106,7 +106,7 @@ export const FOCUS_GOAL_MIN = 5;
 /** Longest sitting the database accepts, in minutes. */
 export const FOCUS_GOAL_MAX = 240;
 
-/** What we start the picker on — one pomodoro, same as the column default. */
+/** What we start the picker on: one pomodoro, same as the column default. */
 export const FOCUS_GOAL_DEFAULT = 25;
 
 /**
@@ -118,7 +118,7 @@ export const FOCUS_GOAL_DEFAULT = 25;
  */
 export const FOCUS_GOAL_PRESETS: readonly number[] = [15, 25, 45, 60, 90];
 
-/** Longest note the database accepts — cap your TextInput here. */
+/** Longest note the database accepts. Cap your TextInput here. */
 export const FOCUS_NOTE_MAX = 80;
 
 /** Most rows {@link fetchStudyingNow} will ever return. */
@@ -132,7 +132,7 @@ export const FOCUS_SELECT =
  * {@link FOCUS_SELECT} plus the person and the course code, for the list.
  *
  * `is_public` rides along because "studying now" is a campus-wide list and a
- * private profile must not go out on it under its real name — see
+ * private profile must not go out on it under its real name. See
  * {@link toFocusPerson}. The profiles SELECT policy is campus-scoped and says
  * nothing about `is_public` (migration 0012 leaves the redaction to the app),
  * so if this column isn't asked for, nothing else stops the name going out.
@@ -143,7 +143,7 @@ const STUDYING_NOW_SELECT = `${FOCUS_SELECT}, person:profiles(id, display_name, 
 
 /**
  * A focus-session failure with a message written for a person, not a log.
- * Show `err.message` directly in your inline error — it never leaks SQL,
+ * Show `err.message` directly in your inline error. It never leaks SQL,
  * ids, or PostgREST codes.
  */
 export class FocusError extends Error {
@@ -158,7 +158,7 @@ export class FocusError extends Error {
 /**
  * The Supabase client here is untyped, so every result comes back as `any`.
  * Narrow one row into a {@link FocusSession}, or null if it's missing the
- * fields we promise callers — better an honest null than a half-row.
+ * fields we promise callers: better an honest null than a half-row.
  */
 function toFocusSession(raw: unknown): FocusSession | null {
   if (typeof raw !== "object" || raw === null) return null;
@@ -208,7 +208,7 @@ function embedded(raw: unknown): Record<string, unknown> | null {
  * Narrow an embedded `profiles` row; null when it's unreadable.
  *
  * A student with Public profile turned off comes back under their handle
- * rather than their name — exactly the redaction the board (`lib/board.ts`),
+ * rather than their name, exactly the redaction the board (`lib/board.ts`),
  * study buddies (`lib/study-buddy.ts`), campus search and the people
  * directory already apply, down to keeping the avatar. They still appear:
  * being heads-down is the one thing a focus session says about you, and the
@@ -245,7 +245,7 @@ function toFocusPerson(raw: unknown): FocusPerson | null {
 
 /**
  * Narrow a joined "studying now" row. Rows whose session or profile can't be
- * read are dropped rather than rendered as a mystery — a missing course code
+ * read are dropped rather than rendered as a mystery. A missing course code
  * is fine (the session may not have a course), a missing person is not.
  */
 function toStudyingNow(raw: unknown): StudyingNow | null {
@@ -286,8 +286,8 @@ function cleanNote(note: string | undefined | null): string | null {
 }
 
 /**
- * The caller's `profiles.id`, read from the stored session (no network hop —
- * supabase-js refreshes the token itself when it's stale).
+ * The caller's `profiles.id`, read from the stored session. No network hop:
+ * supabase-js refreshes the token itself when it's stale.
  *
  * @throws {FocusError} When nobody's signed in.
  */
@@ -304,7 +304,7 @@ async function requireUserId(): Promise<string> {
 
 /**
  * Close every open session belonging to `userId`. Used by
- * {@link startFocus} — a student can only sit down once, so starting a new
+ * {@link startFocus}: a student can only sit down once, so starting a new
  * session tidies up whatever the last one left open (an app that got killed
  * mid-session, a session started on another device).
  *
@@ -321,9 +321,9 @@ async function closeOpenSessions(userId: string, endedAt: string): Promise<void>
 
 /**
  * Sit down to study. Closes any session the caller left open, then opens a
- * fresh one — which, unless `isPrivate` is set, is immediately visible to the
- * whole campus in {@link fetchStudyingNow}, so the copy around this button
- * should say so.
+ * fresh one. Unless `isPrivate` is set, that new session is immediately
+ * visible to the whole campus in {@link fetchStudyingNow}, so the copy around
+ * this button should say so.
  *
  * The goal is rounded and clamped to 5-240 minutes and the note trimmed to
  * 80 characters before the insert, so the database's checks are a backstop
@@ -336,7 +336,7 @@ async function closeOpenSessions(userId: string, endedAt: string): Promise<void>
  *   row stays the caller's alone, and their name, class and note never go
  *   out. The timer and the streak are untouched. Defaults to false, which is
  *   the column default and how every session behaved before 0040.
- * @returns The new open session — pass it straight to the timer helpers.
+ * @returns The new open session. Pass it straight to the timer helpers.
  * @throws {FocusError} With copy that's ready to render.
  */
 export async function startFocus({
@@ -380,8 +380,8 @@ export async function startFocus({
  * now" list and joins the history behind the streak.
  *
  * Only touches rows that are still open, so double-tapping "I'm done" can't
- * move a session's end time. Ending a session that's already closed — or one
- * that isn't yours, which RLS hides — resolves with null rather than
+ * move a session's end time. Ending a session that's already closed, or one
+ * that isn't yours (which RLS hides), resolves with null rather than
  * throwing: the student's intent ("I'm not studying anymore") already holds.
  *
  * @param sessionId The session's `focus_sessions.id`.
@@ -430,13 +430,13 @@ export async function fetchMyOpenSession(): Promise<FocusSession | null> {
 }
 
 /**
- * Everyone on campus who's studying right now — open sessions only, newest
+ * Everyone on campus who's studying right now: open sessions only, newest
  * first, capped at 50, each with the student's profile and their course code
  * attached. RLS already limits this to your university, so there's no campus
  * filter to pass.
  *
  * Students with Public profile off come back under their handle rather than
- * their name — see {@link toFocusPerson}. Your own row is in here too;
+ * their name. See {@link toFocusPerson}. Your own row is in here too;
  * callers drop it.
  *
  * @param courseIds Optionally narrow to these courses (e.g. the student's own
@@ -484,7 +484,7 @@ let channelSeq = 0;
  * (someone started) and UPDATE (almost always someone finishing) on
  * `focus_sessions`. The table is in the realtime publication and its SELECT
  * policy is campus-scoped, so the socket only ever delivers rows the caller
- * is already allowed to read — no filter needed here.
+ * is already allowed to read, so no filter is needed here.
  *
  * Payloads are bare table rows with no profile or course attached. The
  * simplest correct listener refetches:
@@ -494,7 +494,7 @@ let channelSeq = 0;
  * ```
  *
  * @param onChange Called with the event and the row as it now stands.
- * @returns An unsubscribe function — return it straight from a `useEffect`.
+ * @returns An unsubscribe function. Return it straight from a `useEffect`.
  */
 export function subscribeStudyingNow(
   onChange: (change: FocusChange) => void
@@ -542,7 +542,7 @@ function endMoment(
 }
 
 /**
- * Whole minutes spent so far — measured to `ended_at` on a closed session and
+ * Whole minutes spent so far, measured to `ended_at` on a closed session and
  * to `now` on an open one. Floored (a session 24 minutes 50 seconds in reads
  * "24m", not "25m") and never negative, so a phone clock that's drifted
  * behind the server can't produce a session that started in the future.
@@ -560,7 +560,7 @@ export function elapsedMinutes(
 }
 
 /**
- * Whole minutes left against the session's goal, clamped at 0 — a session
+ * Whole minutes left against the session's goal, clamped at 0. A session
  * that's run past its goal reads "0m left", never a negative number.
  *
  * Defined as `goal_minutes − elapsedMinutes`, so elapsed and remaining always
@@ -576,7 +576,7 @@ export function remainingMinutes(
 }
 
 /**
- * How far through the goal this session is, from 0 to 1 — for a progress ring
+ * How far through the goal this session is, from 0 to 1, for a progress ring
  * or bar. Computed from raw milliseconds rather than whole minutes so the
  * ring moves smoothly instead of jumping once a minute, and clamped at both
  * ends. A session with a nonsensical goal (0 or less, which the database
@@ -619,16 +619,16 @@ export function formatDuration(minutes: number): string {
  *
  * Only COMPLETED sessions count, keyed by the day they ended: an open session
  * hasn't been a session yet, and a student mid-sitting shouldn't see the
- * streak flicker. That's all this adds — the day arithmetic itself is
+ * streak flicker. That's all this adds. The day arithmetic itself is
  * {@link computeDayStreak} in `@/lib/study-plan`, which check-offs use too, so
  * the two streaks can never disagree about what a day is or about yesterday
  * still counting as alive.
  *
  * Pure: feed it whatever rows you've loaded (order doesn't matter) plus a
- * `now`, and it hands back a day count. Stay quiet below 2 — no guilt UI.
+ * `now`, and it hands back a day count. Stay quiet below 2: no guilt UI.
  *
  * @param sessions Any sessions at all; open ones are ignored.
- * @param now      The current moment — passed in, never read from the clock.
+ * @param now      The current moment, passed in, never read from the clock.
  */
 export function computeFocusStreak(
   sessions: Iterable<Pick<FocusSession, "ended_at">>,

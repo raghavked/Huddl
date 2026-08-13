@@ -77,7 +77,7 @@ function interestsOf(row: ProfileRow): string[] {
 
 /**
  * The navigational pill: a shared course, a club in common, a channel you're
- * both in, or a thing you're both into — tapped to go there. Deliberately
+ * both in, or a thing you're both into, tapped to go there. Deliberately
  * not the `Chip` primitive: these are destinations rather than filters, so
  * they carry a real 44px drawn height and body-sized text instead of a
  * hairline and `accessibilityState.selected`.
@@ -283,7 +283,7 @@ export default function ProfileScreen() {
 
     // Shared courses fall out of RLS (classmate enrollments are only visible
     // for courses I'm enrolled in), but we still intersect with my own rows
-    // explicitly — including on my own profile, where "shared" means "all
+    // explicitly, including on my own profile, where "shared" means "all
     // mine". Same four queries as the web page.
     const [theirCoursesRes, myCoursesRes, theirChannelsRes, myChannelsRes] =
       await Promise.all([
@@ -328,8 +328,8 @@ export default function ProfileScreen() {
         .filter((c): c is SharedCourse => c !== null && myCourseIds.has(c.id))
         .sort((a, b) => a.code.localeCompare(b.code))
     );
-    /* Every kind of room you're both in, not just the campus-wide ones —
-       "you're both in the Hiking Club" is the whole point, and "#general,
+    /* Every kind of room you're both in, not only the campus-wide ones.
+       "You're both in the Hiking Club" is the whole point, and "#general,
        which everyone is auto-joined to" was the only thing surviving the old
        filter. Course chats are the exception: the courses section above
        already names them, so listing them here would say it twice. */
@@ -358,10 +358,10 @@ export default function ProfileScreen() {
   /**
    * Find-or-create the 1:1 thread, then land in it. The existing-thread check
    * runs client-side against dm_participants (RLS lets me see membership of
-   * my own threads, both directions). Creation can't be a plain insert —
-   * 0005_direct_messages.sql gives dm_threads/dm_participants no INSERT
-   * policies — so it goes through the security-definer create_dm_thread RPC,
-   * exactly like the web's /messages/new route. The RPC is idempotent, so a
+   * my own threads, both directions). Creation can't be a plain insert,
+   * because 0005_direct_messages.sql gives dm_threads/dm_participants no
+   * INSERT policies, so it goes through the security-definer
+   * create_dm_thread RPC, exactly like the web's /messages/new route. The RPC is idempotent, so a
    * race just reuses the existing thread.
    */
   const handleMessage = useCallback(async () => {
@@ -369,11 +369,11 @@ export default function ProfileScreen() {
     setMessageError(null);
     setMessaging(true);
     try {
-      // Just the RPC — no client-side thread lookup first. create_dm_thread is
+      // Just the RPC, no client-side thread lookup first. create_dm_thread is
       // find-or-create AND scoped `and not t.is_group`, so it reuses an
       // existing 1:1 and never a group. The lookup this used to do searched
       // dm_participants without excluding groups, so sharing a group chat with
-      // someone but no 1:1 would open the GROUP here instead of a private DM —
+      // someone but no 1:1 would open the GROUP here instead of a private DM,
       // the exact thing the RPC exists to prevent. It also enforces
       // dm_privacy (0040), which a raw participant read cannot.
       const { data: created, error: rpcError } = await supabase.rpc(
@@ -385,8 +385,8 @@ export default function ProfileScreen() {
 
       router.push(`/dm/${threadId}`);
     } catch (err) {
-      // If they've set dm_privacy to keep new threads out (0040), say that —
-      // "give it another try" is wrong for a wall that won't move on a retry.
+      // If they've set dm_privacy to keep new threads out (0040), say that.
+      // "Give it another try" is wrong for a wall that won't move on a retry.
       setMessageError(
         warmDmError(
           err,
@@ -425,7 +425,7 @@ export default function ProfileScreen() {
       await refreshBlocked();
     } catch {
       setActionError(
-        "We couldn't block them just now — give it another try."
+        "We couldn't block them just now. Give it another try."
       );
     }
   }, [userId, profile, refreshBlocked]);
@@ -453,7 +453,7 @@ export default function ProfileScreen() {
       await refreshBlocked();
     } catch {
       setActionError(
-        "We couldn't unblock them just now — give it another try."
+        "We couldn't unblock them just now. Give it another try."
       );
     } finally {
       setUnblocking(false);
@@ -514,7 +514,7 @@ export default function ProfileScreen() {
   ) : null;
 
   /* The same two choices every other overflow in the app offers, in the same
-     bottom sheet — this screen used to be the one anchored dropdown. */
+     bottom sheet. This screen used to be the one anchored dropdown. */
   const menuOverlay = isOtherPerson ? (
     <Sheet
       visible={menuOpen}
@@ -535,7 +535,7 @@ export default function ProfileScreen() {
   ) : null;
 
   /* Blocking is a toggle, so a failed one says so right where the tap
-     happened — the state stayed put and another tap is all it takes. */
+     happened: the state stayed put and another tap is all it takes. */
   const actionNotice = actionError ? (
     <AppText
       variant="caption"
@@ -634,7 +634,7 @@ export default function ProfileScreen() {
                 Nobody's here
               </AppText>
               <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
-                There's nobody at @{handle || "that handle"} — maybe they
+                There's nobody at @{handle || "that handle"}. They may have
                 changed their handle.
               </AppText>
               <Button
@@ -722,7 +722,7 @@ export default function ProfileScreen() {
   );
 
   /* Private profile viewed by someone else: handle + avatar only. Everything
-     else on the row — name, bio, major, grad year, interests, looking_for —
+     else on the row (name, bio, major, grad year, interests, looking_for)
      stays off this screen. Interests and looking_for are profile columns like
      any other, so they're hidden here too. */
   if (limited) {
@@ -753,7 +753,7 @@ export default function ProfileScreen() {
           }}
         >
           {/* Their photo if they've set one, initials from the handle if
-              not — the card below says "handle and avatar", so it draws the
+              not. The card below says "handle and avatar", so it draws the
               avatar. Same as the directory. */}
           <Avatar url={profile.avatar_url} name={profile.handle} size={72} />
           <AppText
@@ -833,7 +833,7 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* Hero — the person first: their face, their name set against it,
+        {/* Hero. The person first: their face, their name set against it,
             then the quiet facts, then what they're actually after. */}
         <Card style={{ gap: space.card }}>
           <View
@@ -906,7 +906,7 @@ export default function ProfileScreen() {
             </View>
           ) : null}
 
-          {/* Body type, left-aligned, with the card's 16px gaps either side —
+          {/* Body type, left-aligned, with the card's 16px gaps either side:
               a paragraph, not a caption under a portrait. */}
           {profile.bio ? <AppText>{profile.bio}</AppText> : null}
 
@@ -961,7 +961,7 @@ export default function ProfileScreen() {
           )}
         </Card>
 
-        {/* Interests — hidden entirely on someone else's profile when they
+        {/* Interests, hidden entirely on someone else's profile when they
             haven't added any; on your own it's an invitation. */}
         {isMe || interests.length > 0 ? (
           <>
@@ -978,7 +978,7 @@ export default function ProfileScreen() {
                 title="Nothing on here yet"
                 description={
                   profile.looking_for
-                    ? "Add a few things you're into — it's how classmates spot the overlap."
+                    ? "Add a few things you're into. It's how classmates spot the overlap."
                     : "A few things you're into, plus a line on what you're looking for, is how classmates know where to start."
                 }
                 actionLabel="Edit profile"
@@ -986,7 +986,7 @@ export default function ProfileScreen() {
               />
             ) : (
               /* Each one opens the directory filtered to the classmates who
-                 put the same thing on their profile — an interest nobody can
+                 put the same thing on their profile. An interest nobody can
                  tap is a fact about one person instead of a way to meet the
                  next one. */
               <View
@@ -1021,7 +1021,7 @@ export default function ProfileScreen() {
             accessibilityLiveRegion="polite"
             style={{ color: theme.danger, marginTop: space.chapter }}
           >
-            We couldn't load courses and channels just now — pull down to try
+            We couldn't load courses and channels just now. Pull down to try
             again.
           </AppText>
         ) : null}
@@ -1040,7 +1040,7 @@ export default function ProfileScreen() {
             title={isMe ? "No courses yet" : "No courses together"}
             description={
               isMe
-                ? "Add your classes to unlock course chat and notes."
+                ? "Add your classes to get course chat and shared notes."
                 : `You and ${firstName} don't share any courses this term.`
             }
             actionLabel={isMe ? "Add your classes" : undefined}
@@ -1062,7 +1062,7 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Clubs in common — a club's chat is mirrored into channel_members
+        {/* Clubs in common. A club's chat is mirrored into channel_members
             by a trigger, so membership is already in hand. */}
         <AppText
           variant="title"
@@ -1105,7 +1105,7 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Channels in common — campus-wide rooms and student-made topics. */}
+        {/* Channels in common: campus-wide rooms and student-made topics. */}
         <AppText
           variant="title"
           accessibilityRole="header"

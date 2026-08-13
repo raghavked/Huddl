@@ -23,7 +23,7 @@ export type PollComposerProps = {
    */
   channelId: string;
   /**
-   * Whether the sheet is shown. The room owns this — typically toggled from a
+   * Whether the sheet is shown. The room owns this, typically toggled from a
    * "+" or attachment action in the message bar. Drafts survive a dismiss; the
    * form only resets after a successful create.
    */
@@ -37,7 +37,7 @@ export type PollComposerProps = {
   /**
    * Called with the id of the newly created chat message (the one carrying
    * `poll_id`) after a successful create, just before `onClose`. The room does
-   * NOT need to insert or render anything from here — the message arrives
+   * NOT need to insert or render anything from here. The message arrives
    * through the room's own realtime INSERT subscription. Useful for
    * scroll-to-latest or read-marking.
    */
@@ -86,7 +86,7 @@ export function PollComposer({
   const handleCreate = useCallback(async () => {
     if (pending) return;
     const trimmedQuestion = question.trim();
-    // Blank rows are fine — they're just skipped, as long as two real
+    // Blank rows are fine. They're just skipped, as long as two real
     // options remain.
     const cleanOptions = options.map((o) => o.trim()).filter((o) => o.length > 0);
 
@@ -112,7 +112,7 @@ export function PollComposer({
     });
     setPending(false);
     if (error || typeof data !== "string") {
-      setFormError("Couldn't create the poll — give it another try.");
+      setFormError("Couldn't create the poll. Give it another try.");
       return;
     }
 

@@ -25,7 +25,7 @@ const CATEGORIES: readonly ClubCategory[] = [
 
 type ClubRow = Club & { club_members: { count: number }[] };
 
-/** "academic" -> "Academic". Local copy — club-card's version lives in a
+/** "academic" -> "Academic". Local copy, because club-card's version lives in a
  * client module and client functions can't be called from the server. */
 function categoryLabel(category: ClubCategory): string {
   return category.charAt(0).toUpperCase() + category.slice(1);
@@ -91,7 +91,7 @@ export default async function ClubsPage({
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
         title="Clubs"
-        description={`Student orgs at ${user.university.short_name} — find your people or found them.`}
+        description={`Student orgs at ${user.university.short_name}. Find your people or found them.`}
         action={clubs.length === 0 ? undefined : startButton}
       />
 
@@ -126,7 +126,7 @@ export default async function ClubsPage({
             title={active ? `No ${active} clubs yet` : "No clubs yet"}
             description={
               active
-                ? `Nobody has started a ${active} club at ${user.university.short_name} yet — be the first.`
+                ? `Nobody has started a ${active} club at ${user.university.short_name} yet. Be the first.`
                 : `Start the first one at ${user.university.short_name}.`
             }
             action={startButton}

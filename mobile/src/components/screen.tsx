@@ -8,7 +8,7 @@ import { useTheme } from "@/hooks/use-theme";
  * The standard screen scaffold: safe-area padding, a display title, content.
  *
  * This is where most of the app gets its air, so the numbers here are the
- * `space` ladder rather than literals — `gutter` down both edges, `chapter`
+ * `space` ladder rather than literals: `gutter` down both edges, `chapter`
  * under the title, and `rest` at the foot of a scroll so the last card isn't
  * pinned against the home indicator.
  *

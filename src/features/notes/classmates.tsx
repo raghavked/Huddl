@@ -27,14 +27,14 @@ function RoleBadge({ role }: { role: Enrollment["role"] }) {
  * each tile linking to the person's profile.
  *
  * Someone who turned Public profile off appears under their handle and their
- * avatar and nothing else — the same redaction the people directory, the board
+ * avatar and nothing else: the same redaction the people directory, the board
  * and `@/lib/study-buddy` apply. Sharing a lecture hall is not consent to have
  * your name and your major read off a class list, and no policy stops it:
  * migration 0012 left this to the app. You always see your own row in full.
  *
  * Blocked classmates are still listed, and that is a decision rather than an
- * omission. Blocking hides what a person writes — their notes and their
- * messages, each filtered on the surface that draws them — but an enrolment is
+ * omission. Blocking hides what a person writes (their notes and their
+ * messages, each filtered on the surface that draws them), but an enrolment is
  * a fact the course published, not something the person wrote, and a class
  * list that quietly loses people stops being one. Their name here is already
  * redacted if their profile is private, so hiding the row would cost the list
@@ -119,7 +119,7 @@ export function Classmates({
       </ul>
       {alone ? (
         <p className="mt-4 text-center text-sm text-muted">
-          It&apos;s just you so far — classmates show up here as they add the
+          It&apos;s just you so far. Classmates show up here as they add the
           course.
         </p>
       ) : null}

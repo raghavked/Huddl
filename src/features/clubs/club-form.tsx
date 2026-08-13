@@ -64,7 +64,7 @@ function CategorySelect({
 
 /**
  * Founding form. Inserts the clubs row directly (RLS: created_by must be the
- * signed-in student at their own university) — DB triggers then create the
+ * signed-in student at their own university). DB triggers then create the
  * chat channel and add the founder as owner.
  */
 export function ClubForm({
@@ -116,8 +116,8 @@ export function ClubForm({
       setSubmitting(false);
       setError(
         insertError?.code === "23505"
-          ? `"${trimmed}" is already taken at ${universityName} — try a more specific name.`
-          : "Something went wrong founding the club. Please try again."
+          ? `"${trimmed}" is already taken at ${universityName}. Try a more specific name.`
+          : "Something went wrong founding the club. Give it another try."
       );
       return;
     }

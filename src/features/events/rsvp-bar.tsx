@@ -19,7 +19,7 @@ const OPTIONS: readonly {
 /**
  * Going / Maybe / Can't-go segmented control backed by the rsvp server
  * action. `atCapacity` disables new "going" taps up front; the server
- * re-checks anyway (someone may free a spot — or take the last one).
+ * re-checks anyway (someone may free a spot, or take the last one).
  */
 export function RsvpBar({
   eventId,
@@ -91,8 +91,8 @@ export function RsvpBar({
       </div>
       {goingBlocked && !error ? (
         <p className="mt-2 text-xs text-muted">
-          This event is full — you can still RSVP &ldquo;maybe&rdquo; in case a
-          spot opens up.
+          This event is full, but you can still RSVP &ldquo;maybe&rdquo; in case
+          a spot opens up.
         </p>
       ) : null}
       {error ? (

@@ -25,7 +25,7 @@ export default function LoginScreen() {
   const [pending, setPending] = useState(false);
   // Three failures, three homes. A wrong password belongs on the password
   // field, because that is where the fix is. An unconfirmed address isn't a
-  // typo at all — it's an unfinished signup, and it gets a panel with the way
+  // typo at all. It's an unfinished signup, and it gets a panel with the way
   // out. Anything else is a one-line notice above the form.
   const [credentialError, setCredentialError] = useState<string | null>(null);
   const [unconfirmed, setUnconfirmed] = useState(false);
@@ -40,7 +40,7 @@ export default function LoginScreen() {
     if (prefill) setEmail(prefill);
   }, [params.email]);
 
-  // Tick the resend cooldown down one second at a time — same shape as
+  // Tick the resend cooldown down one second at a time, same shape as
   // (auth)/verify.tsx, because auth email is rate-limited and a resend button
   // with no wait on it just spends a student's next three attempts.
   useEffect(() => {
@@ -66,9 +66,9 @@ export default function LoginScreen() {
       // A student who signed up on their phone and never opened the email
       // gets the same "wrong password" from Supabase as someone who actually
       // mistyped it, and telling them to try the password again strands them
-      // for good. The web app branches here too — see
-      // src/features/auth/login-form.tsx — on the code, with a message test
-      // behind it for the older self-hosted error shape.
+      // for good. The web app branches on the code too (see
+      // src/features/auth/login-form.tsx), with a message test behind it for
+      // the older self-hosted error shape.
       if (
         signInError.code === "email_not_confirmed" ||
         /not confirmed/i.test(signInError.message)
@@ -93,7 +93,7 @@ export default function LoginScreen() {
     }
 
     // First login? `accepted_terms_at` is null until a student comes out the
-    // far side of onboarding — the signup trigger writes a name and a handle
+    // far side of onboarding. The signup trigger writes a name and a handle
     // for everyone, so neither of those can tell a new account from an old
     // one. A profile we can't read is treated as finished: a login that can't
     // answer the question opens the app rather than blocking on it.
@@ -113,7 +113,8 @@ export default function LoginScreen() {
     }
     // Everyone else goes back through the launch gate rather than straight to
     // the tabs, so a student who has finished onboarding but hasn't seen the
-    // welcome on this device still gets it — on this launch, not the next one.
+    // welcome on this device still gets it on this launch instead of the next
+    // one.
     router.replace("/");
   }
 
@@ -131,7 +132,7 @@ export default function LoginScreen() {
     setResending(false);
     if (resendError) {
       setFormError(
-        "That resend didn't go through — give it a moment and try again."
+        "That resend didn't go through. Give it a moment and try again."
       );
       return;
     }
@@ -206,7 +207,7 @@ export default function LoginScreen() {
                 />
                 <AppText variant="body" style={{ color: theme.accent, flex: 1 }}>
                   Your email isn't confirmed yet. We sent a link to{" "}
-                  {email.trim() || "your school email"} — open it in your
+                  {email.trim() || "your school email"}. Open it in your
                   browser, then come back and log in.
                 </AppText>
               </View>
@@ -220,7 +221,7 @@ export default function LoginScreen() {
                 >
                   <Feather name="check-circle" size={14} color={theme.success} />
                   <AppText variant="caption" style={{ color: theme.success }}>
-                    Sent — check your inbox (and spam).
+                    Sent. Check your inbox (and spam).
                   </AppText>
                 </View>
               ) : null}
@@ -268,7 +269,7 @@ export default function LoginScreen() {
             value={email}
             onChangeText={(next) => {
               setEmail(next);
-              // A new address makes the last verdict stale — including the
+              // A new address makes the last verdict stale, including the
               // unconfirmed panel, which names the address it was about.
               if (unconfirmed) setUnconfirmed(false);
               if (credentialError) setCredentialError(null);

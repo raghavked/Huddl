@@ -13,8 +13,8 @@ import {
 import { cn } from "@/lib/utils";
 
 /* Six primary destinations, so the dock's pills run tighter than they did at
-   five — the touch target is the whole 44px-tall link, not the pill inside
-   it, so the squeeze costs nothing to reach. */
+   five. The touch target is the whole 44px-tall link, not the pill inside it,
+   so the squeeze costs nothing to reach. */
 const TABS = [
   { href: "/home", label: "Home", icon: Home },
   { href: "/channels", label: "Channels", icon: Hash },
@@ -24,7 +24,7 @@ const TABS = [
   { href: "/board", label: "Board", icon: Pin },
 ] as const;
 
-/** Floating frosted tab dock — mobile only. */
+/** Floating frosted tab dock, mobile only. */
 export function MobileDock({ unreadDms = 0 }: { unreadDms?: number }) {
   const pathname = usePathname();
 

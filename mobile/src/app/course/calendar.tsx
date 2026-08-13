@@ -85,7 +85,7 @@ function shortDay(iso: string): string {
   });
 }
 
-/** "today", "tomorrow", "in 6 days", "3 weeks ago" — calendar-day distance. */
+/** "today", "tomorrow", "in 6 days", "3 weeks ago": calendar-day distance. */
 function relativeDay(iso: string): string {
   const now = new Date();
   const target = new Date(iso);
@@ -107,7 +107,7 @@ function relativeDay(iso: string): string {
   return `${Math.round(-diff / 7)} weeks ago`;
 }
 
-/** A due time only shows when someone set one — 11:59 PM is the quiet default. */
+/** A due time only shows when someone set one. 11:59 PM is the quiet default. */
 function timeSuffix(iso: string): string {
   const d = new Date(iso);
   if (d.getHours() === 23 && d.getMinutes() === 59) return "";
@@ -129,7 +129,7 @@ function reminderCaption(reminder: Reminder): string {
     : `Reminded you ${phrase}`;
 }
 
-/** True while the nearest lead on the ladder could still reach you — the
+/** True while the nearest lead on the ladder could still reach you. The
     hourly sweep only sends before a deadline, so past this point a bell would
     be a promise we can't keep. */
 function remindable(dueAt: string, now: Date): boolean {
@@ -160,7 +160,7 @@ function daysInMonth(month: number, year: number): number {
   return new Date(year, month, 0).getDate();
 }
 
-/** Midnight this morning, as a timestamp — the line between behind and ahead. */
+/** Midnight this morning, as a timestamp: the line between behind and ahead. */
 function startOfDay(now: Date): number {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 }
@@ -173,8 +173,8 @@ function startOfDay(now: Date): number {
  * that is forty rows above the thing you came to look at. This is what the
  * list scrolls to on arrival and what the "Jump to today" pill aims at.
  *
- * Null when every date is behind you — then the bottom of the list already
- * is the interesting end, and there is nothing to jump to.
+ * Null when every date is behind you. Then the bottom of the list already is
+ * the interesting end, and there is nothing to jump to.
  */
 function findToday(
   sections: Section[],
@@ -211,7 +211,7 @@ export default function ClassCalendarScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Your own reminders, keyed by item — absent from the map IS "no reminder".
+  // Your own reminders, keyed by item. Absent from the map IS "no reminder".
   const [reminders, setReminders] = useState<Map<string, Reminder>>(new Map());
   const [remindersError, setRemindersError] = useState<string | null>(null);
   // The lead-time sheet. `openedAt` is the clock read once on open, so every
@@ -224,7 +224,7 @@ export default function ClassCalendarScreen() {
   // can say why nothing happened, right under the row they tapped.
   const [pastChoice, setPastChoice] = useState<number | null>(null);
 
-  // The inline "Add a date" form — no datepicker dependency, just honest text.
+  // The inline "Add a date" form: no datepicker dependency, just honest text.
   const [formOpen, setFormOpen] = useState(false);
   const [formKind, setFormKind] = useState<CalendarKind>("assignment");
   const [formTitle, setFormTitle] = useState("");
@@ -256,7 +256,7 @@ export default function ClassCalendarScreen() {
     }
     const rows = (data ?? []) as unknown as CalendarItemRow[];
     setItems(rows);
-    // Your own check-offs — private, one query, keyed by item.
+    // Your own check-offs: private, one query, keyed by item.
     if (rows.length > 0) {
       const ids = rows.map((row) => row.id);
       // Every visible item's reminder in one lookup, in flight beside the
@@ -342,7 +342,7 @@ export default function ClassCalendarScreen() {
           else next.delete(item.id);
           return next;
         });
-        setActionError("That check-off didn't save — give it another tap.");
+        setActionError("That check-off didn't save. Give it another tap.");
       }
     },
     [userId, checked]
@@ -503,19 +503,19 @@ export default function ClassCalendarScreen() {
     if (!userId || !courseId || formPending) return;
     const title = formTitle.trim();
     if (title === "") {
-      setFormError("Give it a title — “Midterm 2”, “HW 4”, that kind of thing.");
+      setFormError("Give it a title: “Midterm 2”, “HW 4”, that kind of thing.");
       return;
     }
     const dateMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(formDate.trim());
     if (!dateMatch) {
-      setFormError("Dates look like YYYY-MM-DD — try 2026-10-14.");
+      setFormError("Dates look like YYYY-MM-DD, as in 2026-10-14.");
       return;
     }
     const year = Number(dateMatch[1]);
     const month = Number(dateMatch[2]);
     const day = Number(dateMatch[3]);
     if (month < 1 || month > 12 || day < 1 || day > daysInMonth(month, year)) {
-      setFormError("That day doesn't exist — double-check the month and day.");
+      setFormError("That day doesn't exist. Double-check the month and day.");
       return;
     }
     let hours = 23;
@@ -526,7 +526,7 @@ export default function ClassCalendarScreen() {
       const h = timeMatch ? Number(timeMatch[1]) : NaN;
       const m = timeMatch ? Number(timeMatch[2]) : NaN;
       if (!timeMatch || h > 23 || m > 59) {
-        setFormError("Times look like HH:MM — try 14:30, or leave it blank.");
+        setFormError("Times look like HH:MM, as in 14:30, or leave it blank.");
         return;
       }
       hours = h;
@@ -550,7 +550,7 @@ export default function ClassCalendarScreen() {
     setFormPending(false);
     if (error || !data) {
       setFormError(
-        "We couldn't add that date — check you're still in this course and try again."
+        "We couldn't add that date. Check you're still in this course and try again."
       );
       return;
     }
@@ -575,7 +575,7 @@ export default function ClassCalendarScreen() {
 
   const listRef = useRef<SectionList<CalendarItemRow, Section>>(null);
   const reduceMotion = useReducedMotion();
-  /** One automatic landing per visit — a return from the syllabus importer
+  /** One automatic landing per visit. A return from the syllabus importer
       shouldn't yank the list out from under a reader who scrolled. */
   const landedRef = useRef(false);
   /** Scroll retries after an unmeasured row, capped so this can't spin. */
@@ -606,7 +606,7 @@ export default function ClassCalendarScreen() {
     [todayAt]
   );
 
-  /** The row isn't measured yet — let the window fill and try once more. */
+  /** The row isn't measured yet. Let the window fill and try once more. */
   const handleScrollFailed = useCallback(() => {
     if (retriesRef.current >= 2) return;
     retriesRef.current += 1;
@@ -619,7 +619,7 @@ export default function ClassCalendarScreen() {
   }, [scrollToToday, reduceMotion]);
 
   // Open where the class actually is. Nothing to do when today is already
-  // the first row — then the list starts in the right place on its own.
+  // the first row. Then the list starts in the right place on its own.
   useEffect(() => {
     if (landedRef.current) return;
     if (status !== "ready" || todayAt === null || todayAt.behind === 0) return;
@@ -641,10 +641,10 @@ export default function ClassCalendarScreen() {
     const done = checked.has(item.id);
     const mine = item.created_by === userId;
     const reminder = reminders.get(item.id);
-    // The bell stays out of the way once a nudge could no longer arrive —
+    // The bell stays out of the way once a nudge could no longer arrive,
     // unless there's already one here to read and turn off.
     const showBell = reminder !== undefined || remindable(item.due_at, now);
-    const checkLabel = `${done ? "Mark not done" : "Mark done"} — ${
+    const checkLabel = `${done ? "Mark not done" : "Mark done"}, ${
       item.title
     }, ${shortDay(item.due_at)}${mine ? ". Long press to remove" : ""}`;
     return (
@@ -704,7 +704,7 @@ export default function ClassCalendarScreen() {
           {/* The bell sits inboard of the check-off circle, its own 44px
               button with ~30px of clear space before the circle, so the two
               never trade taps. Empty outline until a reminder is set, then a
-              soft ember tile — the same icon-tile language as Sheet.Row. */}
+              soft ember tile, the same icon-tile language as Sheet.Row. */}
           {showBell ? (
             <Pressable
               accessibilityRole="button"
@@ -935,7 +935,7 @@ export default function ClassCalendarScreen() {
 
   const sheetReminder = sheet ? reminders.get(sheet.item.id) : undefined;
   const sheetDue = sheet ? new Date(sheet.item.due_at) : null;
-  // Even the closest rung is behind us — there is no honest choice left to
+  // Even the closest rung is behind us. There is no honest choice left to
   // offer, so the sheet explains instead of listing seven dead ones.
   const sheetTooLate =
     sheet !== null && sheetDue !== null
@@ -954,7 +954,7 @@ export default function ClassCalendarScreen() {
           ).past;
           return (
             <View key={choice.minutes}>
-              {/* Faded when that moment is already behind them — tapping it
+              {/* Faded when that moment is already behind them. Tapping it
                   says why rather than arming a nudge that can't arrive. */}
               <View style={{ opacity: past ? 0.5 : 1 }}>
                 <Sheet.Row
@@ -975,7 +975,7 @@ export default function ClassCalendarScreen() {
                     marginBottom: space.tight,
                   }}
                 >
-                  That moment has passed — pick something closer in.
+                  That moment has passed. Pick something closer in.
                 </AppText>
               ) : null}
             </View>
@@ -1002,7 +1002,7 @@ export default function ClassCalendarScreen() {
           variant="caption"
           style={{ color: theme.warning, marginBottom: space.snug }}
         >
-          This one's due too soon — even the closest reminder would land after
+          This one's due too soon. Even the closest reminder would land after
           the deadline.
         </AppText>
       ) : (
@@ -1093,7 +1093,7 @@ export default function ClassCalendarScreen() {
             style={{ marginTop: space.snug, marginBottom: space.card }}
           >
             {courseCode ? `${courseCode} · shared` : "Shared"} with everyone in
-            the class — check off what you've handled.
+            the class. Check off what you've handled.
           </AppText>
 
           {/* Stays put above the list rather than riding in the header, so

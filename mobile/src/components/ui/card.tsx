@@ -17,7 +17,7 @@ import { useReducedMotion } from "./use-reduced-motion";
 
 /* The arrival: eight pixels up and a fade, on the `enter` curve. Rows are
    staggered so a list assembles itself rather than flashing in all at once,
-   and the stagger stops climbing after seven of them — nobody should wait a
+   and the stagger stops climbing after seven of them: nobody should wait a
    second and a half to read row thirty. */
 const ENTRANCE_RISE = 8;
 const ENTRANCE_STEP = 40;
@@ -29,12 +29,12 @@ const ENTRANCE_STEP_CAP = 6;
  * The default `rest` elevation is what almost everything wants. Step up only
  * when the card genuinely left the page: `raised` for a menu or a popover,
  * `floating` for a bottom sheet or a modal. In dark the same steps lean on
- * surface contrast instead of shadow — see the `elevation` token docs.
+ * surface contrast instead of shadow. See the `elevation` token docs.
  *
  * `entrance` is the opt-in list arrival: pass the card's index and it fades
  * up a few pixels into place, each card a beat behind the one above it. Use
- * it when rows have genuinely just landed — a query resolving, a search
- * returning — and leave it off everywhere else, including on a list that
+ * it when rows have genuinely just landed (a query resolving, a search
+ * returning) and leave it off everywhere else, including on a list that
  * re-renders for a filter change. It reads the index once, on mount, so a
  * list that re-sorts does not replay itself. Under reduce motion the card
  * is simply there.

@@ -12,8 +12,8 @@ import {
 /* Course tints, exercised on plain strings.
  *
  * The whole point of the hash is that it is boring and forever: ECS 36A is
- * the same colour on a laptop, on a phone, after a reinstall, and — the web
- * one — across a server render and the hydration that follows it. So the
+ * the same colour on a laptop, on a phone, after a reinstall, and, on the web,
+ * across a server render and the hydration that follows it. So the
  * assertions below lock in the actual bucket for a handful of real UC Davis
  * codes rather than only asserting "it returns something".
  *
@@ -48,7 +48,7 @@ describe("the palette", () => {
   });
 
   it("spells its class names out so Tailwind can find them", () => {
-    // Composed at runtime they would never be generated — see the note at the
+    // Composed at runtime they would never be generated; see the note at the
     // top of course-color.ts. A literal check is the cheapest guard we have.
     expect(COURSE_TINT_CLASSES.plum.chip).toBe(
       "bg-course-plum-soft text-course-plum-ink"
@@ -58,7 +58,7 @@ describe("the palette", () => {
 
 /* ------------------------------ asCourseTint ------------------------------ */
 
-describe("asCourseTint — reading a stored value back", () => {
+describe("asCourseTint: reading a stored value back", () => {
   it("accepts every tint we store", () => {
     for (const tint of COURSE_TINT_KEYS) {
       expect(asCourseTint(tint)).toBe(tint);
@@ -81,7 +81,7 @@ describe("asCourseTint — reading a stored value back", () => {
 
 /* ----------------------------- colorForCourse ----------------------------- */
 
-describe("colorForCourse — the student's pick wins", () => {
+describe("colorForCourse: the student's pick wins", () => {
   it("uses an explicit choice whatever the code hashes to", () => {
     expect(colorForCourse("plum", "ECS 36A")).toBe("plum");
     expect(colorForCourse("plum", "BIS 2A")).toBe("plum");
@@ -96,7 +96,7 @@ describe("colorForCourse — the student's pick wins", () => {
   });
 });
 
-describe("colorForCourse — the hash is stable and spelling-blind", () => {
+describe("colorForCourse: the hash is stable and spelling-blind", () => {
   /* Locked-in buckets. See the note at the top of this file before editing. */
   const KNOWN: readonly [string, CourseTint][] = [
     ["ECS 36A", "ember"],
@@ -109,7 +109,7 @@ describe("colorForCourse — the hash is stable and spelling-blind", () => {
 
   it.each(KNOWN)("puts %s on %s, every time", (code, tint) => {
     expect(colorForCourse(null, code)).toBe(tint);
-    // Same call, same answer — no module state, no clock, no counter.
+    // Same call, same answer: no module state, no clock, no counter.
     expect(colorForCourse(null, code)).toBe(tint);
   });
 
@@ -125,9 +125,9 @@ describe("colorForCourse — the hash is stable and spelling-blind", () => {
   });
 
   it("spreads a real course list over more than one colour", () => {
-    // Six buckets collide sometimes — that's the documented cost of a
-    // stateless rule — but a whole catalogue landing on one tint would mean
-    // the hash had stopped working.
+    // Six buckets collide sometimes, which is the documented cost of a
+    // stateless rule, but a whole catalogue landing on one tint would mean the
+    // hash had stopped working.
     const catalogue = [
       "ECS 36A",
       "ECS 36B",

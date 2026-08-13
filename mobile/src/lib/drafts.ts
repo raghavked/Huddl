@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
 
-/* Drafts and the send queue — the data layer for words that haven't landed yet.
+/* Drafts and the send queue: the data layer for words that haven't landed yet.
  *
  * Two jobs live here because they're the same promise made twice: *nothing a
  * student typed should disappear because the app closed or the bars ran out.*
@@ -18,9 +18,9 @@ import { supabase } from "@/lib/supabase";
  *
  * The two halves never mix: a draft is text you're still writing, a queued
  * message is text you already committed to. Moving between them is the
- * caller's call — a composer typically clears the draft the moment it enqueues.
+ * caller's call. A composer typically clears the draft the moment it enqueues.
  *
- * No React in here, no theme, no navigation — AsyncStorage, one insert, and a
+ * No React in here, no theme, no navigation: AsyncStorage, one insert, and a
  * handful of pure functions. Every export is safe to call before anyone signs
  * in: the draft half never touches auth at all, and a signed-out
  * {@link flushQueue} is a deliberate no-op that spends no attempts.
@@ -35,7 +35,7 @@ import { supabase } from "@/lib/supabase";
 export type ConversationKind = "channel" | "dm" | "thread";
 
 /**
- * A conversation's identity as a single string — `"channel:<id>"`,
+ * A conversation's identity as a single string: `"channel:<id>"`,
  * `"dm:<threadId>"`, or `"thread:<parentMessageId>"`.
  *
  * Build one with {@link keyFor} and never by hand: the type is a template
@@ -47,7 +47,7 @@ export type ConversationKey =
   | `dm:${string}`
   | `thread:${string}`;
 
-/** A conversation key taken apart again — see {@link parseConversationKey}. */
+/** A conversation key taken apart again. See {@link parseConversationKey}. */
 export type ParsedConversationKey = {
   /** Which kind of conversation the key points at. */
   kind: ConversationKind;
@@ -57,7 +57,7 @@ export type ParsedConversationKey = {
 
 /**
  * The two tables the queue can insert into. A channel message and a thread
- * reply are both `messages` rows — the difference is `parent_id` in the
+ * reply are both `messages` rows. The difference is `parent_id` in the
  * payload, not a different table.
  */
 export type QueuedTable = "messages" | "dm_messages";
@@ -69,7 +69,7 @@ export type QueuedTable = "messages" | "dm_messages";
  * `author_id`, `parent_id`, `attachment_path`, `forwarded_author_id`,
  * `forwarded_from`.
  *
- * Leave `id` out — the queue assigns it (see {@link QueuedMessage.id}).
+ * Leave `id` out. The queue assigns it (see {@link QueuedMessage.id}).
  */
 export type QueuedPayload = Record<string, string | null>;
 
@@ -81,7 +81,7 @@ export type QueueRequest = {
   table: QueuedTable;
   /**
    * The insert body. Must carry `content` (1-4000 characters), `author_id`,
-   * and the conversation's own column — `channel_id` for `messages`,
+   * and the conversation's own column: `channel_id` for `messages`,
    * `thread_id` for `dm_messages`. Anything else the table accepts may ride
    * along.
    */
@@ -91,7 +91,7 @@ export type QueueRequest = {
 /** One message waiting its turn, exactly as the queue stores it. */
 export type QueuedMessage = {
   /**
-   * The message's id — assigned here, before it's ever sent, and inserted as
+   * The message's id: assigned here, before it's ever sent, and inserted as
    * the row's primary key when it lands.
    *
    * That's the whole duplicate-protection story: if a send succeeds but the
@@ -101,17 +101,17 @@ export type QueuedMessage = {
    * id matches the real row when realtime delivers it.
    */
   id: string;
-  /** Which conversation it belongs to — what {@link peekQueue} filters on. */
+  /** Which conversation it belongs to: what {@link peekQueue} filters on. */
   key: ConversationKey;
   /** Which table it's destined for. */
   table: QueuedTable;
   /** The insert body, `id` included. */
   payload: QueuedPayload;
-  /** ISO timestamp of when it was composed — the queue's running order. */
+  /** ISO timestamp of when it was composed: the queue's running order. */
   created_at: string;
   /**
    * How many times a server actually answered "no" to this row. Failing to
-   * reach the server at all doesn't count — see {@link flushQueue}.
+   * reach the server at all doesn't count. See {@link flushQueue}.
    */
   attempts: number;
   /**
@@ -131,14 +131,14 @@ export type QueuedMessage = {
 export type FlushResult = {
   /**
    * Rows that landed and left the queue, oldest first. Drop the matching
-   * pending bubbles — or do nothing, if realtime is already going to deliver
+   * pending bubbles, or do nothing if realtime is already going to deliver
    * them under the same ids.
    */
   sent: QueuedMessage[];
   /**
    * Rows that hit {@link MAX_SEND_ATTEMPTS} on this pass and are now stuck,
    * carrying the `last_error` that finished them off. These are the ones
-   * worth putting in front of the person — nothing else will retry them.
+   * worth putting in front of the person: nothing else will retry them.
    */
   stuck: QueuedMessage[];
   /**
@@ -149,7 +149,7 @@ export type FlushResult = {
   /** How many rows are still queued afterwards, stuck ones included. */
   remaining: number;
   /**
-   * Our best guess at the connection once the pass finished — the same value
+   * Our best guess at the connection once the pass finished, the same value
    * {@link isOnline} now returns. False means the walk stopped early because
    * the network went away mid-flush.
    */
@@ -166,7 +166,7 @@ export type ConnectivityListener = (online: boolean) => void;
  * `huddl.display.mode` and `huddl.firstRun.welcomeSeen` so everything Huddl
  * keeps on the device sorts together.
  *
- * A draft lives at `` `${DRAFT_KEY_PREFIX}${conversationKey}` `` — one storage
+ * A draft lives at `` `${DRAFT_KEY_PREFIX}${conversationKey}` ``: one storage
  * key per conversation, so a debounced write touches one small entry instead
  * of rewriting a blob of every draft you have. Exported so a clear-all (on
  * sign-out, or a "forget my drafts" control) can find them all with
@@ -193,8 +193,8 @@ export const DRAFT_MAX_LENGTH = 4000;
 /**
  * How many times the server may refuse a queued message before we stop
  * trying. Five is enough to ride out a flaky tunnel and few enough that a
- * message the server will never accept — a rate limit, a channel that's been
- * deleted, a club you were removed from — stops burning battery within a
+ * message the server will never accept (a rate limit, a channel that's been
+ * deleted, a club you were removed from) stops burning battery within a
  * minute of tries and starts being a thing the person can see instead.
  */
 export const MAX_SEND_ATTEMPTS = 5;
@@ -203,7 +203,7 @@ export const MAX_SEND_ATTEMPTS = 5;
 
 /**
  * A drafts-or-queue failure with a message written for a person, not a log.
- * Show `err.message` directly in an inline error — it never leaks SQL, ids,
+ * Show `err.message` directly in an inline error. It never leaks SQL, ids,
  * or PostgREST codes.
  */
 export class DraftError extends Error {
@@ -224,7 +224,7 @@ const GAVE_UP =
 
 /**
  * Build the key for a conversation. The one sanctioned way to name a
- * conversation in storage — hand-built strings drift, and a drifted key is a
+ * conversation in storage. Hand-built strings drift, and a drifted key is a
  * draft nobody can find again.
  *
  * ```ts
@@ -242,7 +242,7 @@ export function keyFor(kind: ConversationKind, id: string): ConversationKey {
 }
 
 /**
- * Take a conversation key apart again — for a screen that lists every draft
+ * Take a conversation key apart again, for a screen that lists every draft
  * and needs somewhere to send each row.
  *
  * Pure. Returns null for anything that isn't a key {@link keyFor} would have
@@ -272,8 +272,8 @@ function draftStorageKey(key: ConversationKey): string {
  * Keep what someone typed but hasn't sent.
  *
  * **Don't call this on every keystroke.** AsyncStorage is a round trip to
- * native and a fast typist would queue dozens a second. Debounce it — around
- * half a second of quiet is plenty — and write once more when the composer
+ * native and a fast typist would queue dozens a second. Debounce it (around
+ * half a second of quiet is plenty) and write once more when the composer
  * loses focus or unmounts, so the last word typed before backgrounding is the
  * one that gets kept:
  *
@@ -287,7 +287,7 @@ function draftStorageKey(key: ConversationKey): string {
  * useEffect(() => () => void saveDraft(key, textRef.current), [key]);
  * ```
  *
- * Whitespace-only text isn't a draft — passing it clears the entry instead of
+ * Whitespace-only text isn't a draft. Passing it clears the entry instead of
  * storing a blank one, so an emptied composer doesn't leave a "draft" chip
  * behind on a list screen. Everything else is stored verbatim, trailing
  * newlines and all: it's what the person typed. Text past
@@ -295,7 +295,7 @@ function draftStorageKey(key: ConversationKey): string {
  * be sent anyway.
  *
  * **Never throws.** A draft that failed to save costs a sentence on a
- * relaunch, which is not worth an error in someone's face mid-typing — and
+ * relaunch, which is not worth an error in someone's face mid-typing, and
  * there's nowhere to put one in a debounced handler anyway.
  *
  * @param key  The conversation, from {@link keyFor}.
@@ -325,7 +325,7 @@ export async function saveDraft(
  * Call it once when the composer mounts and seed your TextInput with it.
  *
  * **Never throws.** Unreadable storage reads as "no draft", which is the
- * honest answer — we genuinely can't tell you what you typed.
+ * honest answer: we genuinely can't tell you what you typed.
  *
  * @param key The conversation, from {@link keyFor}.
  */
@@ -340,7 +340,7 @@ export async function loadDraft(key: ConversationKey): Promise<string | null> {
 
 /**
  * Forget the draft for one conversation. Call it the moment a message is sent
- * or queued — the text has moved on, and a stale draft reappearing under a
+ * or queued. The text has moved on, and a stale draft reappearing under a
  * message you already sent is worse than no draft at all.
  *
  * **Never throws.** A failed delete leaves a draft that will be overwritten
@@ -357,7 +357,7 @@ export async function clearDraft(key: ConversationKey): Promise<void> {
 }
 
 /**
- * Every draft on the device, as a Map from conversation key to text — for a
+ * Every draft on the device, as a Map from conversation key to text, for a
  * list of chats that wants to mark the rows you left mid-sentence:
  *
  * ```ts
@@ -423,7 +423,7 @@ export async function clearAllDrafts(): Promise<void> {
  * feature isn't worth adding one for. So there is no radio-level truth here:
  * the signal below is inferred entirely from requests we already make. We
  * learn we're offline when a send fails to reach the server, and we learn
- * we're back when one reaches it — success or refusal, either proves a server
+ * we're back when one reaches it. Success or refusal, either proves a server
  * answered.
  *
  * Two honest consequences:
@@ -440,14 +440,14 @@ export async function clearAllDrafts(): Promise<void> {
  * {@link subscribeToConnectivity} gets the real thing for free.
  */
 
-/** Optimistic until something proves otherwise — see the note above. */
+/** Optimistic until something proves otherwise. See the note above. */
 let online = true;
 
 const connectivityListeners = new Set<ConnectivityListener>();
 
 /**
  * Our current best guess at whether the network is reachable, read
- * synchronously — for a render that just needs to decide between "Send" and
+ * synchronously, for a render that just needs to decide between "Send" and
  * "Send when you're back".
  *
  * Inferred, not measured. See {@link subscribeToConnectivity}.
@@ -470,7 +470,7 @@ export function isOnline(): boolean {
  * safe to call on every request.
  *
  * @param next True when a server answered you, false when you couldn't reach
- *   one. A refusal still counts as online — the server was there to refuse.
+ *   one. A refusal still counts as online: the server was there to refuse.
  */
 export function noteConnectivity(next: boolean): void {
   if (online === next) return;
@@ -487,8 +487,8 @@ export function noteConnectivity(next: boolean): void {
 
 /**
  * Watch the connection. Your listener fires once with the current guess
- * before this returns — so a badge renders immediately without a second read
- * — and again on every change.
+ * before this returns (so a badge renders immediately without a second read)
+ * and again on every change.
  *
  * ```ts
  * useEffect(() => subscribeToConnectivity(setOnline), []);
@@ -498,7 +498,7 @@ export function noteConnectivity(next: boolean): void {
  * we make, not read from the radio, so it goes stale until something tries.
  *
  * @param onChange Called with true for online, false for off.
- * @returns An unsubscribe function — return it straight from a `useEffect`.
+ * @returns An unsubscribe function. Return it straight from a `useEffect`.
  */
 export function subscribeToConnectivity(
   onChange: ConnectivityListener
@@ -507,7 +507,7 @@ export function subscribeToConnectivity(
   try {
     onChange(online);
   } catch {
-    // Same rule as above — a throwing listener is its own problem.
+    // Same rule as above: a throwing listener is its own problem.
   }
   return () => {
     connectivityListeners.delete(onChange);
@@ -528,7 +528,7 @@ export function subscribeToConnectivity(
  *
  * Pure.
  *
- * @param error Whatever came back in a `{ error }` — or a caught throw.
+ * @param error Whatever came back in a `{ error }`, or a caught throw.
  */
 export function isLikelyOffline(error: unknown): boolean {
   if (error === null || error === undefined) return false;
@@ -625,7 +625,7 @@ async function readQueue(): Promise<QueuedMessage[]> {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    // Truncated JSON — a kill mid-write. Nothing here is recoverable.
+    // Truncated JSON: a kill mid-write. Nothing here is recoverable.
     return [];
   }
   if (!Array.isArray(parsed)) return [];
@@ -648,7 +648,7 @@ async function writeQueue(queue: readonly QueuedMessage[]): Promise<void> {
 
 /**
  * Read the queue, hand it to `apply`, and write back whatever `apply` returns
- * as `next` — all inside the lock, so no two mutations can interleave.
+ * as `next`, all inside the lock, so no two mutations can interleave.
  * Returning `next: null` means "read only, change nothing".
  */
 function mutateQueue<T>(
@@ -675,7 +675,7 @@ function mutateQueue<T>(
  * Not cryptographically strong, and it must never be used for anything that
  * needs to be unguessable. It's fine for a row id: 122 random bits make a
  * collision with another student's message vanishingly unlikely, and the
- * primary key would reject the second one anyway — which is exactly the
+ * primary key would reject the second one anyway, which is exactly the
  * behaviour {@link flushQueue} leans on.
  */
 function newMessageId(): string {
@@ -702,15 +702,15 @@ function parentColumn(table: QueuedTable): string {
 }
 
 /**
- * Put a message in the queue. Returns immediately once it's on disk — it does
+ * Put a message in the queue. Returns immediately once it's on disk. It does
  * not attempt a send, so a composer can clear itself and show a pending
  * bubble without waiting on the network.
  *
  * The usual shape of a send becomes: enqueue, clear the draft, render the
  * pending bubble, then call {@link flushQueue}. Online, the flush finishes in
  * a beat and the row is gone before anyone notices it was queued. Offline,
- * the message waits — through a backgrounded app, through a kill, through a
- * flight — and goes out on the first flush that reaches a server.
+ * the message waits (through a backgrounded app, through a kill, through a
+ * flight) and goes out on the first flush that reaches a server.
  *
  * The returned message's `id` is the id the row will have when it lands, so
  * key your pending bubble on it and realtime will line up with it later.
@@ -721,7 +721,7 @@ function parentColumn(table: QueuedTable): string {
  *
  * @param request Where it's going and what goes in the row.
  * @returns The queued message, ready to render as pending.
- * @throws {DraftError} With copy that's ready to render — including when the
+ * @throws {DraftError} With copy that's ready to render, including when the
  *   device can't persist it, which the caller must know about *before* it
  *   clears the composer.
  */
@@ -737,7 +737,7 @@ export async function enqueue(request: QueueRequest): Promise<QueuedMessage> {
   }
   if (content.length > DRAFT_MAX_LENGTH) {
     throw new DraftError(
-      `Messages stop at ${DRAFT_MAX_LENGTH} characters — trim it a little.`
+      `Messages stop at ${DRAFT_MAX_LENGTH} characters. Trim it a little.`
     );
   }
   const author = payload["author_id"];
@@ -778,7 +778,7 @@ export async function enqueue(request: QueueRequest): Promise<QueuedMessage> {
 /* ------------------------------ reading ----------------------------- */
 
 /**
- * How many messages are waiting, stuck ones included — the number for a
+ * How many messages are waiting, stuck ones included: the number for a
  * global "3 unsent" badge.
  *
  * **Never throws.** Unreadable storage counts as 0: no badge is better than a
@@ -793,7 +793,7 @@ export async function queueLength(): Promise<number> {
 }
 
 /**
- * The messages waiting in one conversation, oldest first — for the pending
+ * The messages waiting in one conversation, oldest first, for the pending
  * bubbles at the bottom of a chat, and for a per-room badge on a list screen.
  *
  * Stuck rows are included and flagged: they're the ones a person most needs
@@ -824,8 +824,8 @@ export async function peekQueue(
  * "delete" on a pending bubble works.
  *
  * Safe to call twice: a message that already sent, or that someone dropped on
- * another screen, resolves false rather than throwing. The intent — "this
- * shouldn't be waiting anymore" — already holds either way.
+ * another screen, resolves false rather than throwing. The intent ("this
+ * shouldn't be waiting anymore") already holds either way.
  *
  * **Never throws.**
  *
@@ -870,7 +870,7 @@ function errorCode(error: unknown): string {
   return typeof code === "string" ? code : "";
 }
 
-/** Is anyone signed in? No network hop — supabase-js refreshes stale tokens. */
+/** Is anyone signed in? No network hop: supabase-js refreshes stale tokens. */
 async function hasSession(): Promise<boolean> {
   try {
     const { data, error } = await supabase.auth.getSession();
@@ -899,12 +899,12 @@ async function attemptSend(message: QueuedMessage): Promise<SendOutcome> {
   if (!error) return { kind: "sent" };
   // 23505: this exact id is already in the table, so a previous attempt landed
   // and we were killed before the queue caught up. That's a send, not a
-  // failure — see QueuedMessage.id.
+  // failure. See QueuedMessage.id.
   if (errorCode(error) === "23505") return { kind: "sent" };
   return isLikelyOffline(error) ? { kind: "unreachable" } : { kind: "refused" };
 }
 
-/** Only one walk at a time — see {@link flushQueue}. */
+/** Only one walk at a time. See {@link flushQueue}. */
 let inFlight: Promise<FlushResult> | null = null;
 
 /**
@@ -921,7 +921,7 @@ let inFlight: Promise<FlushResult> | null = null;
  *   - **The network is gone.** The walk stops right there, immediately.
  *     Nothing else would land either, and hammering a dead connection costs
  *     battery. The remaining rows keep their place and their attempt counts.
- *   - **The server refused a row.** It answered, so we're online — but this
+ *   - **The server refused a row.** It answered, so we're online, but this
  *     conversation is now blocked for the rest of the pass and the rows
  *     behind it in the *same* conversation are skipped untouched, because a
  *     reply must never arrive before the message it answers. Other
@@ -935,14 +935,14 @@ let inFlight: Promise<FlushResult> | null = null;
  * unreachable is not the message's fault, so a weekend with no signal can't
  * quietly burn through five attempts and strand everything you wrote.
  *
- * **Signed out, this does nothing.** No inserts, no attempts spent — the rows
+ * **Signed out, this does nothing.** No inserts, no attempts spent. The rows
  * wait for whoever the queue belongs to to come back.
  *
  * @returns What the pass did: the rows that landed, the ones that just gave
  *   up, the ones that will be tried again, how many are left, and the
  *   connection guess afterwards.
  * @throws {DraftError} Only when the queue itself can't be read or written.
- *   Send failures are never thrown — they're in the result. A background
+ *   Send failures are never thrown; they're in the result. A background
  *   flush can safely `.catch(() => {})`; a "try again" button should show it.
  */
 export function flushQueue(): Promise<FlushResult> {
@@ -950,7 +950,7 @@ export function flushQueue(): Promise<FlushResult> {
   const run = walkQueue();
   inFlight = run;
   // Registered after the assignment, and `then` is always async, so the slot
-  // can never be cleared before it's filled — a stale pass would otherwise be
+  // can never be cleared before it's filled: a stale pass would otherwise be
   // handed to every caller forever.
   const release = (): void => {
     inFlight = null;
@@ -980,7 +980,7 @@ async function walkQueue(): Promise<FlushResult> {
     return { sent, stuck, failed, remaining: snapshot.length, online };
   }
 
-  /** Conversations that hit trouble this pass — order holds within each one. */
+  /** Conversations that hit trouble this pass. Order holds within each one. */
   const blocked = new Set<ConversationKey>();
 
   for (const message of snapshot) {

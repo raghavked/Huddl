@@ -1,13 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
-/* Assignment reminders — the data layer.
+/* Assignment reminders: the data layer.
  *
  * A student clicks a deadline, picks how far ahead they want the nudge, and
  * one notification arrives at that moment. That is the whole feature, and
  * almost all of it already lives in the database (migration 0032):
  *
- *   `public.calendar_reminders` is keyed `(user_id, item_id)` — one reminder
+ *   `public.calendar_reminders` is keyed `(user_id, item_id)`: one reminder
  *   per person per deadline, never two. `lead_minutes` is how far ahead, and
  *   the check constraint holds it between 15 minutes and two weeks.
  *   `sent_at` stamps the single nudge so the sweep can never repeat itself.
@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/client";
  *   `public.send_calendar_reminders()` runs on cron at ten past every hour.
  *   It picks up rows where `sent_at is null` and the deadline is still ahead
  *   but within the lead, stamps them, and inserts a row in `notifications`.
- *   The client never sends anything and never writes `sent_at` — this module
+ *   The client never sends anything and never writes `sent_at`. This module
  *   only ever asks to be on the list, or asks to come off it.
  *
  * WHAT "HOURLY" MEANS FOR THE COPY YOU WRITE
@@ -32,7 +32,7 @@ import { createClient } from "@/lib/supabase/client";
  * reaching for a class they haven't added. That is four clicks away from
  * fixed, so {@link ENROLL_FIRST} says so rather than apologising.
  *
- * No React, no theme, no routing in here — queries, narrowing, and two pure
+ * No React, no theme, no routing in here: queries, narrowing, and two pure
  * helpers at the bottom that take `now` rather than reading the clock. Every
  * failure arrives as a {@link ReminderError} whose message is warm, specific,
  * and safe to drop straight into an inline error.
@@ -45,15 +45,15 @@ import { createClient } from "@/lib/supabase/client";
 
 /* ══════════════════════════════ shapes ══════════════════════════════ */
 
-/** The Supabase client these queries run against — server or browser. */
+/** The Supabase client these queries run against: server or browser. */
 type Db = SupabaseClient;
 
 /**
  * How a caller tells this module which Supabase client to use.
  *
  * @property client Request-scoped server client. Omit in the browser.
- * @property userId The caller's `profiles.id` when it's already known —
- *   server components have it from `getCurrentUser()`, and passing it keeps
+ * @property userId The caller's `profiles.id` when it's already known.
+ *   Server components have it from `getCurrentUser()`, and passing it keeps
  *   this module off `auth.getSession()` on the server.
  */
 export type ReminderCtx = {
@@ -69,7 +69,7 @@ export type ReminderCtx = {
 export type LeadChoice = {
   /** Minutes before the deadline, stored verbatim in `lead_minutes`. */
   minutes: number;
-  /** Warm, sentence-case label for the row — e.g. "The night before". */
+  /** Warm, sentence-case label for the row, e.g. "The night before". */
   label: string;
 };
 
@@ -84,19 +84,19 @@ export type Reminder = {
   lead_minutes: number;
   /**
    * ISO timestamp the sweep sent the nudge, or null while it's still pending.
-   * A set reminder with a stamp has already done its job — render it as sent
+   * A set reminder with a stamp has already done its job. Render it as sent
    * rather than as armed, and note that changing the lead re-arms it.
    */
   sent_at: string | null;
 };
 
-/** When a reminder will actually reach the student — see {@link reminderFiresAt}. */
+/** When a reminder will actually reach the student. See {@link reminderFiresAt}. */
 export type ReminderTiming = {
   /** The moment the nudge is due: the deadline minus the lead. */
   at: Date;
   /**
    * True when that moment has already gone by, which means this reminder will
-   * never arrive — the sweep only sends while the deadline is still ahead.
+   * never arrive: the sweep only sends while the deadline is still ahead.
    * Say so plainly next to the choice; don't leave a dead reminder looking
    * armed.
    */
@@ -114,7 +114,7 @@ const WEEK = 7 * DAY;
 
 /** The floor the `lead_minutes` check constraint enforces. */
 export const LEAD_MIN_MINUTES = 15;
-/** The ceiling the `lead_minutes` check constraint enforces — two weeks. */
+/** The ceiling the `lead_minutes` check constraint enforces: two weeks. */
 export const LEAD_MAX_MINUTES = 2 * WEEK;
 
 /**
@@ -130,7 +130,7 @@ export const DEFAULT_LEAD_MINUTES = DAY;
  * "The night before" is 15 hours rather than a clock time, because reminders
  * are relative to the deadline and we don't store one. On the 11:59pm due
  * date almost every assignment actually has, 15 hours lands the nudge at
- * about 9am the previous day — coffee, not panic. On a 2pm deadline it slides
+ * about 9am the previous day. Coffee, not panic. On a 2pm deadline it slides
  * to the evening before, which is still the last useful moment to start.
  *
  * Everything here sits inside the 15-minute / two-week constraint, so a value
@@ -161,7 +161,7 @@ const ID_CHUNK = 100;
 
 /**
  * A reminder failure with a message written for a person, not a log. Show
- * `err.message` directly in your inline error — it never leaks SQL, ids, or
+ * `err.message` directly in your inline error. It never leaks SQL, ids, or
  * PostgREST codes.
  */
 export class ReminderError extends Error {
@@ -252,7 +252,7 @@ function optionalText(raw: unknown): string | null {
 /**
  * An embedded relation comes back as an object OR a one-element array
  * depending on how PostgREST resolves it. Nothing in this module joins today,
- * but `.single()` and `.maybeSingle()` shapes go through the same door —
+ * but `.single()` and `.maybeSingle()` shapes go through the same door. So
  * unwrap both to a plain record. Same defence as `@/lib/course-archive`.
  */
 function embedded(raw: unknown): Record<string, unknown> | null {
@@ -263,7 +263,7 @@ function embedded(raw: unknown): Record<string, unknown> | null {
 
 /**
  * Narrow one row into a {@link Reminder}. Returns null when the row is missing
- * an item id or a usable lead — a reminder we can't describe is worse than one
+ * an item id or a usable lead. A reminder we can't describe is worse than one
  * the page quietly treats as unset, because the student would see a lead they
  * never picked.
  *
@@ -311,9 +311,9 @@ function checkLead(minutes: number): number {
 /* ════════════════════════════════ auth ══════════════════════════════ */
 
 /**
- * The caller's `profiles.id` — theirs if they handed one over, otherwise read
- * from the stored session (no network hop — supabase-js refreshes the token
- * itself when it's stale).
+ * The caller's `profiles.id`: theirs if they handed one over, otherwise read
+ * from the stored session (no network hop, since supabase-js refreshes the
+ * token itself when it's stale).
  *
  * @throws {ReminderError} When nobody's signed in.
  */
@@ -337,7 +337,7 @@ async function requireUserId(ctx?: ReminderCtx): Promise<string> {
  * One query for a whole page: a calendar or plan list hands over the ids it is
  * about to render and gets back a map it can index per row, so a list of fifty
  * deadlines makes one request rather than fifty. An item with no reminder
- * simply isn't in the map — `reminders.get(item.id)` returning undefined IS
+ * simply isn't in the map: `reminders.get(item.id)` returning undefined IS
  * "no reminder", and the bell renders unset.
  *
  * Ids are deduped and blanks are dropped, and the lookup is split into chunks
@@ -345,7 +345,7 @@ async function requireUserId(ctx?: ReminderCtx): Promise<string> {
  * long enough to be rejected. An empty list skips the network entirely and
  * returns an empty map.
  *
- * Rows are scoped to `user_id` explicitly as well as by RLS — never rely on a
+ * Rows are scoped to `user_id` explicitly as well as by RLS. Never rely on a
  * policy alone to scope a "mine" list.
  *
  * @param itemIds `course_calendar_items.id` values the page is rendering.
@@ -398,7 +398,7 @@ export async function fetchReminders(
  *
  * The primary key is `(user_id, item_id)`, so this upserts: clicking a second
  * lead on the same item edits the one row rather than failing. It also clears
- * `sent_at`, which is the point — a student who changes their mind after the
+ * `sent_at`, which is the point: a student who changes their mind after the
  * nudge went out has re-armed the reminder, and the sweep will send once more
  * at the new moment. Setting the same lead twice is harmless.
  *
@@ -410,7 +410,7 @@ export async function fetchReminders(
  *
  * @param itemId      `course_calendar_items.id` to be reminded about. You must
  *   be enrolled in its course, or you get {@link ENROLL_FIRST} back.
- * @param leadMinutes How far ahead, in minutes — pass a
+ * @param leadMinutes How far ahead, in minutes. Pass a
  *   {@link LEAD_CHOICES} value. Defaults to {@link DEFAULT_LEAD_MINUTES}.
  * @returns The saved reminder, exactly as the database now has it.
  * @throws {ReminderError} With copy that's ready to render.
@@ -454,7 +454,7 @@ export async function setReminder(
  * A delete, not a flag: nothing is left behind saying the student once wanted
  * this, and setting it again later starts from a clean, unsent row.
  *
- * Clearing a reminder that isn't there quietly succeeds — the intent ("don't
+ * Clearing a reminder that isn't there quietly succeeds: the intent ("don't
  * nudge me about this") already holds, and a second click on a stale page
  * shouldn't produce an error.
  *
@@ -488,7 +488,7 @@ function countOf(value: number, unit: string): string {
 /**
  * A stored `lead_minutes` as the label a student reads.
  *
- * Values from {@link LEAD_CHOICES} give back their own warm label — 900 is
+ * Values from {@link LEAD_CHOICES} give back their own warm label: 900 is
  * "The night before", not "15 hours before". Anything else (a row written by
  * an older build, or a lead a future picker offers) is described honestly in
  * the largest unit that divides it evenly, so 4320 reads "3 days before" and
@@ -497,7 +497,7 @@ function countOf(value: number, unit: string): string {
  * Pure: no I/O, no clock, no theme.
  *
  * @param minutes The stored lead. Nonsense values get a truthful catch-all
- *   rather than an exception — this is called while rendering a row.
+ *   rather than an exception, since this is called while rendering a row.
  */
 export function describeLead(minutes: number): string {
   const known = LEAD_CHOICES.find((choice) => choice.minutes === minutes);
@@ -520,7 +520,7 @@ export function describeLead(minutes: number): string {
  * The sweep sends only while the deadline is still ahead, so a lead longer than
  * the time remaining is a reminder that will never arrive: a one-day lead set
  * on something due in an hour fires at a moment twenty-three hours in the past,
- * and nothing will happen. `past` is how the UI says that out loud — "that's
+ * and nothing will happen. `past` is how the UI says that out loud: "that's
  * already gone by, so this one won't reach you" next to the choice, instead of
  * a bell that looks armed and isn't.
  *

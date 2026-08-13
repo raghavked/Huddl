@@ -5,18 +5,18 @@ import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 /**
- * Avatar — the one way we draw a person.
+ * Avatar: the one way we draw a person.
  *
  * Shows their photo when they've set one, and otherwise falls back to the
  * familiar initials look: two letters on a warm circle, tinted by a stable
  * hash of the name (ember or sage, so a person keeps their color everywhere).
  *
- * Decorative by design — screens render the person's name right next to it,
+ * Decorative by design. Screens render the person's name right next to it,
  * so the circle itself is hidden from assistive tech.
  *
  * @param url  Public image URL (profiles.avatar_url). Null/undefined falls
  *             back to initials.
- * @param name Display name — drives both the initials and the tint.
+ * @param name Display name, which drives both the initials and the tint.
  * @param size Diameter in px. Defaults to 40, the list-row size.
  */
 export function Avatar({
@@ -47,7 +47,7 @@ export function Avatar({
     );
   }
 
-  // Stable tint: hash the name, pick ember or sage — same recipe the
+  // Stable tint: hash the name, pick ember or sage. Same recipe the
   // screens have hand-rolled so far, extracted here for everyone.
   let hash = 0;
   for (let i = 0; i < name.length; i += 1) {

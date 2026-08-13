@@ -6,14 +6,14 @@ import { createClient } from "@/lib/supabase/client";
    their own `${userId}/…` folder; any signed-in student can read, so
    rendering goes through short-lived signed URLs, cached per path. */
 
-/** Keep uploads phone-friendly — a screenshot, not a raw camera dump. */
+/** Keep uploads phone-friendly: a screenshot, not a raw camera dump. */
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 /**
  * File extension for the storage key: prefer the file name's own extension,
- * fall back to the MIME subtype, then to "jpg". Pure — unit tested.
+ * fall back to the MIME subtype, then to "jpg". Pure, and unit tested.
  */
 export function imageExtension(fileName: string, mimeType: string): string {
   const dot = fileName.lastIndexOf(".");
@@ -27,8 +27,8 @@ export function imageExtension(fileName: string, mimeType: string): string {
 }
 
 /**
- * Storage key inside 'chat-uploads': `${userId}/${now}-${rand}.${ext}` —
- * the leading folder is what the bucket's RLS checks. Pure — unit tested.
+ * Storage key inside 'chat-uploads': `${userId}/${now}-${rand}.${ext}`.
+ * The leading folder is what the bucket's RLS checks. Pure, and unit tested.
  */
 export function chatUploadPath(
   userId: string,
@@ -62,8 +62,8 @@ export async function uploadChatImage(
 }
 
 // Signed URLs are cached per path (as promises, so concurrent bubbles for
-// the same image share one request). Failures aren't cached — a retry after
-// a network blip gets a fresh attempt.
+// the same image share one request). Failures aren't cached, so a retry
+// after a network blip gets a fresh attempt.
 const signedUrlCache = new Map<string, Promise<string | null>>();
 
 /** Resolve a chat-uploads path to a displayable URL (null on failure). */

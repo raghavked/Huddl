@@ -20,7 +20,7 @@ export default function EventsLoading() {
         <Skeleton className="h-8 w-24 shrink-0 rounded-full" />
       </div>
 
-      {/* Event cards — date tile + badges + title + meta */}
+      {/* Event cards: date tile + badges + title + meta */}
       <div className="mt-6 flex flex-col gap-3">
         {Array.from({ length: 4 }, (_, i) => (
           <div

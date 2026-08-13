@@ -132,7 +132,7 @@ export default async function EventsPage({
     </Link>
   );
 
-  // Your whole month at a glance — class dates and the events you're going to.
+  // Your whole month at a glance: class dates and the events you're going to.
   const calendarButton = (
     <Link
       href="/calendar"
@@ -210,7 +210,7 @@ export default async function EventsPage({
             description={
               showPast
                 ? "Once events wrap up, they'll show here."
-                : `Get something going at ${user.university.short_name} — a library grind or a hangout, your call.`
+                : `Get something going at ${user.university.short_name}. A library grind or a hangout, your call.`
             }
             action={showPast ? undefined : planButton}
           />

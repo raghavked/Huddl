@@ -44,8 +44,8 @@ export default async function PlanPage() {
 
   /* Each class with the colour it wears for this student: their own pick where
      they made one, the stable hash of the course code where they didn't. The
-     tint is personal — a classmate reading the same class may well see a
-     different one — so it never travels anywhere shared. */
+     tint is personal (a classmate reading the same class may well see a
+     different one), so it never travels anywhere shared. */
   const courses = ((enrollRows ?? []) as unknown as EnrollmentJoin[]).flatMap(
     (row) =>
       row.course === null
@@ -64,7 +64,7 @@ export default async function PlanPage() {
   if (courses.length > 0) {
     const codeById = new Map(courses.map((c) => [c.id, c.code]));
     // The plan window opens a week back so a missed deadline still nags,
-    // and runs forward without limit — buildPlan buckets the far stuff
+    // and runs forward without limit. buildPlan buckets the far stuff
     // under "Later".
     const since = new Date(now.getTime() - 7 * DAY_MS).toISOString();
     const [itemsRes, checkoffsRes] = await Promise.all([
@@ -97,11 +97,11 @@ export default async function PlanPage() {
         backHref="/home"
         backLabel="Home"
         title="Your plan"
-        description="Everything due across your classes, in one place — check off what you've handled."
+        description="Everything due across your classes, in one place. Check off what you've handled."
       />
 
       {courses.length > 0 ? (
-        /* The classes feeding this list, each wearing its own colour — the
+        /* The classes feeding this list, each wearing its own colour: the
            same tint the course card and the semester row use, so a student
            reads "the plum one" the same way everywhere. Wrapped rather than
            scrolled sideways: the page is one phone-width column and stays one. */

@@ -44,14 +44,14 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-/* Focus — sit down with a goal, and see who else is heads-down.
+/* Focus: sit down with a goal, and see who else is heads-down.
  *
  * Two states in one page. Idle is an invitation: pick a length, maybe a
  * class, maybe a line about what you're doing, and start. Running is a timer
  * that takes over, with the "studying now" list still breathing underneath so
  * the room never feels empty.
  *
- * All the time math lives in `@/lib/focus` and takes a `now` — this component
+ * All the time math lives in `@/lib/focus` and takes a `now`. This component
  * only decides how often to hand it one (once a second, and only while a
  * session is actually running). The first `now` comes from the server so the
  * first paint and the hydration agree to the millisecond. */
@@ -59,11 +59,11 @@ import { cn } from "@/lib/utils";
 /** A course you can attach a session to. */
 export type CourseOption = { id: string; code: string };
 
-/** How far back the streak query looks — long enough for any real run. */
+/** How far back the streak query looks: long enough for any real run. */
 const STREAK_WINDOW_DAYS = 120;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** What "Done" leaves on the page — the one number worth saying out loud. */
+/** What "Done" leaves on the page: the one number worth saying out loud. */
 type Finished = { minutes: number };
 
 /* ------------------------------- copy -------------------------------- */
@@ -85,7 +85,7 @@ function sinceLabel(minutes: number): string {
 
 /**
  * Your focus streak, in days. `computeFocusStreak` only needs `ended_at`, so
- * that's all we pull — a few hundred timestamps at most. Called again after
+ * that's all we pull: a few hundred timestamps at most. Called again after
  * a session closes, which is the one moment the number can change.
  */
 async function loadStreak(userId: string): Promise<number> {
@@ -105,7 +105,7 @@ async function loadStreak(userId: string): Promise<number> {
 
 /* ------------------------------- pieces ------------------------------ */
 
-/** The quiet uppercase heading inside a card — a section label's voice. */
+/** The quiet uppercase heading inside a card, in a section label's voice. */
 function FormLabel({ id, children }: { id: string; children: React.ReactNode }) {
   return (
     <p id={id} className="text-xs font-bold uppercase tracking-widest text-muted">
@@ -218,7 +218,7 @@ export function FocusPanel({
   initialError,
 }: {
   userId: string;
-  /** The server's "now" — keeps the first render deterministic across SSR + hydration. */
+  /** The server's "now". Keeps the first render deterministic across SSR + hydration. */
   nowIso: string;
   initialSession: FocusSession | null;
   initialStudying: StudyingNow[];
@@ -259,7 +259,7 @@ export function FocusPanel({
       // "23m in" labels get to be honest again.
       setNow(new Date());
     } catch {
-      // Keep the last good list — a dropped refresh isn't worth a banner.
+      // Keep the last good list; a dropped refresh isn't worth a banner.
     }
   }, [userId]);
 
@@ -303,7 +303,7 @@ export function FocusPanel({
   );
 
   /* One 1s interval, only while running, cleared on unmount. Nothing here
-     animates per frame — the bar just redraws each tick. */
+     animates per frame: the bar just redraws each tick. */
   const running = mine !== null;
   useEffect(() => {
     if (!running) return;
@@ -339,8 +339,8 @@ export function FocusPanel({
   /**
    * Stand up. Optimistic: the timer stops the moment you click, and the
    * session comes back (with a warm note) only if the write fails. `mode`
-   * decides the ceremony — "done" earns a line, "quit" just quietly puts
-   * things away.
+   * decides the ceremony: "done" earns a line, "quit" quietly puts things
+   * away.
    */
   const finish = useCallback(
     async (mode: "done" | "quit") => {
@@ -387,7 +387,7 @@ export function FocusPanel({
     return {
       readout: past ? formatDuration(done) : formatDuration(left),
       caption: past
-        ? `${goalText} goal reached — stand up whenever you like`
+        ? `${goalText} goal reached. Stand up whenever you like`
         : `left of your ${goalText} goal`,
       value: progress(mine, now),
       courseCode:
@@ -426,7 +426,7 @@ export function FocusPanel({
     <div>
       {streak >= 2 ? (
         <div className="mt-4">
-          {/* Quiet below 2 — a streak is a gift, never a debt. */}
+          {/* Quiet below 2: a streak is a gift, never a debt. */}
           <Badge tone="accent">
             <Zap className="size-3" aria-hidden />
             {streak}-day streak
@@ -594,7 +594,7 @@ export function FocusPanel({
                     setNote(e.target.value);
                     if (formError) setFormError(null);
                   }}
-                  placeholder="Optional — problem set 4"
+                  placeholder="Optional: problem set 4"
                   maxLength={FOCUS_NOTE_MAX}
                   disabled={starting}
                   className="mt-1.5"

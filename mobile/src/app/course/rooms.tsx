@@ -19,14 +19,14 @@ import { useAuth } from "@/providers/auth-provider";
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
 
-/** Minimal local row shape — the web app's types live outside this tsconfig. */
+/** Minimal local row shape; the web app's types live outside this tsconfig. */
 type RoomRow = {
   id: string;
   name: string;
   is_main: boolean;
 };
 
-/** Names classmates reach for first — a tap prefills the field below. */
+/** Names classmates reach for first. A tap prefills the field below. */
 const SUGGESTIONS = ["Lectures", "Discussion", "Study group", "Notes swap"];
 
 function BackChevron({ onPress }: { onPress: () => void }) {
@@ -161,7 +161,7 @@ export default function CourseRoomsScreen() {
     void load().finally(() => setRefreshing(false));
   }, [load]);
 
-  /** Standard membership insert — the university-scoped policy allows it. */
+  /** Standard membership insert; the university-scoped policy allows it. */
   const handleJoin = useCallback(
     async (room: RoomRow) => {
       if (!userId || joiningId) return;
@@ -171,7 +171,7 @@ export default function CourseRoomsScreen() {
         .from("channel_members")
         .insert({ channel_id: room.id, user_id: userId });
       setJoiningId(null);
-      // 23505 means we're already in — treat it as a win and head on through.
+      // 23505 means we're already in, so treat it as a win and head on through.
       if (insertError && insertError.code !== "23505") {
         setJoinError("Couldn't join that room just now. Give it another try.");
         return;
@@ -203,9 +203,9 @@ export default function CourseRoomsScreen() {
       const message = rpcError?.message ?? "";
       setCreateError(
         message.includes("join the course")
-          ? "Rooms are for classmates — add this course to your classes first."
+          ? "Rooms are for classmates. Add this course to your classes first."
           : rpcError?.code === "23505"
-            ? "Looks like that room already exists — it should be in the list above."
+            ? "Looks like that room already exists. It should be in the list above."
             : "We couldn't create that room just now. Give it another try."
       );
       return;
@@ -215,7 +215,7 @@ export default function CourseRoomsScreen() {
     router.push(`/channel/${newId}`);
   }, [userId, id, creating, name, load, router]);
 
-  // Deep links land here directly — a signed-out visitor gets a proper door.
+  // Deep links land here directly, so a signed-out visitor gets a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -368,8 +368,8 @@ export default function CourseRoomsScreen() {
               muted
               style={{ textAlign: "center", maxWidth: 260 }}
             >
-              The course chat opens up as classmates add this class — or start
-              a room below.
+              The course chat opens up as classmates add this class. Or start a
+              room below.
             </AppText>
           </Card>
         }
@@ -461,7 +461,7 @@ export default function CourseRoomsScreen() {
               <AppText variant="title">New room</AppText>
             </View>
             <AppText variant="caption" muted>
-              Side rooms keep the main chat tidy — one for lectures, one for
+              Side rooms keep the main chat tidy: one for lectures, one for
               your study group, whatever helps.
             </AppText>
             <View

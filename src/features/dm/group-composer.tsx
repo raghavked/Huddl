@@ -24,8 +24,8 @@ import {
 
 /**
  * Start a group: name it, pick your people, and everyone lands in the same
- * chat. The counter and the chips always speak in whole-group terms — you're
- * in it too — so "3 of 16" matches what the database will count.
+ * chat. The counter and the chips always speak in whole-group terms (you're
+ * in it too), so "3 of 16" matches what the database will count.
  */
 export function GroupComposer({ userId }: { userId: string }) {
   const router = useRouter();
@@ -51,7 +51,7 @@ export function GroupComposer({ userId }: { userId: string }) {
       }
       if (selected.length + 1 >= GROUP_MAX_PEOPLE) {
         setError(
-          `That's ${GROUP_MAX_PEOPLE} — the cap for a group. Tap someone's chip to take them back out and make room.`
+          `That's ${GROUP_MAX_PEOPLE}, the cap for a group. Tap someone's chip to take them back out and make room.`
         );
         return;
       }
@@ -66,13 +66,13 @@ export function GroupComposer({ userId }: { userId: string }) {
     const trimmed = title.trim();
     if (trimmed.length < 2 || trimmed.length > GROUP_TITLE_MAX) {
       setError(
-        `Give the group a name everyone will recognize — 2 to ${GROUP_TITLE_MAX} characters.`
+        `Give the group a name everyone will recognize: 2 to ${GROUP_TITLE_MAX} characters.`
       );
       return;
     }
     if (selected.length < GROUP_MIN_PEOPLE - 1) {
       setError(
-        `Pick ${shortBy} more ${shortBy === 1 ? "person" : "people"} — a group holds ${GROUP_MIN_PEOPLE} to ${GROUP_MAX_PEOPLE}, you included.`
+        `Pick ${shortBy} more ${shortBy === 1 ? "person" : "people"}. A group holds ${GROUP_MIN_PEOPLE} to ${GROUP_MAX_PEOPLE}, you included.`
       );
       return;
     }
@@ -101,9 +101,9 @@ export function GroupComposer({ userId }: { userId: string }) {
     selected.length >= GROUP_MIN_PEOPLE - 1;
 
   const hint = full
-    ? "That's the whole group — sixteen is the cap."
+    ? "That's the whole group. Sixteen is the cap."
     : shortBy > 0
-      ? `Pick ${shortBy} more ${shortBy === 1 ? "person" : "people"} — groups start at three.`
+      ? `Pick ${shortBy} more ${shortBy === 1 ? "person" : "people"}. Groups start at three.`
       : "Tap a classmate to add them, or tap their chip to take them back out.";
 
   return (
@@ -140,7 +140,7 @@ export function GroupComposer({ userId }: { userId: string }) {
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-semibold">Who&rsquo;s in</span>
-          {/* A headcount, not a person — it sits beside the list rather than
+          {/* A headcount, not a person: it sits beside the list rather than
               inside it, so a screen reader counts only classmates. */}
           <Badge tone={shortBy === 0 ? "accent" : "neutral"}>
             <span aria-live="polite">

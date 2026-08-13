@@ -2,25 +2,25 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Href } from "expo-router";
 import { supabase } from "@/lib/supabase";
 
-/* First run — the data layer.
+/* First run: the data layer.
  *
  * Two unrelated-looking things live here because they answer the same
  * question from two directions: *is this student still new?*
  *
  *   1. The welcome flag. One AsyncStorage key that remembers whether the
  *      one-time welcome has been shown. Every failure in this half degrades
- *      to "already seen" — a phone with unwritable storage must never trap
+ *      to "already seen". A phone with unwritable storage must never trap
  *      someone in a tour they can't finish, and a welcome nobody sees is a
  *      far smaller problem than a welcome nobody can dismiss.
  *
- *   2. The starter state. One read of what a new student still lacks —
- *      classes, a channel they picked themselves, a face, a line about
- *      themselves, a line about what they're after — plus a pure helper that
+ *   2. The starter state. One read of what a new student still lacks
+ *      (classes, a channel they picked themselves, a face, a line about
+ *      themselves, a line about what they're after), plus a pure helper that
  *      turns that into the ordered checklist, copy and destinations included.
  *      The screen renders; it does not compose sentences and it does not
  *      write five queries.
  *
- * No React in here, no theme, no navigation calls — storage, three cheap
+ * No React in here, no theme, no navigation calls: storage, three cheap
  * queries, and one pure function.
  */
 
@@ -31,7 +31,7 @@ import { supabase } from "@/lib/supabase";
  * stores on the device sorts together and nothing else can collide with it.
  *
  * Bump the suffix (not the prefix) if a future welcome should be shown again
- * to students who dismissed the old one — that is a deliberate re-run, and it
+ * to students who dismissed the old one. That is a deliberate re-run, and it
  * should look deliberate in the diff.
  */
 const WELCOME_KEY = "huddl.firstRun.welcomeSeen";
@@ -44,8 +44,8 @@ const WELCOME_VALUE = "1";
  *
  * Per-device, not per-account: it lives in AsyncStorage, so a student who
  * signs out and back in is not walked through it again, and a new phone
- * starts fresh. That is the right trade for a welcome — it is orienting
- * someone in an app, not recording something about them.
+ * starts fresh. That is the right trade for a welcome: it orients someone in
+ * an app rather than recording something about them.
  *
  * **Never throws, and never resolves false on a fault.** Unreadable storage
  * resolves `true`, which means "skip the welcome". A student whose device
@@ -59,15 +59,15 @@ export async function hasSeenWelcome(): Promise<boolean> {
     const raw = await AsyncStorage.getItem(WELCOME_KEY);
     return raw !== null;
   } catch {
-    // Storage is unreadable. "Seen" is the safe direction — see above.
+    // Storage is unreadable. "Seen" is the safe direction; see above.
     return true;
   }
 }
 
 /**
  * Record that the welcome has been shown. Call it when the student dismisses
- * or finishes it, not when it mounts — a welcome that got closed by a crash
- * is one they should still get.
+ * or finishes it, not when it mounts. A welcome closed by a crash is one
+ * they should still get.
  *
  * **Never throws.** A failed write costs one extra welcome on the next
  * launch, which is not worth an error in anyone's face. Flip your own state
@@ -87,7 +87,7 @@ export async function markWelcomeSeen(): Promise<void> {
  * Forget that the welcome was ever seen, so the next launch shows it again.
  *
  * For a "show me the welcome again" affordance in settings and for anyone
- * working on the welcome itself. It clears only this key — no profile data,
+ * working on the welcome itself. It clears only this key: no profile data,
  * no session, nothing on the server.
  *
  * **Never throws.** If the delete fails the flag stays set and the welcome
@@ -98,7 +98,7 @@ export async function resetFirstRun(): Promise<void> {
   try {
     await AsyncStorage.removeItem(WELCOME_KEY);
   } catch {
-    // Nothing to tell the student here — the welcome simply won't reappear.
+    // Nothing to tell the student here; the welcome just won't reappear.
   }
 }
 
@@ -106,7 +106,7 @@ export async function resetFirstRun(): Promise<void> {
 
 /**
  * What a student has actually set up, as five plain values. Everything a
- * "get set up" checklist needs, and nothing it doesn't — no profile row, no
+ * "get set up" checklist needs, and nothing it doesn't: no profile row, no
  * course list, no channel list, so a caller can hold it in state cheaply and
  * refetch it on focus without thinking twice.
  *
@@ -116,7 +116,7 @@ export async function resetFirstRun(): Promise<void> {
 export type StarterState = {
   /**
    * Classes on the student's shelf right now. Archived enrollments (0028's
-   * `enrollments.archived_at`) are excluded — a student who shelved last
+   * `enrollments.archived_at`) are excluded. A student who shelved last
    * quarter's courses and hasn't added this quarter's genuinely does have an
    * empty shelf, and the checklist should say so.
    */
@@ -133,7 +133,7 @@ export type StarterState = {
   /** Whether `profiles.bio` holds an actual line of text. */
   hasBio: boolean;
   /**
-   * Whether `profiles.looking_for` (0034) holds an actual line of text — the
+   * Whether `profiles.looking_for` (0034) holds an actual line of text: the
    * one-liner a classmate reads to work out whether to say something.
    */
   hasLookingFor: boolean;
@@ -152,7 +152,7 @@ export type StarterStepKey =
  * sentence under it, whether it's done, and where tapping it goes.
  *
  * The copy lives in the data on purpose. Four screens could show this
- * checklist — home, an empty course list, the welcome itself, settings — and
+ * checklist (home, an empty course list, the welcome itself, settings), and
  * they should all say the same sentences.
  */
 export type StarterStep = {
@@ -172,7 +172,7 @@ export type StarterStep = {
 
 /**
  * A first-run failure with a message written for a person, not a log. Show
- * `err.message` directly in an inline error — it never leaks SQL, ids, or
+ * `err.message` directly in an inline error. It never leaks SQL, ids, or
  * PostgREST codes.
  */
 export class FirstRunError extends Error {
@@ -213,7 +213,7 @@ function field(raw: unknown, key: string): unknown {
 }
 
 /**
- * The caller's `profiles.id`, read from the stored session — no network hop,
+ * The caller's `profiles.id`, read from the stored session: no network hop,
  * supabase-js refreshes a stale token itself.
  *
  * @throws {FirstRunError} When nobody's signed in.
@@ -233,9 +233,9 @@ async function requireUserId(): Promise<string> {
  * Everything a "get set up" checklist needs, in one call.
  *
  * Three requests go out together and none of them ships a row of data it
- * doesn't need: two head-only `count: "exact"` queries — active enrollments,
+ * doesn't need: two head-only `count: "exact"` queries (active enrollments,
  * and channel memberships inner-joined to `channels` so the auto-joined
- * defaults and the course chats are filtered out server-side — plus a
+ * defaults and the course chats are filtered out server-side), plus a
  * three-column read of the caller's own profile. Cheap enough to run on every
  * focus of the home screen.
  *
@@ -248,7 +248,7 @@ async function requireUserId(): Promise<string> {
  * Throws rather than guessing, because a checklist built from half-read data
  * tells students to do things they've already done. On a screen, pair it with
  * a "Try again" button; in a section of a fuller screen, `.catch(() => null)`
- * and render nothing — a missing nudge is no loss.
+ * and render nothing. A missing nudge is no loss.
  *
  * @returns The counts and flags. A missing profile row reads as no photo, no
  *   bio and nothing they're looking for, which is exactly right
@@ -296,7 +296,7 @@ export async function fetchStarterState(): Promise<StarterState> {
 /* --------------------------- pure helpers --------------------------- */
 
 /**
- * The checklist itself: five steps, always all five, always in this order —
+ * The checklist itself: five steps, always all five, always in this order:
  * classes, then a channel, then a face, then a line about yourself, then a
  * line about what you're after.
  *
@@ -307,8 +307,8 @@ export async function fetchStarterState(): Promise<StarterState> {
  * steps come last: they matter for how classmates read you, but they matter
  * only once you're somewhere they'll see you.
  *
- * Completed steps stay in the list rather than disappearing — a checklist you
- * can see yourself finishing is worth more than one that quietly shrinks —
+ * Completed steps stay in the list rather than disappearing (a checklist you
+ * can see yourself finishing is worth more than one that quietly shrinks),
  * and the caller decides whether to strike them through, tuck them under a
  * "done" heading, or hide the whole thing once {@link starterProgress} says
  * everything's handled.
@@ -344,14 +344,14 @@ export function starterSteps(state: StarterState): StarterStep[] {
     {
       key: "bio",
       title: "Say a line about yourself",
-      body: "Your major, your year, what you're taking — enough that someone in your section knows who they're talking to.",
+      body: "Your major, your year, what you're taking: enough that someone in your section knows who they're talking to.",
       done: state.hasBio,
       route: "/account",
     },
     {
       key: "looking_for",
       title: "Say what you're looking for",
-      body: "A lab partner, a ride home at break, people to run with — one line is how classmates spot the overlap.",
+      body: "A lab partner, a ride home at break, people to run with. One line is how classmates spot the overlap.",
       done: state.hasLookingFor,
       route: "/account",
     },

@@ -39,7 +39,7 @@ import {
 
 /**
  * The group's own panel: who's in it, what it's called, and the two things
- * only a member can do — add someone else, or slip out. It opens over the
+ * only a member can do: add someone else, or slip out. It opens over the
  * room from the header, so the conversation stays one tap behind.
  *
  * The room owns the title and the roster; this panel writes through the
@@ -285,7 +285,7 @@ export function GroupInfoPanel({
                 <div className="py-8 text-center">
                   <Users className="mx-auto size-6 text-muted" aria-hidden />
                   <p className="mt-2 text-sm font-semibold">
-                    That&rsquo;s {GROUP_MAX_PEOPLE} — the group is full
+                    That&rsquo;s {GROUP_MAX_PEOPLE}. The group is full
                   </p>
                   <p className="mx-auto mt-1 max-w-xs text-xs text-muted">
                     Someone has to leave before another classmate can join.
@@ -295,7 +295,7 @@ export function GroupInfoPanel({
               ) : (
                 <>
                   <p className="text-xs break-words text-muted">
-                    Everyone in {title} is on your campus — that&rsquo;s the
+                    Everyone in {title} is on your campus. That&rsquo;s the
                     only rule. Pick someone to add them right away.
                   </p>
                   <CampusPeoplePicker

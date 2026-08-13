@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LogoTile } from "@/components/logo";
 
-/** Centered v2 shell for login / signup / verify — the bridge from marketing to app. */
+/** Centered v2 shell for login / signup / verify: the bridge from marketing to app. */
 export default function AuthLayout({
   children,
 }: {
@@ -9,7 +9,7 @@ export default function AuthLayout({
 }) {
   return (
     <div className="flex min-h-dvh flex-col items-center px-4 pb-16 pt-10 sm:justify-center sm:pt-6">
-      {/* Ambient wash — subtle, token-built. */}
+      {/* Ambient wash, subtle and token-built. */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-80 bg-linear-to-b from-brand/[0.07] via-transparent to-transparent"

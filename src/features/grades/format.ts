@@ -15,19 +15,19 @@ import {
  * same limits the database enforces so a typo never becomes a round trip, and
  * formatting numbers the way a person writes them.
  *
- * Everything here is pure — no React, no Supabase — so the section, the
+ * Everything here is pure (no React, no Supabase), so the section, the
  * category card and the two forms can all share it without importing each
  * other.
  */
 
 /* ------------------------------ formatting ------------------------------ */
 
-/** "86.7", "90", "45" — a percentage the way a person writes it. */
+/** "86.7", "90", "45": a percentage the way a person writes it. */
 export function pctText(value: number): string {
   return String(Math.round(value * 10) / 10);
 }
 
-/** "18", "17.5" — points with no trailing zeros. */
+/** "18", "17.5": points with no trailing zeros. */
 export function pointsText(value: number): string {
   return String(Math.round(value * 100) / 100);
 }
@@ -37,7 +37,7 @@ export function itemsText(count: number): string {
   return `${count} item${count === 1 ? "" : "s"}`;
 }
 
-/** "Oct 14" — quiet, and only carries a year when it isn't this one. */
+/** "Oct 14": quiet, and only carries a year when it isn't this one. */
 export function shortDate(iso: string): string {
   if (!iso) return "";
   const date = new Date(iso);
@@ -78,7 +78,7 @@ export function parseNumber(text: string): number | null {
 /**
  * The same rules `@/lib/grades` enforces, checked in the browser first so a
  * typo never becomes a round trip. Extra credit is deliberately not an
- * error — 22 out of 20 is a real thing that happens.
+ * error, because 22 out of 20 is a real thing that happens.
  */
 export function checkEntry(
   draft: EntryDraft
@@ -121,7 +121,7 @@ export function checkCategory(
   if (name.length === 0) {
     return {
       ok: false,
-      message: "Give this category a name — homework, labs, midterm.",
+      message: "Give this category a name: homework, labs, midterm.",
     };
   }
   if (name.length > CATEGORY_NAME_MAX) {
@@ -134,7 +134,7 @@ export function checkCategory(
   if (weight === null || weight < 0 || weight > WEIGHT_MAX) {
     return {
       ok: false,
-      message: `Weights run from 0 to ${WEIGHT_MAX} — copy the number off your syllabus.`,
+      message: `Weights run from 0 to ${WEIGHT_MAX}. Copy the number off your syllabus.`,
     };
   }
   return { ok: true, value: { name, weight } };
@@ -153,8 +153,8 @@ export function sumWeights(categories: readonly GradeCategory[]): number {
 
 /**
  * Ids for optimistic rows that haven't met the server yet. A draft id is
- * never a real primary key, so anything that would send it to Supabase — the
- * edit form, the delete button, the add-a-score row — stays shut until the
+ * never a real primary key, so anything that would send it to Supabase (the
+ * edit form, the delete button, the add-a-score row) stays shut until the
  * insert settles and the row swaps for the saved one.
  */
 const DRAFT_PREFIX = "huddl-draft:";

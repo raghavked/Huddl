@@ -23,7 +23,7 @@ import { useAuth } from "@/providers/auth-provider";
 
 /** Faces before the cluster gives up and counts the rest. */
 const CLUSTER_MAX = 4;
-/** Drawn avatar diameter — small enough to sit inside a single row. */
+/** Drawn avatar diameter, small enough to sit inside a single row. */
 const AVATAR = 28;
 /** How far each face tucks behind the one before it. */
 const OVERLAP = 9;
@@ -45,7 +45,7 @@ type MySitting = { session: FocusSession; courseCode: string | null };
 
 export type FocusStripProps = {
   /**
-   * Narrow to one course — pass a `courses.id` and the strip only counts
+   * Narrow to one course: pass a `courses.id` and the strip only counts
    * people whose open session is tied to that class (sessions with no course
    * are left out). Omit it for the whole campus, which is what a Home or
    * dashboard placement wants.
@@ -56,31 +56,31 @@ export type FocusStripProps = {
    * if the host screen wants to keep the student where they are.
    */
   onPress?: () => void;
-  /** Layout only — margins from the host screen. Colors come from the theme. */
+  /** Layout only. Margins from the host screen, colors from the theme. */
   style?: StyleProp<ViewStyle>;
 };
 
 /**
- * "3 studying now" — a warm little proof that somebody else is heads-down
+ * "3 studying now", a warm little proof that somebody else is heads-down
  * too, with their faces stacked next to it. Tapping opens `/focus`.
  *
  * **It renders `null` far more often than it renders anything**, and that is
  * the point: no row while it's loading, none if the query fails, and none
  * when nobody is studying and you aren't either. An empty campus should look
  * like nothing happened, not like a broken widget, so the host screen needs
- * no `loading` branch and no empty state of its own — just drop it into a
- * stack with a gap.
+ * no `loading` branch and no empty state of its own. Drop it into a stack
+ * with a gap.
  *
  * You are never one of the faces: the cluster is about *other people*, and
  * "1 studying now" over your own photo would be a lonely thing to read. But
- * your own open session is not nothing — it is the one thing on the screen
- * that is still running — so when you're sitting down the strip says so and
+ * your own open session is not nothing (it is the one thing on the screen
+ * that is still running), so when you're sitting down the strip says so and
  * counts your time left, whether or not anybody else is up. Without that, the
  * student who is the only one studying gets no row at all, and this strip is
  * the only way back to `/focus` from Home.
  *
  * It keeps itself current over realtime (`subscribeStudyingNow`), refetching
- * on every change so the faces stay real rather than nameless — the payloads
+ * on every change so the faces stay real rather than nameless: the payloads
  * are bare rows with no profile attached.
  *
  * ```tsx
@@ -106,7 +106,7 @@ export function FocusStrip({ courseId, onPress, style }: FocusStripProps) {
 
   const load = useCallback(async () => {
     // Two independent truths: who else is up, and whether I'm sitting down.
-    // Either can fail on its own without taking the other with it — a strip
+    // Either can fail on its own without taking the other with it. A strip
     // that can't load is a strip that isn't there, one half at a time.
     const [campus, session] = await Promise.all([
       fetchStudyingNow(courseId ? [courseId] : undefined).catch(
@@ -139,7 +139,7 @@ export function FocusStrip({ courseId, onPress, style }: FocusStripProps) {
   // Realtime payloads carry no profile, so every change is a refetch.
   useEffect(() => subscribeStudyingNow(() => void load()), [load]);
 
-  /* The countdown only redraws while there is one — half a minute is as
+  /* The countdown only redraws while there is one. Half a minute is as
      precise as "22m left" needs to be, and nothing here animates. */
   const sitting = mine !== null;
   useEffect(() => {
@@ -241,7 +241,7 @@ export function FocusStrip({ courseId, onPress, style }: FocusStripProps) {
     people.length === 0
       ? myWhere
       : mine && myLine
-        ? `You're in — ${myLine}`
+        ? `You're in. ${myLine}`
         : courseId
           ? "In this class"
           : "Around campus";

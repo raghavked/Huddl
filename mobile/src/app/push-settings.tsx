@@ -36,11 +36,11 @@ type PermissionView = "loading" | "granted" | "denied" | "undetermined";
 
 /* Per-kind push opt-outs, mirrored from profiles.notification_prefs.
    A missing key means on; {"dm":"off"} means quiet. We only ever store
-   'off' keys — re-enabling removes the key, keeping the object minimal. */
+   'off' keys; re-enabling removes the key, keeping the object minimal. */
 type NotificationPrefs = Record<string, string>;
 
 /* profiles.quiet_hours, exactly the shape in_quiet_hours() reads. `null`
-   here is the app's word for "no window" — on the row that is stored as an
+   here is the app's word for "no window". On the row that is stored as an
    empty object, never a deleted or null column. */
 type QuietHours = { start: string; end: string; tz: string };
 
@@ -56,12 +56,12 @@ type PushKind =
 
 /* Every kind the push trigger can send, in the order a student thinks about
    them: people talking to you, then your week, then Huddl itself. The gate
-   in push_notification() is generic — it reads
-   `notification_prefs ->> kind` for whatever kind is on the row — so this
+   in push_notification() is generic (it reads
+   `notification_prefs ->> kind` for whatever kind is on the row), so this
    list is not a server contract, it is a promise that anything which can
    actually buzz your phone has a switch here. A kind that fires with no row
    in this list leaves the student no way out short of quitting the thing it
-   came from — which is what `club_post` and `thanks` did until they were
+   came from, which is what `club_post` and `thanks` did until they were
    added. */
 const PUSH_KINDS: {
   kind: PushKind;
@@ -192,17 +192,17 @@ function clockLabel(value: string): string {
 
 function quietSentence(quiet: QuietHours | null): string {
   if (!quiet) {
-    return "Pick a window — 10:00 PM until 8:00 AM, say — and your phone stays silent inside it. Nothing gets lost either: whatever arrives is waiting in your inbox in the morning.";
+    return "Pick a window (10:00 PM until 8:00 AM, say) and your phone stays silent inside it. Nothing gets lost either: whatever arrives is waiting in your inbox in the morning.";
   }
   return `Between ${clockLabel(quiet.start)} and ${clockLabel(
     quiet.end
-  )} nothing buzzes. Nothing is dropped either — whatever arrives is sitting in your inbox, and the first nudge after the window carries it along. Those times follow the ${zoneLabel(
+  )} nothing buzzes. Nothing is dropped either: whatever arrives is sitting in your inbox, and the first nudge after the window carries it along. Those times follow the ${zoneLabel(
     quiet.tz
   )} clock.`;
 }
 
 const DIGEST_NOTE =
-  "When a class channel gets going, Huddl rolls the pile into one nudge — the “4 new notifications” kind — instead of buzzing twelve times. Tapping it opens your inbox with all of them in it.";
+  "When a class channel gets going, Huddl rolls the pile into one nudge (the “4 new notifications” kind) instead of buzzing twelve times. Tapping it opens your inbox with all of them in it.";
 
 /* ------------------------------ saving ------------------------------- */
 
@@ -212,7 +212,8 @@ const DIGEST_NOTE =
  *
  * A refused write arrives one of two ways. A column the grant does not name
  * raises a privilege error; a row the policy will not match raises nothing
- * at all — PostgREST answers a zero-row UPDATE with a 204 and an empty body.
+ * at all, because PostgREST answers a zero-row UPDATE with a 204 and an
+ * empty body.
  * Reading `error` alone catches the first and takes the second for success,
  * which on a settings screen means a switch that sits where you left it on
  * top of a phone that behaves exactly as it did before.
@@ -220,7 +221,7 @@ const DIGEST_NOTE =
  * `profiles` is the table where that has actually bitten. 0034 traded the
  * blanket UPDATE for an explicit column list so nobody could hand themselves
  * a moderator flag, and quiet_hours was missing from that list from the day
- * 0035 added the column until 0039 put it back — a whole shipped setting
+ * 0035 added the column until 0039 put it back: a whole shipped setting
  * whose every write was refused. So ask for the row back and believe the
  * row, not the status code: false means nothing changed, whatever the
  * reason, and the caller owes the student a sentence saying so.
@@ -247,7 +248,7 @@ async function saveProfileSettings(
 /**
  * Icon tile + label + caption + whatever sits on the right, one per row.
  *
- * The drawn half of the row — tile, label, caption — is hidden from the
+ * The drawn half of the row (tile, label, caption) is hidden from the
  * screen reader on purpose, so a setting is one item instead of three
  * fragments and a switch. That makes the label a requirement rather than a
  * nicety: a pressable row says everything in its `accessibilityLabel`, and a
@@ -437,7 +438,7 @@ export default function PushSettingsScreen() {
   }, [isDevice]);
 
   // Check on mount, and again whenever the app comes back to the
-  // foreground — the usual round trip after visiting system Settings.
+  // foreground, the usual round trip after visiting system Settings.
   useEffect(() => {
     void checkPermission();
     const sub = AppState.addEventListener("change", (state) => {
@@ -503,7 +504,7 @@ export default function PushSettingsScreen() {
         notification_prefs: updated,
       });
       if (!saved) {
-        // Roll just this switch back — other flips since stay put.
+        // Roll just this switch back. Other flips since stay put.
         setPrefs((current) => {
           if (current === null) return current;
           const rolled = { ...current };
@@ -512,7 +513,7 @@ export default function PushSettingsScreen() {
           return rolled;
         });
         setToggleError(
-          "That change didn't save — your phone kept the old setting. Give it another flip."
+          "That change didn't save, so your phone kept the old setting. Give it another flip."
         );
       }
     },
@@ -523,7 +524,7 @@ export default function PushSettingsScreen() {
    * Optimistic, like every other write here: the row moves, then syncs.
    *
    * A refused write puts the old window straight back and says so. Silence
-   * would be the worst outcome on this particular setting — a student who
+   * would be the worst outcome on this particular setting: a student who
    * thinks they set quiet hours stops expecting the 2am buzz, and finds out
    * they were wrong at 2am.
    */
@@ -534,14 +535,14 @@ export default function PushSettingsScreen() {
       setQuietError(null);
       setQuiet(next);
       const saved = await saveProfileSettings(userId, {
-        // Off is an empty object, not a null and not a missing row — that is
+        // Off is an empty object, not a null and not a missing row. That is
         // what in_quiet_hours() reads as "never quiet".
         quiet_hours: next ?? {},
       });
       if (!saved) {
         setQuiet(previous);
         setQuietError(
-          "That didn't save — your quiet hours are still the old ones. Give it another go."
+          "That didn't save, so your quiet hours are still the old ones. Give it another go."
         );
       }
     },
@@ -689,7 +690,7 @@ export default function PushSettingsScreen() {
               muted
               style={{ textAlign: "center", maxWidth: 280 }}
             >
-              Push notifications only work on a physical device — simulators
+              Push notifications only work on a physical device. Simulators
               sit this one out.
             </AppText>
           </Card>
@@ -911,7 +912,7 @@ export default function PushSettingsScreen() {
             ) : null}
             {!pushReady && isDevice && permission !== "loading" ? (
               <AppText variant="caption" muted style={{ marginTop: space.snug }}>
-                Worth setting either way — quiet hours ride with your account,
+                Worth setting either way: quiet hours ride with your account,
                 not just this phone.
               </AppText>
             ) : null}
@@ -973,7 +974,7 @@ export default function PushSettingsScreen() {
             </Card>
 
             <AppText variant="caption" muted style={{ marginTop: space.room }}>
-              The in-app inbox always keeps everything — these only quiet your
+              The in-app inbox always keeps everything. These only quiet your
               phone.
             </AppText>
             <AppText variant="caption" muted style={{ marginTop: space.snug }}>
@@ -981,7 +982,7 @@ export default function PushSettingsScreen() {
             </AppText>
             {!pushReady && isDevice && permission !== "loading" ? (
               <AppText variant="caption" muted style={{ marginTop: space.snug }}>
-                These wake up once push is on for this device — flip it on
+                These wake up once push is on for this device. Flip it on
                 above first.
               </AppText>
             ) : null}
@@ -1021,7 +1022,7 @@ export default function PushSettingsScreen() {
             return (
               // The chosen half hour sits in a shallow well, and Sheet.Row's
               // own `selected` draws the trailing check and announces the row
-              // as selected — which is the half that matters in a list of
+              // as selected, which is the half that matters in a list of
               // forty-eight near-identical times.
               <View
                 key={value}

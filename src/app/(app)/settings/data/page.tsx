@@ -37,7 +37,7 @@ import {
   type SummaryLine,
 } from "@/lib/data-export";
 
-/* Your data — everything Huddl holds that's yours, in one file you can take
+/* Your data: everything Huddl holds that's yours, in one file you can take
    with you. The page explains before it does anything: what's in the file,
    what stays behind, and only then a button.
 
@@ -47,7 +47,7 @@ import {
 
    The download itself is the browser's own: a Blob, an object URL, a link
    that clicks itself. Nothing is uploaded anywhere and no dependency was
-   added for it. If that ever fails, the JSON goes on screen instead — there
+   added for it. If that ever fails, the JSON goes on screen instead. There
    is always a way to get the data out of this page. */
 
 type Phase = "idle" | "working" | "ready" | "error";
@@ -122,15 +122,15 @@ export default function DataExportPage() {
     const outcome = downloadExport(prepared.json, at);
     if (outcome === "saved") {
       setSaveNote(
-        `Saved as ${exportFileName(at)} — check wherever your downloads land.`
+        `Saved as ${exportFileName(at)}. Check wherever your downloads land.`
       );
       return;
     }
     setShowRaw(true);
     setSaveNote(
       outcome === "empty"
-        ? "That came back empty, which shouldn't happen — prepare it once more and it should fill in."
-        : "This browser wouldn't write the file, so it's down below instead — select all of it and copy."
+        ? "That came back empty, which shouldn't happen. Prepare it once more and it should fill in."
+        : "This browser wouldn't write the file, so it's down below instead. Select all of it and copy."
     );
   }, [prepared]);
 
@@ -151,7 +151,7 @@ export default function DataExportPage() {
         <p className="mt-1.5 text-sm text-muted text-pretty">
           Your profile, your classes, the messages and notes you&apos;ve
           written, your focus sessions, your grades, your board posts and the
-          events you created — as plain JSON, readable in any text editor.
+          events you created, as plain JSON, readable in any text editor.
         </p>
         <h3 className="mt-4 font-bold tracking-tight">
           What isn&apos;t in it
@@ -218,7 +218,7 @@ export default function DataExportPage() {
               <Card className="mt-3">
                 <p className="text-xs text-muted">Select all of it and copy.</p>
                 {/* The file can run to thousands of lines, so it scrolls
-                    inside its own box rather than pushing the page around —
+                    inside its own box rather than pushing the page around,
                     and horizontally too, so a long line never widens the
                     column. */}
                 <pre className="mt-2 max-h-80 overflow-auto rounded-xl bg-surface-2 p-3 font-mono text-xs whitespace-pre">
@@ -265,7 +265,7 @@ export default function DataExportPage() {
       {/* The companion action, mentioned once and left alone. */}
       <p className="mt-10 px-1 text-xs text-muted text-pretty">
         Leaving is the other half of this. Deleting your account removes all of
-        it at once — profile, messages, files, courses, blocks and push tokens —
+        it at once (profile, messages, files, courses, blocks and push tokens)
         immediately and permanently, with no recovery window and no archive.{" "}
         <Link
           href="/legal/privacy"

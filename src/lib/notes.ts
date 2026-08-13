@@ -1,12 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
-/* Note tags — the data layer for the words a class files its notes under.
+/* Note tags: the data layer for the words a class files its notes under.
  *
  * Uploading and downloading a note already live in the notes feature
  * (`src/features/notes/note-upload.tsx` writes the row, `notes-section.tsx`
- * signs the URL). This module owns what migration 0032 added on top —
- * `notes.tags` — and, since a note is never shown without a byline, the one
+ * signs the URL). This module owns what migration 0032 added on top
+ * (`notes.tags`) and, since a note is never shown without a byline, the one
  * pure rule that byline has to obey: {@link noteUploaderName}.
  *
  * THE DATABASE OWNS NORMALIZATION, AND THAT IS DELIBERATE.
@@ -14,19 +14,19 @@ import { createClient } from "@/lib/supabase/client";
  * lowercases, drops anything shorter than 2 or longer than 24 characters,
  * dedupes, and keeps the first five. Nothing here re-implements any of that.
  * We send what the student typed and read the saved row back, so the page
- * settles on the database's answer instead of guessing at it — "  Midterm 2 "
+ * settles on the database's answer instead of guessing at it: "  Midterm 2 "
  * goes out, `midterm 2` comes home. The constants below exist so a composer
  * can cap the picker and the text field politely, not so it can pre-normalize.
  *
  * WHO MAY RETAG. 0006's "uploaders can manage own notes" policy scopes the
  * UPDATE to `uploader_id = auth.uid()`. A classmate's attempt matches zero
- * rows rather than erroring, which PostgREST reports as success with no data —
+ * rows rather than erroring, which PostgREST reports as success with no data,
  * so {@link setNoteTags} treats "no row back" as the refusal it is.
  *
  * Reading is the other way round: anyone enrolled in the course sees the tags,
  * because a filter bar only works if the whole class shares the vocabulary.
  *
- * No React, no theme, no routing in here — two queries, some narrowing, and
+ * No React, no theme, no routing in here: two queries, some narrowing, and
  * one pure tally. Every failure arrives as a {@link NotesError} whose message
  * is warm, specific, and safe to drop straight into an inline error.
  *
@@ -37,7 +37,7 @@ import { createClient } from "@/lib/supabase/client";
 
 /* ══════════════════════════════ shapes ══════════════════════════════ */
 
-/** The Supabase client these queries run against — server or browser. */
+/** The Supabase client these queries run against: server or browser. */
 type Db = SupabaseClient;
 
 /**
@@ -45,7 +45,7 @@ type Db = SupabaseClient;
  *
  * @property client Request-scoped server client. Omit in the browser.
  * @property userId The caller's `profiles.id` when it's already known. Not
- *   needed by anything here today — the policies do the scoping — but carried
+ *   needed by anything here today (the policies do the scoping) but carried
  *   so this module's shape matches every other ported one.
  */
 export type NotesCtx = {
@@ -57,7 +57,7 @@ export type NotesCtx = {
 export type CourseTag = {
   /** The tag, exactly as stored: already trimmed and lowercased. */
   tag: string;
-  /** How many notes carry it. Never zero — an unused tag isn't in the list. */
+  /** How many notes carry it. Never zero; an unused tag isn't in the list. */
   count: number;
 };
 
@@ -71,7 +71,7 @@ export const MIN_NOTE_TAG_LENGTH = 2;
 export const MAX_NOTE_TAG_LENGTH = 24;
 
 /**
- * A starter vocabulary for the composer to offer as chips — the words a class
+ * A starter vocabulary for the composer to offer as chips: the words a class
  * actually files notes under. Not a whitelist: "discussion 2" or "orgo" are
  * just as welcome, so keep the free-text field next to the chips.
  */
@@ -89,7 +89,7 @@ export const SUGGESTED_TAGS: readonly string[] = [
 
 /**
  * A notes failure with a message written for a person, not a log. Show
- * `err.message` directly in your inline error — it never leaks SQL, ids, or
+ * `err.message` directly in your inline error. It never leaks SQL, ids, or
  * PostgREST codes.
  */
 export class NotesError extends Error {
@@ -114,7 +114,7 @@ function db(ctx?: NotesCtx): Db {
 /* ═══════════════════════════════ reads ══════════════════════════════ */
 
 /**
- * Every tag in use on this course's notes, with a count each — busiest first,
+ * Every tag in use on this course's notes, with a count each: busiest first,
  * alphabetical within a tie.
  *
  * That ordering is what makes a filter bar useful: "lecture · 18" sits where
@@ -125,7 +125,7 @@ function db(ctx?: NotesCtx): Db {
  * course's notes number in the dozens, not the thousands, and a `select tags`
  * is cheaper than teaching the database a new RPC.
  *
- * A course with no tagged notes returns an empty array, not an error — the
+ * A course with no tagged notes returns an empty array, not an error. The
  * filter bar simply doesn't appear yet.
  *
  * Prefer {@link tallyTags} directly when the page already has the notes in
@@ -162,7 +162,7 @@ export async function fetchCourseTags(
  * Replace a note's tags. Only the uploader may do this.
  *
  * Pass the whole set every time, not a delta: `[]` clears the note's tags.
- * The saved tags come back so the page can settle on the normalized version —
+ * The saved tags come back so the page can settle on the normalized version:
  * "  Midterm 2 " went out, `midterm 2` comes home, and a duplicate or a
  * one-letter typo quietly vanishes. Safe to run optimistically: show the tags
  * as typed, then replace them with what this resolves to, and roll back to the
@@ -187,7 +187,7 @@ export async function setNoteTags(
   if (error) {
     throw new NotesError("Those tags didn't save. Give it another try.");
   }
-  // Zero rows updated isn't an error to PostgREST — it means the policy didn't
+  // Zero rows updated isn't an error to PostgREST. It means the policy didn't
   // match: someone else shared this note, or it's been taken down since.
   if (typeof data !== "object" || data === null) {
     throw new NotesError("Only whoever shared this note can change its tags.");
@@ -201,7 +201,7 @@ export async function setNoteTags(
  * A `text[]` off the wire, with the nulls and non-strings dropped.
  *
  * The column is `not null default '{}'`, so in practice this is always an
- * array — but it arrives through an untyped client, and a note that loses its
+ * array, but it arrives through an untyped client, and a note that loses its
  * whole row to one bad element would be a worse outcome than a missing tag.
  */
 export function toTagList(value: unknown): string[] {
@@ -215,7 +215,7 @@ export function toTagList(value: unknown): string[] {
 
 /**
  * Count how many notes wear each tag: busiest first, alphabetical within a
- * tie. Pure — hand it the tag arrays of any set of notes, including ones a
+ * tie. Pure: hand it the tag arrays of any set of notes, including ones a
  * page already has in state, and no second round trip is needed.
  *
  * A note counts once per tag even if its array somehow repeats one, so the
@@ -252,7 +252,7 @@ function byCountThenName(a: CourseTag, b: CourseTag): number {
  *
  * Saved tags arrive already trimmed and lowercased by 0032's trigger, so a
  * saved-to-saved comparison is plain equality. A tag the student just typed
- * hasn't been through any of that yet — "Midterm" and "midterm " are one tag
+ * hasn't been through any of that yet. "Midterm" and "midterm " are one tag
  * and only one of them should get a chip.
  */
 export function tagKey(tag: string): string {
@@ -272,7 +272,7 @@ export function hasTag(tags: readonly string[], tag: string): boolean {
  *
  * `is_public` is optional because the embed is only as good as the select that
  * asked for it, and a row that arrived without the column has to be treated as
- * private — see {@link noteUploaderName}.
+ * private; see {@link noteUploaderName}.
  */
 export type NoteUploaderRef = {
   id: string;
@@ -289,7 +289,7 @@ export type NoteUploaderRef = {
  * deliberately closed, and no policy stops it: migration 0012 left this to the
  * app. It's the same redaction the classmate list one tab over
  * (`features/notes/classmates.tsx`), the board and `@/lib/focus` apply, down
- * to keeping the avatar — the note still has a face on it, just not a name.
+ * to keeping the avatar: the note still has a face on it, just not a name.
  *
  * It fails closed: anything other than an explicit `is_public: true` counts as
  * private, so a select that forgets the column redacts rather than leaks.
@@ -298,7 +298,7 @@ export type NoteUploaderRef = {
  * still resolving, in which case nothing counts as yours.
  *
  * @returns The name to print, already carrying its `@` when it's a handle. A
- *   note whose uploader profile didn't come back is credited to "Classmate" —
+ *   note whose uploader profile didn't come back is credited to "Classmate";
  *   an unreadable byline is still a byline.
  */
 export function noteUploaderName(

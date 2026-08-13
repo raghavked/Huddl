@@ -61,7 +61,7 @@ import { useResolvedScheme } from "@/providers/display-provider";
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
 
-/* Minimal local row shapes — the web app's types live outside this tsconfig. */
+/* Minimal local row shapes. The web app's types live outside this tsconfig. */
 
 type CourseRow = {
   id: string;
@@ -73,7 +73,7 @@ type CourseRow = {
   location: string | null;
   /**
    * `courses.units`. A `numeric` column, so PostgREST hands it back as a
-   * number or as a string depending on the driver — read it through
+   * number or as a string depending on the driver, so read it through
    * {@link unitsOf} rather than trusting the shape.
    */
   units: number | string | null;
@@ -92,7 +92,7 @@ type ClassmateRow = {
     display_name: string;
     avatar_url: string | null;
     major: string | null;
-    /** Whether they let the campus see them by name — see {@link mateName}. */
+    /** Whether they let the campus see them by name. See {@link mateName}. */
     is_public: boolean;
   } | null;
 };
@@ -102,7 +102,7 @@ type ClassmateRow = {
  * about them.
  *
  * A student who turned Public profile off stands under their handle, with no
- * major beside it — the same redaction the people directory, the board, study
+ * major beside it, the same redaction the people directory, the board, study
  * buddies and the web's own classmates tab apply. Sharing a lecture hall is
  * not consent to have your name and your major read off a class list, and no
  * policy stops it: migration 0012 left this to the app, which means every
@@ -130,7 +130,7 @@ function mateName(
  *
  * `enrollments.color` is **personal**: the SELECT policy lets a student read
  * their classmates' enrollment rows, so every classmate's pick comes down the
- * wire — and exactly one of them is ever read, the one whose `user_id` is
+ * wire, and exactly one of them is ever read: the one whose `user_id` is
  * ours. `ClassmateRow` deliberately doesn't carry the field, so nothing that
  * renders a classmate can reach it by accident.
  */
@@ -144,7 +144,7 @@ type UpcomingItem = {
   due_at: string;
 };
 
-/* Upcoming events linked to this course — study sessions, mostly. */
+/* Upcoming events linked to this course: study sessions, mostly. */
 type CourseEventRow = {
   id: string;
   kind: "study_session" | "meetup";
@@ -205,7 +205,7 @@ function shortDate(iso: string): string {
   });
 }
 
-/** "Fri, Oct 14" — how calendar dates read on the hub preview. */
+/** "Fri, Oct 14", how calendar dates read on the hub preview. */
 function dueDay(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
     weekday: "short",
@@ -214,7 +214,7 @@ function dueDay(iso: string): string {
   });
 }
 
-/** "Fri, Oct 14 · 3:00 PM" — how study sessions read on the hub. */
+/** "Fri, Oct 14 · 3:00 PM", how study sessions read on the hub. */
 function sessionWhen(iso: string): string {
   const time = new Date(iso).toLocaleTimeString(undefined, {
     hour: "numeric",
@@ -223,7 +223,7 @@ function sessionWhen(iso: string): string {
   return `${dueDay(iso)} · ${time}`;
 }
 
-/** Quiet chip palette for calendar kinds — mirrored in course/calendar.tsx. */
+/** Quiet chip palette for calendar kinds, mirrored in course/calendar.tsx. */
 function kindTone(kind: CalendarKind): ChipTone {
   switch (kind) {
     case "exam":
@@ -236,7 +236,7 @@ function kindTone(kind: CalendarKind): ChipTone {
   }
 }
 
-/** "week-5-notes.pdf" -> "week 5 notes" — a friendly default title. */
+/** "week-5-notes.pdf" -> "week 5 notes", a friendly default title. */
 function titleFromFileName(name: string): string {
   return name
     .replace(/\.[^.]+$/, "")
@@ -248,7 +248,7 @@ function titleFromFileName(name: string): string {
 /**
  * `courses.units` as a number the screen can trust, or null for "nobody has
  * filled this in". Zero and negatives read as unknown too, exactly the way
- * `@/lib/semester` reads them — a course worth no units is not a thing, so
+ * `@/lib/semester` reads them. A course worth no units is not a thing, so
  * treating it as one would put a silent zero into somebody's GPA.
  */
 function unitsOf(raw: number | string | null): number | null {
@@ -261,7 +261,7 @@ function unitsOf(raw: number | string | null): number | null {
 
 /**
  * The units the column can actually hold. `courses.units` is `numeric(3,1)`
- * (migration 0032), so Postgres rounds a second decimal on the way in — a
+ * (migration 0032), so Postgres rounds a second decimal on the way in: a
  * student who typed 1.25 would watch the card say 1.3 after the next load.
  * Round here instead, so what they're shown is what the class got. The field
  * says "to one decimal place" before they type, so this is the stated rule
@@ -305,7 +305,7 @@ function DoorwayTile({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${title} — ${caption}`}
+      accessibilityLabel={`${title}, ${caption}`}
       onPress={onPress}
       style={({ pressed }) => ({
         flexBasis: "47%",
@@ -395,7 +395,7 @@ function CenteredState({
   );
 }
 
-/** The hub with the words not yet written — same bones, same order. */
+/** The hub with the words not yet written. Same bones, same order. */
 function HubSkeleton() {
   return (
     <View
@@ -447,7 +447,7 @@ export default function CourseHubScreen() {
     {}
   );
   const [mates, setMates] = useState<ClassmateRow[]>([]);
-  /** My own tint for this course, straight off the wire — null until it
+  /** My own tint for this course, straight off the wire. Null until it
       loads, and null forever for a student who never picked one. */
   const [myColor, setMyColor] = useState<string | null>(null);
   const [upcoming, setUpcoming] = useState<UpcomingItem[]>([]);
@@ -464,14 +464,14 @@ export default function CourseHubScreen() {
   const [draftUnits, setDraftUnits] = useState("");
   const [savingDetails, setSavingDetails] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
-  /** Sits on the units field itself — a bad number never leaves the form. */
+  /** Sits on the units field itself, so a bad number never leaves the form. */
   const [unitsError, setUnitsError] = useState<string | null>(null);
 
   // Opening a note (signed URL -> browser/viewer).
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [openError, setOpenError] = useState<string | null>(null);
 
-  // Saying thanks on a classmate's note — optimistic, retractable.
+  // Saying thanks on a classmate's note: optimistic, retractable.
   const [thanksError, setThanksError] = useState<string | null>(null);
   const thanksInFlight = useRef<Set<string>>(new Set());
 
@@ -513,7 +513,7 @@ export default function CourseHubScreen() {
             )
             .eq("id", courseId)
             .maybeSingle(),
-          // Courses grew rooms (extra channels) — the front room is is_main.
+          // Courses grew rooms (extra channels). The front room is is_main.
           supabase
             .from("channels")
             .select("id")
@@ -541,13 +541,13 @@ export default function CourseHubScreen() {
             .gte("starts_at", new Date().toISOString())
             .order("starts_at", { ascending: true })
             .limit(3),
-          // The Links doorway shows a tally — the list lives on its own screen.
+          // The Links doorway shows a tally; the list lives on its own screen.
           supabase
             .from("course_links")
             .select("id", { count: "exact", head: true })
             .eq("course_id", courseId),
           // How many classmates are open to studying together. Head-only, and
-          // it swallows its own failures — a doorway caption is never worth
+          // it swallows its own failures, because a doorway caption is never worth
           // holding up the hub for.
           countBuddies(courseId),
         ]);
@@ -571,7 +571,7 @@ export default function CourseHubScreen() {
       );
       setNotes(notesList);
       // Gratitude on the listed notes: one query, reduced to {count, mine}
-      // per note. Best-effort — a hiccup keeps whatever we already had.
+      // per note. Best-effort: a hiccup keeps whatever we already had.
       if (notesList.length > 0) {
         const { data: thanksRows, error: thanksFetchError } = await supabase
           .from("note_thanks")
@@ -597,21 +597,21 @@ export default function CourseHubScreen() {
       } else {
         setNoteThanks({});
       }
-      // The calendar preview is a bonus — a hiccup here shouldn't block the hub.
+      // The calendar preview is a bonus, so a hiccup here shouldn't block the hub.
       setUpcoming(
         (upcomingRes.data ?? []) as unknown as UpcomingItem[]
       );
-      // Same deal for study sessions — best-effort preview.
+      // Same deal for study sessions: best-effort preview.
       setSessions(
         (sessionsRes.data ?? []) as unknown as CourseEventRow[]
       );
-      // And for the pinned-links tally — best-effort too.
+      // And for the pinned-links tally: best-effort too.
       setLinkCount(linksRes.count ?? 0);
       // Same for the study-partner tally: `countBuddies` returns 0 rather
       // than throwing, so it can never be the reason this screen fails.
       setBuddyCount(buddyTally);
       const enrollmentRows = (matesRes.data ?? []) as unknown as EnrollmentRow[];
-      // Only ever our own row's colour — see the note on `EnrollmentRow`.
+      // Only ever our own row's colour. See the note on `EnrollmentRow`.
       setMyColor(
         enrollmentRows.find((row) => row.user_id === userId)?.color ?? null
       );
@@ -712,7 +712,7 @@ export default function CourseHubScreen() {
       );
       setDetailsError(
         rpcError.message.includes("join the course")
-          ? "Details are kept by classmates — add this course to your classes first."
+          ? "Details are kept by classmates. Add this course to your classes first."
           : "Couldn't save those details just now. Give it another try."
       );
       return;
@@ -760,11 +760,11 @@ export default function CourseHubScreen() {
     }
   }, []);
 
-  /** Give thanks, or take it back — optimistic either way, rolled back on
+  /** Give thanks, or take it back. Optimistic either way, rolled back on
       failure. The uploader hears about it through the server-side trigger. */
   const handleToggleThanks = useCallback(
     async (note: NoteRow) => {
-      // You can't thank yourself — the server agrees, so don't even try.
+      // You can't thank yourself, and the server agrees, so don't even try.
       if (!userId || note.uploader_id === userId) return;
       if (thanksInFlight.current.has(note.id)) return;
       thanksInFlight.current.add(note.id);
@@ -797,8 +797,8 @@ export default function CourseHubScreen() {
         setNoteThanks((prev) => ({ ...prev, [note.id]: previous }));
         setThanksError(
           giving
-            ? "Your thanks didn't make it through — give it another try."
-            : "Couldn't take that back just now — give it another try."
+            ? "Your thanks didn't make it through. Give it another try."
+            : "Couldn't take that back just now. Give it another try."
         );
       } finally {
         thanksInFlight.current.delete(note.id);
@@ -820,7 +820,7 @@ export default function CourseHubScreen() {
       if (!asset) return;
       if (typeof asset.size === "number" && asset.size > MAX_NOTE_BYTES) {
         setUploadError(
-          `That file is ${formatFileSize(asset.size)} — the limit is 25 MB.`
+          `That file is ${formatFileSize(asset.size)}. The limit is 25 MB.`
         );
         return;
       }
@@ -874,7 +874,7 @@ export default function CourseHubScreen() {
     closeUploadForm,
   ]);
 
-  // Deep links land here directly — make sure a signed-out visitor gets a
+  // Deep links land here directly, so make sure a signed-out visitor gets a
   // proper door, not a broken screen.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
@@ -895,7 +895,7 @@ export default function CourseHubScreen() {
             title: "No notes yet",
             message: isEnrolled
               ? "Be the first to share lecture notes, a study guide or slides with your class."
-              : "Notes are shared between classmates — add this course to see them.",
+              : "Notes are shared between classmates. Add this course to see them.",
           },
         ];
 
@@ -974,7 +974,7 @@ export default function CourseHubScreen() {
             </AppText>
           </View>
           {mine ? (
-            /* Your own notes: the warmth just shows — you can't thank
+            /* Your own notes: the warmth just shows. You can't thank
                yourself, and the server agrees. */
             <View
               accessible={thanksEntry.count > 0}
@@ -1303,7 +1303,7 @@ export default function CourseHubScreen() {
   /* ------------------------------ the hub ---------------------------- */
 
   /* The colour this student gave this course, or the tint hashed from its
-     code when they never picked one. It is theirs alone — the classmate
+     code when they never picked one. It is theirs alone; the classmate
      reading the same hub may well see a different band. */
   const tint = tints[colorForCourse(myColor, course.code)];
 
@@ -1337,7 +1337,7 @@ export default function CourseHubScreen() {
     /* Unset units get a line of their own, but only on a card that's already
        being drawn for someone who can fix it. The semester screen sends
        students here to fill this in, and a card that never mentions units
-       would be a dead end at the end of that trip. Never the only row —
+       would be a dead end at the end of that trip. Never the only row:
        one lonely "not set" line is what the empty state below is for. */
     detailRows.push({
       key: "units",
@@ -1386,7 +1386,7 @@ export default function CourseHubScreen() {
                 code set in that tint's ink. A saturated block would turn the
                 first thing on the screen into a button it isn't, so this is
                 the wash. The term line takes its colour from the band rather
-                than falling back to grey — muted text never sits on a tinted
+                than falling back to grey, because muted text never sits on a tinted
                 fill. */}
             <View
               style={{
@@ -1435,7 +1435,7 @@ export default function CourseHubScreen() {
               >
                 <Feather name="info" size={16} color={theme.muted} />
                 <AppText variant="caption" muted style={{ flex: 1 }}>
-                  You're not in this course yet — add it to share notes and
+                  You're not in this course yet. Add it to share notes and
                   meet your classmates.
                 </AppText>
                 <Button
@@ -1448,14 +1448,14 @@ export default function CourseHubScreen() {
             ) : null}
 
             {/* Who's heads-down in this class right now. It draws nothing at
-                all on a quiet day — no loading row, no empty state — so it
+                all on a quiet day (no loading row, no empty state), so it
                 costs the hub nothing until it has something warm to say. */}
             <FocusStrip
               courseId={courseId}
               style={{ marginTop: space.close }}
             />
 
-            {/* Course details — who teaches it, when it meets, where, and
+            {/* Course details: who teaches it, when it meets, where, and
                 what it's worth in units. Classmate-kept, like the course list
                 itself: one row for the whole class, edited by anyone in it. */}
             <SectionLabel
@@ -1514,7 +1514,7 @@ export default function CourseHubScreen() {
                     <AppText variant="caption" muted style={{ lineHeight: 17 }}>
                       Units weight your semester estimate, so a 5-unit lab
                       counts for more than a 1-unit seminar. Anything from{" "}
-                      {UNITS_MIN} to {UNITS_MAX}, to one decimal place — or
+                      {UNITS_MIN} to {UNITS_MAX}, to one decimal place, or
                       leave it blank if you're not sure.
                     </AppText>
                   </View>
@@ -1576,7 +1576,7 @@ export default function CourseHubScreen() {
                   compact
                   icon="info"
                   title="No details yet"
-                  body="Who teaches it, when it meets, where, how many units — fill it in for the class."
+                  body="Who teaches it, when it meets, where, how many units. Fill it in for the class."
                 />
               )}
               {detailsError ? (
@@ -1585,19 +1585,19 @@ export default function CourseHubScreen() {
                 </AppText>
               ) : null}
               <AppText variant="caption" muted>
-                Kept up by the class — anyone enrolled can edit.
+                Kept up by the class. Anyone enrolled can edit.
               </AppText>
             </View>
 
-            {/* Doorways — every room of the course, eight tiles in four rows.
+            {/* Doorways: every room of the course, eight tiles in four rows.
                 Each opens a screen that was built as its own feature.
 
                 Tone is meaning, not variety: fern for the dated and the
                 graded (calendar, the weekly pattern that fills it, links
                 you've filed, grades), ember for the people and the studying
                 (rooms, notes, flashcards, partners). Laid out two-up that
-                lands as a woven checkerboard — ember, fern / fern, ember /
-                ember, fern / fern, ember — instead of the two solid color
+                lands as a woven checkerboard (ember, fern / fern, ember /
+                ember, fern / fern, ember) instead of the two solid color
                 columns a mechanical alternation would draw.
 
                 The order is read in pairs, not columns: the calendar and the
@@ -1722,7 +1722,7 @@ export default function CourseHubScreen() {
               />
             </View>
 
-            {/* Class calendar — the next few shared dates, previewed. */}
+            {/* Class calendar: the next few shared dates, previewed. */}
             <SectionLabel text="Class calendar" />
             <View style={{ gap: space.room }}>
               {upcoming.length > 0 ? (
@@ -1784,7 +1784,7 @@ export default function CourseHubScreen() {
               />
             </View>
 
-            {/* Study sessions — course-linked events, planned right here. */}
+            {/* Study sessions: course-linked events, planned right here. */}
             <SectionLabel text="Study sessions" />
             <View style={{ gap: space.room }}>
               {sessions.length > 0 ? (
@@ -1844,7 +1844,7 @@ export default function CourseHubScreen() {
                   compact
                   icon="users"
                   title="Nothing planned yet"
-                  body="Be the one who gets the class together — pick a time and a place."
+                  body="Be the one who gets the class together. Pick a time and a place."
                 />
               )}
               <Button

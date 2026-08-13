@@ -58,7 +58,7 @@ import {
 } from "@/lib/moderation";
 import { useAuth } from "@/providers/auth-provider";
 
-/* Reports — the moderation queue's front door.
+/* Reports: the moderation queue's front door.
  *
  * Reports have been piling up since migration 0015 with triage locked behind
  * the service role. 0034 hands a few students the key, and this is the room it
@@ -72,10 +72,10 @@ import { useAuth } from "@/providers/auth-provider";
  *
  * The one thing the screen insists on is context. A moderator should be able to
  * decide without leaving: the category the reporter picked, what the subject
- * actually was, the reporter's reason IN FULL (that's the substance — nothing
+ * actually was, the reporter's reason IN FULL (that's the substance; nothing
  * here truncates it to a tidy line), and the reported words themselves quoted
- * in a well. When the subject can't be shown — deleted, or in a channel this
- * moderator never joined — the row says so in a sentence instead of leaving a
+ * in a well. When the subject can't be shown (deleted, or in a channel this
+ * moderator never joined), the row says so in a sentence instead of leaving a
  * gap the reader has to interpret.
  *
  * Triage is optimistic and reversible. A tap starts the row leaving straight
@@ -114,7 +114,7 @@ function Well({ children }: { children: ReactNode }) {
 }
 
 /**
- * A reported message the queue query couldn't carry — a room this moderator
+ * A reported message the queue query couldn't carry: a room this moderator
  * isn't in, or a direct message, which no moderator is ever a participant of.
  *
  * Deliberately behind a tap rather than loaded with the list. These are
@@ -212,7 +212,7 @@ function HiddenMessage({
 }
 
 /**
- * What was reported, quoted — or a sentence saying where it went.
+ * What was reported, quoted, or a sentence saying where it went.
  *
  * A soft-deleted message keeps its content here on purpose: "they took it down
  * after being reported" is the most useful thing a moderator can know, and
@@ -225,7 +225,7 @@ function Subject({ report }: { report: ModerationReport }) {
   if (subject.kind === "gone") {
     /* A message we can't embed isn't necessarily a message we can't read.
        `messages` is channel-member-only and `dm_messages` is participant-only,
-       so a moderator triaging a room they never joined — or any DM at all —
+       so a moderator triaging a room they never joined (or any DM at all)
        used to be judging words they couldn't see. `reported_content()` is the
        one narrow way through, so offer it rather than the shrug. */
     if (subject.was === "message") {
@@ -331,7 +331,7 @@ function Subject({ report }: { report: ModerationReport }) {
 /**
  * Where tapping a report should take you: the room it happened in, the board
  * post, or the person. A report whose message sits in a channel this moderator
- * hasn't joined still leads somewhere useful — the reported student's profile —
+ * hasn't joined still leads somewhere useful (the reported student's profile),
  * so the row is only inert when there is genuinely nothing left to look at.
  */
 function subjectRoute(report: ModerationReport): Href | null {
@@ -349,7 +349,7 @@ function subjectRoute(report: ModerationReport): Href | null {
  * One report, whole: what kind of thing was flagged, who flagged it and when,
  * why in their own words, the words themselves, and the two ways out.
  *
- * The settle is the only animation on the screen and it reports a completion —
+ * The settle is the only animation on the screen and it reports a completion:
  * the row you just triaged leaving the pile it's no longer in. It runs the
  * moment you tap, alongside the write rather than after it, so the tap feels
  * answered; a refusal retraces the same curve back and the row stays put.
@@ -423,12 +423,12 @@ function ReportRow({
             opacity: pressed && route !== null ? 0.7 : 1,
           })}
         >
-          {/* The reporter's own pick, in their words. Brand, never danger —
+          {/* The reporter's own pick, in their words. Brand, never danger:
               a category is what this is about, not a verdict on it. */}
           <Chip label={categoryLabel(report.category)} tone="brand" />
 
           {/* `summarize` folds a board post's whole title into this line, and
-              a title can run long — the full one is quoted in the well below,
+              a title can run long. The full one is quoted in the well below,
               so the headline is safe to cap. */}
           <AppText variant="bodySemi" numberOfLines={2}>
             {title}
@@ -489,7 +489,7 @@ function ReportRow({
 
 /**
  * What each pile says when there's nothing in it, and the mark it says it
- * under. The open queue gets the empty tray — everything that needed a person
+ * under. The open queue gets the empty tray: everything that needed a person
  * has had one. The other two are keeping places rather than backlogs, so they
  * both get the box: put away, still there when you want to look back.
  */
@@ -539,7 +539,7 @@ export default function ModerationScreen() {
   } | null>(null);
   const [settlingId, setSettlingId] = useState<string | null>(null);
   // Every "3h ago" on the screen reads off one moment, refreshed with the
-  // list — so two rows can't disagree about what "now" is.
+  // list, so two rows can't disagree about what "now" is.
   const [now, setNow] = useState(() => new Date());
 
   const goBack = useCallback(() => {
@@ -578,7 +578,7 @@ export default function ModerationScreen() {
   }, [status]);
 
   // Runs on first focus, again whenever the filter changes `load`'s identity,
-  // and again on every return — so a channel you stepped into and back out of
+  // and again on every return, so a channel you stepped into and back out of
   // leaves the queue current.
   useFocusEffect(
     useCallback(() => {
@@ -595,7 +595,7 @@ export default function ModerationScreen() {
   const pickFilter = useCallback(
     (next: ReportStatus) => {
       if (next === status) return;
-      // A different pile is a different query — say so with the skeletons
+      // A different pile is a different query. Say so with the skeletons
       // rather than leaving one pile's rows sitting under another's chip.
       setReports(null);
       setRowError(null);
@@ -660,7 +660,7 @@ export default function ModerationScreen() {
     [now, settlingId, rowError, triage]
   );
 
-  // A deep link can land here signed out — send them to a proper door.
+  // A deep link can land here signed out. Send them to a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -735,7 +735,7 @@ export default function ModerationScreen() {
     </View>
   );
 
-  /* Still finding out whose queue this is. No caption and no chips yet — a
+  /* Still finding out whose queue this is. No caption and no chips yet: a
      student who turns out not to be a moderator shouldn't watch the room's
      furniture arrive and then get carried back out. */
   if (moderator === null) {
@@ -764,7 +764,7 @@ export default function ModerationScreen() {
         <EmptyState
           illustration={Mug}
           title="This one's for the moderators"
-          body="A few students look after campus here — they read what gets flagged and decide what happens next. Anything you've reported is already with them."
+          body="A few students look after campus here. They read what gets flagged and decide what happens next. Anything you've reported is already with them."
         />
       </View>
     );
@@ -777,7 +777,7 @@ export default function ModerationScreen() {
         muted
         style={{ paddingHorizontal: space.gutter, marginTop: space.tight }}
       >
-        What campus has flagged. Take them one at a time — there's no clock on
+        What campus has flagged. Take them one at a time. There's no clock on
         this.
       </AppText>
 

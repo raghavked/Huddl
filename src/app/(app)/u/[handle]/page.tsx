@@ -60,7 +60,7 @@ export async function generateMetadata({
  * match is already case-insensitive. Shared courses fall out of RLS (classmate
  * enrollments are only visible for courses the viewer is enrolled in), but we
  * still intersect with the viewer's own rows explicitly so the page stays
- * correct — including on your own profile, where "shared" means "all yours".
+ * correct, including on your own profile, where "shared" means "all yours".
  */
 export default async function ProfilePage({
   params,
@@ -82,7 +82,7 @@ export default async function ProfilePage({
 
   // A query error is a connection blip, not a missing person. Throwing hands
   // it to the route error boundary (src/app/error.tsx), which offers a real
-  // Try again — where notFound() would brand a retryable failure as a
+  // Try again, where notFound() would brand a retryable failure as a
   // permanent "this handle doesn't exist" and dead-end the reader.
   if (error) throw error;
 
@@ -107,8 +107,8 @@ export default async function ProfilePage({
     iBlocked = blockRow !== null;
   }
 
-  /* A block shuts the DM door both ways — `create_dm_thread` refuses across
-     one — so offering Message here would be offering a dead end. Unblock sits
+  /* A block shuts the DM door both ways: `create_dm_thread` refuses across
+     one, so offering Message here would be offering a dead end. Unblock sits
      beside the badge instead, for whenever they want the door back. */
   const messageButton = iBlocked ? null : (
     <Link
@@ -121,8 +121,8 @@ export default async function ProfilePage({
   );
 
   /* A private profile withholds the display name, so anything that says this
-     person out loud — the block confirmation, the report panel, either
-     button's label — uses the handle, which is the only name the viewer can
+     person out loud (the block confirmation, the report panel, either
+     button's label) uses the handle, which is the only name the viewer can
      actually see. */
   const visibleName = profile.is_public
     ? profile.display_name
@@ -131,7 +131,7 @@ export default async function ProfilePage({
   /* Reporting and blocking are different acts and stay separately reachable:
      one asks us to look at someone, the other is what a student does for
      themselves in the meantime. Neither is a step inside the other, and a
-     block is never a condition of being heard — so both sit on the action row
+     block is never a condition of being heard, so both sit on the action row
      regardless of which has already been used. */
   const reportButton = isMe ? null : (
     <ReportPersonButton personId={profile.id} name={visibleName} />
@@ -147,14 +147,14 @@ export default async function ProfilePage({
   );
 
   /* Private profile viewed by someone else: handle + avatar only. Everything
-     else on the row — name, bio, major, grad year, interests, looking_for —
+     else on the row (name, bio, major, grad year, interests, looking_for)
      stays off this page. Interests and looking_for are profile columns like
      any other, so they're hidden here too. */
   if (!profile.is_public && !isMe) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
         <section
-          aria-label={`@${profile.handle} — private profile`}
+          aria-label={`@${profile.handle}, private profile`}
           className={cardClasses({
             padding: "lg",
             className:
@@ -170,7 +170,7 @@ export default async function ProfilePage({
               <Lock className="size-4" aria-hidden />
               This profile is private
             </p>
-            {/* "Say hi" is only true while the door is open — once you've
+            {/* "Say hi" is only true while the door is open. Once you've
                 blocked them there's no Message button under this line. */}
             <p className="mt-1 max-w-sm text-sm text-muted text-pretty">
               {iBlocked
@@ -336,7 +336,7 @@ export default async function ProfilePage({
         </div>
       </section>
 
-      {/* Interests — hidden entirely on someone else's profile when they
+      {/* Interests, hidden entirely on someone else's profile when they
           haven't added any; on your own it's an invitation. */}
       {isMe || interests.length > 0 ? (
         <section
@@ -354,7 +354,7 @@ export default async function ProfilePage({
                 title="Nothing on here yet"
                 description={
                   profile.looking_for
-                    ? "Add a few things you're into — it's how classmates spot the overlap."
+                    ? "Add a few things you're into. It's how classmates spot the overlap."
                     : "A few things you're into, plus a line on what you're looking for, is how classmates know where to start."
                 }
                 action={
@@ -404,7 +404,7 @@ export default async function ProfilePage({
               title={isMe ? "No courses yet" : "No courses together"}
               description={
                 isMe
-                  ? "Add your classes to unlock course chat and notes."
+                  ? "Add your classes to get course chat and shared notes."
                   : `You and ${firstName} don't share any courses this term.`
               }
               action={

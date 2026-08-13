@@ -23,7 +23,7 @@
  * ONE INTEGRATION NOTE, because it differs from polls: migration 0033 gave
  * `messages` no `availability_poll_id` column. The RPC posts an ordinary
  * message reading `When can everyone meet? <title>`, so the room has to
- * resolve poll ids itself — one `availability_polls` query per channel
+ * resolve poll ids itself: one `availability_polls` query per channel
  * (filtered by `channel_id`, matched to the announcing message by author and
  * `created_at` proximity), plus the id `onCreated` hands back for a poll the
  * student just started. The bubble takes it from there.

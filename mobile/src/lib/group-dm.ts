@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 
-/* Group DMs — the data layer.
+/* Group DMs: the data layer.
  *
  * Migration 0028 gave dm_threads two shapes that share one table: a 1:1
  * thread (is_group = false, no title) and a named group of 3-16 people
@@ -14,7 +14,7 @@ import { supabase } from "@/lib/supabase";
  * group's name, so renameGroupThread is a plain update.
  *
  * This module is the single place that knows those rules. No React, no
- * theme, no navigation — just queries, validation, and one pure naming
+ * theme, no navigation: just queries, validation, and one pure naming
  * function. Every failure arrives as a {@link GroupDmError} whose message is
  * warm, specific, and safe to render straight into an inline error.
  */
@@ -28,7 +28,7 @@ import { supabase } from "@/lib/supabase";
  * the query.
  */
 export type GroupThreadRow = {
-  /** `dm_threads.id` — the thread id used everywhere else (`/dm/<id>`). */
+  /** `dm_threads.id`, the thread id used everywhere else (`/dm/<id>`). */
   id: string;
   /** ISO timestamp the thread was opened. */
   created_at: string;
@@ -40,7 +40,7 @@ export type GroupThreadRow = {
   created_by: string | null;
 };
 
-/** One person in a thread — enough to render a row or an avatar stack. */
+/** One person in a thread: enough to render a row or an avatar stack. */
 export type ThreadPerson = {
   /** `profiles.id`. */
   id: string;
@@ -48,7 +48,7 @@ export type ThreadPerson = {
   display_name: string;
   /** Their handle, without the leading `@`. */
   handle: string;
-  /** Their avatar, or null — fall back to initials via `@/components/avatar`. */
+  /** Their avatar, or null; fall back to initials via `@/components/avatar`. */
   avatar_url: string | null;
 };
 
@@ -62,16 +62,16 @@ export type ThreadDisplay = {
 
 /* ---------------------------- the limits ---------------------------- */
 
-/** Smallest a group can be, counting you — matches create_group_thread. */
+/** Smallest a group can be, counting you. Matches create_group_thread. */
 export const GROUP_MIN_PEOPLE = 3;
 
-/** Largest a group can be, counting you — matches add_to_group_thread. */
+/** Largest a group can be, counting you. Matches add_to_group_thread. */
 export const GROUP_MAX_PEOPLE = 16;
 
 /** Shortest a group name may be, after trimming. */
 export const GROUP_TITLE_MIN = 2;
 
-/** Longest a group name may be, after trimming — cap your TextInput here. */
+/** Longest a group name may be, after trimming. Cap your TextInput here. */
 export const GROUP_TITLE_MAX = 60;
 
 /** Columns every screen needs off `dm_threads`. Keep selects consistent. */
@@ -81,7 +81,7 @@ export const GROUP_THREAD_SELECT = "id, created_at, is_group, title, created_by"
 
 /**
  * A group-DM failure with a message written for a person, not a log. Show
- * `err.message` directly in your inline error — it never leaks SQL, ids, or
+ * `err.message` directly in your inline error; it never leaks SQL, ids, or
  * PostgREST codes.
  */
 export class GroupDmError extends Error {
@@ -99,8 +99,8 @@ export class GroupDmError extends Error {
  */
 const WARM_BY_FRAGMENT: readonly (readonly [string, string])[] = [
   // Migration 0040's dm_privacy refusal. It sits ABOVE "someone in that
-  // list", because the group form of it — "someone in that list isn't taking
-  // new messages" — contains both fragments, and a privacy wall is a
+  // list", because the group form of it ("someone in that list isn't taking
+  // new messages") contains both fragments, and a privacy wall is a
   // different thing to say than a block ("can't be added"): one is a setting
   // the person chose, the other we never explain. First match wins, so the
   // specific reason reaches the student instead of the generic one.
@@ -118,7 +118,7 @@ const WARM_BY_FRAGMENT: readonly (readonly [string, string])[] = [
 ];
 
 /**
- * Warm copy for a failure from ANY of the DM RPCs — the 1:1 create, the group
+ * Warm copy for a failure from ANY of the DM RPCs: the 1:1 create, the group
  * create, the add. The 1:1 callers don't raise {@link GroupDmError} (they own
  * their own flow) but they hit the same `create_dm_thread` refusals, so they
  * import this to tell a dm_privacy wall ("not taking new messages") apart from
@@ -177,7 +177,7 @@ function uniqueIds(userIds: readonly string[]): string[] {
 /**
  * Start a named group with the given classmates and land the caller in it.
  *
- * `userIds` are the OTHER people — don't include your own id. The database
+ * `userIds` are the OTHER people. Don't include your own id. The database
  * dedupes the list and drops you from it anyway, then requires 2-15 people
  * left over (3-16 counting you), all on your campus and none blocked either
  * way. The same 2-15 window is checked here first so an obviously-wrong
@@ -185,7 +185,7 @@ function uniqueIds(userIds: readonly string[]): string[] {
  *
  * @param title   The group's name; trimmed, 2-60 characters.
  * @param userIds `profiles.id` for each classmate to invite.
- * @returns The new thread's id — push `/dm/<id>` with it.
+ * @returns The new thread's id. Push `/dm/<id>` with it.
  * @throws {GroupDmError} With copy that's ready to render.
  */
 export async function createGroupThread(
@@ -244,13 +244,13 @@ export async function addToGroupThread(
 }
 
 /**
- * Slip out of a group. Removes only your own participant row — the thread
+ * Slip out of a group. Removes only your own participant row. The thread
  * and everyone else's history stay put, and you stop receiving its messages
  * and notifications. Leaving a thread you're not in quietly succeeds; the
  * database only refuses if the thread isn't a group (you can't leave a 1:1,
  * you block or delete instead).
  *
- * Navigate away after this resolves — RLS will hide the thread from you the
+ * Navigate away after this resolves. RLS will hide the thread from you the
  * moment the row is gone.
  *
  * @param threadId The group's `dm_threads.id`.
@@ -269,7 +269,7 @@ export async function leaveGroupThread(threadId: string): Promise<void> {
 
 /**
  * Rename a group. Unlike the rest of this module this is a direct UPDATE on
- * `dm_threads.title` — 0028's "participants can rename their group" policy
+ * `dm_threads.title`. 0028's "participants can rename their group" policy
  * allows exactly that, for groups only. The 2-60 window is checked here
  * first, and the `is_group` filter keeps a stray 1:1 id from being renamed.
  *
@@ -278,7 +278,7 @@ export async function leaveGroupThread(threadId: string): Promise<void> {
  *
  * @param threadId The group's `dm_threads.id`.
  * @param title    The new name; trimmed, 2-60 characters.
- * @returns The trimmed title as saved — use it for your optimistic state.
+ * @returns The trimmed title as saved. Use it for your optimistic state.
  * @throws {GroupDmError} With copy that's ready to render.
  */
 export async function renameGroupThread(
@@ -300,7 +300,7 @@ export async function renameGroupThread(
     );
   }
   // Zero rows updated isn't an error to PostgREST, but it means the policy
-  // didn't match — you've left the group, or this id isn't a group at all.
+  // didn't match: you've left the group, or this id isn't a group at all.
   if (!data) {
     throw new GroupDmError("Only people in a group can rename it.");
   }
@@ -312,7 +312,7 @@ export async function renameGroupThread(
 /**
  * The embedded profile comes back as an object OR a one-element array
  * depending on how PostgREST resolves the relationship, and the client is
- * untyped — accept both, and drop any row missing an id or handle. Same
+ * untyped. Accept both, and drop any row missing an id or handle. Same
  * defence as `@/features/mentions/use-mention-suggestions`.
  */
 function normalizePeople(rows: unknown): ThreadPerson[] {
@@ -344,7 +344,7 @@ function normalizePeople(rows: unknown): ThreadPerson[] {
 }
 
 /**
- * Everyone in a thread — you included — sorted by display name. Works for
+ * Everyone in a thread, you included, sorted by display name. Works for
  * both shapes: a 1:1 returns two people, a group returns 3-16.
  *
  * RLS only lets you read `dm_participants` for threads you're in, so an
@@ -396,7 +396,7 @@ export async function fetchThread(
 
 /* ------------------------------ naming ------------------------------ */
 
-/** Shown when a group somehow has no title — a group always deserves a name. */
+/** Shown when a group somehow has no title. A group always deserves a name. */
 const UNTITLED_GROUP = "Group chat";
 
 /** Shown before `people` has loaded, when there's nothing honest to say yet. */
@@ -409,10 +409,10 @@ const DEPARTED_PERSON = "Someone who left";
  * The naming rule, in one place: a group shows its title with "N people"
  * underneath; a 1:1 shows the other person's name and nothing underneath.
  * Use it for the thread header, the messages list row, and anywhere else a
- * thread needs a name — so they never drift apart.
+ * thread needs a name, so they never drift apart.
  *
  * Pure: no I/O, no clock, no theme. Pass whatever you have and it degrades
- * sensibly — an empty `people` (still loading) yields a neutral placeholder
+ * sensibly: an empty `people` (still loading) yields a neutral placeholder
  * rather than a wrong name.
  *
  * @param thread The thread's `is_group` and `title`; a full

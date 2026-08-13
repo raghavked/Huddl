@@ -30,18 +30,18 @@ import {
   type ClubAnnouncement,
 } from "@/lib/club-announcements";
 
-/* The club's board — officers writing to the whole club at once.
+/* The club's board: officers writing to the whole club at once.
  *
  * One title, one body, one notification each: that last part is the reason
  * this exists instead of a pinned chat message, and the reason the line above
  * the composer says so out loud before anyone starts typing.
  *
  * Members read; officers and owners write; only an author can take their own
- * post back down. All three rules are RLS policies from migration 0028 — the
+ * post back down. All three rules are RLS policies from migration 0028. The
  * predicates in `@/lib/club-announcements` are the client-side twins, so a
  * button never offers something the database will refuse. */
 
-/** Start warning about the cap this late — earlier is just nagging. */
+/** Start warning about the cap this late; earlier is just nagging. */
 const COUNT_VISIBLE_FROM = 1800;
 
 /** How long the "posted" note sits there before it bows out. */
@@ -62,7 +62,7 @@ function timeAgo(iso: string): string {
 
 /**
  * One notice on the board: headline, the notice itself, and who posted when.
- * Your own posts carry a delete — everyone else's are quiet text, because
+ * Your own posts carry a delete; everyone else's are quiet text, because
  * only an author can take one down. The confirm opens in the row rather than
  * over the page: it names the consequence, and "Keep it" is the way out.
  */
@@ -83,7 +83,7 @@ function AnnouncementRow({
   onConfirmDelete: () => void;
   onKeep: () => void;
 }) {
-  // A post outlives its author's account — the byline degrades, the notice
+  // A post outlives its author's account: the byline degrades, the notice
   // stays, because the club still needs to have read it.
   const who = post.author?.display_name ?? "A past officer";
 
@@ -150,7 +150,7 @@ export function AnnouncementsSection({
 }: {
   clubId: string;
   clubName: string;
-  /** The viewer's `profiles.id` — decides which posts offer a delete. */
+  /** The viewer's `profiles.id`. Decides which posts offer a delete. */
   myId: string;
   /** True for officers and owners, from `canPostAnnouncements`. */
   canPost: boolean;
@@ -250,7 +250,7 @@ export function AnnouncementsSection({
           </Button>
           {posted ? (
             <p className="text-xs font-medium text-accent" aria-live="polite">
-              Posted — the club has it.
+              Posted. The club has it.
             </p>
           ) : null}
         </div>
@@ -307,8 +307,8 @@ export function AnnouncementsSection({
                   </p>
                 ) : (
                   <p className="mt-1.5 text-right text-xs font-medium text-danger">
-                    That&apos;s the full {ANNOUNCEMENT_BODY_MAX} characters —
-                    trim something to add more.
+                    That&apos;s the full {ANNOUNCEMENT_BODY_MAX} characters.
+                    Trim something to add more.
                   </p>
                 )
               ) : null}
@@ -382,7 +382,7 @@ export function AnnouncementsSection({
             title={canPost ? "Nothing posted yet" : "The board is quiet"}
             description={
               canPost
-                ? "Tell the club what is happening — everyone gets it once, in their notifications."
+                ? "Tell the club what is happening. Everyone gets it once, in their notifications."
                 : "When an officer posts, it lands here and in your notifications."
             }
             action={

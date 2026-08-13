@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 /**
  * Where a reset link lands, once /auth/confirm has turned it into a session.
  *
- * The guard that login and signup use — `if (user) redirect("/home")` — would
+ * The guard that login and signup use (`if (user) redirect("/home")`) would
  * be exactly wrong here: everyone who reaches this page is signed in, because
  * being signed in is what the emailed link just did. Bouncing them would make
  * the reset link a link to the home feed with no way to change a password.

@@ -10,7 +10,7 @@ export type PendingBubbleProps = {
   message: QueuedMessage;
   /** Push it at the queue again. Wired to the whole bubble. */
   onRetry: () => void;
-  /** Drop it for good — only offered once the queue has called it stuck. */
+  /** Drop it for good. Only offered once the queue has called it stuck. */
   onDiscard: () => void;
 };
 
@@ -38,7 +38,7 @@ export function PendingBubble({
           opacity: pressed ? 0.7 : 1,
         })}
       >
-        {/* The same bubble the sent messages above it use — a queued message
+        {/* The same bubble the sent messages above it use. A queued message
             is the message, just not gone yet, and drawing it as its own shape
             made the wait look like a different kind of thing. Only the border
             differs, and only when the send is stuck. */}

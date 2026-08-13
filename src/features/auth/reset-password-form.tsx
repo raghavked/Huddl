@@ -33,8 +33,8 @@ import { cn } from "@/lib/utils";
 
 /* Step two: the new password itself.
  *
- * This screen runs on the session the emailed link created — /auth/confirm
- * traded the token for cookies before forwarding here — so there is no "old
+ * This screen runs on the session the emailed link created (/auth/confirm
+ * traded the token for cookies before forwarding here), so there is no "old
  * password" field and no token in this file. The link *is* the proof.
  *
  * That makes the session the only thing that can be missing, and it can be
@@ -46,7 +46,7 @@ import { cn } from "@/lib/utils";
  * these students to the wrong door.
  *
  * The rules about what counts as a password live in `@/lib/password` and are
- * shared with signup, settings and the native app — a password accepted on a
+ * shared with signup, settings and the native app: a password accepted on a
  * laptop has to be accepted on the phone that set it. `ok` gates the button;
  * `strength` is only a word under the field.
  *
@@ -58,7 +58,7 @@ type Status = "checking" | "ready" | "expired" | "unreachable" | "done";
 
 type SubmitError = { message: string; offerFreshLink: boolean };
 
-/** The word under the field, tinted. Weak never blocks — it only advises. */
+/** The word under the field, tinted. Weak advises rather than blocks. */
 const STRENGTH_TONE = {
   weak: "text-warning",
   ok: "text-muted",
@@ -127,7 +127,7 @@ export function ResetPasswordForm() {
     const message = updateError.message ?? "";
     if (code === "same_password" || /should be different/i.test(message)) {
       return {
-        message: "That's the password you already have — pick a different one.",
+        message: "That's the password you already have. Pick a different one.",
         offerFreshLink: false,
       };
     }
@@ -147,7 +147,7 @@ export function ResetPasswordForm() {
     }
     if (updateError.status === 429) {
       return {
-        message: "That's a lot of tries in a row — wait a minute, then save again.",
+        message: "That's a lot of tries in a row. Wait a minute, then save again.",
         offerFreshLink: false,
       };
     }
@@ -184,8 +184,8 @@ export function ResetPasswordForm() {
 
     if (updateError) {
       setPending(false);
-      // A session that died mid-flow isn't an error on this form — it's the
-      // expired-link screen, which is the only place with a way forward.
+      // A session that died mid-flow isn't an error on this form. It belongs
+      // on the expired-link screen, the only place with a way forward.
       if (
         updateError.status === 401 ||
         updateError.code === "session_not_found" ||
@@ -224,7 +224,7 @@ export function ResetPasswordForm() {
         </h1>
         <p className="mt-3 text-sm text-muted text-pretty">
           We couldn&apos;t check your reset link just now. Check your
-          connection and give it another go — the link is still good.
+          connection and give it another go. The link is still good.
         </p>
         <Button variant="soft" onClick={() => void checkSession()} className="mt-5">
           Try again
@@ -243,7 +243,7 @@ export function ResetPasswordForm() {
           That link has run out
         </h1>
         <p className="mt-3 text-sm text-muted text-pretty">
-          Reset links work once, and they don&apos;t stay good for long — this
+          Reset links work once, and they don&apos;t stay good for long. This
           one has been used already, or it sat too long. Ask for a fresh one
           and open it as soon as it lands.
         </p>
@@ -273,9 +273,9 @@ export function ResetPasswordForm() {
           Your new password is saved
         </h1>
         <p className="mt-3 text-sm text-muted text-pretty">
-          You&apos;re still signed in here. If Huddl was open anywhere else —
-          your phone, a lab machine — that device will ask for the new password
-          next time.
+          You&apos;re still signed in here. If Huddl is open anywhere else
+          (your phone, a lab machine), that device will ask for the new
+          password next time.
         </p>
         <Link
           href="/home"
@@ -370,7 +370,7 @@ export function ResetPasswordForm() {
               </FieldError>
             ) : password ? (
               <p className={cn("text-xs font-medium", STRENGTH_TONE[check.strength])}>
-                {describeStrength(check.strength)} — length matters more than
+                {describeStrength(check.strength)}. Length matters more than
                 symbols.
               </p>
             ) : (

@@ -65,7 +65,7 @@ export function CourseDetails({
       setDetails(previous);
       setError(
         rpcError.message.includes("join the course")
-          ? "Details are kept by classmates — add this course to your classes first."
+          ? "Details are kept by classmates. Add this course to your classes first."
           : "Couldn't save those details just now. Give it another try."
       );
     }
@@ -182,7 +182,7 @@ export function CourseDetails({
       ) : (
         <div className="mt-3 rounded-card border border-dashed border-border px-4 py-5 text-center">
           <p className="mx-auto max-w-sm text-sm text-muted">
-            Who teaches it, when it meets, where — fill it in for the class.
+            Who teaches it, when it meets, where: fill it in for the class.
           </p>
         </div>
       )}
@@ -193,7 +193,7 @@ export function CourseDetails({
         </p>
       ) : null}
       <p className="mt-2 px-1 text-xs text-muted">
-        Kept up by the class — anyone enrolled can edit.
+        Kept up by the class. Anyone enrolled can edit.
       </p>
     </section>
   );

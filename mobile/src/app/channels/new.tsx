@@ -16,8 +16,8 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /* Start a topic channel: name it, say what it's for, and you're in.
-   The insert matches the RLS shape exactly — kind 'topic', your own
-   university, created_by you — and you join your new channel on the way
+   The insert matches the RLS shape exactly (kind 'topic', your own
+   university, created_by you), and you join your new channel on the way
    through to its room. */
 
 const NAME_MIN = 3;
@@ -74,7 +74,7 @@ export default function NewChannelScreen() {
     setFormError(null);
     setCreating(true);
     try {
-      // The channel lives at my university — read it off my profile.
+      // The channel lives at my university, so read it off my profile.
       const { data: me, error: meError } = await supabase
         .from("profiles")
         .select("university_id")
@@ -116,7 +116,7 @@ export default function NewChannelScreen() {
       if (insertError || !channelId) {
         setFormError(
           insertError?.code === "23505"
-            ? "A channel with that name already exists — find it in the directory, or pick another name."
+            ? "A channel with that name already exists. Find it in the directory, or pick another name."
             : "We couldn't start that channel just now. Give it another try."
         );
         return;
@@ -128,7 +128,7 @@ export default function NewChannelScreen() {
         .insert({ channel_id: channelId, user_id: userId });
       if (joinError && joinError.code !== "23505") {
         setFormError(
-          "The channel is up, but we couldn't drop you in — join it from the directory."
+          "The channel is up, but we couldn't drop you in. Join it from the directory."
         );
         return;
       }
@@ -139,7 +139,7 @@ export default function NewChannelScreen() {
     }
   }, [userId, creating, name, description]);
 
-  // Deep links land here directly — a signed-out visitor gets a proper door.
+  // Deep links land here directly, so a signed-out visitor gets a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -183,8 +183,8 @@ export default function NewChannelScreen() {
           muted
           style={{ marginTop: space.tight, marginBottom: space.card }}
         >
-          Start a channel for anything your campus cares about — a hobby, a
-          hunt for teammates, a very specific obsession.
+          Anything your campus cares about: a hobby, a hunt for teammates, a
+          very specific obsession.
         </AppText>
 
         <Card style={{ gap: space.card }}>

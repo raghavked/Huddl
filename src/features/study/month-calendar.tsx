@@ -15,9 +15,9 @@ import { createClient } from "@/lib/supabase/client";
 import type { CalendarKind } from "@/lib/syllabus";
 import { cn } from "@/lib/utils";
 
-/* Your calendar — one warm month of everything: class due dates from every
+/* Your calendar, one warm month of everything: class due dates from every
    enrolled course, plus the events you said you'd show up to. Weeks start on
-   Monday — the class-schedule rhythm — the same on every device, no locale
+   Monday (the class-schedule rhythm), the same on every device, no locale
    guessing. Mirrors the native calendar screen. */
 
 /* --------------------------- serializable rows --------------------------- */
@@ -113,7 +113,7 @@ function formatTime(d: Date): string {
   return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-/** A due time only shows when someone set one — 11:59 PM is the quiet default. */
+/** A due time only shows when someone set one; 11:59 PM is the quiet default. */
 function classTimeLabel(dueAt: Date): string {
   if (dueAt.getHours() === 23 && dueAt.getMinutes() === 59) {
     return "Due by end of day";
@@ -172,7 +172,7 @@ async function fetchMonth(
           .lt("due_at", endIso)
           .order("due_at", { ascending: true })
       : Promise.resolve(none),
-    // Everything you RSVP'd to — filtered to the month below.
+    // Everything you RSVP'd to, filtered to the month below.
     supabase
       .from("event_rsvps")
       .select(`event:events(${EVENT_SELECT})`)
@@ -232,7 +232,7 @@ async function fetchMonth(
         new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
     );
 
-  // Your check-off state for this month's class dates — private, one query.
+  // Your check-off state for this month's class dates: private, one query.
   let doneIds: string[] = [];
   if (classDates.length > 0) {
     const checksRes = await supabase
@@ -323,7 +323,7 @@ export function MonthCalendar({
   initialCheckedIds,
 }: {
   userId: string;
-  /** The server's "now" — keeps the first render deterministic across SSR + hydration. */
+  /** The server's "now". Keeps the first render deterministic across SSR + hydration. */
   nowIso: string;
   initialMonth: MonthRows;
   initialCheckedIds: string[];
@@ -345,7 +345,7 @@ export function MonthCalendar({
   const cacheRef = useRef<Map<string, MonthRows>>(
     new Map([[monthKey(initialStart), initialMonth]])
   );
-  /** The month currently on screen — late responses for old months stay quiet. */
+  /** The month currently on screen; late responses for old months stay quiet. */
   const activeKeyRef = useRef<string>(monthKey(initialStart));
 
   const run = useCallback(
@@ -365,7 +365,7 @@ export function MonthCalendar({
       try {
         const { month, doneIds } = await fetchMonth(userId, start);
         cacheRef.current.set(key, month);
-        if (activeKeyRef.current !== key) return; // paged on — stay quiet
+        if (activeKeyRef.current !== key) return; // paged on, stay quiet
         setData(month);
         setChecked((prev) => {
           const next = new Set(prev);
@@ -434,7 +434,7 @@ export function MonthCalendar({
           );
     if (res.error) {
       flip(wasDone); // roll back
-      setActionError("That check-off didn't save — give it another tap.");
+      setActionError("That check-off didn't save. Give it another tap.");
     }
   }
 
@@ -590,7 +590,7 @@ export function MonthCalendar({
                   >
                     <span
                       className={cn(
-                        // The espresso ring — selection sits on the foreground token.
+                        // The espresso ring: selection sits on the foreground token.
                         "flex size-11 items-center justify-center rounded-full border-2 text-sm transition-colors",
                         isSelected ? "border-foreground" : "border-transparent",
                         isToday

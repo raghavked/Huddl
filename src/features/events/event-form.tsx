@@ -44,7 +44,7 @@ const KIND_OPTIONS: readonly {
   {
     value: "meetup",
     label: "Meetup",
-    hint: "Hang out — no syllabus required",
+    hint: "Hang out, no syllabus required",
     icon: PartyPopper,
   },
 ];
@@ -170,12 +170,12 @@ export function EventForm({
 
     if (insertError || !data) {
       setSubmitting(false);
-      setError("Something went wrong creating the event. Please try again.");
+      setError("That didn't save. Give it another go.");
       return;
     }
 
-    // The host is going to their own event; a failure here is non-fatal —
-    // they can tap "Going" on the event page.
+    // The host is going to their own event, and a failure here is non-fatal.
+    // They can tap "Going" on the event page.
     await supabase
       .from("event_rsvps")
       .insert({ event_id: data.id, user_id: userId, status: "going" });
@@ -252,7 +252,7 @@ export function EventForm({
         <p className="rounded-xl bg-surface-2 px-3.5 py-2.5 text-xs text-muted">
           Hosted by{" "}
           <span className="font-semibold text-foreground">{club.name}</span>
-          {isEdit ? null : " — it'll show on the club page too."}
+          {isEdit ? null : ". It'll show on the club page too."}
         </p>
       ) : null}
 
@@ -267,7 +267,7 @@ export function EventForm({
           onChange={(e) => setTitle(e.target.value)}
           placeholder={
             kind === "study_session"
-              ? "Midterm review — bring your problem sets"
+              ? "Midterm review: bring your problem sets"
               : "Trivia night at the union"
           }
         />
@@ -341,7 +341,7 @@ export function EventForm({
               value={courseId}
               onChange={(e) => setCourseId(e.target.value)}
             >
-              <option value="">No course — campus-wide</option>
+              <option value="">No course, campus-wide</option>
               {courses.map((course) => (
                 <option key={course.id} value={course.id}>
                   {course.code} · {course.title}
@@ -429,8 +429,8 @@ export function DeleteEventButton({ eventId }: { eventId: string }) {
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-2 p-3 shadow-soft">
       <p className="text-sm">
-        Delete this event for everyone? RSVPs go with it — this can&apos;t be
-        undone.
+        Delete this event for everyone? RSVPs go with it, and this can&apos;t
+        be undone.
       </p>
       <div className="flex gap-2">
         <Button

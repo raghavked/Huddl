@@ -114,7 +114,7 @@ function formatMessageTime(iso: string): string {
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-/** A chat image at thumb size — resolves its signed URL through the screen's
+/** A chat image at thumb size. Resolves its signed URL through the screen's
     per-path cache, then taps open the full-screen viewer. */
 function AttachmentImage({
   path,
@@ -190,8 +190,8 @@ export default function DmRoomScreen() {
     typeof params.messageId === "string" && params.messageId
       ? params.messageId
       : null;
-  /* Why this conversation is open. Whoever sent her here — a ride post, a
-     shared class, a study-buddy card — passes the sentence along, so the
+  /* Why this conversation is open. Whoever sent her here (a ride post, a
+     shared class, a study-buddy card) passes the sentence along, so the
      first thing she types isn't "hi, this is about…". */
   const opener =
     typeof params.opener === "string" && params.opener.trim()
@@ -203,7 +203,7 @@ export default function DmRoomScreen() {
   const [thread, setThread] = useState<GroupThreadRow | null>(null);
   const [people, setPeople] = useState<ThreadPerson[]>([]);
   const [other, setOther] = useState<ProfileLite | null>(null);
-  // Newest first — the FlatList is inverted so index 0 sits at the bottom.
+  // Newest first. The FlatList is inverted so index 0 sits at the bottom.
   const [messages, setMessages] = useState<DmMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -256,7 +256,7 @@ export default function DmRoomScreen() {
   const [forwardNote, setForwardNote] = useState<string | null>(null);
   const noteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Display names behind forwarded_author_id, fetched in one batch per page
-  // rather than embedded — `dm_messages` has two foreign keys into `profiles`,
+  // rather than embedded. `dm_messages` has two foreign keys into `profiles`,
   // and a mis-hinted embed would take the whole thread's query down with it.
   const [forwardedNames, setForwardedNames] = useState<Record<string, string>>(
     {}
@@ -355,7 +355,7 @@ export default function DmRoomScreen() {
     []
   );
 
-  /** Which of these messages I've saved — one query per loaded page keeps
+  /** Which of these messages I've saved. One query per loaded page keeps
       the long-press menu label truthful. */
   const loadSaved = useCallback(
     async (messageIds: string[]) => {
@@ -428,7 +428,7 @@ export default function DmRoomScreen() {
       setOther(otherProfile);
       const rows = (messagesRes.data ?? []) as DmMessage[];
       // The subscription is usually live before these two round trips
-      // finish, so a message can land while we're still fetching — and this
+      // finish, so a message can land while we're still fetching, and this
       // snapshot predates it. Replacing outright would lose it for good:
       // markRead below moves the cursor past it, so the Messages list won't
       // flag it either. Keep whatever arrived and re-sort newest first.
@@ -459,7 +459,7 @@ export default function DmRoomScreen() {
   /* ------------------------ drafts and the queue ----------------------- */
 
   // Restore what was left mid-sentence, but never over something already
-  // typed — a slow read must not overwrite a fast typist.
+  // typed: a slow read must not overwrite a fast typist.
   useEffect(() => {
     let cancelled = false;
     void loadDraft(conversationKey).then((saved) => {
@@ -478,7 +478,7 @@ export default function DmRoomScreen() {
       draftTimerRef.current = setTimeout(() => {
         draftTimerRef.current = null;
         // While editing, the composer holds someone's published words, not a
-        // draft — the real draft is parked in draftBeforeEditRef.
+        // draft. The real draft is parked in draftBeforeEditRef.
         if (editingRef.current) return;
         void saveDraft(conversationKey, text);
       }, DRAFT_SAVE_MS);
@@ -541,7 +541,7 @@ export default function DmRoomScreen() {
       // The queue itself couldn't be read; the refresh below still tells the
       // truth about what's waiting.
     }
-    // Retire the pending bubbles BEFORE the real rows arrive — the other
+    // Retire the pending bubbles BEFORE the real rows arrive. The other
     // order shows both for a frame, which reads as a message sent twice.
     await refreshPending();
     if (landed.length > 0) {
@@ -601,7 +601,7 @@ export default function DmRoomScreen() {
     }, 5000);
   }, []);
 
-  // Realtime INSERTs on this thread. Own rows are skipped — the optimistic
+  // Realtime INSERTs on this thread. Own rows are skipped, because the optimistic
   // send path already has them. UPDATEs (their edits and deletes, or ours
   // echoed) merge into the matching row. Handlers live in refs so the
   // channel subscribes once per thread.
@@ -707,7 +707,7 @@ export default function DmRoomScreen() {
     // Queue it first, then send the queue's own row. The point is the id:
     // both attempts carry the same primary key, so a send that commits but
     // never answers is retried as a unique violation the queue reads as "it
-    // already landed" — rather than as a second copy of the message. See
+    // already landed", rather than as a second copy of the message. See
     // QueuedMessage.id in drafts.ts.
     const payload = { thread_id: threadId, author_id: userId, content };
     let queued: QueuedMessage | null = null;
@@ -719,7 +719,7 @@ export default function DmRoomScreen() {
         payload,
       });
     } catch (thrown) {
-      // The device wouldn't hold it. Still worth the wire — this one send
+      // The device wouldn't hold it. Still worth the wire; this one send
       // just goes out with nothing behind it if it fails.
       queueError = thrown;
     }
@@ -733,7 +733,7 @@ export default function DmRoomScreen() {
       noteConnectivity(!isLikelyOffline(insertError));
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       if (!queued) {
-        // Nothing is holding it — give the words back.
+        // Nothing is holding it, so give the words back.
         setDraft(content);
         setSendError(
           queueError instanceof DraftError
@@ -904,7 +904,7 @@ export default function DmRoomScreen() {
     [userId]
   );
 
-  /** Optimistic save/remove in message_bookmarks — a private keep-it-handy
+  /** Optimistic save/remove in message_bookmarks, a private keep-it-handy
       flag. A double-tap race (23505) already means saved, so it stands. */
   const handleToggleSaved = useCallback(
     async (messageId: string, save: boolean) => {
@@ -934,8 +934,8 @@ export default function DmRoomScreen() {
         });
         setSendError(
           save
-            ? "Couldn't save that — give it another try."
-            : "Couldn't remove that from saved — give it another try."
+            ? "Couldn't save that. Give it another try."
+            : "Couldn't remove that from saved. Give it another try."
         );
       }
     },
@@ -954,10 +954,10 @@ export default function DmRoomScreen() {
   /* ----------------------------- blocking ----------------------------- */
 
   // A group can hold someone you've blocked, so there's no banner and no
-  // gate on the composer — their messages simply don't render.
+  // gate on the composer: their messages just don't render.
   const otherBlocked = !isGroup && other !== null && blocked.has(other.id);
 
-  // A block hides their words everywhere, and a 1:1 is no exception — this
+  // A block hides their words everywhere, and a 1:1 is no exception. This
   // used to filter groups only, so a blocked person could keep typing into an
   // existing 1:1 and be read. 0042 now drops them from the read policy too,
   // so the rows don't arrive at all; this stays because unblocking should
@@ -1011,7 +1011,7 @@ export default function DmRoomScreen() {
       const own = item.author_id === userId;
       const isTemp = item.id.startsWith("temp-");
       const deleted = Boolean(item.deleted_at);
-      // In a group, say who's talking — once per run, not once per bubble.
+      // In a group, say who's talking, once per run rather than once per bubble.
       // The list is inverted, so the bubble drawn above this one is next.
       const author = own ? null : (peopleById.get(item.author_id) ?? null);
       const authorName = author?.display_name ?? "Someone who left";
@@ -1029,8 +1029,8 @@ export default function DmRoomScreen() {
           }}
         >
           {showAuthor ? (
-            // In a group, the name over a bubble is the route to the person
-            // — and from there to reporting and blocking.
+            // In a group, the name over a bubble is the route to the person,
+            // and from there to reporting and blocking.
             <Pressable
               accessibilityRole={author ? "link" : "none"}
               accessibilityLabel={author ? `${authorName}'s profile` : undefined}
@@ -1159,7 +1159,7 @@ export default function DmRoomScreen() {
     });
   }, [visibleMessages]);
 
-  // A messageId in the route — saved messages, a deep link — is a request to
+  // A messageId in the route (saved messages, a deep link) is a request to
   // open at that message rather than at the bottom. Once per arrival.
   const focusHandledRef = useRef<string | null>(null);
   useEffect(() => {
@@ -1174,7 +1174,7 @@ export default function DmRoomScreen() {
 
   /** What the picker is passing along. A forward of a forward keeps pointing
       at whoever wrote the words, not the last person to hand them on. A DM
-      never names the person or the group it came out of — the receiving room
+      never names the person or the group it came out of. The receiving room
       is entitled to know the words were private, not who you were talking to. */
   const forwardSource = useMemo<ForwardSource | null>(() => {
     if (!forwardFor) return null;
@@ -1278,7 +1278,7 @@ export default function DmRoomScreen() {
             <Feather name="chevron-right" size={18} color={theme.muted} />
           </Pressable>
         ) : other ? (
-          // The whole header is the way to the person — the same gesture the
+          // The whole header is the way to the person, the same gesture the
           // group header uses for its info page, and the route that puts
           // reporting and blocking one tap from the conversation.
           <Pressable
@@ -1380,7 +1380,7 @@ export default function DmRoomScreen() {
         </View>
       ) : (
         <>
-          {/* A room emptied by a block isn't a fresh one — there's no
+          {/* A room emptied by a block isn't a fresh one. There's no
               composer to say hi with, so the banner below explains the
               quiet instead of inviting her to break it. */}
           {visibleMessages.length === 0 &&
@@ -1449,7 +1449,7 @@ export default function DmRoomScreen() {
               onLayout={drainFocus}
               onContentSizeChange={drainFocus}
               // Bubbles are variable height, so an offscreen target can miss
-              // on the first pass — settle where we can and try once more.
+              // on the first pass, so settle where we can and try once more.
               onScrollToIndexFailed={({ index, averageItemLength }) => {
                 listRef.current?.scrollToOffset({
                   offset: index * Math.max(averageItemLength, 1),
@@ -1463,7 +1463,7 @@ export default function DmRoomScreen() {
                   });
                 }, 120);
               }}
-              // In an inverted list the header sits at the visual bottom —
+              // In an inverted list the header sits at the visual bottom,
               // the right home for messages that haven't gone out yet, oldest
               // of them first, right where they were typed.
               ListHeaderComponent={
@@ -1570,7 +1570,7 @@ export default function DmRoomScreen() {
 
           {/* Why this conversation is open, carried over from wherever she
               tapped Message. It sits above the composer until she's used it
-              or waved it away — never in the box, which is hers. */}
+              or waved it away, never in the box, which is hers. */}
           {opener && openerShown && !editing ? (
             <View
               style={{
@@ -1663,7 +1663,7 @@ export default function DmRoomScreen() {
           >
             {/* A channel's composer hides photo, poll, and "when can everyone
                 meet?" behind one plus. Here there is exactly one thing to
-                add — polls and availability are channel-scoped — and a plus
+                add (polls and availability are channel-scoped), and a plus
                 that opens a sheet holding a single row is a tap tax, so the
                 photo stays a direct button. */}
             {!editing ? (
@@ -1764,7 +1764,7 @@ export default function DmRoomScreen() {
         </>
       )}
 
-      {/* Full-screen photo viewer — tap anywhere to close. */}
+      {/* Full-screen photo viewer. Tap anywhere to close. */}
       <Modal
         visible={viewerUrl !== null}
         transparent
@@ -1790,7 +1790,7 @@ export default function DmRoomScreen() {
 
       {/* The long-press menu on a message: saving is for anyone's, editing
           and deleting only for your own. Blocking asks its question inside
-          the same sheet rather than opening a second one — a Modal
+          the same sheet rather than opening a second one, because a Modal
           dismissing while another presents is how you get a sheet that
           never appears. */}
       <Sheet
@@ -1877,8 +1877,8 @@ export default function DmRoomScreen() {
             </>
           ) : null}
           {/* Reporting and blocking, one long-press away. A DM can't be
-              attached to a report — reports.message_id points at channel
-              messages — so the report names the sender and quotes the words
+              attached to a report (reports.message_id points at channel
+              messages), so the report names the sender and quotes the words
               back on the report screen, which says so plainly. */}
           {actionsFor && actionsFor.author_id !== userId ? (
             <>
@@ -1924,7 +1924,7 @@ export default function DmRoomScreen() {
         )}
       </Sheet>
 
-      {/* The picker draws itself, not through a Modal — see ForwardPicker.
+      {/* The picker draws itself, not through a Modal. See ForwardPicker.
           `liftForKeyboard` is false because this screen's root already is a
           KeyboardAvoidingView, and the overlay sits inside its padding box. */}
       <ForwardPicker

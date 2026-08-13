@@ -38,7 +38,7 @@ type RsvpJoin = { event: EventRow | null };
 const EVENT_SELECT = "id, kind, title, location, starts_at, ends_at, course_id";
 
 /**
- * Your calendar: one month of everything — class due dates from every
+ * Your calendar: one month of everything, class due dates from every
  * enrolled course, plus the events you RSVP'd to (going/maybe) and any
  * event tied to one of your courses, deduped. The current month arrives
  * server-rendered; paging to other months refetches client-side.
@@ -76,7 +76,7 @@ export default async function CalendarPage() {
           .lt("due_at", endIso)
           .order("due_at", { ascending: true })
       : Promise.resolve(none),
-    // Everything the student RSVP'd to — filtered to the month below.
+    // Everything the student RSVP'd to, filtered to the month below.
     supabase
       .from("event_rsvps")
       .select(`event:events(${EVENT_SELECT})`)
@@ -131,7 +131,7 @@ export default async function CalendarPage() {
         new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
     );
 
-  // The student's own check-offs for this month's class dates — private.
+  // The student's own check-offs for this month's class dates. Private.
   let checkedIds: string[] = [];
   if (classDates.length > 0) {
     const { data: checks } = await supabase

@@ -27,7 +27,7 @@ import {
 } from "@/lib/data-export";
 import { tapSuccess } from "@/lib/haptics";
 
-/* Your data — everything Huddl holds that's yours, in one file you can take
+/* Your data: everything Huddl holds that's yours, in one file you can take
    with you. The screen explains before it does anything: what's in the file,
    what stays behind, and only then a button.
 
@@ -94,7 +94,7 @@ const SAFETY_SPECS: readonly {
 /**
  * Every line the "What's in it" card draws: `summarize()`'s nine, then the
  * two safety records. Empty categories are dropped on both halves, the same
- * way `summarize()` drops them — a first-week student sees the two things
+ * way `summarize()` drops them, so a first-week student sees the two things
  * they have, not eleven things they don't.
  */
 function exportLines(lines: SummaryLine[], data: DataExport): ExportLine[] {
@@ -116,7 +116,7 @@ function exportLines(lines: SummaryLine[], data: DataExport): ExportLine[] {
   return rows;
 }
 
-/** "about 84 KB" — a rough, honest size for the thing they're about to take. */
+/** "about 84 KB", a rough, honest size for the thing they're about to take. */
 function sizeLabel(json: string): string {
   const kb = json.length / 1024;
   if (kb < 1) return `${json.length} characters`;
@@ -205,7 +205,7 @@ export default function DataExportScreen() {
   }, []);
 
   /* Handing it over. Anything the share sheet can't do ends with the JSON on
-     screen instead — there is always a way to get the data out of here. */
+     screen instead, so there is always a way to get the data out of here. */
   const handleShare = useCallback(async () => {
     if (!prepared || sharing) return;
     setSharing(true);
@@ -216,12 +216,12 @@ export default function DataExportScreen() {
     if (outcome === "too-large") {
       setShowRaw(true);
       setShareNote(
-        "That's a lot of data to hand off in one piece, so it's down below instead — press and hold to select all of it."
+        "That's a lot of data to hand off in one piece, so it's down below instead. Press and hold to select all of it."
       );
     } else if (outcome === "unavailable") {
       setShowRaw(true);
       setShareNote(
-        "This device didn't offer anywhere to send it, so it's down below instead — press and hold to select all of it."
+        "This device didn't offer anywhere to send it, so it's down below instead. Press and hold to select all of it."
       );
     }
   }, [prepared, sharing]);
@@ -266,7 +266,7 @@ export default function DataExportScreen() {
         showsVerticalScrollIndicator={false}
       >
         <AppText variant="body" muted style={{ marginTop: space.snug }}>
-          This is your copy of everything Huddl holds that's yours — your
+          This is your copy of everything Huddl holds that's yours: your
           profile, your classes, the messages and notes you've written, your
           focus sessions and grades, and the safety records: who you've
           blocked and what you've reported. Things you shared stay in the
@@ -377,7 +377,8 @@ export default function DataExportScreen() {
           <View style={{ marginTop: space.gutter, gap: space.room }}>
             {/* The box your things keep in until you ask for them back. It
                 sits above the one button on the screen rather than inside an
-                EmptyState — this is the primary action, not a consolation. */}
+                EmptyState, since this is the primary action rather than a
+                consolation. */}
             <View style={{ alignItems: "center", paddingVertical: space.cosy }}>
               <Shoebox
                 size={96}

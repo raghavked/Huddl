@@ -1,25 +1,25 @@
 import { threadDisplay, type ThreadPerson } from "@/lib/group-dm";
 import { supabase } from "@/lib/supabase";
 
-/* Forwarding a message — the data layer.
+/* Forwarding a message: the data layer.
  *
  * Forwarding is passing something along with its provenance intact: the new
  * room sees the words, plus a quiet line saying who wrote them and where they
  * came from. Migration 0033 gave both `messages` and `dm_messages` the same
- * pair of columns for that —
+ * pair of columns for that:
  *
  *   forwarded_author_id  the person who ACTUALLY wrote it (`profiles.id`)
  *   forwarded_from       a human label for the room it left ("#mat-21a")
  *
- * — denormalized on purpose, because a channel message can land in a DM and a
- * DM can land in a channel, and no single foreign key describes both.
+ * They are denormalized on purpose, because a channel message can land in a
+ * DM and a DM can land in a channel, and no single foreign key describes both.
  *
  * A forwarded message is otherwise an ordinary message: `author_id` is YOU
  * (you're the one putting it in this room, and RLS wouldn't let you claim
  * otherwise), it can be edited and deleted like anything else you send, and
  * the same insert policies apply. Nothing here needs an RPC.
  *
- * No React, no theme, no navigation — one read, one write, and pure helpers
+ * No React, no theme, no navigation: one read, one write, and pure helpers
  * for the copy. Failures arrive as a {@link ForwardError} whose message is
  * warm, specific, and safe to render straight into an inline error; the write
  * reports per-target so a partial send can be told honestly.
@@ -37,7 +37,7 @@ export type ForwardTarget =
       kind: "channel";
       /** `channels.id`. */
       id: string;
-      /** The channel's name as students see it — "MAT 21A", "Study group". */
+      /** The channel's name as students see it: "MAT 21A", "Study group". */
       name: string;
       /**
        * The course this channel belongs to ("MAT 21A"), or null for a campus
@@ -51,17 +51,17 @@ export type ForwardTarget =
       /** `dm_threads.id`. */
       id: string;
       /**
-       * The group's name, or the other person's — from `threadDisplay` in
+       * The group's name, or the other person's, from `threadDisplay` in
        * `@/lib/group-dm`, so this row is named exactly as the messages list
        * names it.
        */
       label: string;
-      /** True for a group of 3-16, false for a 1:1 — pick the row's glyph. */
+      /** True for a group of 3-16, false for a 1:1. Pick the row's glyph. */
       isGroup: boolean;
       /**
        * The other person on a 1:1 (`profiles.id`), null on a group. Present so
        * a picker can drop conversations with someone you've blocked, the same
-       * filter the messages list runs — this module doesn't fetch your block
+       * filter the messages list runs. This module doesn't fetch your block
        * list, so that filtering is the caller's to do.
        */
       otherId: string | null;
@@ -72,15 +72,15 @@ export type ForwardTarget =
  *
  * Pull it off the row you're forwarding. If that row is ITSELF a forward, pass
  * its `forwarded_author_id` and `forwarded_from` through unchanged rather than
- * its `author_id` and this room's name — the trail should point at whoever
+ * its `author_id` and this room's name. The trail should point at whoever
  * actually wrote the words, not at the last person to pass them on.
  */
 export type ForwardSource = {
   /** The message text, 1-4000 characters. A photo-only message carries "Photo". */
   content: string;
   /**
-   * The `chat-uploads` object path, or null. Forwards by PATH, never by copy —
-   * see {@link forwardMessage} for what that means for the photo.
+   * The `chat-uploads` object path, or null. Forwards by PATH, never by copy.
+   * See {@link forwardMessage} for what that means for the photo.
    */
   attachmentPath: string | null;
   /**
@@ -89,7 +89,7 @@ export type ForwardSource = {
    */
   authorId: string | null;
   /**
-   * Where it came from, from {@link forwardLabelFor} — "#mat-21a", "a direct
+   * Where it came from, from {@link forwardLabelFor}: "#mat-21a", "a direct
    * message". Lands in `forwarded_from`.
    */
   fromLabel: string;
@@ -119,7 +119,7 @@ export type ForwardSummary = {
 
 /* ------------------------------ limits ------------------------------ */
 
-/** Longest message the tables accept — the same 1-4000 on both sides. */
+/** Longest message the tables accept: the same 1-4000 on both sides. */
 export const FORWARD_CONTENT_MAX = 4000;
 
 /** Longest `forwarded_from` label the check constraint allows. */
@@ -128,7 +128,7 @@ export const FORWARD_FROM_MAX = 80;
 /** What a channel with no usable name in it reads as. */
 const UNNAMED_CHANNEL = "a channel";
 
-/** What every direct message reads as, group or 1:1 — see {@link forwardLabelFor}. */
+/** What every direct message reads as, group or 1:1. See {@link forwardLabelFor}. */
 const DM_LABEL = "a direct message";
 
 /** Provenance for a source whose label came through blank. Never a bare null. */
@@ -138,7 +138,7 @@ const UNKNOWN_ROOM = "another room";
 
 /**
  * A forwarding failure with a message written for a person, not a log. Show
- * `err.message` directly in your inline error — it never leaks SQL, ids, or
+ * `err.message` directly in your inline error. It never leaks SQL, ids, or
  * PostgREST codes.
  *
  * Only the things that stop the whole send throw: not signed in, nothing to
@@ -195,8 +195,8 @@ function toPerson(raw: unknown): ThreadPerson | null {
 }
 
 /**
- * The caller's `profiles.id`, read from the stored session (no network hop —
- * supabase-js refreshes the token itself when it's stale).
+ * The caller's `profiles.id`, read from the stored session (no network hop,
+ * since supabase-js refreshes the token itself when it's stale).
  *
  * @throws {ForwardError} When nobody's signed in.
  */
@@ -215,7 +215,7 @@ async function requireUserId(): Promise<string> {
  * The label that goes into `forwarded_from`, so every surface that forwards
  * agrees on the wording:
  *
- * - a channel → `#` plus its name slugified — "MAT 21A" becomes "#mat-21a",
+ * - a channel → `#` plus its name slugified, so "MAT 21A" becomes "#mat-21a",
  *   matching how the database slugs a course room in `create_course_room`
  * - a direct message → the flat string "a direct message"
  *
@@ -223,7 +223,7 @@ async function requireUserId(): Promise<string> {
  * a forward is entitled to know the words came from somewhere private; it is
  * not entitled to know who you were talking to.
  *
- * Pure. Pass the room you're forwarding OUT of — a {@link ForwardTarget} is
+ * Pure. Pass the room you're forwarding OUT of. A {@link ForwardTarget} is
  * accepted as-is, so the room a picker lists and the room a label names can't
  * drift apart.
  *
@@ -246,7 +246,7 @@ export function forwardLabelFor(
 }
 
 /**
- * What to call a target in a sentence — a channel's name, a conversation's
+ * What to call a target in a sentence: a channel's name, a conversation's
  * label. One rule, so a picker row, a confirmation, and an error can't call
  * the same place three different things.
  *
@@ -256,7 +256,7 @@ export function targetName(target: ForwardTarget): string {
   return target.kind === "channel" ? target.name : target.label;
 }
 
-/** "Maya", "Maya and #mat-21a", "Maya and 3 others" — never a bare list. */
+/** "Maya", "Maya and #mat-21a", "Maya and 3 others". Never a bare list. */
 function joinNames(names: readonly string[]): string {
   const [first, second] = names;
   if (!first) return "nowhere";
@@ -267,7 +267,7 @@ function joinNames(names: readonly string[]): string {
 
 /**
  * Turn the per-target outcomes into one sentence a student can act on.
- * Everything landed, some of it landed, or none of it did — each says so
+ * Everything landed, some of it landed, or none of it did. Each says so
  * plainly and names the places, because "Sent!" over a half-finished send is
  * a lie the student finds out about later.
  *
@@ -307,7 +307,7 @@ export function summarizeForward(
     sent,
     total,
     complete: false,
-    message: `Sent to ${sent} of ${total} — ${joinNames(failedNames)} didn't take it.`,
+    message: `Sent to ${sent} of ${total}. ${joinNames(failedNames)} didn't take it.`,
   };
 }
 
@@ -318,7 +318,7 @@ const CHANNEL_TARGET_SELECT =
   "channel_id, last_read_at, channel:channels(id, name, course:courses(code))";
 
 /**
- * Every participant row of every thread I'm in — mine for the read time,
+ * Every participant row of every thread I'm in: mine for the read time,
  * everyone else's for the name. The `dm_participants` SELECT policy is
  * `user_id = auth.uid() OR is_dm_participant(thread_id)`, so an unfiltered
  * query already returns exactly that and no more. That's what keeps the DM
@@ -450,8 +450,8 @@ async function fetchDmTargets(userId: string): Promise<RankedTarget[]> {
  * they've joined and every conversation they're in, in one list.
  *
  * Two queries, one per side, merged and ranked here. "Recent" means when YOU
- * were last in the room — your own `last_read_at`, which the channel and DM
- * screens stamp on open — not when the room last said something. That's the
+ * were last in the room: your own `last_read_at`, which the channel and DM
+ * screens stamp on open, not when the room last said something. That's the
  * ordering a forward actually wants: you just backed out of a room to pass
  * something along, and it should be the first thing you see. It also costs two
  * round trips instead of one per room. A room you've never opened ranks by
@@ -502,7 +502,7 @@ function requireContent(content: string): string {
   return trimmed.slice(0, FORWARD_CONTENT_MAX);
 }
 
-/** Unique targets in the order given — the same room picked twice sends once. */
+/** Unique targets in the order given. The same room picked twice sends once. */
 function uniqueTargets(targets: readonly ForwardTarget[]): ForwardTarget[] {
   const seen = new Set<string>();
   const out: ForwardTarget[] = [];
@@ -523,7 +523,7 @@ function outcomeError(target: ForwardTarget, error: unknown): string {
   if (errorCode(error) === "42501") {
     return `You're not in ${name} anymore.`;
   }
-  // 23514 is a length check — the only one reachable here is the 4000 cap.
+  // 23514 is a length check; the only one reachable here is the 4000 cap.
   if (errorCode(error) === "23514") {
     return `That message is too long for ${name}.`;
   }
@@ -554,7 +554,7 @@ async function forwardToTarget(
 }
 
 /**
- * Pass a message along to one or more rooms — one insert per target, into
+ * Pass a message along to one or more rooms: one insert per target, into
  * `messages` for a channel and `dm_messages` for a conversation.
  *
  * Each row is an ordinary message authored by YOU, carrying two extra columns:
@@ -564,30 +564,30 @@ async function forwardToTarget(
  * deleted their account, pass null and the line reads as the room alone.
  *
  * **Attachments forward by path, not by copy.** The row points at the same
- * `chat-uploads` object the original did — no re-upload, no second file, and
+ * `chat-uploads` object the original did. No re-upload, no second file, and
  * the recipient's signed URL resolves because that bucket's read policy is
  * "any authenticated student". Say the tradeoff out loud in the confirm step
  * rather than burying it: forwarding a photo out of a room hands that photo to
  * the new room, and whoever is in the new room can then forward it onward.
- * That's true of a photo, and it's true of the words too — a forward carries a
+ * That's true of a photo, and it's true of the words too. A forward carries a
  * private room's contents somewhere the original author didn't choose. The
  * mechanism is exactly this honest; there is nothing revocable behind it.
  *
  * Targets are deduped, then written in parallel with each failure caught on
  * its own, so a channel you quietly left doesn't discard the three sends that
- * worked. Read the returned outcomes — or hand them to
- * {@link summarizeForward} — and tell the student what actually happened.
+ * worked. Read the returned outcomes (or hand them to
+ * {@link summarizeForward}) and tell the student what actually happened.
  * Keep a selection to a handful; every target is its own insert.
  *
  * Not optimistic-friendly across rooms: there's no single row to roll back.
  * The one room worth being optimistic in is the room you're standing in, if it
- * happens to be a target — and even there, wait for the outcome.
+ * happens to be a target, and even there, wait for the outcome.
  *
  * @param opts.source  The message being passed along.
  * @param opts.targets Where to send it; duplicates collapse.
  * @returns One {@link ForwardOutcome} per unique target, in the order given.
  * @throws {ForwardError} When nobody's signed in, there's nothing to forward,
- *   or nowhere to send it — the three failures that stop the whole send.
+ *   or nowhere to send it: the three failures that stop the whole send.
  */
 export async function forwardMessage({
   source,

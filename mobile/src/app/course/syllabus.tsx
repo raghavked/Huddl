@@ -175,12 +175,12 @@ export default function SyllabusImportScreen() {
   const handleAdd = useCallback(async () => {
     if (!userId || !courseId || rows === null || rows.length === 0) return;
     if (rows.some((row) => row.title.trim() === "")) {
-      setAddError("Every date needs a title — fill in the blank ones first.");
+      setAddError("Every date needs a title. Fill in the blank ones first.");
       return;
     }
     setAdding(true);
     setAddError(null);
-    // RLS wants created_by to be the caller — stamp it onto each row.
+    // RLS wants created_by to be the caller, so stamp it onto each row.
     const inserts = toCalendarRows(
       rows.map((row) => ({
         kind: row.kind,
@@ -196,7 +196,7 @@ export default function SyllabusImportScreen() {
     if (error) {
       setAdding(false);
       setAddError(
-        "We couldn't add those dates — check you're still in this course and give it another try."
+        "We couldn't add those dates. Check you're still in this course and give it another try."
       );
       return;
     }
@@ -263,7 +263,7 @@ export default function SyllabusImportScreen() {
           {doneCount} {noun} on the class calendar
         </AppText>
         <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
-          Everyone in {courseCode ?? "the class"} sees them now — nice one.
+          Everyone in {courseCode ?? "the class"} sees them now. Nice one.
         </AppText>
       </View>
     );
@@ -312,12 +312,12 @@ export default function SyllabusImportScreen() {
           </AppText>
           <AppText variant="caption" muted style={{ marginTop: space.snug }}>
             {courseCode ? `${courseCode} · parsed` : "Parsed"} right here on
-            your phone — the syllabus itself never leaves it.
+            your phone. The syllabus itself never leaves it.
           </AppText>
 
           <View style={{ marginTop: space.card }}>
             <Field
-              label="Paste your syllabus — the schedule section works best"
+              label="Paste your syllabus (the schedule section works best)"
               value={text}
               onChangeText={setText}
               placeholder={
@@ -355,7 +355,7 @@ export default function SyllabusImportScreen() {
                 muted
                 style={{ textAlign: "center", maxWidth: 260 }}
               >
-                Paste the part of the syllabus with the schedule table — the
+                Paste the part of the syllabus with the schedule table: the
                 lines that pair a date with an assignment or exam.
               </AppText>
             </Card>
@@ -364,7 +364,7 @@ export default function SyllabusImportScreen() {
           {rows !== null && rows.length > 0 ? (
             <View style={{ marginTop: space.card, gap: space.room }}>
               <AppText variant="caption" muted>
-                Found {count} {countNoun} — tap a chip to change what it is,
+                Found {count} {countNoun}. Tap a chip to change what it is,
                 fix any titles, and drop anything that doesn't belong.
               </AppText>
 

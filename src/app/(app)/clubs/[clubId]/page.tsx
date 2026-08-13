@@ -102,7 +102,7 @@ export default async function ClubPage({
   const isOfficer = myRole === "officer" || myRole === "owner";
   const isOwner = myRole === "owner";
 
-  // The board is members-only by RLS, so it stays behind the join button —
+  // The board is members-only by RLS, so it stays behind the join button,
   // and a hiccup loading it costs the board, never the whole club page.
   let announcements: ClubAnnouncement[] = [];
   let announcementsError: string | null = null;
@@ -197,7 +197,7 @@ export default async function ClubPage({
         ) : null}
       </section>
 
-      {/* The board — officers writing to the whole club at once. */}
+      {/* The board: officers writing to the whole club at once. */}
       {isMember ? (
         <AnnouncementsSection
           clubId={club.id}
@@ -218,7 +218,7 @@ export default async function ClubPage({
               title="No upcoming events"
               description={
                 isOfficer
-                  ? "Plan the first one — members will see it here and on the events board."
+                  ? "Plan the first one. Members will see it here and on the events board."
                   : "Nothing on the calendar yet. Check back soon."
               }
               className="py-10"

@@ -37,9 +37,9 @@ export type DeckRow = {
 /** Per-deck counts, computed server-side with the shared SRS queue. */
 export type DeckMeta = { total: number; due: number };
 
-/** "12 cards · 4 due" — the shelf line under each deck title. */
+/** "12 cards · 4 due": the shelf line under each deck title. */
 function countsLabel(meta: DeckMeta | undefined): string {
-  if (!meta || meta.total === 0) return "No cards yet — add the first one";
+  if (!meta || meta.total === 0) return "No cards yet. Add the first one";
   const cards = meta.total === 1 ? "1 card" : `${meta.total} cards`;
   return meta.due > 0 ? `${cards} · ${meta.due} due` : `${cards} · all rested`;
 }
@@ -70,7 +70,7 @@ export function DecksSection({
   const [renameValue, setRenameValue] = useState("");
   const [renameError, setRenameError] = useState<string | null>(null);
 
-  // Retiring one of your decks — inline confirm, no modal.
+  // Retiring one of your decks: inline confirm, no modal.
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -113,7 +113,7 @@ export function DecksSection({
       .eq("id", deck.id);
     if (error) {
       setDecks(before);
-      setActionError("That rename didn't stick — give it another try.");
+      setActionError("That rename didn't stick. Give it another try.");
     }
   }
 
@@ -154,7 +154,7 @@ export function DecksSection({
     if (error || !data) {
       setCreateError(
         error?.message.includes("row-level security")
-          ? "Decks are for classmates — add this course to your classes first."
+          ? "Decks are for classmates. Add this course to your classes first."
           : "We couldn't start that deck just now. Give it another try."
       );
       return;
@@ -260,7 +260,7 @@ export function DecksSection({
               >
                 <Link
                   href={`/decks/${deck.id}`}
-                  aria-label={`Open ${deck.title} — ${countsLabel(meta)}`}
+                  aria-label={`Open ${deck.title}, ${countsLabel(meta)}`}
                   className="flex min-w-0 flex-1 items-center gap-3 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 >
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
@@ -352,7 +352,7 @@ export function DecksSection({
           New deck
         </h2>
         <p className="mt-1.5 text-sm text-muted">
-          One topic per deck works best — a chapter, a lecture, a pile of
+          One topic per deck works best: a chapter, a lecture, a pile of
           formulas.
         </p>
         <form

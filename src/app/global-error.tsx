@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 /**
  * Last-resort crash screen. This replaces the root layout entirely, so
- * globals.css, fonts, and tokens may not be loaded — it stays deliberately
+ * globals.css, fonts, and tokens may not be loaded. It stays deliberately
  * plain: system fonts, CSS system colors (which follow the visitor's
  * light/dark preference), inline styles only.
  */
@@ -55,8 +55,8 @@ export default function GlobalError({
               opacity: 0.7,
             }}
           >
-            It&apos;s not you — Huddl hit a snag it couldn&apos;t recover
-            from. A retry usually brings it back.
+            It&apos;s not you. Huddl hit a snag it couldn&apos;t recover
+            from, and a retry usually brings it back.
           </p>
           <button
             type="button"

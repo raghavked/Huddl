@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
  *
  *   - The sweep ticks hourly, so a nudge lands at the first tick after the
  *     moment the student picked, not on the minute. Nothing here ever says a
- *     clock time for a reminder — "around the time you pick" is the promise
+ *     clock time for a reminder; "around the time you pick" is the promise
  *     we can actually keep.
  *   - A lead longer than the time left is a reminder that will never arrive.
  *     `reminderFiresAt` is how we know, and a rung in that state is faded and
@@ -49,7 +49,7 @@ export type ReminderItemRow = {
   due_at: string;
 };
 
-/** A reminder as the server hands it over — the same shape the module returns. */
+/** A reminder as the server hands it over, the same shape the module returns. */
 export type ReminderRow = Reminder;
 
 /* ------------------------------- copy bits -------------------------------- */
@@ -98,7 +98,7 @@ function ReminderRowCard({
   const open = openedAt !== null;
   const due = new Date(item.due_at);
 
-  /* Even the closest rung is behind us — there is no honest choice left to
+  /* Even the closest rung is behind us. There is no honest choice left to
      offer, so the panel explains instead of listing seven dead ones. */
   const tooLate =
     openedAt !== null &&
@@ -183,7 +183,7 @@ function ReminderRowCard({
 
           {tooLate ? (
             <p className="mt-2 text-xs font-medium text-warning">
-              This one&apos;s due too soon — even the closest reminder would
+              This one&apos;s due too soon. Even the closest reminder would
               land after the deadline.
             </p>
           ) : (
@@ -204,7 +204,7 @@ function ReminderRowCard({
                         chosen
                           ? "bg-brand-soft font-semibold text-brand-ink"
                           : "hover:bg-surface-2",
-                        // Faded when that moment is already behind them —
+                        // Faded when that moment is already behind them:
                         // clicking says why rather than arming a dead nudge.
                         past && !chosen && "opacity-60"
                       )}
@@ -221,7 +221,7 @@ function ReminderRowCard({
                     </button>
                     {pastChoice === choice.minutes ? (
                       <p className="mb-1 ml-10 text-xs font-medium text-warning">
-                        That moment has passed — pick something closer in.
+                        That moment has passed. Pick something closer in.
                       </p>
                     ) : null}
                   </li>
@@ -256,9 +256,9 @@ function ReminderRowCard({
  * The reminders panel on a class calendar: every date still far enough ahead
  * for a nudge to reach you, each with a bell.
  *
- * The page filters the list — an item whose closest possible reminder is
- * already behind it doesn't appear unless there's a reminder on it to read and
- * turn off — so anything rendered here can honestly be armed.
+ * The page filters the list, so anything rendered here can honestly be armed.
+ * An item whose closest possible reminder is already behind it doesn't appear
+ * unless there's a reminder on it to read and turn off.
  *
  * Reminders are private. The dates are the class's; who wants nudging about
  * them is nobody else's business, and nothing here is ever visible to a
@@ -273,7 +273,7 @@ export function ReminderControl({
   items: ReminderItemRow[];
   /** The caller's own reminders across those rows. */
   initialReminders: ReminderRow[];
-  /** Set when the server couldn't read the reminders — say so, don't hide it. */
+  /** Set when the server couldn't read the reminders. Say so, don't hide it. */
   loadError?: string | null;
 }) {
   const [reminders, setReminders] = useState<Map<string, Reminder>>(
@@ -282,7 +282,7 @@ export function ReminderControl({
   const [actionError, setActionError] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
 
-  /** Put one item's reminder back the way it was — its own inverse. */
+  /** Put one item's reminder back the way it was: its own inverse. */
   function restore(itemId: string, previous: Reminder | undefined) {
     setReminders((prev) => {
       const next = new Map(prev);

@@ -11,7 +11,7 @@ import {
   type ThreadPerson,
 } from "@/features/dm/group-dm";
 
-/* Group DMs — the writes, from the browser.
+/* Group DMs: the writes, from the browser.
  *
  * Every group write goes through a security-definer RPC, because dm_threads
  * and dm_participants still carry no INSERT policies. The one exception is
@@ -27,7 +27,7 @@ import {
 /**
  * Start a named group with the given classmates and land the caller in it.
  *
- * `userIds` are the OTHER people — don't include your own id. The database
+ * `userIds` are the OTHER people. Don't include your own id. The database
  * dedupes the list and drops you from it anyway, then requires 2-15 people
  * left over (3-16 counting you), all on your campus and none blocked either
  * way. The same window is checked here first so an obviously-wrong roster
@@ -35,7 +35,7 @@ import {
  *
  * @param title   The group's name; trimmed, 2-60 characters.
  * @param userIds `profiles.id` for each classmate to invite.
- * @returns The new thread's id — route to `/messages/<id>` with it.
+ * @returns The new thread's id. Route to `/messages/<id>` with it.
  * @throws {GroupDmError} With copy that's ready to render.
  */
 export async function createGroupThread(
@@ -92,13 +92,13 @@ export async function addToGroupThread(
 }
 
 /**
- * Slip out of a group. Removes only your own participant row — the thread
+ * Slip out of a group. Removes only your own participant row. The thread
  * and everyone else's history stay put, and you stop receiving its messages
  * and notifications. Leaving a thread you're not in quietly succeeds; the
  * database only refuses if the thread isn't a group (you can't leave a 1:1,
  * you block or delete instead).
  *
- * Navigate away once this resolves — RLS hides the thread from you the
+ * Navigate away once this resolves: RLS hides the thread from you the
  * moment the row is gone.
  *
  * @throws {GroupDmError} With copy that's ready to render.
@@ -117,14 +117,14 @@ export async function leaveGroupThread(threadId: string): Promise<void> {
 
 /**
  * Rename a group. Unlike the rest of this module this is a direct UPDATE on
- * `dm_threads.title` — 0028's "participants can rename their group" policy
+ * `dm_threads.title`. 0028's "participants can rename their group" policy
  * allows exactly that, for groups only. The 2-60 window is checked here
  * first, and the `is_group` filter keeps a stray 1:1 id from being renamed.
  *
  * Safe to run optimistically: show the new title, call this, and roll back
  * to the old one if it throws.
  *
- * @returns The trimmed title as saved — use it for your optimistic state.
+ * @returns The trimmed title as saved. Use it for your optimistic state.
  * @throws {GroupDmError} With copy that's ready to render.
  */
 export async function renameGroupThread(
@@ -147,7 +147,7 @@ export async function renameGroupThread(
     );
   }
   // Zero rows updated isn't an error to PostgREST, but it means the policy
-  // didn't match — you've left the group, or this id isn't a group at all.
+  // didn't match: you've left the group, or this id isn't a group at all.
   if (!data) {
     throw new GroupDmError("Only people in a group can rename it.");
   }
@@ -159,7 +159,7 @@ export async function renameGroupThread(
 /**
  * The embedded profile comes back as an object OR a one-element array
  * depending on how PostgREST resolves the relationship, and the client is
- * untyped — accept both, and drop any row missing an id or handle.
+ * untyped, so accept both and drop any row missing an id or handle.
  */
 function normalizePeople(rows: unknown): ThreadPerson[] {
   if (!Array.isArray(rows)) return [];
@@ -199,7 +199,7 @@ export function sortPeople(people: readonly ThreadPerson[]): ThreadPerson[] {
 }
 
 /**
- * Everyone in a thread — you included — sorted by display name. Works for
+ * Everyone in a thread, you included, sorted by display name. Works for
  * both shapes: a 1:1 returns two people, a group returns 3-16.
  *
  * RLS only lets you read `dm_participants` for threads you're in, so an
@@ -223,7 +223,7 @@ export async function fetchThreadPeople(
 
 /* --------------------------- campus search --------------------------- */
 
-/** A classmate as the picker shows them — private profiles keep their name back. */
+/** A classmate as the picker shows them. Private profiles keep their name back. */
 export interface CampusCandidate extends ThreadPerson {
   /** True when the profile is private: only the handle is ours to show. */
   locked: boolean;
@@ -274,7 +274,7 @@ export async function fetchMyUniversityId(userId: string): Promise<string> {
  * Classmates at your university matching `query`, alphabetically. An empty
  * query lists the first slice of campus, so the picker has something warm to
  * show before anyone types. You are never in your own results; private
- * profiles come back as a locked handle — enough to invite someone you
+ * profiles come back as a locked handle, enough to invite someone you
  * already know without exposing their name.
  *
  * A group can only hold people from your campus, which is why the search
@@ -289,7 +289,7 @@ export async function searchCampusPeople({
   limit = 30,
 }: {
   universityId: string;
-  /** Your own id — you can't add yourself to a group you're in. */
+  /** Your own id. You can't add yourself to a group you're in. */
   excludeId: string;
   query: string;
   limit?: number;

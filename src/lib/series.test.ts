@@ -16,8 +16,8 @@ import {
  *
  * `generateSeries` is the whole feature: the array it returns is both the
  * preview a student reads and the rows the save writes, so anything wrong in
- * here is wrong on twenty classmates' calendars. It is pure — no ids, no
- * network, no clock — which means every case below is dates in, dates out.
+ * here is wrong on twenty classmates' calendars. It is pure: no ids, no
+ * network, no clock, which means every case below is dates in, dates out.
  *
  * Everything is asserted in LOCAL calendar terms (getFullYear / getMonth /
  * getDate / getHours) rather than against ISO strings. The module builds each
@@ -27,7 +27,7 @@ import {
 
 /* --------------------------------- helpers -------------------------------- */
 
-/** A local calendar day, time discarded — the same thing the spec reads. */
+/** A local calendar day, time discarded: the same thing the spec reads. */
 function day(year: number, month: number, date: number): Date {
   return new Date(year, month - 1, date);
 }
@@ -67,7 +67,7 @@ function spec(overrides: Partial<SeriesSpec> = {}): SeriesSpec {
 
 /* ------------------------------- the weekdays ----------------------------- */
 
-describe("WEEKDAYS and weekdayOf — one numbering, ISO", () => {
+describe("WEEKDAYS and weekdayOf: one numbering, ISO", () => {
   it("runs Monday 1 through Sunday 7, school-week first", () => {
     expect(WEEKDAYS.map((d) => d.index)).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(WEEKDAYS[0]?.label).toBe("Monday");
@@ -82,7 +82,7 @@ describe("WEEKDAYS and weekdayOf — one numbering, ISO", () => {
   });
 });
 
-describe("describeWeekdays — the days as a subtitle", () => {
+describe("describeWeekdays: the days as a subtitle", () => {
   it("joins with commas and an ampersand", () => {
     expect(describeWeekdays([1, 3, 5])).toBe("Mon, Wed & Fri");
     expect(describeWeekdays([2, 4])).toBe("Tue & Thu");
@@ -100,7 +100,7 @@ describe("describeWeekdays — the days as a subtitle", () => {
 
 /* ------------------------------ generateSeries ---------------------------- */
 
-describe("generateSeries — laying out the pattern", () => {
+describe("generateSeries: laying out the pattern", () => {
   it("lands one row on each chosen day inside the range, inclusive", () => {
     expect(dates(generateSeries(spec()))).toEqual([
       "2026-01-05",
@@ -128,7 +128,7 @@ describe("generateSeries — laying out the pattern", () => {
 
   it("holds 10am across the spring-forward change instead of drifting", () => {
     // US DST begins 2026-03-08. A pattern spanning it must still read 10:00
-    // on both sides — this is why rows are built per calendar day rather than
+    // on both sides. This is why rows are built per calendar day rather than
     // by adding seven days of milliseconds to the last one.
     const drafts = generateSeries(
       spec({
@@ -182,7 +182,7 @@ describe("generateSeries — laying out the pattern", () => {
     expect(parts(draft!).min).toBe(59);
   });
 
-  it("is empty — not an error — when no chosen day falls in the range", () => {
+  it("is empty, not an error, when no chosen day falls in the range", () => {
     // A Friday pattern inside a Monday-to-Tuesday window. The preview says
     // "no dates yet"; saveSeries is the one that refuses.
     expect(
@@ -211,17 +211,19 @@ describe("generateSeries — laying out the pattern", () => {
   });
 });
 
-describe("generateSeries — what it refuses, and what it says", () => {
+describe("generateSeries: what it refuses, and what it says", () => {
   it("wants a name", () => {
     expect(() => generateSeries(spec({ title: "   " }))).toThrow(SeriesError);
+    // Substring, not the whole sentence: the punctuation after "name" belongs
+    // to src/lib/series.ts and this test is about the refusal, not the comma.
     expect(() => generateSeries(spec({ title: "" }))).toThrow(
-      "Give these dates a name — Lecture, Lab, whatever it is."
+      "Give these dates a name"
     );
   });
 
   it("caps the name at the column's 200 characters", () => {
     expect(() => generateSeries(spec({ title: "x".repeat(201) }))).toThrow(
-      "That name is a bit long — keep it under 200 characters."
+      /That name is a bit long.*under 200 characters/
     );
     expect(generateSeries(spec({ title: "x".repeat(200) }))).toHaveLength(2);
   });

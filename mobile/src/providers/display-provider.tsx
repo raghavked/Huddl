@@ -13,7 +13,7 @@ import { useColorScheme } from "react-native";
 import { setHapticsEnabled } from "@/lib/haptics";
 
 /**
- * Display preferences — appearance, type size, and whether the phone taps
+ * Display preferences: appearance, type size, and whether the phone taps
  * back.
  *
  * One provider, mounted at the very top of the tree, owns all three. Everything
@@ -30,8 +30,8 @@ import { setHapticsEnabled } from "@/lib/haptics";
  * nobody subscribes to them; they are consumed by `tapLight()` and friends in
  * `@/lib/haptics`, which are plain module functions called from hundreds of
  * places and cannot read a context. So this provider mirrors the value into
- * that module with `setHapticsEnabled` — once when the stored value lands and
- * again on every change — and keeps it in state as well so the settings
+ * that module with `setHapticsEnabled` (once when the stored value lands and
+ * again on every change) and keeps it in state as well so the settings
  * screen has something to render. Storage stays here, with the other two.
  * A second store for one boolean is how preferences start disagreeing.
  */
@@ -69,7 +69,7 @@ export const TEXT_SCALE_DEFAULT = 1;
 export const TEXT_SCALE_STEPS = [0.9, 1, 1.15, 1.3, 1.4] as const;
 
 /**
- * Force any number — including a garbage value read back from storage — into
+ * Force any number, including a garbage value read back from storage, into
  * the safe range. Anything unusable (NaN, Infinity, a string that didn't
  * parse) lands on the default rather than collapsing the layout.
  */
@@ -103,8 +103,8 @@ function parseTextScale(raw: string | null): number {
 }
 
 /* Stored as "on" / "off" rather than "true" / "false" so a storage dump
-   reads like the setting does. Only an explicit "off" turns it off —
-   a missing key, a half-written value, anything unrecognised, all land on
+   reads like the setting does. Only an explicit "off" turns it off.
+   A missing key, a half-written value, anything unrecognised, all land on
    the default rather than silently taking the tick away. */
 function parseHaptics(raw: string | null): boolean {
   return raw === "off" ? false : HAPTICS_DEFAULT;
@@ -126,7 +126,7 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
   const [haptics, setHapticsState] = useState<boolean>(HAPTICS_DEFAULT);
   const [ready, setReady] = useState(false);
 
-  // A setter that fires before the disk read lands must win — otherwise the
+  // A setter that fires before the disk read lands must win. Otherwise the
   // stored value would clobber a choice the student just made.
   const touched = useRef(false);
 
@@ -143,8 +143,8 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
         setHapticsEnabled(wantsHaptics);
       })
       .catch(() => {
-        // Unreadable storage is not worth a warning in the student's face —
-        // system appearance, default type size and the tick left on are a
+        // Unreadable storage is not worth a warning in the student's face.
+        // System appearance, default type size and the tick left on are a
         // fine place to be.
       })
       .finally(() => {
@@ -177,7 +177,7 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
     setHapticsState(next);
     // Write-through, before the render that follows. A caller that flips the
     // switch on and ticks once to show what it bought needs the new value to
-    // be live on the very next line — an effect keyed on state would land
+    // be live on the very next line. An effect keyed on state would land
     // after that tick had already been swallowed.
     setHapticsEnabled(next);
     void AsyncStorage.setItem(HAPTICS_KEY, next ? "on" : "off").catch(() => {
@@ -229,7 +229,7 @@ export function useDisplay(): DisplayState {
     const dropped = () => {
       if (isDev()) {
         console.warn(
-          "[display] setMode/setTextScale/setHaptics called outside <DisplayProvider> — the change was dropped."
+          "[display] setMode/setTextScale/setHaptics called outside <DisplayProvider>. The change was dropped."
         );
       }
     };
@@ -249,7 +249,7 @@ export function useDisplay(): DisplayState {
 }
 
 /**
- * Just the appearance in effect — for anything that needs to pick between the
+ * Just the appearance in effect, for anything that needs to pick between the
  * light and dark halves of a token set (elevation, status bar, map styles)
  * without pulling in the whole preferences object.
  */

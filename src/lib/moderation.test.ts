@@ -15,8 +15,8 @@ import {
  * `reportMessage(id, category, reason)` is a promise the caller made in
  * TypeScript and nothing a hand-rolled POST has to keep. `isReportCategory`
  * is the only runtime check between that request and the `reports.category`
- * check constraint, and the guard it replaced — a truthiness test on
- * `categoryLabel(category)` — waved through every key on Object.prototype.
+ * check constraint, and the guard it replaced (a truthiness test on
+ * `categoryLabel(category)`) waved through every key on Object.prototype.
  */
 
 /** The eight the database will actually accept (0020's check constraint). */
@@ -64,7 +64,7 @@ describe("isReportCategory", () => {
 
   it("rejects inherited keys, which is the whole reason it exists", () => {
     // Every one of these reads a truthy value straight off Object.prototype,
-    // so `if (!categoryLabel(c))` — the guard this replaced — let them past.
+    // so `if (!categoryLabel(c))`, the guard this replaced, let them past.
     // The insert then failed on the check constraint and the reporter was
     // told to try again, about the one failure retrying can never fix.
     for (const key of [
@@ -89,7 +89,7 @@ describe("isReportCategory", () => {
 
 describe("categoryLabel", () => {
   it("does not hand back a function for an inherited key", () => {
-    // Typed as ReportCategory, so only a bad runtime value gets here — but if
+    // Typed as ReportCategory, so only a bad runtime value gets here. But if
     // one does, a moderator's queue must not render "function toString()".
     const label = categoryLabel("toString" as ReportCategory);
     expect(typeof label).toBe("string");

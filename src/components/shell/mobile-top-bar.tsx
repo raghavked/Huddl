@@ -5,7 +5,7 @@ import { Avatar } from "@/components/avatar";
 import { MobileSearchButton } from "@/components/shell/mobile-search-button";
 import type { CurrentUser } from "@/lib/auth";
 
-/** Frosted mobile header — the desktop shell lives in the sidebar. */
+/** Frosted mobile header. The desktop shell lives in the sidebar. */
 export function MobileTopBar({
   user,
   unreadCount = 0,

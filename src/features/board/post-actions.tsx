@@ -39,13 +39,13 @@ import { cn } from "@/lib/utils";
  * as every other time you've talked.
  *
  * For the author, the point is the menu. Marking a post sorted is the
- * ordinary end of its life — the row stays readable, sunk to the bottom of
+ * ordinary end of its life: the row stays readable, sunk to the bottom of
  * the board. Delete is the narrow case of a post that shouldn't have been
  * written, and its confirmation names what is actually lost rather than
  * asking whether they're sure. */
 
 /* The eight categories come from @/lib/moderation, which is the one place
-   they live — the schema's check constraint (0020), the moderation queue and
+   they live: the schema's check constraint (0020), the moderation queue and
    every picker all read the same list. This menu used to offer two invented
    strings ("Doesn't belong here", "Harassment or harm") that matched nothing
    in the schema, and filed them as free text with no category at all, so
@@ -64,7 +64,7 @@ const MENU_ROW =
 /**
  * Open the 1:1 thread with whoever put this up. `create_dm_thread` is
  * find-or-create on the server, so one call covers both "we've talked before"
- * and "we haven't" — and it refuses across a block, which is the one failure
+ * and "we haven't". It refuses across a block, which is the one failure
  * worth naming out loud.
  */
 export function MessageAuthorButton({ authorId }: { authorId: string }) {
@@ -193,7 +193,7 @@ export function PostMenu({
   /**
    * Mark it sorted, or put it back up. `closePost` and `reopenPost` are
    * guarded on the server, so a second click resolves with null rather than
-   * moving the time it closed — null means "already in that state", which is
+   * moving the time it closed. Null means "already in that state", which is
    * exactly what the page is showing.
    */
   async function toggleSorted() {
@@ -251,7 +251,7 @@ export function PostMenu({
       );
       failure = result.error;
     } catch {
-      failure = "Couldn't send that report — check your connection and try again.";
+      failure = "Couldn't send that report. Check your connection and try again.";
     } finally {
       setWorking(false);
     }
@@ -260,7 +260,7 @@ export function PostMenu({
       return;
     }
     setStep("menu");
-    setNotice("Reported — thanks for looking out.");
+    setNotice("Report sent. Thanks for looking out.");
   }
 
   return (

@@ -53,7 +53,7 @@ import {
   type EntryDraft,
 } from "./format";
 
-/* Your grades — the private one.
+/* Your grades: the private one.
  *
  * Every number here is the student's own arithmetic on their own scores.
  * Nothing is shared, nothing is compared against a classmate, and the page
@@ -61,7 +61,7 @@ import {
  * `@/lib/grades`: this file parses text into numbers, hands them over, and
  * renders sentences the module wrote.
  *
- * Every write is optimistic — the row lands, the estimate moves, and only a
+ * Every write is optimistic. The row lands, the estimate moves, and only a
  * server refusal puts it back with a warm line underneath the form. Rows that
  * haven't met the server yet carry a draft id, and anything that would send
  * that id back to Supabase stays shut until the insert settles.
@@ -94,7 +94,7 @@ function ActionError({ message }: { message: string | null }) {
 }
 
 /**
- * A round icon button at the full 44px target — the category header's rename
+ * A round icon button at the full 44px target: the category header's rename
  * and delete affordances.
  */
 function IconButton({
@@ -195,7 +195,7 @@ function EntryFields({
       </div>
       {extra ? (
         <p className="text-xs text-accent">
-          Above the max — that&apos;s extra credit, and it counts. Keep it.
+          Above the max. That&apos;s extra credit, and it counts. Keep it.
         </p>
       ) : null}
     </div>
@@ -466,7 +466,7 @@ function EditCategoryForm({
 
 /**
  * One score inside a bucket: what it was, when, and the fraction. The whole
- * row is the target — tapping it opens the editor, which is also where
+ * row is the target. Tapping it opens the editor, which is also where
  * deleting lives.
  */
 function EntryRow({ entry, onEdit }: { entry: GradeEntry; onEdit: () => void }) {
@@ -549,7 +549,7 @@ function CategoryCard({
   // Still in flight: its id is a local draft, so nothing here may be sent on.
   const pending = isDraft(category.id);
 
-  // Name what leaves with it — deleting a category cascades its scores.
+  // Name what leaves with it: deleting a category cascades its scores.
   const stakes =
     entries.length === 0
       ? "The category goes, and the estimate recalculates without its weight."
@@ -699,7 +699,7 @@ export function GradesSection({
   initialError,
 }: {
   courseId: string;
-  /** e.g. "ECS 36A" — only used in copy. */
+  /** e.g. "ECS 36A". Only used in copy. */
   courseCode: string;
   /** The viewer's `profiles.id`, so an optimistic row is a real row. */
   userId: string;
@@ -1023,7 +1023,7 @@ export function GradesSection({
   const draftWeight = parseNumber(categoryDraft.weight);
   const weightsCaption =
     draftWeight !== null && draftWeight >= 0 && draftWeight <= 100
-      ? `Weights so far: ${pctText(weightsSoFar)}% — this one takes it to ${pctText(
+      ? `Weights so far: ${pctText(weightsSoFar)}%, and this one takes it to ${pctText(
           weightsSoFar + draftWeight
         )}%.`
       : `Weights so far: ${pctText(weightsSoFar)}%.`;
@@ -1043,7 +1043,7 @@ export function GradesSection({
 
         {categories.length === 0 ? (
           <p className="mt-3 px-1 text-sm leading-relaxed text-muted text-pretty">
-            Your syllabus lists these — homework 20%, midterm 30%, final 50%.
+            Your syllabus lists these: homework 20%, midterm 30%, final 50%.
             Add them below and your scores slot in underneath.
           </p>
         ) : (

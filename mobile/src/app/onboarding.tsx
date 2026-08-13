@@ -21,7 +21,7 @@ const BIO_MAX = 280;
 const HANDLE_HINT =
   "3–24 characters: lowercase letters, numbers, underscores.";
 
-/** Minimal local row shape — the web app's types live outside this tsconfig. */
+/** Minimal local row shape. The web app's types live outside this tsconfig. */
 type ProfileRow = {
   display_name: string;
   handle: string;
@@ -52,7 +52,7 @@ export default function OnboardingScreen() {
   // Whether a profiles row already exists (the signup trigger creates one).
   const [hasRow, setHasRow] = useState(false);
   const [universityName, setUniversityName] = useState<string | null>(null);
-  // The handle already saved on the row — no availability check needed for it.
+  // The handle already saved on the row, so no availability check for it.
   const [savedHandle, setSavedHandle] = useState<string | null>(null);
 
   const [displayName, setDisplayName] = useState("");
@@ -98,7 +98,7 @@ export default function OnboardingScreen() {
       setBio(row.bio ?? "");
       setUniversityName(row.university?.name ?? null);
     } else {
-      // No row yet (unusual — the signup trigger normally creates one).
+      // No row yet (unusual, since the signup trigger normally creates one).
       // Start from sensible defaults and insert on save.
       setHasRow(false);
       setSavedHandle(null);
@@ -135,7 +135,7 @@ export default function OnboardingScreen() {
         .then(({ data, error: checkError }) => {
           if (cancelled) return;
           if (checkError) {
-            // Can't check right now — the unique constraint is the backstop.
+            // Can't check right now. The unique constraint is the backstop.
             setHandleStatus("idle");
             return;
           }
@@ -149,13 +149,13 @@ export default function OnboardingScreen() {
   }, [handle, savedHandle, userId]);
 
   /**
-   * "Skip for now" — leave the form as it stands and go on in.
+   * "Skip for now" leaves the form as it stands and goes on in.
    *
    * It still stamps `accepted_terms_at`, and that is not a shortcut: signup
    * told them creating an account is agreeing to the Terms, so the agreement
    * already happened and this only records when. It is also the column the
    * launch gate reads. Leaving it null would hand this same screen back on
-   * every cold launch, which is not a skip — it is a loop.
+   * every cold launch, which is a loop rather than a skip.
    *
    * A failed write costs one more pass through this screen next launch, so it
    * never blocks the exit. The no-row recovery case has nothing to stamp; the
@@ -188,7 +188,7 @@ export default function OnboardingScreen() {
     if (!HANDLE_RE.test(h)) {
       next.handle = HANDLE_HINT;
     } else if (handleStatus === "taken") {
-      next.handle = "That handle's taken — try another.";
+      next.handle = "That handle's taken. Try another.";
     }
 
     let year: number | null = null;
@@ -215,7 +215,7 @@ export default function OnboardingScreen() {
       bio: bio.trim() || null,
       // Signup told them creating an account is agreeing to the terms; this
       // records when that agreement was made. It doubles as the first-run
-      // gate — see the launch gate in app/index.tsx.
+      // gate; see the launch gate in app/index.tsx.
       accepted_terms_at: new Date().toISOString(),
     };
 
@@ -241,7 +241,7 @@ export default function OnboardingScreen() {
       if (!universityId) {
         setSaving(false);
         setErrors({
-          form: "We couldn't match your school — try signing out and back in.",
+          form: "We couldn't match your school. Try signing out and back in.",
         });
         return;
       }
@@ -254,7 +254,7 @@ export default function OnboardingScreen() {
     if (saveError) {
       setSaving(false);
       if (saveError.code === "23505") {
-        setErrors({ handle: "That handle's taken — try another." });
+        setErrors({ handle: "That handle's taken. Try another." });
       } else if (saveError.code === "23514") {
         setErrors({ handle: HANDLE_HINT });
       } else {
@@ -290,7 +290,7 @@ export default function OnboardingScreen() {
   const firstName = displayName.trim().split(/\s+/)[0] || null;
 
   // The signup trigger builds the handle out of the email local-part, and one
-  // campus means one domain — so a handle still in its original shape is the
+  // campus means one domain, so a handle still in its original shape is the
   // student's email address in public. Say so while it's still true.
   const handleIsFromEmail =
     handle.trim().length > 0 &&
@@ -299,7 +299,7 @@ export default function OnboardingScreen() {
   const handleFieldError =
     errors.handle ??
     (handleStatus === "taken"
-      ? "That handle's taken — try another."
+      ? "That handle's taken. Try another."
       : handleStatus === "invalid"
         ? HANDLE_HINT
         : null);
@@ -321,7 +321,7 @@ export default function OnboardingScreen() {
           {firstName ? `Welcome to Huddl, ${firstName}` : "Welcome to Huddl"}
         </AppText>
         <AppText muted style={{ marginBottom: space.cosy }}>
-          Tell your classmates a little about yourself — you can change any of
+          Tell your classmates a little about yourself. You can change any of
           this later.
         </AppText>
         {universityName ? (
@@ -491,7 +491,7 @@ export default function OnboardingScreen() {
             <View style={{ gap: space.snug }}>
               <Field
                 label="Bio (optional)"
-                placeholder="Clubs, hobbies, what you're studying — anything classmates should know."
+                placeholder="Clubs, hobbies, what you're studying: anything classmates should know."
                 multiline
                 numberOfLines={4}
                 maxLength={BIO_MAX}
@@ -522,7 +522,7 @@ export default function OnboardingScreen() {
             />
             {/* The moment of record: both buttons stamp accepted_terms_at, so
                 the document that stamp refers to is one tap away from it.
-                The link is its own Pressable — caption text draws 16px tall,
+                The link is its own Pressable: caption text draws 16px tall,
                 so it takes 14 of slop above and below to reach 44. */}
             <View
               style={{

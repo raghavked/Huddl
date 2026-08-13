@@ -1,6 +1,6 @@
 /* The personal study plan, as pure functions.
  *
- * "Am I on top of everything?" — this module answers that from three inputs:
+ * "Am I on top of everything?" This module answers that from three inputs:
  * the shared class calendar (flattened to PlanItems), the student's private
  * check-offs, and the current moment. No I/O, no Supabase, no Date.now():
  * callers pass `now`, so every result is deterministic and unit-testable.
@@ -49,15 +49,15 @@ export type PlanItem = {
 /**
  * A recommended study session ahead of an exam or quiz. Study blocks are
  * DERIVED, never persisted: they carry no database row and cannot be checked
- * off — only real calendar items reach study_checkoffs. The key exists purely
+ * off: only real calendar items reach study_checkoffs. The key exists purely
  * so lists can render them stably.
  */
 export type StudyBlock = {
-  /** Derived render key, `study:${itemId}:${n}` — never written anywhere. */
+  /** Derived render key, `study:${itemId}:${n}`. Never written anywhere. */
   key: string;
   /** Which of the three blocks this is (1-based); past blocks are skipped. */
   n: number;
-  /** e.g. "Study block 2 of 3 — ECS 36A Midterm 1". */
+  /** e.g. "Study block 2 of 3: ECS 36A Midterm 1". */
   label: string;
   /** When to sit down: due minus 7, 3, or 1 days (same time of day). */
   at: Date;
@@ -85,9 +85,9 @@ export type PlanStats = {
   /** Every item in the plan window. */
   total: number;
   /**
-   * The earliest-due item still unhandled — overdue items included, since
-   * catching up on a missed deadline IS the next thing to do. Absent when
-   * everything is handled (or the plan is empty).
+   * The earliest-due item still unhandled, overdue ones included: catching up
+   * on a missed deadline IS the next thing to do. Absent when everything is
+   * handled (or the plan is empty).
    */
   nextUp?: PlanEntry;
 };
@@ -130,7 +130,7 @@ function calendarDaysUntil(now: Date, due: Date): number {
 
 /** Which bucket an item belongs to, relative to `now`. */
 function groupLabelFor(dueAt: Date, now: Date): PlanGroupLabel {
-  // Anything whose moment has passed is overdue — including earlier today.
+  // Anything whose moment has passed is overdue, including earlier today.
   if (dueAt.getTime() < now.getTime()) return "Overdue";
   const days = calendarDaysUntil(now, dueAt);
   if (days <= 0) return "Today";
@@ -159,7 +159,7 @@ function studyBlocksFor(item: PlanItem, now: Date): StudyBlock[] | undefined {
     blocks.push({
       key: `study:${item.id}:${n}`,
       n,
-      label: `Study block ${n} of 3 — ${item.courseCode} ${item.title}`,
+      label: `Study block ${n} of 3: ${item.courseCode} ${item.title}`,
       at,
     });
   });

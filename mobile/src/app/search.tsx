@@ -36,10 +36,10 @@ import { useAuth } from "@/providers/auth-provider";
 /* One warm search box for the whole campus: people, channels, courses,
    clubs, and upcoming events, queried in parallel and shown in sections.
 
-   Two things make it more than a box. A filter rail narrows the fan-out to
-   one corner of campus and, because only one query goes out, lets that corner
-   return four times as many rows — a filtered search is genuinely deeper, not
-   the same five results with the others hidden. And the idle screen remembers:
+   Two things matter beyond the box itself. A filter rail narrows the fan-out
+   to one corner of campus and, because only one query goes out, lets that
+   corner return four times as many rows, so a filtered search is genuinely
+   deeper rather than the same five results with the others hidden. And the idle screen remembers:
    queries that actually found something come back as tappable rows under the
    lantern, kept on the device by `@/lib/recent-searches`. */
 
@@ -76,25 +76,25 @@ const SOURCES: readonly Source[] = [
     key: "people",
     label: "People",
     icon: "user",
-    empty: "Nobody on campus matches that — yet.",
+    empty: "Nobody on campus matches that. Yet.",
   },
   {
     key: "channels",
     label: "Channels",
     icon: "hash",
-    empty: "No channels match that — yet.",
+    empty: "No channels match that. Yet.",
   },
   {
     key: "courses",
     label: "Courses",
     icon: "book-open",
-    empty: "No courses match that — check the code, or try the title.",
+    empty: "No courses match that. Check the code, or try the title.",
   },
   {
     key: "clubs",
     label: "Clubs",
     icon: "users",
-    empty: "No clubs match that — yet.",
+    empty: "No clubs match that. Yet.",
   },
   {
     key: "events",
@@ -203,7 +203,7 @@ function formatWhen(startIso: string): string {
 /**
  * The one extra thing worth knowing about a classmate in a list of matches:
  * their major, or their year if they haven't filled a major in. Null when
- * they've told us neither — a handle on its own is a fine row.
+ * they've told us neither. A handle on its own is a fine row.
  *
  * A nonsense `grad_year` (a stray 0, a typo'd 20255) is dropped rather than
  * rendered as "Class of 20255".
@@ -242,8 +242,8 @@ function CenteredState({
   return (
     <View
       /* Each of these replaces the whole results area the moment the screen
-         changes state — nothing matched, the network dropped, the box is
-         empty again — so it announces itself instead of waiting to be
+         changes state (nothing matched, the network dropped, the box is
+         empty again), so it announces itself instead of waiting to be
          found. The count line above stays quiet in those states. */
       accessibilityLiveRegion="polite"
       style={{
@@ -459,7 +459,7 @@ export default function SearchScreen() {
 
   /* Somebody you blocked shouldn't come back up in a search for a name.
      Mirrored into a ref so the in-flight query reads the current set without
-     `runSearch` changing identity — and re-running — every time the block
+     `runSearch` changing identity, and re-running, every time the block
      list refreshes. */
   const { blocked } = useBlockedIds();
   const blockedRef = useRef(blocked);
@@ -473,7 +473,7 @@ export default function SearchScreen() {
   }, []);
 
   /* The device's memory, read once. A search that lands before this resolves
-     wins — we only take the stored list if nothing's been remembered yet. */
+     wins, so we only take the stored list if nothing's been remembered yet. */
   useEffect(() => {
     let alive = true;
     void fetchRecents().then((stored) => {
@@ -576,7 +576,7 @@ export default function SearchScreen() {
       const people = ((peopleRes?.data ?? []) as unknown as PersonRow[])
         .filter((p) => p.id === userId || !blockedRef.current.has(p.id))
         .map((p): Hit => {
-          // Private profiles show up as a handle behind a lock — nothing more.
+          // Private profiles show up as a handle behind a lock, nothing more.
           const open = p.is_public || p.id === userId;
           const line = personLine(p.major, p.grad_year);
           return {
@@ -693,7 +693,7 @@ export default function SearchScreen() {
   /* Results appear, change and vanish under the cursor without the page
      moving, so the count is said out loud rather than left to the eye. The
      line holds its height whether or not it has words in it, and stays quiet
-     when nothing matched — the empty state below says that itself. */
+     when nothing matched, because the empty state below says that itself. */
   const found =
     sections?.reduce((total, section) => total + section.data.length, 0) ?? 0;
   const status =
@@ -839,7 +839,7 @@ export default function SearchScreen() {
           <CenteredState
             icon="search"
             title="Find your people and places"
-            message="Search your campus — people, channels, courses, clubs, events"
+            message="Search your campus: people, channels, courses, clubs, events"
             art={
               <Lantern size={96} color={theme.muted} softColor={theme.surface2} />
             }
@@ -876,7 +876,7 @@ export default function SearchScreen() {
                 Find your people and places
               </AppText>
               <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
-                Search your campus — people, channels, courses, clubs, events
+                Search your campus: people, channels, courses, clubs, events
               </AppText>
             </View>
 
@@ -901,7 +901,7 @@ export default function SearchScreen() {
         <CenteredState
           icon="compass"
           title="No matches"
-          message={active ? active.empty : "Nothing on campus matches that — yet."}
+          message={active ? active.empty : "Nothing on campus matches that. Yet."}
         >
           {active ? (
             <Button
@@ -917,7 +917,7 @@ export default function SearchScreen() {
           sections={sections}
           keyExtractor={(item) => item.key}
           renderItem={({ item, index }) => <HitRow hit={item} index={index} />}
-          /* With a filter on, the chip above already names the section — a
+          /* With a filter on, the chip above already names the section, so a
              header would just repeat it over a single list. */
           renderSectionHeader={({ section }) =>
             filter === null ? (
@@ -934,9 +934,9 @@ export default function SearchScreen() {
           stickySectionHeadersEnabled={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          /* Campus moves while you're reading — a club goes up, a classmate
-             joins, an event gets scheduled — so a pull asks the same
-             question again rather than making you retype it. */
+          /* Campus moves while you're reading: a club goes up, a classmate
+             joins, an event gets scheduled. So a pull asks the same question
+             again rather than making you retype it. */
           refreshControl={
             <RefreshControl
               refreshing={searching}

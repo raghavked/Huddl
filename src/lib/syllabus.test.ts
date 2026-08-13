@@ -21,7 +21,7 @@ afterEach(() => {
 
 const YEAR = { defaultYear: 2026 };
 
-describe("parseSyllabus — finding dates", () => {
+describe("parseSyllabus: finding dates", () => {
   it("parses numeric dates and defaults the time to 11:59 PM", () => {
     const [item] = parseSyllabus("HW 3 due 10/16", YEAR);
     expect(item).toBeDefined();
@@ -65,14 +65,14 @@ describe("parseSyllabus — finding dates", () => {
   });
 });
 
-describe("parseSyllabus — years", () => {
+describe("parseSyllabus: years", () => {
   it("reads explicit 2-digit years as 20xx and keeps 4-digit years", () => {
     const items = parseSyllabus("Final 12/10/26\nQuiz 12/3/2027", YEAR);
     expect(items.map((i) => i.dueAt.getFullYear())).toEqual([2026, 2027]);
   });
 
   it("rolls a yearless spring date forward when pasted in the fall", () => {
-    // It's October (see NOW) — a January date belongs to next year's term.
+    // It's October (see NOW), so a January date belongs to next year's term.
     const [item] = parseSyllabus("Final exam Jan 15", YEAR);
     expect(item!.dueAt.getFullYear()).toBe(2027);
   });
@@ -83,7 +83,7 @@ describe("parseSyllabus — years", () => {
   });
 });
 
-describe("parseSyllabus — kinds", () => {
+describe("parseSyllabus: kinds", () => {
   it("detects each kind from keywords", () => {
     const kindOf = (line: string) => parseSyllabus(line, YEAR)[0]!.kind;
     expect(kindOf("Midterm exam 10/24")).toBe("exam");
@@ -103,7 +103,7 @@ describe("parseSyllabus — kinds", () => {
   });
 });
 
-describe("parseSyllabus — titles and confidence", () => {
+describe("parseSyllabus: titles and confidence", () => {
   it("cleans dangling separators and empty parens after date removal", () => {
     const [item] = parseSyllabus("Essay draft (10/28)", YEAR);
     expect(item!.title).toBe("Essay draft");

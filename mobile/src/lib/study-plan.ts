@@ -1,6 +1,6 @@
 /* The personal study plan, as pure functions.
  *
- * "Am I on top of everything?" — this module answers that from three inputs:
+ * "Am I on top of everything?" This module answers that from three inputs:
  * the shared class calendar (flattened to PlanItems), the student's private
  * check-offs, and the current moment. No I/O, no Supabase, no Date.now():
  * callers pass `now`, so every result is deterministic and unit-testable.
@@ -9,7 +9,7 @@
  * back time-bucketed groups plus headline stats for the progress header and
  * the home card.
  *
- * It also owns {@link computeDayStreak} — the one definition of what a streak
+ * It also owns {@link computeDayStreak}, the one definition of what a streak
  * is, shared by check-offs and focus sessions so the two numbers can never
  * disagree about where a day starts.
  */
@@ -53,15 +53,15 @@ export type PlanItem = {
 /**
  * A recommended study session ahead of an exam or quiz. Study blocks are
  * DERIVED, never persisted: they carry no database row and cannot be checked
- * off — only real calendar items reach study_checkoffs. The key exists purely
+ * off: only real calendar items reach study_checkoffs. The key exists purely
  * so lists can render them stably.
  */
 export type StudyBlock = {
-  /** Derived render key, `study:${itemId}:${n}` — never written anywhere. */
+  /** Derived render key, `study:${itemId}:${n}`. Never written anywhere. */
   key: string;
   /** Which of the three blocks this is (1-based); past blocks are skipped. */
   n: number;
-  /** e.g. "Study block 2 of 3 — ECS 36A Midterm 1". */
+  /** e.g. "Study block 2 of 3: ECS 36A Midterm 1". */
   label: string;
   /** When to sit down: due minus 7, 3, or 1 days (same time of day). */
   at: Date;
@@ -89,7 +89,7 @@ export type PlanStats = {
   /** Every item in the plan window, however far out. */
   total: number;
   /**
-   * Checked off among {@link weekTotal} — the numerator a screen prints.
+   * Checked off among {@link weekTotal}: the numerator a screen prints.
    */
   weekHandled: number;
   /**
@@ -103,7 +103,7 @@ export type PlanStats = {
   /**
    * The next thing to actually do: the earliest-due unhandled item that isn't
    * a lecture, falling back to the earliest unhandled item of any kind.
-   * Overdue items count — catching up on a missed deadline IS the next thing
+   * Overdue items count: catching up on a missed deadline IS the next thing
    * to do. Absent when everything is handled (or the plan is empty).
    *
    * Lectures step aside because a weekly pattern expands into dozens of them
@@ -128,7 +128,7 @@ const STUDY_WINDOW_DAYS = 14;
  *
  * Exported because a screen that files derived {@link StudyBlock}s by their
  * own moment can end up with a bucket {@link buildPlan} never made a group
- * for — a study block this week for an exam that's still "Later". Walk this
+ * for: a study block this week for an exam that's still "Later". Walk this
  * rather than the returned groups and the headings stay in time order.
  */
 export const PLAN_GROUP_ORDER: readonly PlanGroupLabel[] = [
@@ -164,7 +164,7 @@ function calendarDaysUntil(now: Date, due: Date): number {
  * "Tomorrow" even though the midterm it prepares for is three weeks out.
  */
 export function groupLabelFor(at: Date, now: Date): PlanGroupLabel {
-  // Anything whose moment has passed is overdue — including earlier today.
+  // Anything whose moment has passed is overdue, including earlier today.
   if (at.getTime() < now.getTime()) return "Overdue";
   const days = calendarDaysUntil(now, at);
   if (days <= 0) return "Today";
@@ -193,7 +193,7 @@ function studyBlocksFor(item: PlanItem, now: Date): StudyBlock[] | undefined {
     blocks.push({
       key: `study:${item.id}:${n}`,
       n,
-      label: `Study block ${n} of 3 — ${item.courseCode} ${item.title}`,
+      label: `Study block ${n} of 3: ${item.courseCode} ${item.title}`,
       at,
     });
   });
@@ -240,7 +240,7 @@ export function buildPlan(
 
   const handled = entries.reduce((sum, e) => (e.done ? sum + 1 : sum), 0);
 
-  // "This week" is Overdue through This week — the rest of the term is a
+  // "This week" is Overdue through This week. The rest of the term is a
   // denominator nobody can move today, and folding it in makes a good week
   // read as 8%.
   let weekTotal = 0;
@@ -275,7 +275,7 @@ export function buildPlan(
 
 /* ------------------------------ streaks ------------------------------ */
 
-/** Local calendar-day key — streaks live in the student's timezone. */
+/** Local calendar-day key. Streaks live in the student's timezone. */
 function localDayKey(d: Date): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
@@ -285,19 +285,19 @@ function localDayKey(d: Date): string {
  * ending today or yesterday, have at least one of these moments in them.
  *
  * Yesterday still counts as alive, so an unmarked morning doesn't zero out
- * last night's run — a streak is a gift, never a debt. Days are counted in
+ * last night's run: a streak is a gift, never a debt. Days are counted in
  * the student's own timezone, so something that happened at 1am belongs to
  * that new day exactly as they experienced it. Anything unparseable (or
  * null, for work that isn't finished) is skipped rather than counted.
  *
  * This is the shared definition: the study plan feeds it check-off times and
  * `@/lib/focus` feeds it session end times, so "3-day streak" means the same
- * thing on both screens. Callers stay quiet below 2 — no guilt UI.
+ * thing on both screens. Callers stay quiet below 2, so no guilt UI.
  *
  * Pure: order doesn't matter and `now` is passed in, never read from the
  * clock, so a ticking screen and a unit test get the same answer.
  *
- * @param moments When the thing happened — Dates or ISO strings, mixed is
+ * @param moments When the thing happened: Dates or ISO strings, mixed is
  *   fine. Nulls and undefineds are ignored.
  * @param now     The current moment.
  */

@@ -33,7 +33,7 @@ export function LoginForm({
   const [wrongCredentials, setWrongCredentials] = useState(false);
   const [resendState, setResendState] = useState<ResendState>("idle");
 
-  // Carry whatever they've typed over to the reset screen — nobody should have
+  // Carry whatever they've typed over to the reset screen. Nobody should have
   // to type their own address twice in a row to get back into their account.
   const forgotHref = email.trim()
     ? `/forgot-password?email=${encodeURIComponent(email.trim())}`
@@ -69,9 +69,9 @@ export function LoginForm({
         // next move is a reset link, so the alert has to carry that link.
         setWrongCredentials(true);
       } else if (signInError.status === 429) {
-        setError("That's a lot of tries in a row — wait a minute, then go again.");
+        setError("That's a lot of tries in a row. Wait a minute, then go again.");
       } else {
-        // Never the raw API sentence — a student can't do anything with it.
+        // Never the raw API sentence: a student can't do anything with it.
         setError("We couldn't log you in just now. Give it another go in a moment.");
       }
       return;
@@ -95,7 +95,7 @@ export function LoginForm({
     if (resendError) {
       setResendState("idle");
       setError(
-        "That resend didn't go through — give it a minute, then try again."
+        "That resend didn't go through. Give it a minute, then try again."
       );
       return;
     }
@@ -153,7 +153,7 @@ export function LoginForm({
           {resendState === "sent" ? (
             <p className="flex items-center gap-2 pl-6 text-success">
               <MailCheck className="size-4" aria-hidden />
-              Confirmation email sent — check your inbox (and spam).
+              Confirmation email sent. Check your inbox (and spam).
             </p>
           ) : (
             <button

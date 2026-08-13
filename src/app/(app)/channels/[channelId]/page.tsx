@@ -80,7 +80,7 @@ export default async function ChannelPage({
   const membership = membershipData as ChannelMember | null;
 
   if (!membership) {
-    // Campus + topic channels are open to anyone at the university — offer a
+    // Campus + topic channels are open to anyone at the university, so offer a
     // one-tap join. Course/club channels are managed by enrollment/membership.
     if (channel.kind === "campus" || channel.kind === "topic") {
       async function joinChannel() {

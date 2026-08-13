@@ -14,14 +14,14 @@
  * Entropy estimates on a 12-character string are mostly theatre, and a bar
  * that turns green teaches a student that "Password1!" is safe. What a
  * student actually needs from us is the short list of ways a password fails
- * in practice — too short to bother attacking, a word that is on every
- * cracking list, or their own email address with a digit stuck on the end —
+ * in practice (too short to bother attacking, a word that is on every
+ * cracking list, or their own email address with a digit stuck on the end)
  * and a sentence saying which one happened. The `strength` read exists to
  * label the field, not to gate it: only {@link PasswordCheck.ok} decides
  * whether a form may submit, and it ignores strength entirely.
  *
  * WHY THE EMAIL CHECK. Huddl accounts are university email addresses, which
- * means the local part is usually the student's name or their campus ID —
+ * means the local part is usually the student's name or their campus ID:
  * public, guessable, and the first thing anyone tries. A password that
  * contains it is the one bad password we can actually detect for certain.
  *
@@ -34,7 +34,7 @@
  * Pure: no React, no Supabase, no clock, no network. Both apps carry a copy
  * (this one and `src/lib/password.ts` in the web app); they must agree, or a
  * password accepted on a laptop is refused on the phone that set it. The web
- * copy is the one with the tests — change that one first, then port here.
+ * copy is the one with the tests, so change that one first, then port here.
  */
 
 /**
@@ -49,7 +49,7 @@ export const PASSWORD_MAX_LENGTH = 72;
 
 /**
  * How a password can fail. Each maps to one sentence in
- * {@link describeProblem} — a student sees the sentence, never the tag.
+ * {@link describeProblem}. A student sees the sentence, never the tag.
  */
 export type PasswordProblem =
   | "too-short"
@@ -73,7 +73,7 @@ export type PasswordCheck = {
 
 /*
  * The hundred or so passwords that turn up first in every leaked-credential
- * dump, plus the handful this product invites specifically — a campus app
+ * dump, plus the handful this product invites specifically. A campus app
  * gets "huddl", "password", and the school's own name more than its share.
  * Compared lowercased, so casing variants collapse onto one entry.
  */
@@ -103,7 +103,7 @@ function normalize(value: string): string {
 }
 
 /**
- * The local part of an email, reduced to the name inside it — so
+ * The local part of an email, reduced to the name inside it, so that
  * `ada.lovelace+cs@ucdavis.edu` and `adalovelace@ucdavis.edu` come out as the
  * same stem and a password built from either is caught.
  *
@@ -121,7 +121,7 @@ function emailStem(email: string): string {
 
 /**
  * Does this password read as the student's own email address? True when the
- * password contains the stem, or the stem contains the password — a stem of
+ * password contains the stem, or the stem contains the password. A stem of
  * four characters or fewer is ignored, since short initials collide with
  * ordinary words and we would be refusing good passwords to catch nothing.
  */
@@ -136,10 +136,10 @@ function looksLikeEmail(password: string, email: string | undefined): boolean {
 /**
  * Whether a password may be used, why not if not, and a word for the field.
  *
- * Pass the student's email when you have it — on signup, on the settings
+ * Pass the student's email when you have it: on signup, on the settings
  * change form, anywhere the address is already on screen. The reset-from-link
- * flow does not always know it, and omitting it simply skips that one check
- * rather than failing closed.
+ * flow does not always know it, and omitting it skips that one check rather
+ * than failing closed.
  *
  * ```ts
  * const check = checkPassword(value, { email });
@@ -190,7 +190,7 @@ export function passwordsMatch(password: string, confirmation: string): boolean 
 }
 
 /**
- * The sentence a student reads. Plain, specific, and never scolding — a bad
+ * The sentence a student reads. Plain, specific, and never scolding: a bad
  * password is a thing that happened, not a character flaw.
  */
 export function describeProblem(problem: PasswordProblem): string {
@@ -198,7 +198,7 @@ export function describeProblem(problem: PasswordProblem): string {
     case "too-short":
       return `Passwords need at least ${PASSWORD_MIN_LENGTH} characters.`;
     case "too-long":
-      return `That's longer than ${PASSWORD_MAX_LENGTH} characters — trim it a little.`;
+      return `That's longer than ${PASSWORD_MAX_LENGTH} characters. Trim it a little.`;
     case "too-common":
       return "That one turns up in every leaked-password list. Pick something else.";
     case "looks-like-email":

@@ -162,7 +162,7 @@ describe("threadPreview", () => {
         latestIsMine: false,
         latestAuthorName: null,
       })
-    ).toBe("No messages yet — get it started.");
+    ).toBe("No messages yet. Get it started.");
     expect(
       threadPreview({
         isGroup: false,
@@ -170,7 +170,7 @@ describe("threadPreview", () => {
         latestIsMine: false,
         latestAuthorName: null,
       })
-    ).toBe("No messages yet — say hi!");
+    ).toBe("No messages yet. Say hi.");
   });
 });
 

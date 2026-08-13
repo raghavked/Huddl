@@ -13,7 +13,7 @@ import {
  *
  * `profile_is_complete()` in migration 0047 decides who is verified; this
  * module only explains to a student why they are not. If the two drift, the
- * checklist tells someone they are done while the badge stays off — so the
+ * checklist tells someone they are done while the badge stays off, so the
  * last test here reads the migration off disk and asserts the same fields
  * appear in both.
  */
@@ -31,7 +31,7 @@ describe("verificationGaps", () => {
     expect(verificationGaps(COMPLETE, true)).toEqual([]);
   });
 
-  it("asks for email confirmation first — it's the half that isn't optional", () => {
+  it("asks for email confirmation first: it's the half that isn't optional", () => {
     expect(verificationGaps(COMPLETE, false)).toEqual(["email"]);
     expect(verificationGaps({ ...COMPLETE, major: "" }, false)[0]).toBe("email");
   });

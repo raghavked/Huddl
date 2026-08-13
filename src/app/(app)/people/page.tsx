@@ -35,7 +35,7 @@ type DirectoryRow = Pick<
  * strip private profiles down to handle + avatar before anything ships to the
  * client (the viewer always sees their own full card).
  *
- * `?interest=` narrows the list to one shared interest — the chips on a
+ * `?interest=` narrows the list to one shared interest. The chips on a
  * profile link here, so "she's into intramurals too" is one click from the
  * people who are. Interests are stored lowercase and deduped by 0034's
  * trigger, so the match is a plain lookup. A private profile is left out of a
@@ -122,7 +122,7 @@ export default async function PeoplePage({
         title="People"
         description={
           interest === null
-            ? `${count} ${plural} at ${user.university.short_name} — find classmates to trade notes or study with.`
+            ? `${count} ${plural} at ${user.university.short_name}. Find classmates to trade notes or study with.`
             : `${count} ${plural} at ${user.university.short_name} into ${interest}.`
         }
       />

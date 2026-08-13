@@ -60,7 +60,7 @@ export default async function NewEventPage({
         title="Plan an event"
         description={
           club
-            ? `A ${club.name} event — everyone at ${user.university.short_name} can see it and RSVP.`
+            ? `A ${club.name} event. Everyone at ${user.university.short_name} can see it and RSVP.`
             : `A study session for your class or a meetup for everyone at ${user.university.short_name}.`
         }
       />

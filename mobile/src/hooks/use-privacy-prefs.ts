@@ -7,7 +7,7 @@ import { useAuth } from "@/providers/auth-provider";
  *
  * The standard every preference in here is held to: a control must be
  * honestly enforceable. If nothing in the app or the database can make the
- * sentence under a switch true, the switch does not ship — see the read
+ * sentence under a switch true, the switch does not ship. See the read
  * receipts note below for the one that was taken back out. Two preferences
  * clear that bar today, and they clear it in different places.
  *
@@ -16,19 +16,19 @@ import { useAuth } from "@/providers/auth-provider";
  * One boolean, `not null default true`, and RECIPROCAL by design: turning
  * yours off stops your signal going out AND stops everyone else's coming in.
  * A one-sided view of who is composing is a trap, not a feature, so every
- * reader of this hook honours both halves — `use-typing.ts` is the only one,
+ * reader of this hook honours both halves. `use-typing.ts` is the only one,
  * and it does. That is a client-side promise, kept by exactly one file.
  *
  * ## Who can start a DM with you (`profiles.dm_privacy`, 0040)
  *
- * Three values, widest first: `campus` (anyone who can find you — the column
+ * Three values, widest first: `campus` (anyone who can find you, the column
  * default, and what Huddl has always done), `classmates` (only people you
  * share a course with, this term or a past one), `nobody`.
  *
  * This one is not enforced here at all, and that is the point. The refusal
  * lives in `create_dm_thread`, `create_group_thread` and
  * `add_to_group_thread`, which between them are the only way two people can
- * end up in a thread — `dm_threads` and `dm_participants` have no INSERT
+ * end up in a thread. `dm_threads` and `dm_participants` have no INSERT
  * policy whatsoever. So a stale cache, an old build, or a client that never
  * heard of the column cannot widen anyone's inbox by a single person.
  *
@@ -43,8 +43,8 @@ import { useAuth } from "@/providers/auth-provider";
  * 0033 added `profiles.share_read_receipts` beside `share_typing`, and this
  * hook used to carry both. It shouldn't have: Huddl has no read receipt. No
  * screen anywhere shows one person whether another has opened a message, and
- * the only thing the column could have gated — `channel_members.last_read_at`
- * and `dm_participants.last_read_at` — is the app's own unread cursor, the
+ * the only thing the column could have gated (`channel_members.last_read_at`
+ * and `dm_participants.last_read_at`) is the app's own unread cursor, the
  * thing that decides whether YOUR rooms show a dot. Refusing to advance it
  * would not hide a receipt nobody draws; it would light up every room the
  * student had already read, forever, as the price of a privacy switch.
@@ -52,10 +52,10 @@ import { useAuth } from "@/providers/auth-provider";
  * So the switch was removed rather than left inert. A toggle that writes a
  * column nothing consults, under a caption promising classmates "stop seeing
  * when you've read a message", is a false statement about a student's own
- * privacy — and it discredits the one beside it that genuinely works.
+ * privacy, and it discredits the one beside it that genuinely works.
  *
  * The column stays in the database. The day Huddl actually renders a receipt,
- * the preference comes back here, gated at the surface that draws it — not at
+ * the preference comes back here, gated at the surface that draws it, not at
  * the cursor that tracks unread.
  *
  * The answer is cached at module level and shared by every screen that asks:
@@ -64,12 +64,12 @@ import { useAuth } from "@/providers/auth-provider";
  * so the switch on the settings screen and the behaviour in a room can never
  * disagree.
  *
- * Both preferences read as their COLUMN DEFAULT until the row says otherwise
- * — while the query is in flight, after a failed load, and when nobody is
+ * Both preferences read as their COLUMN DEFAULT until the row says otherwise.
+ * That covers the query being in flight, a failed load, and nobody being
  * signed in. Typing is on, DMs are open to campus: in each case that is also
  * the way the app behaved before the choice existed, so nothing blinks off
  * during a first paint and then back on. It is the safe direction for both,
- * for opposite reasons — the typing default is reciprocal so it costs nobody
+ * for opposite reasons: the typing default is reciprocal so it costs nobody
  * anything, and the DM default is only a label on a control the database is
  * the one actually enforcing.
  */
@@ -77,7 +77,7 @@ import { useAuth } from "@/providers/auth-provider";
 /* ------------------------------ shapes ------------------------------ */
 
 /**
- * Who may START a new conversation with you — the three values
+ * Who may START a new conversation with you: the three values
  * `profiles.dm_privacy` accepts, and the only three it ever will: the column
  * carries a check constraint, and `dm_privacy_allows` fails closed on
  * anything it doesn't recognise.
@@ -93,11 +93,11 @@ export const DM_PRIVACY_OPTIONS: readonly DmPrivacy[] = [
 
 /** The student's privacy choices, in the app's names rather than the column's. */
 export type PrivacyPrefs = {
-  /** False stops you broadcasting "typing…" — and hides everyone else's. */
+  /** False stops you broadcasting "typing…", and hides everyone else's. */
   shareTyping: boolean;
   /**
    * Who may open a NEW thread with you, 1:1 or group. Enforced in the three
-   * thread-creating RPCs, never on this side — see the header.
+   * thread-creating RPCs, never on this side. See the header.
    */
   dmPrivacy: DmPrivacy;
 };
@@ -121,14 +121,14 @@ export type PrivacyPrefsApi = {
   prefs: PrivacyPrefs;
   /** True until the first answer lands for the signed-in student. */
   loading: boolean;
-  /** Load failure, written for a person — pair it with a "Try again". */
+  /** Load failure, written for a person. Pair it with a "Try again". */
   error: string | null;
   /** The last failed write, written for a person. Clears on the next change. */
   saveError: PrivacySaveError | null;
   /**
    * Change one preference. Optimistic: the control moves immediately, and
    * rolls back with {@link PrivacyPrefsApi.saveError} set if the row
-   * disagrees. Resolves true when it stuck — false when it didn't, which
+   * disagrees. Resolves true when it stuck, false when it didn't, which
    * includes a newer change to the same control overtaking this one before it
    * was sent.
    */
@@ -136,7 +136,7 @@ export type PrivacyPrefsApi = {
     key: K,
     next: PrivacyPrefs[K]
   ) => Promise<boolean>;
-  /** Re-read the row — for a pull-to-refresh or a retry button. */
+  /** Re-read the row, for a pull-to-refresh or a retry button. */
   refresh: () => Promise<void>;
 };
 
@@ -153,7 +153,7 @@ const COLUMN: Record<PrivacyPrefKey, string> = {
 };
 
 const LOAD_ERROR =
-  "We couldn't check your privacy settings just now. Nothing changed — check your connection and give it another go.";
+  "We couldn't check your privacy settings just now. Nothing changed. Check your connection and give it another go.";
 
 /** One per control, because "give it another flip" is wrong for a picker. */
 const SAVE_ERROR: Record<PrivacyPrefKey, string> = {
@@ -187,7 +187,7 @@ let store: Store = {
 /**
  * What the row is known to hold: the values a load read, advanced only by a
  * write the database accepted. `store.prefs` runs ahead of this while a write
- * is in flight, which is the point — a rollback aims here rather than at
+ * is in flight, which is the point: a rollback aims here rather than at
  * whatever the store held a moment earlier, because that may itself have been
  * an optimistic guess from a tap that never reached the row.
  */
@@ -217,7 +217,7 @@ function snapshot(): Store {
   return store;
 }
 
-/** The three literals, as a guard — used on the row and on the way in. */
+/** The three literals, as a guard, used on the row and on the way in. */
 function isDmPrivacy(value: unknown): value is DmPrivacy {
   return value === "campus" || value === "classmates" || value === "nobody";
 }
@@ -225,7 +225,7 @@ function isDmPrivacy(value: unknown): value is DmPrivacy {
 /**
  * Set one key without letting TypeScript widen the rest. The value arrives as
  * the union of everything a preference can hold, so each branch re-checks the
- * shape it wants and leaves the object alone if it isn't that — the switch is
+ * shape it wants and leaves the object alone if it isn't that. The switch is
  * here precisely so a third preference can't be set loosely.
  */
 function withPref(
@@ -245,14 +245,14 @@ function withPref(
  * Narrow the profiles row. The client is untyped, so both fields fall back
  * rather than trusting whatever arrived.
  *
- * `share_typing`: anything that isn't a literal `false` — a missing column, a
- * null, a string — reads as sharing. True is the column default and the
+ * `share_typing`: anything that isn't a literal `false` (a missing column, a
+ * null, a string) reads as sharing. True is the column default and the
  * pre-existing behaviour, so an odd row can't quietly opt a student out of
  * something they never turned off.
  *
  * `dm_privacy`: anything unrecognised reads as 'campus', the column default
  * and the widest of the three. That direction is deliberate. This cache only
- * *labels* the control — the RPCs do the refusing — so falling back wide can
+ * *labels* the control (the RPCs do the refusing), so falling back wide can
  * never widen anyone's actual reach, while falling back narrow would draw a
  * student a promise of protection their row might not be making.
  */
@@ -343,7 +343,7 @@ function reset(): void {
  * other. Both UPDATEs went out at once, so PostgREST was free to apply them
  * in either order, and the first one to fail rolled its own now-stale idea of
  * "previous" over the second tap's value. Either way the picker could end up
- * ticking a choice the student never made — and, for `dm_privacy`, promising
+ * ticking a choice the student never made and, for `dm_privacy`, promising
  * a lockdown the row isn't enforcing. Two things stop that, per key:
  *
  * `generation` is bumped by every tap, so a write can tell whether it is
@@ -353,7 +353,7 @@ function reset(): void {
  *
  * `queue` chains the requests, so two writes to one column are never in
  * flight together and the row can't be settled by the older of them. The
- * optimistic patch still happens immediately — it's the request that waits,
+ * optimistic patch still happens immediately; it's the request that waits,
  * not the switch.
  */
 const generation: Record<PrivacyPrefKey, number> = {
@@ -386,7 +386,7 @@ async function writePref<K extends PrivacyPrefKey>(
       .eq("id", userId);
 
     if (error) {
-      // Roll back this key only — a change to the other control in the
+      // Roll back this key only. A change to the other control in the
       // meantime is the student's intent too, and shouldn't be undone by this
       // failure. Aim at the value the row is known to hold, not at whatever
       // was on screen when this write started, so the caption under the
@@ -432,7 +432,7 @@ function usePrivacyStore(): { state: Store; userId: string | null } {
  * Backed by a module-level cache, so several screens can read it without
  * each firing a query.
  *
- * `prefs` is always readable — every preference holds its column default
+ * `prefs` is always readable: every preference holds its column default
  * while the row is in flight and after a failed load, so a surface never
  * flickers a signal off and back on. `loading` is there for a skeleton, not
  * for a guard.
@@ -480,7 +480,7 @@ export function usePrivacyPrefs(): PrivacyPrefsApi {
  * Does this student share typing indicators? False means BOTH halves are
  * off: don't broadcast, and don't surface anyone else's either.
  *
- * True while the preference is still loading — see the note at the top of
+ * True while the preference is still loading. See the note at the top of
  * this file. Reads the same cached row as {@link usePrivacyPrefs}.
  */
 export function useSharesTyping(): boolean {

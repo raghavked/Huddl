@@ -24,21 +24,21 @@ import {
 } from "@/lib/verification";
 import { useAuth } from "@/providers/auth-provider";
 
-/* Same rules as the web account form — one brand, one validation story. */
+/* Same rules as the web account form: one brand, one validation story. */
 const HANDLE_RE = /^[a-z0-9_]{3,24}$/;
 const MAX_BIO_LENGTH = 280;
 
 /* Interests: 0034's normalize trigger trims, lowercases, dedupes and keeps
    the first eight, dropping anything outside 2–28 characters. We hold the
-   same line up front so a word never disappears on the way to the server —
-   but we still send exactly what the student typed and settle on their
+   same line up front so a word never disappears on the way to the server.
+   We still send exactly what the student typed and settle on their
    spelling until the next load. */
 const MAX_INTERESTS = 8;
 const MIN_INTEREST_LENGTH = 2;
 const MAX_INTEREST_LENGTH = 28;
 const MAX_LOOKING_FOR_LENGTH = 140;
 
-/** A campus-flavoured starting vocabulary — tap one, or type your own. */
+/** A campus-flavoured starting vocabulary. Tap one, or type your own. */
 const INTEREST_SUGGESTIONS = [
   "study spots",
   "live music",
@@ -84,7 +84,7 @@ type FieldErrors = {
  * Where the verified badge stands, and what is left to earn it.
  *
  * Sits at the top of the account screen because everything it asks for is on
- * this screen — except confirming the email, which is a link in an inbox. It
+ * this screen, except confirming the email, which is a link in an inbox. It
  * is a checklist rather than a bare "not verified" because the badge is the
  * one thing on a profile a student cannot simply switch on, and being told
  * only that you have failed is no use.
@@ -277,7 +277,7 @@ export default function AccountScreen() {
         .from("avatars")
         .upload(path, buffer, { contentType: "image/jpeg", upsert: true });
       if (uploadError) throw uploadError;
-      // Same path every time — the ?v= stamp is what busts stale caches.
+      // Same path every time. The ?v= stamp is what busts stale caches.
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
       const url = `${data.publicUrl}?v=${Date.now()}`;
       const { error: updateError } = await supabase
@@ -294,7 +294,7 @@ export default function AccountScreen() {
   }, [userId, photoBusy]);
 
   /**
-   * Back to initials — the file goes, not just the link to it.
+   * Back to initials. The file goes, not just the link to it.
    *
    * The avatars bucket is public-read (migration 0008), so clearing
    * `avatar_url` alone would take the photo off the profile and leave the
@@ -311,7 +311,7 @@ export default function AccountScreen() {
 
     /* Empty the folder rather than name one key. This app writes a single
        fixed name and overwrites it, so `${userId}/avatar.jpg` used to be the
-       whole story — but the web uploader writes a fresh timestamped name
+       whole story. But the web uploader writes a fresh timestamped name
        every time, and a student who has ever changed their photo in a browser
        has files here that naming one key walks straight past. Walking past
        them means leaving old photos readable by anyone holding the link,
@@ -372,7 +372,7 @@ export default function AccountScreen() {
       }
       if (interests.length >= MAX_INTERESTS) {
         setInterestHint(
-          `That's ${MAX_INTERESTS} — take one off to add another.`
+          `That's ${MAX_INTERESTS}. Take one off to add another.`
         );
         return false;
       }
@@ -398,7 +398,7 @@ export default function AccountScreen() {
     (suggestion) => !hasInterest(interests, suggestion)
   );
 
-  /* What this switch actually does, said once and used twice — the visible
+  /* What this switch actually does, said once and used twice: the visible
      caption and the label the switch speaks are the same sentence.
 
      It is NOT "appear in the people directory". The profiles SELECT policy
@@ -408,7 +408,7 @@ export default function AccountScreen() {
      disappeared when they hadn't. */
   const publicProfileCaption = `Classmates${
     universityName ? ` at ${universityName}` : ""
-  } see your name, major, year, bio and interests. Turn it off and they see only your handle and your photo — either way you stay listed in the people directory.`;
+  } see your name, major, year, bio and interests. Turn it off and they see only your handle and your photo. Either way you stay listed in the people directory.`;
 
   /** Mirrors the web account form's save: same validation, same update set. */
   const handleSave = useCallback(async () => {
@@ -459,7 +459,7 @@ export default function AccountScreen() {
         grad_year: year,
         bio: bio.trim() || null,
         is_public: isPublic,
-        // 0034's trigger trims, lowercases and dedupes — send what they typed.
+        // 0034's trigger trims, lowercases and dedupes, so send what they typed.
         interests: nextInterests,
         looking_for: lookingFor.trim() || null,
       })
@@ -467,7 +467,7 @@ export default function AccountScreen() {
     setSaving(false);
     if (error) {
       if (error.code === "23505") {
-        setErrors({ handle: "That handle is already taken — try another." });
+        setErrors({ handle: "That handle is already taken. Try another." });
       } else if (error.code === "23514") {
         setErrors({
           handle:
@@ -585,7 +585,7 @@ export default function AccountScreen() {
               We couldn't find your profile
             </AppText>
             <AppText variant="caption" muted style={{ textAlign: "center" }}>
-              Try signing out and back in — that usually clears it up.
+              Try signing out and back in. That usually clears it up.
             </AppText>
           </Card>
         </View>
@@ -764,7 +764,7 @@ export default function AccountScreen() {
                   onChangeText={(t) => setBio(t.slice(0, MAX_BIO_LENGTH))}
                   maxLength={MAX_BIO_LENGTH}
                   multiline
-                  placeholder="A line or two about you — clubs, interests, what you're studying."
+                  placeholder="A line or two about you: clubs, interests, what you're studying."
                   style={{ minHeight: 88, textAlignVertical: "top" }}
                 />
                 <AppText
@@ -878,7 +878,7 @@ export default function AccountScreen() {
                 >
                   {interests.length === 0
                     ? `Optional, and up to ${MAX_INTERESTS}.`
-                    : `${interests.length} of ${MAX_INTERESTS} — tap one to take it off.`}
+                    : `${interests.length} of ${MAX_INTERESTS}. Tap one to take it off.`}
                 </AppText>
               )}
 
@@ -895,7 +895,7 @@ export default function AccountScreen() {
                 >
                   <AppText variant="caption" muted>
                     {interests.length >= MAX_INTERESTS
-                      ? "Or start from one of these — take one off first"
+                      ? "Or start from one of these, once you take one off"
                       : "Or start from one of these"}
                   </AppText>
                   <View
@@ -942,7 +942,7 @@ export default function AccountScreen() {
                   }
                 >
                   {lookingFor.trim().length === 0
-                    ? "One line near the top of your profile — people to run with, a study group for the midterm, a ride home for break."
+                    ? "One line near the top of your profile: people to run with, a study group for the midterm, a ride home for break."
                     : `${lookingFor.length}/${MAX_LOOKING_FOR_LENGTH}`}
                 </AppText>
               </View>

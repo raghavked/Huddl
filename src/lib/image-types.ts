@@ -4,7 +4,7 @@
  * Three file inputs used to say `accept="image/*"` and check
  * `file.type.startsWith("image/")`, which reads as "any image" and means
  * something slightly different: `image/svg+xml` passes both. An SVG is not a
- * picture in the sense meant here — it is a document, it can carry a
+ * picture in the sense meant here. It is a document, it can carry a
  * `<script>` element, and the avatars bucket is public, so opening its URL
  * runs that script in the storage domain's origin. Not a route into anyone's
  * account, since no Huddl session lives on that origin, but a way to host an
@@ -15,7 +15,7 @@
  * upload their own face and has no idea why. Every raster format a phone or
  * a laptop is likely to hand over is here. Migration 0044 puts the identical
  * list on the `avatars` and `chat-uploads` buckets, so the server enforces
- * what these inputs merely ask for — this side exists to turn a rejection
+ * what these inputs merely ask for. This side exists to turn a rejection
  * into a sentence the student can act on.
  */
 export const ACCEPTED_IMAGE_TYPES: readonly string[] = [

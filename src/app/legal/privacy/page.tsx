@@ -5,7 +5,7 @@ import { LegalPage } from "../legal-page";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "What Huddl collects, who can see what, and how to delete it all — no ads, no data sale, nothing shared with your university.",
+    "What Huddl collects, who can see what, and how to delete it all. No ads, no data sale, nothing shared with your university.",
 };
 
 export default function PrivacyPage() {

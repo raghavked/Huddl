@@ -16,7 +16,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
-/* Minimal local row shapes — the web app's types live outside this tsconfig.
+/* Minimal local row shapes: the web app's types live outside this tsconfig.
    Mirrors the web events page query, simplified: upcoming only, no kind
    filters in v1. */
 
@@ -59,7 +59,7 @@ type EventItem = {
 };
 
 /** The chip on a row I've answered: fern for yes, quiet for a maybe. A "no"
-    needs no pill — the row is just an event I'm not going to. */
+    needs no pill, since the row is just an event I'm not going to. */
 function statusChip(
   status: RsvpStatus
 ): { label: string; tone: ChipTone } | null {
@@ -68,7 +68,7 @@ function statusChip(
   return null;
 }
 
-/** "Sat, Aug 9 · 3:00 PM–5:00 PM" — local device time, like the web. */
+/** "Sat, Aug 9 · 3:00 PM–5:00 PM" in local device time, like the web. */
 function formatEventTime(startIso: string, endIso: string | null): string {
   const start = new Date(startIso);
   const datePart = start.toLocaleDateString([], {
@@ -88,7 +88,7 @@ function formatEventTime(startIso: string, endIso: string | null): string {
   return `${datePart} · ${startTime}–${endTime}`;
 }
 
-/** Weekday-over-day tile — accent, per the calendar-row convention. */
+/** Weekday-over-day tile, accent, per the calendar-row convention. */
 function DateTile({ iso }: { iso: string }) {
   const theme = useTheme();
   const d = new Date(iso);
@@ -173,7 +173,7 @@ function EventRow({ event, index }: { event: EventItem; index: number }) {
       <Card
         padded={false}
         entrance={index}
-        // A date tile, a title, a time, a headcount — one thing, not four.
+        // A date tile, a title, a time, a headcount: one thing, not four.
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         style={{
@@ -454,7 +454,7 @@ export default function EventsScreen() {
                   accessibilityLiveRegion="polite"
                   style={{ color: theme.danger }}
                 >
-                  We couldn't refresh just now — pull down to try again.
+                  We couldn't refresh just now. Pull down to try again.
                 </AppText>
               ) : null}
             </View>

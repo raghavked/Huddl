@@ -24,7 +24,7 @@ export const metadata: Metadata = {
  * The badge is read here, on the server, so the common paths render without
  * waiting on the browser: a moderator's first paint already has their queue in
  * it, and a student who wandered in gets the warm door with no spinner in
- * front of it. Only the two moving parts — the status filter and triage — need
+ * front of it. Only the two moving parts (the status filter and triage) need
  * the client, and `@/features/moderation/queue` owns those.
  *
  * A failure to read the badge is not a locked door: `initialModerator` goes

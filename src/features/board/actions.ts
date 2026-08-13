@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
  * Migration 0034 gave `reports` a `board_post_id` and widened the
  * "reports_have_subject" check to accept it, so a campus-wide post can be
  * named directly instead of being described in the reason. The author rides
- * along as `reported_user_id` — `board_post_id` is `on delete set null`, so a
+ * along as `reported_user_id`. `board_post_id` is `on delete set null`, so a
  * report survives the author taking the post down, and moderators keep the
  * record either way.
  *
@@ -70,7 +70,7 @@ export async function reportBoardPost(
     return { error: "Couldn't send the report. Please try again." };
   }
   if (!post) {
-    return { error: "Couldn't find that post — it may have come down already." };
+    return { error: "Couldn't find that post. It may have come down already." };
   }
   if (post.author_id === user.id) {
     return { error: "You can't report your own post." };

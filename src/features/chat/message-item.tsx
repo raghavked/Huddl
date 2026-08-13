@@ -77,7 +77,7 @@ export function useReactions(userId: string) {
       const mine = (stateRef.current[messageId] ?? []).some(
         (r) => r.user_id === userId && r.emoji === emoji
       );
-      // Optimistic flip first — the pill responds instantly.
+      // Optimistic flip first, so the pill responds instantly.
       setByMessage((prev) => {
         const rows = prev[messageId] ?? [];
         return {
@@ -108,7 +108,7 @@ export function useReactions(userId: string) {
         : await supabase
             .from("message_reactions")
             .insert({ message_id: messageId, user_id: userId, emoji });
-      // 23505 = we already had it (double-tap race) — the optimistic state is
+      // 23505 = we already had it (double-tap race), so the optimistic state is
       // fine to keep. Anything else: fall back to server truth for this row.
       if (error && error.code !== "23505") {
         await loadReactions([messageId]);
@@ -141,19 +141,19 @@ export function MessageItem({
 }: {
   message: MessageWithAuthor;
   userId: string;
-  /** Continuation of the previous author's burst — hides avatar + header. */
+  /** Continuation of the previous author's burst; hides avatar + header. */
   grouped?: boolean;
   reactions?: MessageReaction[];
   replyCount?: number;
-  /** Whether this message is in my private saved list — drives the label. */
+  /** Whether this message is in my private saved list. Drives the label. */
   saved?: boolean;
   onToggleReaction?: (messageId: string, emoji: string) => void;
   onOpenThread?: (messageId: string) => void;
   onEdit?: (messageId: string, content: string) => void;
   onDelete?: (messageId: string) => void;
-  /** Pin/unpin from the toolbar — any channel member can (RPC enforces). */
+  /** Pin/unpin from the toolbar. Any channel member can (RPC enforces). */
   onTogglePin?: (messageId: string, pinned: boolean) => void;
-  /** Save/unsave privately — nobody else ever sees this flag. */
+  /** Save/unsave privately. Nobody else ever sees this flag. */
   onToggleSaved?: (messageId: string, save: boolean) => void;
 }) {
   const isOwn = message.author_id === userId;
@@ -228,7 +228,7 @@ export function MessageItem({
   }
 
   /**
-   * Nothing closes the panel while a report is in flight — on a slow network
+   * Nothing closes the panel while a report is in flight. On a slow network
    * the answer, sent or failed, has to land somewhere the reporter is still
    * looking. The draft survives an ordinary close, so reopening the flag
    * picks up where they left off rather than starting the report again.
@@ -248,7 +248,7 @@ export function MessageItem({
     setReportPending(true);
     setReportError(null);
     // `reports.reason` is not nullable, and a student who picked a category
-    // and had nothing to add has still said something — send the words they
+    // and had nothing to add has still said something, so send the words they
     // chose rather than making the note compulsory.
     const detail = reportDetail.trim();
     // A server action is an HTTP POST: offline or a 500 rejects rather than
@@ -263,7 +263,7 @@ export function MessageItem({
       );
       failure = result.error;
     } catch {
-      failure = "Couldn't send that report — check your connection and try again.";
+      failure = "Couldn't send that report. Check your connection and try again.";
     } finally {
       setReportPending(false);
     }
@@ -375,7 +375,7 @@ export function MessageItem({
             </div>
           </div>
         ) : message.poll_id ? (
-          // The message is a poll carrier — render the live poll in place of
+          // The message is a poll carrier, so render the live poll in place of
           // the text (content duplicates the question for previews/search).
           <PollBubble
             pollId={message.poll_id}
@@ -434,7 +434,7 @@ export function MessageItem({
                 onClick={() => onToggleReaction?.(message.id, emoji)}
                 disabled={!onToggleReaction}
                 aria-pressed={group.mine}
-                aria-label={`${emoji} — ${group.count} ${
+                aria-label={`${emoji}, ${group.count} ${
                   group.count === 1 ? "reaction" : "reactions"
                 }${group.mine ? ", including yours" : ""}`}
                 className={cn(
@@ -472,7 +472,7 @@ export function MessageItem({
             className="mt-1 flex w-fit items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-medium text-success"
           >
             <Flag className="size-3" aria-hidden />
-            Report sent — a person reads it within 24 hours.
+            Report sent. A person reads it within 24 hours.
           </p>
         ) : null}
       </div>
@@ -641,7 +641,7 @@ export function MessageItem({
                       Report this message
                     </p>
                     <p className="mt-0.5 text-[11px] leading-snug text-muted">
-                      Reports are private — they won&apos;t know it was you. A
+                      Reports are private. They won&apos;t know it was you. A
                       person reads every one within 24 hours.
                     </p>
 

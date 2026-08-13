@@ -49,7 +49,7 @@ import type { EnrollmentSource } from "@/lib/types";
 export const metadata: Metadata = { title: "My courses" };
 
 // 'canvas' / 'schedule_image' are historical sources from retired import
-// flows — old rows keep them, so they render as a plain history label.
+// flows. Old rows keep them, so they render as a plain history label.
 const SOURCE_META: Record<
   EnrollmentSource,
   { label: string; icon: LucideIcon }
@@ -69,7 +69,7 @@ const ERRORS: Record<string, string> = {
 
 /**
  * Drop a course. Deleting the enrollment fires the DB trigger that also
- * removes the matching course-channel membership — no extra cleanup here.
+ * removes the matching course-channel membership. No extra cleanup here.
  *
  * This is the destructive path. Shelving is {@link shelveCourse} and it
  * deletes nothing.
@@ -101,7 +101,7 @@ async function dropCourse(formData: FormData) {
 /**
  * Shelve a finished class: `enrollments.archived_at` gets a timestamp and
  * nothing else moves. The channel membership, the chat, the notes and the
- * calendar history all stay exactly where they were — the class just stops
+ * calendar history all stay exactly where they were. The class just stops
  * crowding this quarter's list.
  */
 async function shelveCourse(formData: FormData) {
@@ -162,11 +162,11 @@ async function unshelveCourse(formData: FormData) {
  * The colour is personal: it goes on the student's own `enrollments` row,
  * scoped by `user_id` as well as `id`, and no classmate ever sees it.
  *
- * BACKEND GAP — READ BEFORE DEBUGGING A COLOUR THAT WON'T STICK.
+ * BACKEND GAP: READ BEFORE DEBUGGING A COLOUR THAT WON'T STICK.
  * Migration 0029 revoked blanket UPDATE on `enrollments` and granted it back
  * one column at a time; 0032 added `color` without extending that grant. Until
  * it does, every write here is refused and the swatch snaps back with the
- * apology in {@link ERRORS} — which is the honest behaviour, not a bug on this
+ * apology in {@link ERRORS}, which is the honest behaviour, not a bug on this
  * page. The fix is one line:
  *
  *   grant update (color) on public.enrollments to authenticated;
@@ -201,8 +201,8 @@ async function paintCourse(formData: FormData) {
     .select("id, color")
     .maybeSingle();
 
-  // No row back means RLS refused the update and PostgREST reported no error —
-  // the same silent no-op `@/lib/course-archive` guards against.
+  // No row back means RLS refused the update and PostgREST reported no
+  // error, the same silent no-op `@/lib/course-archive` guards against.
   if (error || data === null) redirect("/courses?error=color");
   revalidatePath("/courses");
   redirect("/courses");
@@ -298,7 +298,7 @@ function ActiveCourseCard({
         </span>
       </Link>
 
-      {/* Native popover confirms — top-layer, light dismiss, no client JS,
+      {/* Native popover confirms: top-layer, light dismiss, no client JS,
           so this page stays a server component. */}
       <div
         id={colorId}
@@ -312,7 +312,7 @@ function ActiveCourseCard({
           {course.code}&apos;s colour
         </h2>
         <p id={`${colorId}-body`} className="mt-1.5 text-sm text-muted">
-          Yours alone — your lab partner can give the same class a different
+          Yours alone. Your lab partner can give the same class a different
           one, and neither of you ever sees the other&apos;s.
         </p>
         <form action={paintCourse} className="mt-4">
@@ -369,7 +369,7 @@ function ActiveCourseCard({
           Shelve {course.code}?
         </h2>
         <p id={`${shelveId}-body`} className="mt-1.5 text-sm text-muted">
-          Chat and notes stay put — you keep the {course.code} channel and
+          Chat and notes stay put. You keep the {course.code} channel and
           everything in it. The class just stops showing up in this quarter&apos;s
           lists, and you can bring it back whenever you like.
         </p>
@@ -450,7 +450,7 @@ function ArchivedCourseRow({
   return (
     <li className="flex items-center gap-3 px-4 py-3">
       {/* The tint carries over onto the shelf, so a class you're digging back
-          into is the colour you remember it being. Soft fill, ink hairline —
+          into is the colour you remember it being. Soft fill, ink hairline:
           a wash this small would otherwise be invisible on cream. */}
       <span
         className={cn(
@@ -516,7 +516,7 @@ export default async function CoursesPage({
   /* The student's own tints, in a second small query rather than widened onto
      `MY_COURSES_SELECT`: the colour is this page's business, and every other
      caller of `fetchMyCourses` would otherwise pay for a column it ignores.
-     A failure here is not worth an error — the hash fallback is a perfectly
+     A failure here is not worth an error. The hash fallback is a perfectly
      good answer, so the page just draws the default tints. */
   const { data: colorRows } = await supabase
     .from("enrollments")
@@ -582,7 +582,7 @@ export default async function CoursesPage({
             }
             description={
               archived.length === 0
-                ? "Add your classes to unlock course chat, shared notes and your classmate list — each course gets its own channel automatically."
+                ? "Add your classes and each one opens its own channel, with shared notes and your classmate list inside."
                 : "Add this quarter's classes, or bring one back off the shelf below."
             }
             action={addButton}
@@ -635,7 +635,7 @@ export default async function CoursesPage({
 
           <p className="mt-2 px-1 text-xs leading-relaxed text-muted text-pretty">
             Finished classes, kept whole. Their chat, notes and calendar are
-            all still here — bring one back any time.
+            all still here. Bring one back any time.
           </p>
 
           <div className="mt-3 flex flex-col gap-5">

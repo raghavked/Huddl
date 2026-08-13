@@ -32,7 +32,7 @@ function WeightWarning({ message }: { message: string }) {
 }
 
 /**
- * The estimate card, or — before there's anything to estimate from — the
+ * The estimate card, or (before there's anything to estimate from) the
  * dashed invitation that replaces it. Both branches carry the weight warning,
  * because a syllabus that doesn't add to 100 is worth knowing about from the
  * first category.
@@ -88,7 +88,7 @@ export function EstimateCard({
       <p className="text-xs leading-relaxed text-muted">{estimate.note}</p>
       {warning ? <WeightWarning message={warning} /> : null}
       <p className="text-xs leading-relaxed text-muted">
-        An estimate, not a grade of record — instructors curve, drop a low
+        An estimate, not a grade of record. Instructors curve, drop a low
         score, and round their own way.
       </p>
     </Card>

@@ -38,7 +38,7 @@ import {
 } from "@/lib/moderation";
 import { cn } from "@/lib/utils";
 
-/* Reports — the moderation queue's front door.
+/* Reports: the moderation queue's front door.
  *
  * Reports have been piling up since migration 0015 with triage locked behind
  * the service role. 0034 hands a few students the key, and this is the room it
@@ -52,13 +52,13 @@ import { cn } from "@/lib/utils";
  *
  * The one thing this insists on is context. A moderator should be able to
  * decide without leaving: the category the reporter picked, what the subject
- * actually was, the reporter's reason IN FULL (that's the substance — nothing
- * here truncates it to a tidy line), and the reported words themselves quoted
- * in a well. When the subject can't be shown — deleted, or in a channel this
- * moderator never joined — the card says so in a sentence instead of leaving a
- * gap the reader has to interpret. Every one of those decisions comes from the
- * one call to `reportSubject`, so the title, the quote and the link can never
- * disagree.
+ * actually was, the reporter's reason IN FULL (nothing here truncates it to a
+ * tidy line, because that reason is the substance), and the reported words
+ * themselves quoted in a well. When the subject can't be shown, whether it was
+ * deleted or sits in a channel this moderator never joined, the card says so in
+ * a sentence instead of leaving a gap the reader has to interpret. Every one of
+ * those decisions comes from the one call to `reportSubject`, so the title, the
+ * quote and the link can never disagree.
  *
  * Triage is optimistic and reversible. A click starts the card leaving straight
  * away; the write goes out alongside it and the card is only really dropped
@@ -97,7 +97,7 @@ function WellLabel({ children }: { children: React.ReactNode }) {
  *
  * `reported_content` hands back an author id rather than a person, and the
  * only person this card can put a name to is the one the report was filed
- * against — so the name is used only when those two ids are the same. Anyone
+ * against, so the name is used only when those two ids are the same. Anyone
  * else stays unnamed rather than guessed at, on a card whose whole job is
  * deciding something about a named person.
  */
@@ -116,7 +116,7 @@ function byline(
 }
 
 /**
- * A reported message the queue query couldn't carry — a channel this moderator
+ * A reported message the queue query couldn't carry: a channel this moderator
  * isn't in, or a direct message, which no moderator is ever a participant of.
  *
  * Deliberately behind a click rather than loaded with the list. These are
@@ -170,7 +170,7 @@ function HiddenMessage({
     <div className="flex flex-col items-start gap-2">
       {/* The button that asked for these words is gone by the time they land,
           taking the reader's focus with it, so this region is mounted with the
-          card and swaps its contents in place — a live region that appears at
+          card and swaps its contents in place, a live region that appears at
           the same moment as its text is announced by nothing. */}
       <div
         ref={revealedRef}
@@ -235,7 +235,7 @@ function HiddenMessage({
 }
 
 /**
- * What was reported, quoted — or a sentence saying where it went.
+ * What was reported, quoted, or a sentence saying where it went.
  *
  * A soft-deleted message keeps its content here on purpose: "they took it down
  * after being reported" is the most useful thing a moderator can know, and
@@ -247,7 +247,7 @@ function Subject({ report, now }: { report: ModerationReport; now: Date }) {
   if (subject.kind === "gone") {
     /* A message we can't embed isn't necessarily a message we can't read.
        `messages` is channel-member-only and `dm_messages` is participant-only,
-       so a moderator triaging a channel they never joined — or any DM at all —
+       so a moderator triaging a channel they never joined, or any DM at all,
        used to be judging words they couldn't see. `reported_content()` is the
        one narrow way through, so offer it rather than the shrug. */
     if (subject.was === "message") {
@@ -337,7 +337,7 @@ function Subject({ report, now }: { report: ModerationReport; now: Date }) {
  * One report, whole: what kind of thing was flagged, who flagged it and when,
  * why in their own words, the words themselves, and the two ways out.
  *
- * The settle is the only animation here and it reports a completion — the card
+ * The settle is the only animation here and it reports a completion: the card
  * you just triaged leaving the pile it's no longer in. It runs the moment you
  * click, alongside the write rather than after it, so the click feels answered;
  * a refusal retraces the same curve back and the card stays put. Reduce motion
@@ -375,7 +375,7 @@ function ReportCard({
       aria-busy={settling || undefined}
     >
       <div className="flex flex-col gap-2.5 p-4">
-        {/* The reporter's own pick, in their words. Brand, never danger — a
+        {/* The reporter's own pick, in their words. Brand, never danger: a
             category is what this is about, not a verdict on it. */}
         <Badge tone="brand" className="self-start">
           {categoryLabel(report.category)}
@@ -455,8 +455,8 @@ const EMPTIES: Record<ReportStatus, { title: string; body: string }> = {
 /**
  * The whole moderation page below its title.
  *
- * `initialModerator` is `null` only when the server couldn't read the badge —
- * the retry button re-runs that check in the browser, so a hiccup on the way
+ * `initialModerator` is `null` only when the server couldn't read the badge.
+ * The retry button re-runs that check in the browser, so a hiccup on the way
  * in never leaves a moderator locked out of their own queue.
  */
 export function ModerationQueue({
@@ -489,7 +489,7 @@ export function ModerationQueue({
     id: string;
     message: string;
   } | null>(null);
-  // Every "3h ago" on the page reads off one moment, refreshed with the list —
+  // Every "3h ago" on the page reads off one moment, refreshed with the list,
   // so two cards can't disagree about what "now" is.
   const [now, setNow] = useState(() => new Date(nowIso));
 
@@ -533,7 +533,7 @@ export function ModerationQueue({
   const pickFilter = useCallback(
     (next: ReportStatus) => {
       if (next === status || loading) return;
-      // A different pile is a different query — clear the rows rather than
+      // A different pile is a different query, so clear the rows rather than
       // leaving one pile's cards sitting under another's chip.
       setStatusFilter(next);
       setReports(null);
@@ -588,7 +588,7 @@ export function ModerationQueue({
           illustration={<HuddleScene />}
           icon={ShieldCheck}
           title="This one's for the moderators"
-          description="A few students look after campus here — they read what gets flagged and decide what happens next. Anything you've reported is already with them."
+          description="A few students look after campus here. They read what gets flagged and decide what happens next. Anything you've reported is already with them."
         />
       </div>
     );
@@ -624,7 +624,7 @@ export function ModerationQueue({
     <div>
       <div className="mt-6 flex items-center justify-between gap-3">
         <p className="min-w-0 text-sm text-muted text-pretty">
-          What campus has flagged. Take them one at a time — there&apos;s no
+          What campus has flagged. Take them one at a time. There&apos;s no
           clock on this.
         </p>
         <Button

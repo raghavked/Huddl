@@ -24,7 +24,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /* Your block list: everyone you've blocked, with a one-tap way back.
-   Unblocking is optimistic — the row leaves immediately and returns
+   Unblocking is optimistic: the row leaves immediately and returns
    (with a gentle note) only if the server disagrees. */
 
 type BlockedProfile = {
@@ -56,7 +56,7 @@ function initialsOf(name: string): string {
  * neutral `surface2` circle with muted initials, no photo and no tint.
  *
  * `Avatar` colors its initials circle by a stable hash of the name, which is
- * exactly right everywhere you want to recognize someone at a glance — and
+ * exactly right everywhere you want to recognize someone at a glance, and
  * wrong here. This list is a settings chore, not a room full of people: a
  * column of ember and fern circles turns "who I've quietly blocked" into
  * something that looks like a friends list, and we deliberately don't render
@@ -115,9 +115,9 @@ function BlockedRowCard({
         marginBottom: space.room,
       }}
     >
-      {/* Not `Avatar` on purpose — see MutedInitials above. */}
+      {/* Not `Avatar` on purpose. See MutedInitials above. */}
       <MutedInitials name={person.display_name} />
-      {/* One person, said once — the button beside it stays its own target. */}
+      {/* One person, said once. The button beside it stays its own target. */}
       <View
         accessible
         accessibilityLabel={`${person.display_name}, @${person.handle}`}
@@ -219,7 +219,7 @@ export default function BlockedPeopleScreen() {
       } catch {
         setPeople(previous);
         setRowError(
-          `We couldn't unblock ${person.display_name} just now — give it another try.`
+          `We couldn't unblock ${person.display_name} just now. Give it another try.`
         );
       } finally {
         setUnblockingId(null);
@@ -285,7 +285,7 @@ export default function BlockedPeopleScreen() {
       </AppText>
 
       {loading ? (
-        // The row shape is honest here — ghost it rather than spin.
+        // The row shape is honest here, so ghost it rather than spin.
         <View style={{ flex: 1 }}>
           {[0, 1, 2].map((index) => (
             <SkeletonRow key={index} />
@@ -340,7 +340,7 @@ export default function BlockedPeopleScreen() {
                 accessibilityLiveRegion="polite"
                 style={{ color: theme.danger, marginBottom: space.room }}
               >
-                {rowError ?? "We couldn't refresh just now — pull down to try again."}
+                {rowError ?? "We couldn't refresh just now. Pull down to try again."}
               </AppText>
             ) : null
           }

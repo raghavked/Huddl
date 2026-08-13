@@ -13,13 +13,13 @@ import { cn } from "@/lib/utils";
 
 /**
  * One saved message, flattened by the server page so the client never has to
- * know which side of the bookmark it came from — only `kind`, which picks the
+ * know which side of the bookmark it came from: only `kind`, which picks the
  * column to delete by when the row is let go.
  */
 export type SavedItem = {
   /** Which subject column the bookmark uses (exactly one is ever set). */
   kind: "channel" | "dm";
-  /** messages.id or dm_messages.id — the bookmark's subject. */
+  /** messages.id or dm_messages.id: the bookmark's subject. */
   messageId: string;
   /** When the message itself was sent. */
   sentAt: string;
@@ -34,8 +34,8 @@ export type SavedItem = {
 
 /**
  * The /saved list: your private pins, newest save first. Each row carries
- * enough to place the message — who said it, where, and when — and a single
- * button to let it go again (optimistic, restored if the server disagrees).
+ * enough to place the message: who said it, where, and when. One button lets
+ * it go again (optimistic, restored if the server disagrees).
  */
 /** Same bookmark? Both halves, since the two id columns are separate tables. */
 function sameItem(a: SavedItem, b: SavedItem): boolean {
@@ -55,7 +55,7 @@ export function SavedList({
   async function handleRemove(item: SavedItem) {
     setError(null);
     // Optimistic: the row leaves now. On failure it slides back into the
-    // same slot — restoring by index rather than by snapshot, so a second
+    // same slot, restoring by index rather than by snapshot, so a second
     // removal in flight doesn't get resurrected along with it.
     const index = items.findIndex((row) => sameItem(row, item));
     setItems((prev) => prev.filter((row) => !sameItem(row, item)));
@@ -72,7 +72,7 @@ export function SavedList({
         next.splice(index < 0 ? next.length : index, 0, item);
         return next;
       });
-      setError("Couldn't remove that from saved — give it another try.");
+      setError("Couldn't remove that from saved. Give it another try.");
     }
   }
 
@@ -82,7 +82,7 @@ export function SavedList({
         <EmptyState
           icon={Bookmark}
           title="Nothing saved yet"
-          description="Hit save on a message — the room number, the homework hint, the study spot — and it waits for you here."
+          description="Hit save on a message and it waits for you here: the room number, the homework hint, the study spot."
           action={
             <Link
               href="/channels"

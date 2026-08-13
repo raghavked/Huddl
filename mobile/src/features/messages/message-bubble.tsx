@@ -5,18 +5,18 @@ import { radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 export type MessageBubbleProps = {
-  /** True when the signed-in student wrote it — the ember-washed side. */
+  /** True when the signed-in student wrote it: the ember-washed side. */
   own: boolean;
   /** A tombstone: dashed outline, no fill, whatever the caller puts inside. */
   deleted?: boolean;
-  /** Ringed because she was just sent here — from saved, search, or a link. */
+  /** Ringed because she was just sent here from saved, search, or a link. */
   highlighted?: boolean;
   style?: StyleProp<ViewStyle>;
   children: ReactNode;
 };
 
 /**
- * The message bubble — one shape for every room.
+ * The message bubble: one shape for every room.
  *
  * A course chat, a thread and a DM are the three surfaces a student moves
  * between hourly, and until this existed they drew the same object three
@@ -26,8 +26,8 @@ export type MessageBubbleProps = {
  * words these are.
  *
  * It is the container only. What goes inside stays with the room, because
- * that genuinely differs — a channel renders `MentionText` and a forwarded
- * provenance line, a DM renders plain text — and folding those in would make
+ * that genuinely differs (a channel renders `MentionText` and a forwarded
+ * provenance line, a DM renders plain text), and folding those in would make
  * this a switch statement wearing a component's name.
  */
 export function MessageBubble({

@@ -64,7 +64,7 @@ function hasMatch(haystacks: (string | null)[], query: string): boolean {
 }
 
 /**
- * Cmd+K quick switcher. Mount once in the app shell — it listens globally,
+ * Cmd+K quick switcher. Mount once in the app shell. It listens globally,
  * renders nothing while closed, and fetches its channel/people data the first
  * time it opens.
  */
@@ -273,7 +273,7 @@ export function CommandPalette() {
         >
           {flat.length === 0 ? (
             <p className="px-3 py-8 text-center text-sm text-muted">
-              No matches for &ldquo;{query.trim()}&rdquo; — try a different
+              No matches for &ldquo;{query.trim()}&rdquo;. Try a different
               page, channel, or name.
             </p>
           ) : (

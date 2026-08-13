@@ -18,7 +18,7 @@ list of what has to be true before any of it works.
 
 ## 1. The link language
 
-Every link Huddl produces — a share sheet, a push payload, an email — is
+Every link Huddl produces (a share sheet, a push payload, an email) is
 written in the **web app's URL space**. That is the one address space both
 clients understand, and it is the only one that survives being pasted
 somewhere Huddl doesn't control.
@@ -39,7 +39,7 @@ links.
 | `https://huddl.app/u/<handle>` | Profile | `/u/<handle>` | `mobile/src/app/u/[handle].tsx` |
 
 Query strings and fragments are ignored by the mapping. Deeper course paths
-collapse to the course home — `/courses/<id>/grades` opens `/course/<id>`,
+collapse to the course home: `/courses/<id>/grades` opens `/course/<id>`,
 because grades are a tab inside that screen on native rather than a route of
 their own.
 
@@ -53,17 +53,17 @@ worse, try to load a channel whose id is literally `new`):
 | `/channels/new` | The new-channel form is web-only. |
 | `/messages/new-group` | The group-DM composer is web-only. |
 
-**Not claimed at all.** Everything else — the marketing home page, `/login`,
-`/signup`, `/verify`, `/legal/*`, `/auth/*`, `/onboarding`, `/setup`,
-`/settings`, the top-level list pages, `/decks/*` — opens in the browser. This
-is deliberate. The rule is: *claim only what the app can route.* A universal
+**Not claimed at all.** Everything else opens in the browser: the marketing
+home page, `/login`, `/signup`, `/verify`, `/legal/*`, `/auth/*`,
+`/onboarding`, `/setup`, `/settings`, the top-level list pages, `/decks/*`.
+This is deliberate. The rule is: *claim only what the app can route.* A universal
 link that opens the app onto a not-found screen is a worse experience than a
 web page that loads.
 
 `/decks/<id>` is the one obvious gap. It is shareable and the app has
 `mobile/src/app/deck/[id].tsx`, but `routeForLink` doesn't know about decks
 yet. Add `decks` to the regex there first, then add `/decks/*` to both the
-AASA components and the Android intent filter — in that order.
+AASA components and the Android intent filter, in that order.
 
 ### The custom scheme still exists
 
@@ -83,7 +83,7 @@ development and for the OS itself.
 
 ## 2. What each side declares
 
-### The app — `mobile/app.json`
+### The app: `mobile/app.json`
 
 **iOS** gets an associated-domains entitlement. Expo's prebuild turns this key
 into `com.apple.developer.associated-domains` in the entitlements file:
@@ -111,14 +111,14 @@ prefix. `autoVerify` is what removes the "open with" dialog:
 ```
 
 Both are **native** configuration. They land in a binary at build time, so
-changing them needs a new `eas build` — an OTA update will not move them.
+changing them needs a new `eas build`. An OTA update will not move them.
 
 One asymmetry worth knowing: iOS can express exclusions inside a claimed
 prefix and Android cannot. The three web-only paths above are excluded in the
 AASA; on Android they are still handed to the app, and the app has to send
 them somewhere sensible itself (see §5).
 
-### The domain — two route handlers
+### The domain: two route handlers
 
 | Path | File | Serves |
 | --- | --- | --- |
@@ -129,14 +129,14 @@ Both are Next.js route handlers rather than static files in `public/`, for one
 reason: the identifiers they contain are secrets-adjacent deployment facts, not
 source code, and they belong in the environment.
 
-Both send `Content-Type: application/json` (the AASA has no `.json` extension —
-that is correct, Apple wants it bare) and a one-day cache header with a week of
+Both send `Content-Type: application/json` (the AASA has no `.json` extension,
+which is correct; Apple wants it bare) and a one-day cache header with a week of
 `stale-while-revalidate`.
 
 **Both return 404 when their env var is missing or malformed, and the 404 is
 `no-store`.** This is the important design decision in these two files. iOS
 caches the AASA it fetches through Apple's CDN, so a document containing
-`TEAMID.app.huddl.mobile` or a half-typed fingerprint doesn't merely fail — it
+`TEAMID.app.huddl.mobile` or a half-typed fingerprint doesn't merely fail. It
 fails *and sticks*, on every device that saw it, long after the fix ships. A
 missing file fails cleanly and retries. So the handlers validate before they
 serve: the team ID must match `^[A-Z0-9]{10}$`, each fingerprint must be 32
@@ -162,7 +162,7 @@ ever changes, change it in the AASA route too.
 
 ### `ANDROID_CERT_SHA256`
 
-The SHA-256 fingerprint of the certificate that signs the installed app —
+The SHA-256 fingerprint of the certificate that signs the installed app:
 uppercase hex, colon-separated, 32 pairs. **Comma-separate several**; the
 handler dedupes and serves them all.
 
@@ -192,7 +192,7 @@ curl -i https://huddl.app/.well-known/apple-app-site-association
 curl -i https://huddl.app/.well-known/assetlinks.json
 ```
 
-Look for `200`, `content-type: application/json`, and **no redirect** — Apple
+Look for `200`, `content-type: application/json`, and **no redirect**. Apple
 does not follow them, and a single `301` from `huddl.app` to `www.huddl.app`
 is enough to break the whole feature silently.
 
@@ -258,7 +258,7 @@ https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=http
 at once, and today none of them are:
 
 1. **The env vars are set.** Until then both routes return 404 and neither OS
-   has anything to verify. Nothing else is broken — links open the website,
+   has anything to verify. Nothing else is broken; links open the website,
    which is a perfectly good outcome.
 2. **`huddl.app` serves them over public HTTPS.** Apple's CDN and Google's
    verifier both crawl from the outside. They cannot reach `localhost`, and
@@ -277,8 +277,8 @@ both documents with `curl` → cut a new native build → install it → run the
 
 ### Open item: the app-side translation
 
-The OS half is done. The app half — turning the incoming web path into a
-native route — is not yet wired, and universal links will land on a not-found
+The OS half is done. The app half, turning the incoming web path into a
+native route, is not yet wired, and universal links will land on a not-found
 screen until it is.
 
 Expo Router's hook for this is a `+native-intent` file at the top of the app
@@ -287,7 +287,7 @@ link received while running. It should delegate to the mapping that already
 exists rather than growing a second copy of it:
 
 ```tsx
-// mobile/src/app/+native-intent.ts  — not written yet
+// mobile/src/app/+native-intent.ts  (not written yet)
 import { routeForLink } from "@/lib/notification-links";
 
 export function redirectSystemPath({ path }: { path: string }): string {
@@ -304,7 +304,7 @@ export function redirectSystemPath({ path }: { path: string }): string {
 Two notes for whoever picks this up: `routeForLink` returns `Href`, so the
 cast (or a widening helper) is unavoidable under typed routes; and throwing
 here crashes the app, hence the `try`/`catch`. This is also where Android's
-missing exclusions belong — `/channels/browse`, `/channels/new` and
+missing exclusions belong: `/channels/browse`, `/channels/new` and
 `/messages/new-group` should be sent to their list screen rather than parsed
 as ids.
 

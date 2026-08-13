@@ -36,34 +36,34 @@ import {
   useResolvedScheme,
 } from "@/providers/display-provider";
 
-/* This semester — every class's estimate, and the one number across them.
+/* This semester: every class's estimate, and the one number across them.
  *
  * Scratch math from top to bottom. Every figure here is arithmetic on scores
  * the student typed into their own private gradebook: nothing on this screen
  * is a transcript, a registrar number, or a grade of record, and none of it
- * is ever visible to a classmate. It is also an estimate OF an estimate —
- * each course number is already a projection from partial grades — so the
- * copy stays hedged the whole way down: the privacy line up top, the note
+ * is ever visible to a classmate. It is also an estimate of an estimate,
+ * since each course number is already a projection from partial grades, so
+ * the copy stays hedged the whole way down: the privacy line up top, the note
  * under the number, and the line about the 4.0 scale at the bottom.
  *
  * All the math lives in `@/lib/semester` and all of it is pure. This file
  * fetches once, decides what to show, and writes the sentences the module
  * didn't already write. It never averages anything itself.
  *
- * A pushed screen — `router.push("/semester")` is the whole entry point, and
+ * A pushed screen. `router.push("/semester")` is the whole entry point, and
  * it takes no params. The courses hub and the home shell own their own tiles.
  */
 
 /* ------------------------------ formatting ----------------------------- */
 
-/** "86.7", "90", "45" — a percentage the way a person writes it. */
+/** "86.7", "90", "45": a percentage the way a person writes it. */
 function pctText(value: number): string {
   return String(Math.round(value * 10) / 10);
 }
 
 /**
  * Units the average can actually be weighted by: finite and above zero. The
- * same reading `@/lib/semester` does — null, zero and a negative are all
+ * same reading `@/lib/semester` does: null, zero and a negative are all
  * "nobody has said", which is a different thing from "worth nothing".
  */
 function knownUnits(units: number | null): units is number {
@@ -81,7 +81,7 @@ function unitsText(units: number | null): string {
  * The semester's units, but only when every class has them. `totalUnits`
  * happily adds up the classes it knows about, and "17 units" beside a
  * half-known list would read as the whole semester when it isn't. Null means
- * leave the line out — the summary note already says which classes are short.
+ * leave the line out; the summary note already says which classes are short.
  */
 function unitsLine(courses: readonly SemesterCourse[]): string | null {
   const known = courses.every((course) => knownUnits(course.units));
@@ -90,7 +90,7 @@ function unitsLine(courses: readonly SemesterCourse[]): string | null {
   return total === null ? null : unitsText(total);
 }
 
-/** "3 of 5 classes have grades in" — the ledger beside the note's prose. */
+/** "3 of 5 classes have grades in": the ledger beside the note's prose. */
 function coverageLine(estimate: SemesterEstimate): string {
   if (estimate.total === 1) return "Your one class has grades in";
   const verb = estimate.graded === 1 ? "has" : "have";
@@ -114,14 +114,14 @@ function recruitCourse(
  * the first one carrying a grade but no units. Null when filling one in
  * wouldn't move the number.
  *
- * The weighting itself is entirely `@/lib/semester`'s — it already weights by
+ * The weighting itself is entirely `@/lib/semester`'s. It already weights by
  * units whenever every graded class has them, and says so in `summary.note`
  * when it can't. All this screen adds is the door to the missing input, which
  * until now existed nowhere in the app.
  *
  * Two conditions, and the second is the subtle one. `unweighted` is also true
  * for a single graded class with no units, but weighting one number by
- * anything gives back the same number — so offering "add units" there would
+ * anything gives back the same number, so offering "add units" there would
  * promise a change that can't happen. It takes two classes for units to mean
  * anything, and the note already names the single-class case in words.
  *
@@ -141,7 +141,7 @@ function unitsFixCourse(
 }
 
 /**
- * ", about an A minus" — the letter said aloud rather than spelled, with the
+ * ", about an A minus": the letter said aloud rather than spelled, with the
  * article that fits it. Empty when there's no letter to say, so it can be
  * dropped straight onto the end of the sentence.
  */
@@ -240,15 +240,16 @@ function PrivacyLine() {
  * The course code, wearing that course's colour.
  *
  * Hand-drawn rather than a `Chip` for the reason `/plan` wrote down: `Chip`
- * takes a `tone` — four fixed meanings — and a course tint is a sixth of a
+ * takes a `tone` (four fixed meanings) and a course tint is a sixth of a
  * personal palette, not a meaning. The metrics are `Chip`'s static `sm`
  * numbers exactly, so this is a colour change and nothing else.
  *
  * This is the third screen to need it, after `/plan` and `/calendar`, which
  * is precisely the signal `/plan` left behind: `Chip` should grow a way to be
  * handed a soft/ink pair and all three should collapse onto it. Flagged
- * rather than done here — `@/components/ui/chip.tsx` is not this screen's to
- * edit — and called out in the handoff so it doesn't quietly become four.
+ * rather than done here, since `@/components/ui/chip.tsx` is not this
+ * screen's to edit, and called out in the handoff so it doesn't quietly
+ * become four.
  */
 function CourseCodeChip({
   code,
@@ -285,7 +286,7 @@ function CourseCodeChip({
  * classes are actually in it.
  *
  * The size is set here rather than by the `display` variant, so the student's
- * text-size preference has to be multiplied through by hand — the same
+ * text-size preference has to be multiplied through by hand, the same
  * treatment the timer on `/focus` and the estimate on `/course/grades` get.
  */
 function SummaryCard({
@@ -343,7 +344,7 @@ function SummaryCard({
 
 /**
  * What stands in for the number before there is one. A 0.00 would be a lie
- * with a decimal point on it — an empty gradebook is not a failing semester —
+ * with a decimal point on it (an empty gradebook is not a failing semester),
  * so the card recruits toward the one thing that starts it: a category off a
  * syllabus in a class that hasn't got one yet.
  */
@@ -358,7 +359,7 @@ function RecruitCard({
     <EmptyState
       icon="trending-up"
       title="Your average starts with one score"
-      body={`Add a category off your syllabus — homework 20%, midterm 30% — to ${course.code}, then log a score. Every class you set up joins the average.`}
+      body={`Add a category off your syllabus (homework 20%, midterm 30%) to ${course.code}, then log a score. Every class you set up joins the average.`}
       action={{ label: `Set up ${course.code}`, onPress: onOpen }}
     />
   );
@@ -502,7 +503,7 @@ export default function SemesterScreen() {
     });
   }, []);
 
-  /* The course hub, which is where units are kept — they're a shared course
+  /* The course hub, which is where units are kept. They're a shared course
      fact like the instructor and the room, not a private one like the scores
      on this screen. */
   const openCourse = useCallback((course: SemesterCourse) => {
@@ -511,7 +512,7 @@ export default function SemesterScreen() {
 
   /* ------------------------------ scaffold ----------------------------- */
 
-  // A deep link can land here signed out — send them to a proper door.
+  // A deep link can land here signed out, so send them to a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -538,7 +539,7 @@ export default function SemesterScreen() {
     </View>
   );
 
-  /* One gutter, one bottom inset, every state — loading, error, and the real
+  /* One gutter, one bottom inset, every state: loading, error, and the real
      thing scroll to exactly the same edges. */
   const scrollProps = {
     style: { flex: 1 },
@@ -553,7 +554,7 @@ export default function SemesterScreen() {
     return scaffold(
       <ScrollView {...scrollProps}>
         {header}
-        {/* The shape is honest — a number card over a short list of classes. */}
+        {/* The shape is honest: a number card over a short list of classes. */}
         <Card style={{ gap: space.room }}>
           <Skeleton width={92} height={11} radius={radius.full} />
           <Skeleton width={132} height={42} />
@@ -594,7 +595,7 @@ export default function SemesterScreen() {
   const summary = data?.summary ?? null;
   const recruit = recruitCourse(courses);
   /* The class whose missing units are the reason the number above is a plain
-     average — null when the average is already weighted, or when weighting
+     average. Null when the average is already weighted, or when weighting
      wouldn't change it. */
   const unitsFix = summary === null ? null : unitsFixCourse(summary, courses);
 
@@ -639,7 +640,7 @@ export default function SemesterScreen() {
               {/* The note in the card says the average is a plain one and how
                   many classes are short; this is the way out of that, and the
                   only place in the app that leads to the units field. Soft
-                  rather than ember — the number is already there, this only
+                  rather than ember: the number is already there, this only
                   sharpens it. */}
               {unitsFix !== null ? (
                 <Button
@@ -663,7 +664,7 @@ export default function SemesterScreen() {
 
           {/* The tint is already resolved by `@/lib/semester`: the student's
               own pick where they made one, the stable hash of the course code
-              where they didn't. It is personal — the lab partner reading the
+              where they didn't. It is personal; the lab partner reading the
               same class may well see a different colour. */}
           {courses.map((course, index) => (
             <CourseRow
@@ -681,7 +682,7 @@ export default function SemesterScreen() {
             muted
             style={{ marginTop: space.snug, lineHeight: 18 }}
           >
-            The letters here follow one common 4.0 scale — an A is 4.0, an A-
+            The letters here follow one common 4.0 scale: an A is 4.0, an A-
             is 3.7, and nothing sits above 4.0. Plenty of schools count plus
             and minus their own way, so treat this as your math, not your
             registrar's.

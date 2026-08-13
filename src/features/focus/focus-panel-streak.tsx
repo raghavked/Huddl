@@ -10,7 +10,7 @@ import { computeFocusStreak } from "@/lib/focus";
  * `computeFocusStreak` keys sessions by local calendar day, so wherever it
  * runs decides what a day is. Run on the server it counts the server's days:
  * on a UTC host an evening session in California lands on tomorrow, and the
- * page opens claiming a two-day streak the student never sat for — until the
+ * page opens claiming a two-day streak the student never sat for, until the
  * panel recounts in the browser and the badge quietly vanishes. Counting it
  * here instead means the first paint and every recount after it agree, and
  * they agree with the phone.
@@ -22,7 +22,7 @@ export function FocusPanelWithStreak({
   streakRows,
   ...panel
 }: Omit<ComponentProps<typeof FocusPanel>, "initialStreak"> & {
-  /** Closed sessions, newest first — `ended_at` is all the count needs. */
+  /** Closed sessions, newest first. `ended_at` is all the count needs. */
   streakRows: { ended_at: string | null }[];
 }) {
   const streak = useMemo(

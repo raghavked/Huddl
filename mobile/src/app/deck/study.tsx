@@ -20,7 +20,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /* The study session: one card at a time, tap to flip, three honest buttons.
-   The flip is a real one — two faces on one card, turning in 3D — and every
+   The flip is a real one (two faces on one card, turning in 3D), and every
    grade saves before the next card comes up, so backing out mid-stack loses
    nothing. The queue just picks up where it left off next time.
 
@@ -28,7 +28,7 @@ import { useAuth } from "@/providers/auth-provider";
    the whole deck when nothing is due, and that lap writes no reviews at all.
    Everything else about the session is the same. */
 
-/* Minimal local row shapes — the web app's types live outside this tsconfig. */
+/* Minimal local row shapes: the web app's types live outside this tsconfig. */
 type CardRow = {
   id: string;
   deck_id: string;
@@ -48,7 +48,7 @@ const ZERO_COUNTS: Counts = { again: 0, good: 0, easy: 0 };
 /** The card face never renders shorter than this, so short cards feel solid. */
 const MIN_CARD_HEIGHT = 300;
 
-/** "10 min", "1 day", "30 days" — what pressing a button buys you. */
+/** "10 min", "1 day", "30 days": what pressing a button buys you. */
 function intervalPreview(
   prev: { streak: number } | null,
   grade: Grade,
@@ -72,7 +72,7 @@ function GradeButton({
 }: {
   label: string;
   sublabel: string;
-  /** The sublabel spoken in full — a chip reads differently out loud. */
+  /** The sublabel spoken in full; a chip reads differently out loud. */
   hint: string;
   tone: "again" | "good" | "easy";
   pending: boolean;
@@ -81,7 +81,7 @@ function GradeButton({
 }) {
   const theme = useTheme();
   const palette = {
-    // "Again" is a soft danger — a nudge, not an alarm.
+    // "Again" is a soft danger: a nudge rather than an alarm.
     again: {
       bg: theme.danger + "1a",
       border: theme.danger + "59",
@@ -159,7 +159,8 @@ export default function StudySessionScreen() {
   const [sessionError, setSessionError] = useState<string | null>(null);
 
   /* The flip: one value, 0 (front up) to 1 (back up), driving both faces.
-     Advancing snaps it back to 0 with setValue — the next card never turns. */
+     Advancing snaps it back to 0 with setValue, so the next card never
+     turns. */
   const flipAnim = useRef(new Animated.Value(0)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
   // Each face reports its natural height so the card fits the taller side.
@@ -182,7 +183,7 @@ export default function StudySessionScreen() {
     };
   }, []);
 
-  // No Alert on the way out — every grade already saved, card by card.
+  // No Alert on the way out: every grade already saved, card by card.
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
     else if (id) router.replace(`/deck/${id}`);
@@ -241,7 +242,7 @@ export default function StudySessionScreen() {
     }
     setDeckTitle(deck.title);
     setReviews(reviewMap);
-    // New cards first, then oldest-due — capped so it stays one sitting. A
+    // New cards first, then oldest-due, capped so it stays one sitting. A
     // cram lap skips the schedule entirely: nothing is due, so the queue the
     // student asked for is the deck itself, front to back.
     setQueue(cramming ? cards : buildQueue(cards, reviewMap, new Date()));
@@ -262,7 +263,7 @@ export default function StudySessionScreen() {
     const toValue = revealed ? 0 : 1;
     tapLight();
     if (reduceMotion) {
-      // Reduced motion asks for no turning — the other face just appears.
+      // Reduced motion asks for no turning; the other face just appears.
       flipAnim.setValue(toValue);
     } else {
       Animated.timing(flipAnim, {
@@ -280,7 +281,7 @@ export default function StudySessionScreen() {
       const card = queue[index];
       if (!card || !userId || grading) return;
       setSessionError(null);
-      // A cram lap saves nothing on purpose — the spacing a student earned
+      // A cram lap saves nothing on purpose. The spacing a student earned
       // over three weeks shouldn't be rewritten by a panic run the night
       // before. The grade only tallies, and an "again" still comes back
       // around at the end of the lap.
@@ -293,7 +294,7 @@ export default function StudySessionScreen() {
           now
         );
         setGrading(grade);
-        // Save first, advance after — leaving mid-stack loses no grade.
+        // Save first, advance after, so leaving mid-stack loses no grade.
         const { error } = await supabase.from("card_reviews").upsert(
           {
             user_id: userId,
@@ -308,7 +309,7 @@ export default function StudySessionScreen() {
         setGrading(null);
         if (error) {
           setSessionError(
-            "That grade didn't save — give the button another tap."
+            "That grade didn't save. Give the button another tap."
           );
           return;
         }
@@ -326,7 +327,7 @@ export default function StudySessionScreen() {
           prev.includes(card.id) ? prev : [...prev, card.id]
         );
       }
-      // Snap — never spin — back to the front for the next card.
+      // Snap back to the front for the next card. Never spin.
       flipAnim.setValue(0);
       setRevealed(false);
       setIndex((prev) => prev + 1);
@@ -334,7 +335,7 @@ export default function StudySessionScreen() {
     [queue, index, userId, grading, reviews, flipAnim, cramming]
   );
 
-  /** Re-run just the cards graded "again" — they're due back in minutes. */
+  /** Re-run just the cards graded "again"; they're due back in minutes. */
   const studyAgain = useCallback(() => {
     const rerun = new Set(againIds);
     const nextQueue = queue.filter((card) => rerun.has(card.id));
@@ -348,7 +349,7 @@ export default function StudySessionScreen() {
     setSessionError(null);
   }, [againIds, queue, flipAnim]);
 
-  // Deep links land here directly — a signed-out visitor gets a proper door.
+  // Deep links land here directly, so a signed-out visitor gets a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -505,7 +506,7 @@ export default function StudySessionScreen() {
             muted
             style={{ textAlign: "center", maxWidth: 260 }}
           >
-            The schedule knows what it's doing — check back tomorrow.
+            The schedule knows what it's doing. Check back tomorrow.
           </AppText>
           <Button label="Back to the deck" variant="soft" size="sm" onPress={goBack} />
         </>
@@ -617,21 +618,21 @@ export default function StudySessionScreen() {
   const prevStreak = prevState ? { streak: prevState.streak } : null;
 
   /* The two lines on a grade button. A cram lap writes no review, so it has
-     no interval to offer — "1 day" under a button that changes nothing is
-     exactly the promise this lap exists to keep. */
+     no interval to offer. Keeping "1 day" off a button that changes nothing
+     is exactly the promise this lap exists to keep. */
   const gradeCopy = (grade: Grade, label: string) => {
     if (cramming) {
       return {
         label,
         sublabel: "no change",
-        hint: `${label} — nothing saved this lap`,
+        hint: `${label}, nothing saved this lap`,
       };
     }
     const preview = intervalPreview(prevStreak, grade, now);
     return {
       label,
       sublabel: preview,
-      hint: `${label} — next look in ${preview}`,
+      hint: `${label}, next look in ${preview}`,
     };
   };
 
@@ -711,7 +712,7 @@ export default function StudySessionScreen() {
             style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}
           >
             <View style={{ height: shellHeight }}>
-              {/* Invisible sizers — they measure each face's natural height. */}
+              {/* Invisible sizers: they measure each face's natural height. */}
               <View
                 pointerEvents="none"
                 accessibilityElementsHidden
@@ -825,8 +826,8 @@ export default function StudySessionScreen() {
             style={{ textAlign: "center", marginTop: space.card }}
           >
             {cramming
-              ? "A cram lap — nothing here changes when these come back."
-              : "Leave anytime — every grade saves as you go."}
+              ? "A cram lap. Nothing here changes when these come back."
+              : "Leave anytime. Every grade saves as you go."}
           </AppText>
         </>
       ) : null}

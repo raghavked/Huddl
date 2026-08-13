@@ -46,7 +46,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 import { clampTextScale, useDisplay } from "@/providers/display-provider";
 
-/* Focus — sit down with a goal, and see who else is heads-down.
+/* Focus: sit down with a goal, and see who else is heads-down.
  *
  * Two states in one screen. Idle is an invitation: pick a length, maybe a
  * class, maybe a line about what you're doing, and start. Running is a
@@ -54,16 +54,16 @@ import { clampTextScale, useDisplay } from "@/providers/display-provider";
  * underneath so the room never feels empty.
  *
  * The audience is the fourth thing you pick, and it is a real choice rather
- * than a warning. Being on the list is the point of the feature — but the
+ * than a warning. Being on the list is the point of the feature, but the
  * only way to want the timer without the audience used to be to not use the
  * feature at all, which also cost you the streak. "Just me" (0040's
  * `is_private`) is the same session with the row kept to yourself.
  *
- * All the time math lives in `@/lib/focus` and takes a `now` — this screen
+ * All the time math lives in `@/lib/focus` and takes a `now`. This screen
  * only decides how often to hand it one (once a second, while a session is
  * running and the screen is actually in front of you). */
 
-/** How far back the streak query looks — long enough for any real run. */
+/** How far back the streak query looks: long enough for any real run. */
 const STREAK_WINDOW_DAYS = 120;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -72,14 +72,14 @@ type CourseOption = { id: string; code: string };
 
 type EnrollmentJoin = { course: CourseOption | null };
 
-/** What "Done" leaves on the screen — the one number worth saying out loud. */
+/** What "Done" leaves on the screen: the one number worth saying out loud. */
 type Finished = { minutes: number };
 
 /* ------------------------------ queries ------------------------------ */
 
 /**
  * Your live classes, for the course chips. Archived enrolments are shelved
- * courses — they shouldn't clutter a picker you use at 11pm.
+ * courses, and they shouldn't clutter a picker you use at 11pm.
  */
 async function loadCourses(userId: string): Promise<CourseOption[]> {
   const { data, error } = await supabase
@@ -96,7 +96,7 @@ async function loadCourses(userId: string): Promise<CourseOption[]> {
 
 /**
  * Your focus streak, in days. `computeFocusStreak` only needs `ended_at`,
- * so that's all we pull — a few hundred timestamps at most.
+ * so that's all we pull: a few hundred timestamps at most.
  */
 async function loadStreak(userId: string): Promise<number> {
   const since = new Date(Date.now() - STREAK_WINDOW_DAYS * DAY_MS).toISOString();
@@ -130,7 +130,7 @@ function sinceLabel(minutes: number): string {
 
 /* ------------------------------- pieces ------------------------------ */
 
-/** The quiet uppercase heading inside a card — SectionLabel's voice, without
+/** The quiet uppercase heading inside a card: SectionLabel's voice, without
     its screen-level margins. */
 function FormLabel({ text }: { text: string }) {
   return (
@@ -231,7 +231,7 @@ const StudyingRow = memo(function StudyingRow({
 
 /* The slim bar under the readout: brand fill on surface2, and deliberately
    still. It creeps forward by a third of a percent a second, so animating it
-   would be a loop reporting nothing — the readout above is what a student
+   would be a loop reporting nothing. The readout above is what a student
    watches, and the bar is the shape of it. */
 function ProgressBar({ value }: { value: number }) {
   const theme = useTheme();
@@ -288,7 +288,7 @@ export default function FocusScreen() {
   const [ending, setEnding] = useState(false);
   const [finished, setFinished] = useState<Finished | null>(null);
 
-  /* The idle form's draft. `isPrivate` starts false — the column default,
+  /* The idle form's draft. `isPrivate` starts false: the column default,
      and what every session did before it was a choice. It deliberately
      survives a finished session, so somebody who is having a private week
      doesn't have to remember the switch each time they sit back down. It
@@ -316,7 +316,7 @@ export default function FocusScreen() {
       // "23m in" labels get to be honest again.
       setNow(new Date());
     } catch {
-      // Keep the last good list — a dropped refresh isn't worth a banner.
+      // Keep the last good list. A dropped refresh isn't worth a banner.
     }
   }, [userId]);
 
@@ -343,7 +343,7 @@ export default function FocusScreen() {
         setStudying(rows.filter((row) => row.user_id !== userId));
         setNow(new Date());
         setError(null);
-        // Secondary data — a failure here shouldn't cost the whole screen.
+        // Secondary data. A failure here shouldn't cost the whole screen.
         void loadCourses(userId)
           .then(setCourses)
           .catch(() => undefined);
@@ -366,7 +366,7 @@ export default function FocusScreen() {
 
   useEffect(() => {
     // No session yet (or signed out): drop the spinner rather than hang on
-    // it — the idle form is honest, and starting one says "sign in again".
+    // it. The idle form is honest, and starting one says "sign in again".
     if (!userId) {
       setLoading(false);
       return;
@@ -382,7 +382,7 @@ export default function FocusScreen() {
   }, [userId, refreshStudying]);
 
   /* One 1s interval, only while running, cleared on blur and on unmount.
-     Nothing here animates per frame — the bar just redraws each tick. */
+     Nothing here animates per frame; the bar redraws each tick. */
   const running = mine !== null;
   useFocusEffect(
     useCallback(() => {
@@ -426,8 +426,8 @@ export default function FocusScreen() {
   /**
    * Stand up. Optimistic: the timer stops the moment you tap, and the
    * session comes back (with a warm note) only if the write fails.
-   * `mode` decides the ceremony — "done" earns a haptic and a line,
-   * "quit" just quietly puts things away.
+   * `mode` decides the ceremony: "done" earns a haptic and a line,
+   * "quit" quietly puts things away.
    */
   const finish = useCallback(
     async (mode: "done" | "quit") => {
@@ -492,14 +492,14 @@ export default function FocusScreen() {
     return {
       readout: past ? formatDuration(done) : formatDuration(left),
       caption: past
-        ? `${goalText} goal reached — stand up whenever you like`
+        ? `${goalText} goal reached. Stand up whenever you like`
         : `left of your ${goalText} goal`,
       /* The readout on its own is a number with no noun. This is the same
          two lines as one sentence, for the reader. It is deliberately not a
          live region: it changes every second, and a clock that interrupts
          you once a second is the opposite of a focus screen. */
       spoken: past
-        ? `${formatDuration(done)} in. ${goalText} goal reached — stand up whenever you like.`
+        ? `${formatDuration(done)} in. ${goalText} goal reached. Stand up whenever you like.`
         : `${formatDuration(left)} left of your ${goalText} goal.`,
       value: progress(mine, now),
       courseCode:
@@ -655,7 +655,7 @@ export default function FocusScreen() {
           <AppText variant="display" accessibilityRole="header">
             Focus
           </AppText>
-          {/* Quiet below 2 — a streak is a gift, never a debt. */}
+          {/* Quiet below 2: a streak is a gift, never a debt. */}
           {streak >= 2 ? (
             <Chip label={`${streak}-day streak`} tone="accent" icon="zap" />
           ) : null}
@@ -667,7 +667,7 @@ export default function FocusScreen() {
             accessibilityLiveRegion="polite"
             style={{ color: theme.danger, marginTop: space.cosy }}
           >
-            We couldn't refresh just now — pull down to try again.
+            We couldn't refresh just now. Pull down to try again.
           </AppText>
         ) : null}
 
@@ -884,7 +884,7 @@ export default function FocusScreen() {
 
               <Field
                 label="What are you working on?"
-                placeholder="Optional — problem set 4"
+                placeholder="Optional: problem set 4"
                 value={note}
                 onChangeText={setNote}
                 maxLength={FOCUS_NOTE_MAX}
@@ -919,7 +919,7 @@ export default function FocusScreen() {
                     tone="brand"
                     icon="eye-off"
                     selected={isPrivate}
-                    accessibilityLabel="Just me — keep this session off the list"
+                    accessibilityLabel="Just me, this session stays off the list"
                     onPress={() => setIsPrivate(true)}
                   />
                 </View>
@@ -955,7 +955,7 @@ export default function FocusScreen() {
                     below draws the course chip and this free text next to
                     the person, campus-wide. Name it, or the box and the
                     audience disagree. (A private profile shows its handle
-                    here rather than a name — see `toFocusPerson`.)
+                    here rather than a name; see `toFocusPerson`.)
 
                     The private version has to be as specific about what it
                     keeps as about what it hides, because the fear it answers
@@ -970,7 +970,7 @@ export default function FocusScreen() {
                 >
                   {isPrivate
                     ? "Nothing goes on the list below. You get the timer, the session still counts toward your streak, and nobody sees you sat down."
-                    : "Your name, your class and this line show up below while you're sitting — to everyone at your university. That's the whole trick."}
+                    : "Your name, your class and this line show up below while you're sitting, where everyone at your university can see. That's the whole trick."}
                 </AppText>
               </View>
             </Card>

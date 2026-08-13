@@ -1,6 +1,6 @@
 /* Fallback tones cycle deterministically per name so a roster reads as a
-   crowd, not a wall of one color — token palette only. Kept free of JSX so
-   the logic is unit-testable under the node vitest environment. */
+   crowd rather than a wall of one color. Token palette only. Kept free of JSX
+   so the logic is unit-testable under the node vitest environment. */
 export const TONES = [
   "bg-brand-soft text-brand-ink",
   "bg-accent-soft text-accent",

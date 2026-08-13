@@ -4,8 +4,8 @@ import { useSharesTyping } from "@/hooks/use-privacy-prefs";
 import { supabase } from "@/lib/supabase";
 
 /* React Native port of the web app's use-typing hook. Same broadcast
-   protocol — channel `typing:${channelKey}`, event "typing", payload
-   {userId, name, at} — so web and native students see each other typing.
+   protocol: channel `typing:${channelKey}`, event "typing", payload
+   {userId, name, at}, so web and native students see each other typing.
    The payload shape is shared with the web client; changing it would break
    typing across runtimes, so the privacy preference below gates whether we
    join at all rather than adding a field to the wire. */
@@ -22,7 +22,7 @@ type TypingPayload = { userId: string; name: string; at: number };
 /**
  * Live "who's typing" over a Supabase Realtime broadcast channel
  * (`typing:${channelKey}`). Call `noteTyping()` from the composer's
- * onChangeText — it throttles itself to one broadcast per ~2s. `typers`
+ * onChangeText. It throttles itself to one broadcast per ~2s. `typers`
  * holds the display names of OTHER people whose latest event is fresh
  * (<4s), pruned on an interval so names fade shortly after they stop.
  * Pass an empty channelKey to keep the hook idle (no subscription).
@@ -30,7 +30,7 @@ type TypingPayload = { userId: string; name: string; at: number };
  * Honours `profiles.share_typing` RECIPROCALLY, via
  * {@link useSharesTyping}: a student who turns typing indicators off stops
  * broadcasting *and* stops seeing everyone else's. That is one condition,
- * not two, so the hook simply never joins the channel — nothing to send on,
+ * not two, so the hook never joins the channel at all: nothing to send on,
  * nothing to receive from, and `typers` stays empty. Flipping the
  * preference back subscribes again on the next render; flipping it off
  * tears the channel down and clears the names already on screen.
@@ -101,7 +101,7 @@ export function useTyping(
   }, [liveKey]);
 
   const noteTyping = useCallback(() => {
-    if (!sharesRef.current) return; // opted out — never broadcast
+    if (!sharesRef.current) return; // opted out, never broadcast
     const channel = channelRef.current;
     if (!channel) return;
     const now = Date.now();
@@ -121,7 +121,7 @@ export function useTyping(
 /**
  * Shared copy for the strip under a message list. Returns "" when nobody's
  * typing so callers can height-reserve the line without conditionals.
- * Strings match the web app exactly — one voice, two runtimes.
+ * Strings match the web app exactly: one voice, two runtimes.
  */
 export function typingLabel(typers: string[]): string {
   if (typers.length === 0) return "";

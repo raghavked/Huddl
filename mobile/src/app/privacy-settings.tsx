@@ -26,7 +26,7 @@ import {
 } from "@/hooks/use-privacy-prefs";
 import { useTheme } from "@/hooks/use-theme";
 
-/* Privacy — the two controls a student can actually reach, and a plain
+/* Privacy: the two controls a student can actually reach, and a plain
    account of what campus can and can't see about them.
 
    This screen is meant to reassure, not to administrate. A switch, a picker,
@@ -65,7 +65,7 @@ const TOGGLES: PrivacyToggle[] = [
     icon: "edit-3",
     label: "Typing indicators",
     caption:
-      "Turn this off and nobody sees you composing a message — and you stop seeing them, too.",
+      "Turn this off and nobody sees you composing a message. You stop seeing them, too.",
   },
 ];
 
@@ -92,7 +92,7 @@ const DM_OPTIONS: Record<
     icon: "book-open",
     label: "People in my classes",
     caption:
-      "Only someone you share a course with — one you're in now, or one you took a term ago.",
+      "Only someone you share a course with: one you're in now, or one you took a term ago.",
   },
   nobody: {
     icon: "lock",
@@ -115,7 +115,7 @@ function dmSentence(value: DmPrivacy): string {
     case "campus":
       return "Anyone at your university can open a thread with you, which is what Huddl has always done. Narrowing it later never closes a conversation you're already in.";
     case "classmates":
-      return "Someone who shares a course with you can start a thread or add you to a group chat. Everyone else is told you aren't taking new messages, and nothing more than that — not which classes you're in, and not that they were refused by name.";
+      return "Someone who shares a course with you can start a thread or add you to a group chat. Everyone else is told you aren't taking new messages, and nothing more than that: not which classes you're in, and not that they were refused by name.";
     case "nobody":
       return "Nobody new can open a thread with you or add you to a group chat. You can still start one with anyone you like, and everything you're already in keeps running.";
   }
@@ -123,12 +123,12 @@ function dmSentence(value: DmPrivacy): string {
 
 /**
  * What the current setting actually means, in one sentence under the card.
- * Pure — it takes the preferences and nothing else, so the copy can be read
+ * Pure: it takes the preferences and nothing else, so the copy can be read
  * (and changed) without chasing state around the screen.
  */
 function sharingSentence(prefs: PrivacyPrefs): string {
   if (prefs.shareTyping) {
-    return "It's on, which is how Huddl starts out. Switching it off changes that one line and nothing else — your messages still send, arrive and notify exactly the same.";
+    return "It's on, which is how Huddl starts out. Switching it off changes that one line and nothing else. Your messages still send, arrive and notify exactly the same.";
   }
   return "It's off. Nobody sees you composing, and you won't see them composing either. Your messages still send, arrive and notify exactly the same.";
 }
@@ -201,7 +201,7 @@ function SwitchRow({
 
 /**
  * One option of the DM picker: the SwitchRow's shape with a trailing check
- * instead of a switch, in `Sheet.Row`'s picker idiom — the mark on the
+ * instead of a switch, in `Sheet.Row`'s picker idiom: the mark on the
  * trailing edge *and* `accessibilityState`, never the state spelled into the
  * label.
  */
@@ -275,7 +275,7 @@ function OptionRow({
 
 /**
  * The ghost of a row, for the beat before the profile lands. `trailing` is
- * which control sits on the right — a switch is a wide pill, a picker's
+ * which control sits on the right: a switch is a wide pill, a picker's
  * check is a small mark.
  */
 function RowSkeleton({
@@ -562,9 +562,9 @@ export default function PrivacySettingsScreen() {
             ) : null}
 
             {/* The three things the setting deliberately does NOT do. They
-                hold at every value, so they sit outside `dmSentence` — and
-                they are the whole reason this control can be shipped
-                honestly. Each one is a line of migration 0040. */}
+                hold at every value, so they sit outside `dmSentence`. They
+                are the whole reason this control can be shipped honestly.
+                Each one is a line of migration 0040. */}
             <Card style={{ gap: space.close, marginTop: space.card }}>
               <Fact icon="message-circle" tint={theme.accent}>
                 A conversation you're already in keeps working whatever you
@@ -572,8 +572,8 @@ export default function PrivacySettingsScreen() {
                 messaged before can write in that thread again.
               </Fact>
               <Fact icon="users" tint={theme.accent}>
-                A group chat counts as a new conversation — same inbox, same
-                notification — so someone who can't start a DM with you can't
+                A group chat counts as a new conversation (same inbox, same
+                notification), so someone who can't start a DM with you can't
                 add you to a group either. Nobody is ever removed from a group
                 they're already in.
               </Fact>
@@ -586,7 +586,7 @@ export default function PrivacySettingsScreen() {
           </>
         )}
 
-        {/* Static reassurance — it stands even when the row above didn't
+        {/* Static reassurance: it stands even when the row above didn't
             load, so it lives outside the error branch. */}
         <SectionLabel text="What campus sees" />
 
@@ -594,11 +594,11 @@ export default function PrivacySettingsScreen() {
           <Fact icon="user" tint={theme.brand}>
             Your profile: your name, handle, photo, major, year, and bio. Turn
             off Public profile in Account and classmates see only your handle
-            and your photo — you stay listed in the people directory either
+            and your photo. You stay listed in the people directory either
             way.
           </Fact>
           <Fact icon="image" tint={theme.brand}>
-            Your profile photo, which is served from a public link — anyone
+            Your profile photo, which is served from a public link. Anyone
             who has that link can open it without signing in. Removing it in
             Account deletes the file.
           </Fact>
@@ -607,7 +607,7 @@ export default function PrivacySettingsScreen() {
             reaches classmates who added the same course, and nobody else.
           </Fact>
           <Fact icon="clock" tint={theme.brand}>
-            That you're studying, while a focus session is running — your
+            That you're studying, while a focus session is running: your
             name, your class and your note, to your whole campus. It leaves
             the list the moment you stand up, and you can pick "just me" when
             you start one to keep it off the list entirely.
@@ -623,7 +623,7 @@ export default function PrivacySettingsScreen() {
           </Fact>
           <Fact icon="lock" tint={theme.accent}>
             Your direct messages. They're readable only by the people in the
-            conversation — a rule enforced in the database, not a promise in a
+            conversation, a rule enforced in the database, not a promise in a
             policy.
           </Fact>
           <Fact icon="book" tint={theme.accent}>

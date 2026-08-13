@@ -20,7 +20,7 @@ export function SignupForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  // null = still loading (or fetch failed) — in that case we don't gate on the
+  // null = still loading (or fetch failed). In that case we don't gate on the
   // client and let the DB trigger be the backstop.
   const [universities, setUniversities] = useState<University[] | null>(null);
   const [pending, setPending] = useState(false);
@@ -72,7 +72,7 @@ export function SignupForm() {
     if (unsupportedDomain && domain) {
       setIsDomainError(true);
       setError(
-        `Huddl isn't at ${domain} yet — sign up with an email from a supported school.`
+        `Huddl isn't at ${domain} yet. Sign up with an email from a supported school.`
       );
       return;
     }
@@ -95,8 +95,8 @@ export function SignupForm() {
         setIsDomainError(true);
         setError(
           domain
-            ? `Huddl isn't at ${domain} yet. We're adding new schools all the time — check back soon.`
-            : "Huddl isn't at your school yet. We're adding new schools all the time — check back soon."
+            ? `Huddl isn't at ${domain} yet. We're adding new schools all the time, so check back soon.`
+            : "Huddl isn't at your school yet. We're adding new schools all the time, so check back soon."
         );
       } else if (/already registered/i.test(signUpError.message)) {
         setAccountExists(true);
@@ -209,7 +209,7 @@ export function SignupForm() {
               </span>
             </p>
           ) : (
-            <Hint>Use your .edu address — we match it to your school.</Hint>
+            <Hint>Use your .edu address. We match it to your school.</Hint>
           )}
         </div>
       </div>

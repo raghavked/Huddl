@@ -21,7 +21,7 @@ export default async function OnboardingPage() {
     <div className="mx-auto max-w-xl px-4 py-6 md:py-10">
       <PageHeader
         title={`Welcome to Huddl, ${firstName}!`}
-        description={`You're verified as a ${user.university.short_name} student (@${user.profile.handle}). Tell your classmates a little about yourself — you can change any of this later.`}
+        description={`You're verified as a ${user.university.short_name} student (@${user.profile.handle}). Tell your classmates a little about yourself. You can change any of this later.`}
         action={
           <Badge tone="accent">
             <GraduationCap className="size-3.5" aria-hidden />

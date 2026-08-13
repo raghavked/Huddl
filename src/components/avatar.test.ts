@@ -17,7 +17,7 @@ describe("toneFor", () => {
     }
   });
 
-  it("is deterministic — the same name always lands on the same tone", () => {
+  it("is deterministic: the same name always lands on the same tone", () => {
     for (const name of ["Ada Lovelace", "Grace Hopper", "李华", ""]) {
       expect(toneFor(name)).toBe(toneFor(name));
     }

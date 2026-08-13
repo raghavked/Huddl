@@ -9,7 +9,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { COMMUNITY_GUIDELINES } from "@/lib/legal-content";
 
 /* Community Guidelines, rendered from the shared legal content module.
-   The document's final section is "Report it" — here it gets a card of its
+   The document's final section is "Report it". Here it gets a card of its
    own, so the screen ends on the two things a reader can actually do:
    long-press → Report, and Settings → Blocked people. */
 

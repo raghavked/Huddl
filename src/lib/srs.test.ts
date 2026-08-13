@@ -20,7 +20,7 @@ function daysFromNow(dueAt: Date): number {
   return (dueAt.getTime() - NOW.getTime()) / DAY_MS;
 }
 
-describe("nextReview — grade transitions", () => {
+describe("nextReview: grade transitions", () => {
   it('"again" resets the streak and comes back in 10 minutes', () => {
     const next = nextReview({ streak: 4 }, "again", NOW);
     expect(next.streak).toBe(0);
@@ -63,7 +63,7 @@ describe("nextReview — grade transitions", () => {
   });
 });
 
-describe("nextReview — ladders index by the PRE-update streak", () => {
+describe("nextReview: ladders index by the PRE-update streak", () => {
   it('walks the "good" ladder 1 / 3 / 7 / 14 / 30 by previous streak', () => {
     for (const [prevStreak, days] of [
       [0, 1],
@@ -101,14 +101,14 @@ describe("nextReview — ladders index by the PRE-update streak", () => {
 
   it("uses the streak from BEFORE the update, not the bumped one", () => {
     // Streak 1 graded "good": interval is ladder[1] = 3 days, not
-    // ladder[2] = 7 — the bump to streak 2 pays off next time.
+    // ladder[2] = 7. The bump to streak 2 pays off next time.
     const next = nextReview({ streak: 1 }, "good", NOW);
     expect(next.streak).toBe(2);
     expect(daysFromNow(next.dueAt)).toBe(3);
   });
 });
 
-describe("buildQueue — ordering and the cap", () => {
+describe("buildQueue: ordering and the cap", () => {
   type TestCard = { id: string; position: number };
 
   const card = (id: string, position: number): TestCard => ({ id, position });

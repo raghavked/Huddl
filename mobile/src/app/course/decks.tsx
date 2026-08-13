@@ -23,7 +23,7 @@ import { useAuth } from "@/providers/auth-provider";
    card counts and how many are due for YOU. Anyone can start a deck; deck
    creators can rename or retire theirs with a long press. */
 
-/* Minimal local row shapes — the web app's types live outside this tsconfig. */
+/* Minimal local row shapes: the web app's types live outside this tsconfig. */
 type DeckRow = {
   id: string;
   title: string;
@@ -37,9 +37,9 @@ type DeckMeta = { total: number; due: number };
 
 type Status = "loading" | "error" | "ready";
 
-/** "12 cards · 4 due" — the shelf line under each deck title. */
+/** "12 cards · 4 due", the shelf line under each deck title. */
 function countsLabel(meta: DeckMeta | undefined): string {
-  if (!meta || meta.total === 0) return "No cards yet — add the first one";
+  if (!meta || meta.total === 0) return "No cards yet. Add the first one";
   const cards = meta.total === 1 ? "1 card" : `${meta.total} cards`;
   return meta.due > 0 ? `${cards} · ${meta.due} due` : `${cards} · all rested`;
 }
@@ -175,7 +175,7 @@ export default function CourseDecksScreen() {
     // The shelf sorts by what's waiting for YOU, biggest pile first, and
     // falls back to the order the decks were started. Oldest-first put week
     // 1 vocab at the top of every visit while the deck a classmate filled
-    // yesterday sat at the bottom — the "40 due" badge sorted nothing.
+    // yesterday sat at the bottom, so the "40 due" badge sorted nothing.
     const shelved = [...deckRows].sort(
       (a, b) =>
         (nextMeta.get(b.id)?.due ?? 0) - (nextMeta.get(a.id)?.due ?? 0) ||
@@ -232,7 +232,7 @@ export default function CourseDecksScreen() {
         .eq("id", deck.id);
       if (error) {
         setDecks(before);
-        setActionError("That rename didn't stick — give it another try.");
+        setActionError("That rename didn't stick. Give it another try.");
       }
     },
     [renameValue, decks, closeRename]
@@ -286,7 +286,7 @@ export default function CourseDecksScreen() {
     [userId]
   );
 
-  /** Close the sheet first, then act — the row is about to change under it. */
+  /** Close the sheet first, then act: the row is about to change under it. */
   const runFromMenu = useCallback(
     (action: (deck: DeckRow) => void) => () => {
       const deck = menu;
@@ -318,7 +318,7 @@ export default function CourseDecksScreen() {
     if (error || !data) {
       setCreateError(
         error?.message.includes("row-level security")
-          ? "Decks are for classmates — add this course to your classes first."
+          ? "Decks are for classmates. Add this course to your classes first."
           : "We couldn't start that deck just now. Give it another try."
       );
       return;
@@ -330,7 +330,7 @@ export default function CourseDecksScreen() {
     router.push(`/deck/${row.id}`);
   }, [userId, id, creating, title, router]);
 
-  // Deep links land here directly — a signed-out visitor gets a proper door.
+  // Deep links land here directly, so a signed-out visitor gets a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -489,7 +489,7 @@ export default function CourseDecksScreen() {
               {courseCode ? `${courseCode} flashcards` : "Flashcards"}
             </AppText>
             <AppText variant="caption" muted>
-              Shared decks — anyone in the class can add cards. How well you
+              Shared decks: anyone in the class can add cards. How well you
               know them stays yours.
             </AppText>
             {actionError ? (
@@ -579,7 +579,7 @@ export default function CourseDecksScreen() {
           return (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Open ${item.title} — ${countsLabel(meta.get(item.id))}${
+              accessibilityLabel={`Open ${item.title}, ${countsLabel(meta.get(item.id))}${
                 mine ? ". Long press to rename or delete" : ""
               }`}
               onPress={() => router.push(`/deck/${item.id}`)}
@@ -655,7 +655,7 @@ export default function CourseDecksScreen() {
               <AppText variant="title">New deck</AppText>
             </View>
             <AppText variant="caption" muted>
-              One topic per deck works best — a chapter, a lecture, a pile of
+              One topic per deck works best: a chapter, a lecture, a pile of
               formulas.
             </AppText>
             <Field

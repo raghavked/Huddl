@@ -6,7 +6,7 @@ import type { LegalDoc } from "./content";
 /* ------------------------------------------------------------------ */
 /* Shared shell for the public /legal/* pages: the marketing header,   */
 /* one quiet column of prose, and cross-links to the sibling docs.     */
-/* Server component — no client JS. Content lives in ./content.ts.     */
+/* Server component, no client JS. Content lives in ./content.ts.      */
 /* ------------------------------------------------------------------ */
 
 const LEGAL_DOCS = [

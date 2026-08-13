@@ -1,4 +1,4 @@
-// Row types mirroring supabase/migrations/*.sql. Keep the two in sync — this
+// Row types mirroring supabase/migrations/*.sql. Keep the two in sync: this
 // file is the shared contract every feature module builds against.
 
 export interface University {
@@ -34,11 +34,11 @@ export interface Profile {
    * confirmed university email and a complete profile. Maintained by the
    * `sync_profile_verified` trigger (migration 0047) and outside the
    * authenticated column grant, so it cannot be self-awarded. Null means not
-   * verified — the client works out which half is missing.
+   * verified, and the client works out which half is missing.
    */
   verified_at: string | null;
   is_public: boolean;
-  // What you're into (migration 0034) — up to eight short tags. A trigger
+  // What you're into (migration 0034): up to eight short tags. A trigger
   // trims, lowercases, dedupes and keeps the first eight, so clients send
   // exactly what the student typed. Never null; the column defaults to '{}'.
   interests: string[];
@@ -55,7 +55,7 @@ export interface Course {
   term_id: string | null;
   code: string;
   title: string;
-  // Legacy column from a retired import flow — still on the row, never written.
+  // Legacy column from a retired import flow. Still on the row, never written.
   canvas_course_id: number | null;
   created_at: string;
 }
@@ -162,7 +162,7 @@ export interface Message {
   parent_id: string | null;
   content: string;
   attachment_path: string | null;
-  // A message with poll_id carries a poll — clients render the live poll
+  // A message with poll_id carries a poll, so clients render the live poll
   // bubble instead of the text (content duplicates the question for search
   // and notification previews). Migration 0019.
   poll_id: string | null;
@@ -234,7 +234,7 @@ export interface PollVote {
   created_at: string;
 }
 
-// One-way and private to the blocker — the blocked person never finds out.
+// One-way and private to the blocker. The blocked person never finds out.
 export interface Block {
   blocker_id: string;
   blocked_id: string;
@@ -262,7 +262,7 @@ export interface Note {
   created_at: string;
 }
 
-// A thanks per classmate per note (migration 0026) — one row each,
+// A thanks per classmate per note (migration 0026): one row each,
 // retractable. The uploader hears about it through the notification pipeline.
 export interface NoteThanks {
   note_id: string;
@@ -270,7 +270,7 @@ export interface NoteThanks {
   created_at: string;
 }
 
-// A private saved message (migration 0027) — one row per message per student,
+// A private saved message (migration 0027): one row per message per student,
 // retractable, never visible to anyone else. EXACTLY ONE subject is set: a
 // channel message_id or a dm_message_id, never both and never neither (the
 // bookmark_has_one_subject check enforces it).
@@ -332,7 +332,7 @@ export interface AppNotification {
 }
 
 // The campus board (migration 0034): rides home, lost and found, free stuff,
-// things for sale, asks and offers. Campus-scoped and author-owned — and
+// things for sale, asks and offers. Campus-scoped and author-owned, and
 // closable rather than deletable, so a post that got what it wanted stays
 // readable at the bottom of the board.
 export type BoardCategory =
@@ -351,11 +351,11 @@ export interface BoardPost {
   category: BoardCategory;
   title: string;
   body: string | null;
-  // Cents, never dollars. Zero is a real value and means free — render it
+  // Cents, never dollars. Zero is a real value and means free, so render it
   // with priceLabel() from @/lib/board rather than dividing here.
   price_cents: number | null;
   // For a ride, the day it leaves as 'YYYY-MM-DD'. Null for every other
-  // category. Read it with parseBoardDay() — new Date() on a date-only
+  // category. Read it with parseBoardDay(): new Date() on a date-only
   // string lands on UTC midnight and reads a day early west of Greenwich.
   happens_on: string | null;
   // Set when the author marked it sorted. A closed post stays readable.

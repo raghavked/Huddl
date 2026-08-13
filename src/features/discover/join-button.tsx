@@ -38,7 +38,7 @@ export function JoinButton({
   className,
 }: {
   channelId: string;
-  /** Accessible name, e.g. "#dorm-life" — screen readers hear "Join #dorm-life". */
+  /** Accessible name, e.g. "#dorm-life", so screen readers hear "Join #dorm-life". */
   channelName: string;
   className?: string;
 }) {
@@ -97,8 +97,8 @@ export function JoinedChip({ className }: { className?: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Channel browser (client half of /channels/browse). It lives in this file —
-// the discover module's client entry point — because it is built around
+// Channel browser (client half of /channels/browse). It lives in this file,
+// the discover module's client entry point, because it is built around
 // JoinButton and the browse page itself stays a server component.
 // ---------------------------------------------------------------------------
 
@@ -155,8 +155,8 @@ function matches(channel: BrowseChannel, query: string): boolean {
 function JoinAffordance({ channel }: { channel: BrowseChannel }) {
   if (channel.joined) return <JoinedChip />;
   if (channel.kind === "course") {
-    // Course channels come from enrollment — send folks through setup instead
-    // of letting them lurk in a class they're not in.
+    // Course channels come from enrollment, so send folks through setup
+    // instead of letting them lurk in a class they're not in.
     return (
       <Link
         href="/setup"
@@ -167,7 +167,7 @@ function JoinAffordance({ channel }: { channel: BrowseChannel }) {
     );
   }
   if (channel.kind === "club") {
-    // Club chat membership mirrors the club roster — join via the club page.
+    // Club chat membership mirrors the club roster, so join via the club page.
     return (
       <Link
         href={channel.clubId ? `/clubs/${channel.clubId}` : "/clubs"}
@@ -228,7 +228,7 @@ export function ChannelBrowser({ channels }: { channels: BrowseChannel[] }) {
           title="No channels match"
           description={
             query.trim()
-              ? `Nothing matches "${query.trim()}". Try a different search — or start the channel yourself.`
+              ? `Nothing matches "${query.trim()}". Try a different search, or start the channel yourself.`
               : "There are no channels here yet."
           }
           action={

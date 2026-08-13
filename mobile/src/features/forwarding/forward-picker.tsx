@@ -29,8 +29,8 @@ export const FORWARD_MAX_TARGETS = 5;
 /**
  * How many places it takes before the picker offers a search field. A list of
  * five is already on screen whole, and a field plus the keyboard it raises
- * would cost more room than the scrolling it saves. Past that — a student in
- * twenty rooms — typing beats scrolling.
+ * would cost more room than the scrolling it saves. Past that (a student in
+ * twenty rooms), typing beats scrolling.
  */
 const SEARCH_FROM_ROOMS = 6;
 
@@ -44,13 +44,13 @@ export type ForwardPickerProps = {
   visible: boolean;
   /** The message being passed along, or null while nothing is selected. */
   source: ForwardSource | null;
-  /** The room we're forwarding out of — never a place to forward to. */
+  /** The room we're forwarding out of, never a place to forward to. */
   exclude: { kind: "channel" | "dm"; id: string } | null;
   /** Blocked classmates aren't places; same gate the messages list runs. */
   blocked: Set<string>;
   /** False when an ancestor already lifts for the keyboard (the DM room). */
   liftForKeyboard: boolean;
-  /** Dismiss without sending — the scrim, the close button, and a clean send. */
+  /** Dismiss without sending: the scrim, the close button, and a clean send. */
   onClose: () => void;
   /** A complete send, with the sentence to show the student. */
   onFinished: (message: string) => void;
@@ -96,7 +96,7 @@ export function ForwardPicker({
     }
   }, []);
 
-  // Each opening is a fresh decision — no leftover ticks from last time.
+  // Each opening is a fresh decision: no leftover ticks from last time.
   useEffect(() => {
     if (!visible) return;
     setQuery("");
@@ -105,7 +105,7 @@ export function ForwardPicker({
     void load();
   }, [visible, load]);
 
-  // Everywhere this message could actually go — the whole list, before
+  // Everywhere this message could actually go: the whole list, before
   // anything is typed. Counted on its own because whether the search field is
   // worth its space depends on how many rooms there are, not on what's left
   // after a query narrows them.
@@ -133,7 +133,7 @@ export function ForwardPicker({
 
   const searchable = candidates.length >= SEARCH_FROM_ROOMS;
 
-  // Filters what's already loaded — no second query, no waiting. A channel
+  // Filters what's already loaded: no second query, no waiting. A channel
   // matches on its name or its course code, so "ecs 36a" finds the room called
   // "Study group" under ECS 36A; a conversation matches on the name the
   // messages list gives it.
@@ -248,7 +248,7 @@ export function ForwardPicker({
         </AppText>
       </View>
       <AppText variant="caption" muted>
-        Everyone in the rooms you pick can read it, photo included — and pass
+        Everyone in the rooms you pick can read it, photo included, and pass
         it on again. There's no taking it back.
       </AppText>
 
@@ -287,7 +287,7 @@ export function ForwardPicker({
         <View style={{ paddingVertical: 16, alignItems: "center" }}>
           <AppText muted style={{ textAlign: "center", maxWidth: 260 }}>
             {query.trim() === ""
-              ? "There's nowhere else to send this yet — join a channel or start a chat."
+              ? "There's nowhere else to send this yet. Join a channel or start a chat."
               : "No room by that name."}
           </AppText>
         </View>
@@ -373,7 +373,7 @@ export function ForwardPicker({
 
       {atLimit ? (
         <AppText variant="caption" muted>
-          That's five rooms — as many as one forward carries.
+          That's five rooms, as many as one forward carries.
         </AppText>
       ) : null}
       {problem ? (

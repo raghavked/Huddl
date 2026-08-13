@@ -112,7 +112,7 @@ function NotificationItem({
   const unread = !item.read_at;
   const icon = KIND_ICONS[item.kind] ?? "bell";
   const canOpen = routeForLink(item.link) !== null;
-  // Read rows with nowhere to go are inert — nothing left to do with them.
+  // Read rows with nowhere to go are inert: nothing left to do with them.
   const inert = !unread && !canOpen;
 
   return (
@@ -131,7 +131,7 @@ function NotificationItem({
         padded={false}
         entrance={index}
         // A kind tile, a title, a body, a timestamp and a dot are one
-        // notification — the row above says all of it in one go.
+        // notification, and the row above says all of it in one go.
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         style={{
@@ -289,7 +289,7 @@ export default function NotificationsScreen() {
         .then(({ error: updateError }) => {
           if (!updateError) return;
           /* The row went quiet before the server agreed, so put the dot
-             back — a notification that looks handled and isn't is worse
+             back. A notification that looks handled and isn't is worse
              than one that asks for a second tap. */
           setItems((prev) =>
             prev === null
@@ -299,7 +299,7 @@ export default function NotificationsScreen() {
                 )
           );
           setRowError(
-            `"${item.title}" didn't mark as read — give it another tap.`
+            `"${item.title}" didn't mark as read. Give it another tap.`
           );
         });
     }
@@ -319,7 +319,7 @@ export default function NotificationsScreen() {
       .is("read_at", null);
     setMarkingAll(false);
     if (updateError) {
-      setMarkAllError("Couldn't mark everything read — give it another try.");
+      setMarkAllError("Couldn't mark everything read. Give it another try.");
       return;
     }
     setItems((prev) =>
@@ -454,7 +454,7 @@ export default function NotificationsScreen() {
       ) : null}
 
       {loading ? (
-        // Every row is the same shape — a ghost list beats a spinner here.
+        // Every row is the same shape, so a ghost list beats a spinner here.
         <View style={{ flex: 1 }}>
           {[0, 1, 2, 3].map((index) => (
             <SkeletonRow key={index} />
@@ -513,14 +513,14 @@ export default function NotificationsScreen() {
                 style={{ color: theme.danger, marginBottom: space.room }}
               >
                 {rowError ??
-                  "We couldn't refresh just now — pull down to try again."}
+                  "We couldn't refresh just now. Pull down to try again."}
               </AppText>
             ) : null
           }
           ListEmptyComponent={
             <EmptyState
               illustration={Tray}
-              title="All quiet — you're caught up."
+              title="All quiet. You're caught up."
               body="New messages, thread replies, event updates, class calendar changes, club announcements and thanks for your notes will land here."
             />
           }

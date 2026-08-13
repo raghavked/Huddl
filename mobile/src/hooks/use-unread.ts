@@ -18,10 +18,10 @@ type UnreadRow = { read_at: string | null } & Record<string, unknown>;
  * - `count` starts from a server-side head count (no rows shipped) and bumps
  *   the moment a new notification row lands over realtime.
  * - Realtime is asleep while the app is backgrounded, so the count is taken
- *   again on every return to the foreground — otherwise four DMs that arrive
+ *   again on every return to the foreground. Otherwise four DMs that arrive
  *   with the phone locked leave the bell dark until some screen happens to
  *   blur and refocus.
- * - `refresh` re-counts from the server — call it after marking rows read
+ * - `refresh` re-counts from the server. Call it after marking rows read
  *   (e.g. when returning from the notifications screen) so the badge drops.
  */
 export function useUnreadNotifications(): {
@@ -61,7 +61,7 @@ export function useUnreadNotifications(): {
 
   // Coming back to the app is the one moment the count is guaranteed stale:
   // the socket was asleep, so nothing that landed in between was counted.
-  // Only transitions into "active" re-count, never "active" repeated — a
+  // Only transitions into "active" re-count, never "active" repeated. A
   // head count is cheap, but not free.
   const appState = useRef<AppStateStatus>(AppState.currentState);
   useEffect(() => {

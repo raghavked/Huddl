@@ -1,14 +1,14 @@
 /* Which colour a course wears, decided in exactly one place.
  *
- * A course colour is **personal**. It lives on `enrollments.color` — the
- * student's own row for that course — so the tint you gave BIS 2A is yours,
+ * A course colour is **personal**. It lives on `enrollments.color`, the
+ * student's own row for that course, so the tint you gave BIS 2A is yours,
  * your lab partner can pick a different one, and neither of you ever sees the
  * other's choice. Nothing about a course colour is shared, published, or
  * synced to the class. Never write it to `courses`, and never show one
  * student's tint on another student's screen.
  *
  * `enrollments.color` is nullable, and null is the normal state: most students
- * will never open the picker. Null does not mean "no colour" — it means "let
+ * will never open the picker. Null does not mean "no colour". It means "let
  * the app choose". So we choose, by hashing the course code onto the same six
  * tints. That gives us two things worth more than a random pick:
  *
@@ -19,7 +19,7 @@
  *     even buckets means four courses usually land on four colours.
  *
  * Usually. Six buckets means two of a student's courses collide about one time
- * in six, and that is the honest cost of a stateless rule — the fix is the
+ * in six, and that is the honest cost of a stateless rule. The fix is the
  * picker, which is why the picker exists.
  *
  * Pure: no React, no Supabase, no clock. Pages pass what they already have.
@@ -42,7 +42,7 @@ export type CourseTint = "ember" | "fern" | "clay" | "plum" | "sky" | "sand";
  * One tint, as a page uses it: the wash a course sits on, and the ink that
  * reads on that wash.
  *
- * `soft` is a fill — a chip, a course card's icon tile, a swatch in the
+ * `soft` is a fill: a chip, a course card's icon tile, a swatch in the
  * picker. `ink` is the text and the icons *on* that fill. `chip` is the pair
  * together, which is what almost every caller actually wants.
  */
@@ -51,7 +51,7 @@ export type CourseTintClasses = {
   soft: string;
   /** Text utility for the ink, e.g. `text-course-plum-ink`. */
   ink: string;
-  /** `soft` and `ink` together — the one-line answer for a chip or a tile. */
+  /** `soft` and `ink` together: the one-line answer for a chip or a tile. */
   chip: string;
 };
 
@@ -59,7 +59,7 @@ export type CourseTintClasses = {
  * The table everything else here is derived from: picker order, the label a
  * student reads, and the two utilities that paint it.
  *
- * Order matters twice over — it is the order of swatches in the colour picker
+ * Order matters twice over. It is the order of swatches in the colour picker
  * AND the order of the buckets the hash lands in, so re-ordering these keys
  * re-tints every course whose owner never picked one. Don't reorder casually.
  *
@@ -133,7 +133,7 @@ export const COURSE_TINT_LABELS: Record<CourseTint, string> = {
  * The Tailwind utilities that paint each tint.
  *
  * `courseTintClasses(colorForCourse(enrollment.color, course.code)).chip` is
- * the whole idiom — a soft fill and the ink that reads on it, in both themes,
+ * the whole idiom: a soft fill and the ink that reads on it, in both themes,
  * with no branching on the theme in a component.
  */
 export const COURSE_TINT_CLASSES: Record<CourseTint, CourseTintClasses> = TINTS;
@@ -144,7 +144,7 @@ const DEFAULT_TINT: CourseTint = "ember";
 /**
  * The colour this course wears for this student.
  *
- * @param explicit The student's own pick — `enrollments.color`. Null,
+ * @param explicit The student's own pick, `enrollments.color`. Null,
  *                 undefined, or anything the palette doesn't recognise (a
  *                 value from a newer client, a hand-edited row) falls through
  *                 to the hash rather than throwing or going grey.
@@ -195,7 +195,7 @@ function tintForCode(courseCode: string): CourseTint {
 }
 
 /**
- * Course codes arrive spelled a dozen ways — "ECS 36A", "ecs 36a", "ECS36A",
+ * Course codes arrive spelled a dozen ways: "ECS 36A", "ecs 36a", "ECS36A",
  * "ECS-36A". Strip everything that isn't a letter or a digit and upper-case
  * the rest, so all of those hash to one tint instead of four.
  */
@@ -206,12 +206,12 @@ function normalizeCode(courseCode: string): string {
 /**
  * FNV-1a, 32-bit. Chosen over the multiply-by-31 hash `Avatar` uses because
  * this one has to spread over six buckets instead of two, and 31 clusters
- * badly on short strings that share a prefix — which is every course list.
+ * badly on short strings that share a prefix, which is every course list.
  * Across a hundred real UC Davis codes this lands within half a point of a
  * perfectly even split.
  *
  * `Math.imul` keeps the multiply in 32-bit territory, so every engine agrees
- * on the answer — and, more to the point here, so the server render and the
+ * on the answer, and, more to the point here, so the server render and the
  * browser hydration agree. That agreement is the whole reason this is a hash
  * and not a counter: the same course must be the same colour on the phone,
  * the laptop, and after a sign-out.

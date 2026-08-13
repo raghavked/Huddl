@@ -47,7 +47,7 @@ export default async function CourseBuddiesPage({
     .eq("course_id", course.id)
     .eq("user_id", user.userId)
     .maybeSingle();
-  // Study partners are for classmates — the course page has the join door.
+  // Study partners are for classmates, and the course page has the join door.
   if (!enrollment) redirect(`/courses/${course.id}`);
 
   const ctx = { client: supabase, userId: user.userId };

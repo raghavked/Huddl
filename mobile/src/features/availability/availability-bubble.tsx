@@ -44,20 +44,20 @@ type FeatherName = ComponentProps<typeof Feather>["name"];
 /** Props for {@link AvailabilityBubble}. */
 export type AvailabilityBubbleProps = {
   /**
-   * The poll's id — `availability_polls.id`. The bubble is fully
+   * The poll's id, `availability_polls.id`. The bubble is fully
    * self-contained: it fetches the title, the candidate times, and everyone's
    * answers itself, handles answering / changing / withdrawing, closing, and
    * turning the winning time into a study session, and keeps the counts live
    * over realtime.
    *
    * It draws on its own card surface, so it reads correctly on both own and
-   * other message backgrounds — render it in place of (or above) the plain
+   * other message backgrounds. Render it in place of (or above) the plain
    * text content, exactly like `PollBubble`.
    *
    * **Finding this id.** Unlike a regular poll, a `messages` row carries no
    * `availability_poll_id` column (migration 0033 posts a plain announcing
    * message reading `When can everyone meet? <title>`). The room resolves the
-   * id itself — the cheap way is one query per channel,
+   * id itself: the cheap way is one query per channel,
    * `availability_polls` filtered by `channel_id`, matched to the announcing
    * message by creator plus `created_at` proximity, and
    * `AvailabilityComposer`'s `onCreated` hands you the id for the poll the
@@ -104,7 +104,7 @@ const NO_VOTES: AvailabilityVote[] = [];
 const LOAD_FAILED =
   "We couldn't load these times. Check your connection and give it another go.";
 const SAVE_FAILED = "That answer didn't save. Give it another tap.";
-const CLOSE_FAILED = "We couldn't close the poll — give it another go.";
+const CLOSE_FAILED = "We couldn't close the poll. Give it another go.";
 
 /** Past six days apart, a weekday on its own stops telling you enough. */
 const WEEKDAY_ONLY_SPAN_MS = 6 * 24 * 60 * 60 * 1000;
@@ -114,8 +114,8 @@ function pad2(value: number): string {
   return String(value).padStart(2, "0");
 }
 
-/** A local calendar day as "2026-10-14" — never `toISOString`, which would
-    hand back yesterday for anyone west of Greenwich in the evening. */
+/** A local calendar day as "2026-10-14". Never `toISOString`: it hands back
+    yesterday for anyone west of Greenwich in the evening. */
 function toDateText(at: Date): string {
   return `${at.getFullYear()}-${pad2(at.getMonth() + 1)}-${pad2(at.getDate())}`;
 }
@@ -159,7 +159,7 @@ function spansMoreThanAWeek(slots: readonly AvailabilitySlot[]): boolean {
   return latest - earliest > WEEKDAY_ONLY_SPAN_MS;
 }
 
-/** "3 free · 1 maybe" — the parts that actually happened, nothing else. */
+/** "3 free · 1 maybe": the parts that actually happened, nothing else. */
 function countsSummary(counts: SlotTally): string | null {
   const parts: string[] = [];
   if (counts.yes > 0) parts.push(`${counts.yes} free`);
@@ -171,7 +171,7 @@ function countsSummary(counts: SlotTally): string | null {
 /**
  * The fill and ink for an answer the student has picked. Fern for a yes (the
  * "this is handled" green), ember for a maybe, and a quiet neutral step for a
- * no — declining a time is not a danger state.
+ * no. Declining a time isn't a danger state.
  */
 function answerColors(
   response: AvailabilityResponse,
@@ -190,7 +190,7 @@ function answerColors(
 /**
  * One candidate time: the day and hour, the three answer buttons with mine
  * filled, and a fill bar behind the whole row showing how well that time is
- * doing. The bar animates when a vote lands — the one moment on this row
+ * doing. The bar animates when a vote lands, the one moment on this row
  * worth reporting.
  */
 function SlotRow({
@@ -293,7 +293,7 @@ function SlotRow({
                 disabled={closed}
                 accessibilityRole="button"
                 accessibilityState={{ selected, disabled: closed }}
-                accessibilityLabel={`${answer.word} for ${label} — ${count} so far${
+                accessibilityLabel={`${answer.word} for ${label}, ${count} so far${
                   selected ? ", your answer" : ""
                 }`}
                 accessibilityHint={
@@ -336,7 +336,7 @@ function SlotRow({
   );
 }
 
-/** A quiet text action — "Close", "Make it an event". */
+/** A quiet text action: "Close", "Make it an event". */
 function FooterAction({
   label,
   hint,
@@ -378,7 +378,7 @@ function FooterAction({
  * roll back and explain themselves in a warm inline caption.
  *
  * The person who started the poll gets "Close" while it's open, and
- * "Make it an event" once it's closed — that routes to the event form with
+ * "Make it an event" once it's closed, which routes to the event form with
  * the winning time filled in. One realtime subscription per poll keeps the
  * counts moving as classmates answer.
  */
@@ -445,7 +445,7 @@ export function AvailabilityBubble({ pollId }: AvailabilityBubbleProps) {
   }, [load]);
 
   // Live counts. The poll row itself isn't in the realtime publication, so a
-  // close only shows up here on the next mount — the creator's own local
+  // close only shows up here on the next mount; the creator's own local
   // state covers the moment it happens.
   useEffect(() => {
     return subscribeToPoll(pollId, () => {
@@ -565,8 +565,8 @@ export function AvailabilityBubble({ pollId }: AvailabilityBubbleProps) {
 
   /**
    * Hand the winning time to the event form. The form owns creating the
-   * study session — and, with `availabilityPollId` in hand, linking it back
-   * to this poll via `attachEvent` once the event exists.
+   * study session and, with `availabilityPollId` in hand, links it back to
+   * this poll via `attachEvent` once the event exists.
    */
   const handleMakeEvent = useCallback(() => {
     if (!detail || !best) return;

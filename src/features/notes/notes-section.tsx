@@ -39,7 +39,7 @@ import type { Note, Profile } from "@/lib/types";
 export type NoteWithUploader = Note & {
   uploader: Profile | null;
   /**
-   * `notes.tags` — added by migration 0032 and not yet on the shared `Note`
+   * `notes.tags`, added by migration 0032 and not yet on the shared `Note`
    * type, so it arrives loose off a `select *`. Always read it through
    * `toTagList`, never straight.
    */
@@ -81,8 +81,8 @@ function fileTypeIcon(mime: string | null, fileName: string): LucideIcon {
  * The server page passes the RLS-scoped notes; uploads are shown optimistically
  * (merged by id once router.refresh() brings the server copy back).
  *
- * An uploader who turned Public profile off is credited by their handle — see
- * {@link noteUploaderName}. Their note stays up and their avatar stays on it;
+ * An uploader who turned Public profile off is credited by their handle (see
+ * {@link noteUploaderName}). Their note stays up and their avatar stays on it;
  * only the name goes.
  */
 export function NotesSection({
@@ -116,7 +116,7 @@ export function NotesSection({
 
   /* Blocking hides what a person writes, and a shared note is a thing they
      wrote. This is the same set the chat rooms filter through, so a classmate
-     you blocked is not still handing you coursework on the course page — with
+     you blocked is not still handing you coursework on the course page, with
      their name, their avatar, and a working "Say thanks" button.
 
      Like every other block filter in the web client, it resolves a beat after
@@ -145,7 +145,7 @@ export function NotesSection({
       );
   }, [notes, extraNotes, removedIds, blockedIds, currentUser.id]);
 
-  /** The tags one note is wearing right now — an unsaved edit wins. */
+  /** The tags one note is wearing right now. An unsaved edit wins. */
   const tagsOf = useMemo(() => {
     return (note: NoteWithUploader): string[] =>
       tagEdits[note.id] ?? toTagList(note.tags);
@@ -200,7 +200,7 @@ export function NotesSection({
       .select("note_id, user_id")
       .in("note_id", visibleIdsKey.split(","))
       .then(({ data, error: fetchError }) => {
-        // Best effort — a hiccup keeps whatever we already had.
+        // Best effort: a hiccup keeps whatever we already had.
         if (cancelled || fetchError) return;
         const reduced: Record<string, ThanksEntry> = {};
         for (const row of (data ?? []) as { note_id: string; user_id: string }[]) {
@@ -217,10 +217,10 @@ export function NotesSection({
     };
   }, [visibleIdsKey, currentUser.id]);
 
-  /** Give thanks, or take it back — optimistic either way, rolled back on
+  /** Give thanks, or take it back. Optimistic either way, rolled back on
    *  failure. The uploader hears about it through the server-side trigger. */
   async function toggleThanks(note: NoteWithUploader) {
-    // You can't thank yourself — the server agrees, so don't even try.
+    // You can't thank yourself. The server agrees, so don't even try.
     if (note.uploader_id === currentUser.id) return;
     if (thanksInFlight.current.has(note.id)) return;
     thanksInFlight.current.add(note.id);
@@ -258,8 +258,8 @@ export function NotesSection({
       setThanks((prev) => ({ ...prev, [note.id]: previous }));
       setError(
         giving
-          ? "Your thanks didn't make it through — give it another try."
-          : "Couldn't take that back just now — give it another try."
+          ? "Your thanks didn't make it through. Give it another try."
+          : "Couldn't take that back just now. Give it another try."
       );
     } finally {
       thanksInFlight.current.delete(note.id);
@@ -292,7 +292,7 @@ export function NotesSection({
   }
 
   /**
-   * Save a note's tags. Optimistic — the chips change as the editor closes and
+   * Save a note's tags. Optimistic: the chips change as the editor closes and
    * change back with an apology if the write doesn't land. What comes home is
    * the normalized set, so " Midterm 2 " settles as `midterm 2` on screen too.
    */
@@ -354,7 +354,7 @@ export function NotesSection({
       link.click();
       link.remove();
     } catch {
-      setError("Couldn't prepare that download. Please try again.");
+      setError("Couldn't prepare that download. Give it another try.");
     } finally {
       setDownloadingId(null);
     }
@@ -364,7 +364,7 @@ export function NotesSection({
     setError(null);
     setDeletingId(note.id);
     const supabase = createClient();
-    // Best effort on the file itself — if it's already gone we still want the
+    // Best effort on the file itself. If it's already gone we still want the
     // row removed. RLS limits both calls to the uploader's own note.
     await supabase.storage.from("notes").remove([note.storage_path]);
     const { error: deleteError } = await supabase
@@ -374,7 +374,7 @@ export function NotesSection({
       .eq("uploader_id", currentUser.id);
     setDeletingId(null);
     if (deleteError) {
-      setError("Couldn't delete that note. Please try again.");
+      setError("Couldn't delete that note. Give it another try.");
       return;
     }
     setConfirmingId(null);
@@ -398,8 +398,8 @@ export function NotesSection({
       </p>
 
       {/* The filter rail. It bleeds to both gutters so a long list of tags
-          runs off the edge instead of stopping short of it — and it isn't
-          drawn at all until the class has actually tagged something. The rail
+          runs off the edge instead of stopping short of it. It isn't drawn
+          at all until the class has actually tagged something. The rail
           scrolls, never the page. */}
       {courseTags.length > 0 ? (
         <div className="mt-4">
@@ -438,7 +438,7 @@ export function NotesSection({
                       : "border-border bg-surface text-muted hover:text-foreground"
                   )}
                 >
-                  {/* "lecture · 12", never "lecture 12" — plenty of real tags
+                  {/* "lecture · 12", never "lecture 12": plenty of real tags
                       end in a number ("week 5"), and the middot is what keeps
                       the count from reading as part of the word. */}
                   {entry.tag} · {entry.count}
@@ -599,7 +599,7 @@ export function NotesSection({
                     ) : (
                       <>
                         {mine ? (
-                          /* Your own notes: the warmth just shows — you can't
+                          /* Your own notes: the warmth just shows. You can't
                              thank yourself, and the server agrees. */
                           <span
                             className="flex items-center gap-1 p-2 text-xs font-semibold text-muted"
@@ -712,7 +712,7 @@ export function NotesSection({
                   </div>
                 </div>
 
-                {/* Retagging is the uploader's alone — 0006's policy scopes
+                {/* Retagging is the uploader's alone: 0006's policy scopes
                     the update to them, so nobody else is offered the door. */}
                 {editingTags ? (
                   <div className="mt-4 border-t border-border pt-4">

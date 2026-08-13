@@ -21,7 +21,7 @@ import { useAuth } from "@/providers/auth-provider";
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
 
-/* Minimal local row shape — the web app's types live outside this tsconfig. */
+/* Minimal local row shape: the web app's types live outside this tsconfig. */
 
 type LinkKind = "syllabus" | "textbook" | "office_hours" | "lecture" | "other";
 
@@ -71,7 +71,7 @@ const KIND_ORDER: Record<LinkKind, number> = {
 };
 
 /** Quiet chip palette: the syllabus glows ember-clay, references lean sage,
-    the rest stay neutral — same recipe as the calendar's kind chips. */
+    the rest stay neutral. Same recipe as the calendar's kind chips. */
 function kindColors(kind: LinkKind, theme: Palette): { bg: string; fg: string } {
   switch (kind) {
     case "syllabus":
@@ -251,12 +251,12 @@ export default function CourseLinksScreen() {
       await Linking.openURL(link.url);
     } catch {
       setActionError(
-        "That link wouldn't open — it may be mistyped. Try it in your browser."
+        "That link wouldn't open. It may be mistyped, so try it in your browser."
       );
     }
   }, []);
 
-  /** Authors only: long-press a pin to take it down — optimistic, with undo
+  /** Authors only: long-press a pin to take it down. Optimistic, with undo
       on failure. */
   const handleLongPress = useCallback(
     (link: LinkRow) => {
@@ -325,7 +325,7 @@ export default function CourseLinksScreen() {
     if (insertError || !data) {
       setAddError(
         insertError?.code === "42501"
-          ? "Links are pinned by classmates — add this course to your classes first."
+          ? "Links are pinned by classmates. Add this course to your classes first."
           : "We couldn't pin that link just now. Give it another try."
       );
       return;
@@ -337,7 +337,7 @@ export default function CourseLinksScreen() {
     setUrl("");
   }, [userId, id, adding, trimmedTitle, trimmedUrl, kind]);
 
-  // Deep links land here directly — a signed-out visitor gets a proper door.
+  // Deep links land here directly, so a signed-out visitor gets a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -440,7 +440,7 @@ export default function CourseLinksScreen() {
               {courseCode ? `${courseCode} links` : "Course links"}
             </AppText>
             <AppText variant="caption" muted>
-              The syllabus, the textbook, office hours — pinned by classmates,
+              The syllabus, the textbook, office hours: pinned by classmates,
               for classmates. Long-press one of yours to remove it.
             </AppText>
             {error ? (
@@ -490,7 +490,7 @@ export default function CourseLinksScreen() {
               muted
               style={{ textAlign: "center", maxWidth: 260 }}
             >
-              Pin the syllabus, the textbook, wherever office hours live — the
+              Pin the syllabus, the textbook, wherever office hours live. The
               class will thank you.
             </AppText>
           </Card>
@@ -580,7 +580,7 @@ export default function CourseLinksScreen() {
               <AppText variant="title">Add a link</AppText>
             </View>
             <AppText variant="caption" muted>
-              Anything the class keeps hunting for — pin it once and it's here
+              Anything the class keeps hunting for: pin it once and it's here
               for everyone.
             </AppText>
             <View

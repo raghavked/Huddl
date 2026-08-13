@@ -71,7 +71,7 @@ type MessagePreview = {
   author: { display_name: string } | null;
 };
 
-/** My membership extras per channel — the campus rows' unread dots hang off
+/** My membership extras per channel. The campus rows' unread dots hang off
     these (latest preview newer than my last_read_at, not mine, not muted). */
 type MemberMeta = { lastReadAt: string; muted: boolean };
 
@@ -84,7 +84,7 @@ type MemberMetaRow = {
 /* Rows feeding the "Your plan" card, built via buildPlan over the week
    around now (7 days back for missed deadlines, 7 days ahead). */
 type EnrollmentJoin = {
-  /** Set when the student has shelved the class — see 0028's `enrollments`. */
+  /** Set when the student has shelved the class (see 0028's `enrollments`). */
   archived_at: string | null;
   course: { id: string; code: string } | null;
 };
@@ -97,10 +97,10 @@ type CalendarItemRow = {
   due_at: string;
 };
 
-/** The plan card's three numbers. The score is deliberately the WEEK's — the
+/** The plan card's three numbers. The score is deliberately the WEEK's: the
     same window `/plan` prints, so the two screens can't disagree. */
 type PlanSummary = {
-  /** Everything in the fetched window, however far out — gates the card's copy. */
+  /** Everything in the fetched window, however far out. Gates the card's copy. */
   total: number;
   /** Items due between a week ago and the end of this week. */
   weekTotal: number;
@@ -109,7 +109,7 @@ type PlanSummary = {
   nextUp: { courseCode: string; title: string; dueAt: Date } | null;
 };
 
-/** What's still on deck today, skimmed from the same plan fetch — the Today
+/** What's still on deck today, skimmed from the same plan fetch. The Today
     strip renders only when there's something here or an event tonight. */
 type TodaySummary = { dueCount: number; firstDueTitle: string | null };
 
@@ -122,13 +122,13 @@ type HomeData = {
   memberMeta: Record<string, MemberMeta>;
   plan: PlanSummary;
   today: TodaySummary;
-  /** The newest open board posts, or null when the board didn't load — the
-      only piece of Home that's allowed to come back missing instead of
-      failing the screen. */
+  /** The newest open board posts, or null when the board didn't load. This is
+      the only piece of Home allowed to come back missing instead of failing
+      the screen. */
   board: BoardPost[] | null;
   /** Everyone I've blocked. It travels with the rest of the data because
       hiding their content is the client's job (see `lib/blocks`), and the
-      previews were fetched against this exact set — keeping the two apart is
+      previews were fetched against this exact set. Keeping the two apart is
       how the front door ends up quoting someone the rooms already hide. */
   blocked: Set<string>;
 };
@@ -231,7 +231,7 @@ function eventTodayPhrase(event: EventRow): string {
   return `${event.title} at ${time}`;
 }
 
-/** One calm line from what today actually holds — null means stay silent. */
+/** One calm line from what today actually holds. Null means stay silent. */
 function buildTodayLine(
   today: TodaySummary,
   event: EventRow | null
@@ -250,7 +250,7 @@ function buildTodayLine(
 
 /* ---- section pieces ---- */
 
-/** The "today at a glance" strip — only exists when today holds something. */
+/** The "today at a glance" strip. It only exists when today holds something. */
 function TodayCard({ line }: { line: string }) {
   const theme = useTheme();
   return (
@@ -300,7 +300,7 @@ function PlanCard({ plan }: { plan: PlanSummary }) {
     ? "Plan your week"
     : plan.nextUp
       ? `Next up: ${plan.nextUp.courseCode} ${plan.nextUp.title}`
-      : "All handled — nothing hanging over you";
+      : "All handled. Nothing hanging over you";
   // Named window, always: an unlabelled score is the reason Home and /plan
   // could print two different fractions of the same term.
   const score =
@@ -508,7 +508,7 @@ function CampusRow({
             </AppText>
           ) : (
             <AppText variant="caption" muted numberOfLines={1}>
-              No messages yet — say hi.
+              No messages yet. Say hi.
             </AppText>
           )}
         </View>
@@ -633,7 +633,7 @@ function EventCard({ event }: { event: EventRow }) {
 /**
  * The campus board's front door: the newest few open posts, each with the
  * board it's on, or one warm line when nobody's asking for anything. The whole
- * card is the tap target — a single post's row would promise its own screen,
+ * card is the tap target. A single post's row would promise its own screen,
  * and this preview is a doorway to the list, not to a post.
  */
 function BoardCard({ posts }: { posts: BoardPost[] }) {
@@ -659,8 +659,8 @@ function BoardCard({ posts }: { posts: BoardPost[] }) {
           >
             <Feather name="clipboard" size={15} color={theme.brand} />
             <AppText variant="caption" muted style={{ flex: 1 }}>
-              Nothing on the board right now — a ride home, a couch to give
-              away, a water bottle someone lost all start here.
+              Nothing on the board right now. A ride home, a couch to give
+              away, a lost water bottle all start here.
             </AppText>
           </View>
         ) : (
@@ -703,16 +703,16 @@ function BoardCard({ posts }: { posts: BoardPost[] }) {
 /**
  * The newest readable message in each of these channels, keyed by channel id.
  *
- * One tiny indexed lookup per channel, all in flight together — the same
- * shape the first load uses and cheap enough to re-run every time Home comes
- * back into view, which is what makes an unread dot able to APPEAR rather
- * than only to clear. A channel with nothing in it is simply absent.
+ * One tiny indexed lookup per channel, all in flight together: the same shape
+ * the first load uses, cheap enough to re-run every time Home comes back into
+ * view, which is what makes an unread dot able to APPEAR rather than only to
+ * clear. A channel with nothing in it is simply absent.
  *
  * "Readable" includes the block list: a blocked classmate is excluded in the
  * query rather than dropped from the answer, so the row falls back to the
- * newest message you can actually read instead of going quiet — and the
- * unread dot, which hangs off this same preview, stops lighting up for
- * someone whose messages the room itself won't show you.
+ * newest message you can actually read instead of going quiet. The unread
+ * dot, which hangs off this same preview, stops lighting up for someone whose
+ * messages the room itself won't show you.
  *
  * Failures are silent per channel: a preview that didn't come back leaves the
  * row without a subtitle, which is not worth an error state on the front door.
@@ -901,7 +901,7 @@ export default function HomeScreen() {
     // The plan card's week: class-calendar items from 7 days back (missed
     // deadlines still count) through 7 days ahead, scored against my
     // check-offs by the same pure buildPlan the full screen uses.
-    // Active classes only, exactly as /plan scopes it — a shelved course
+    // Active classes only, exactly as /plan scopes it. A shelved course
     // keeps its history, but last quarter's due dates have no business in
     // this card. Counting them makes Home promise "2 due today" over a plan
     // screen that shows nothing.
@@ -961,7 +961,7 @@ export default function HomeScreen() {
           : null,
       };
       // The Today strip skims the same plan: what's still ahead of me today
-      // and unhandled. No extra queries — silence when the day is clear.
+      // and unhandled. No extra queries, and silence when the day is clear.
       const dueToday =
         groups
           .find((g) => g.label === "Today")
@@ -999,8 +999,8 @@ export default function HomeScreen() {
 
   /**
    * `initial` shows the ghosts, `refresh` drives the pull-to-refresh spinner,
-   * and `silent` re-fetches with no visible machinery — for the refresh
-   * nobody asked for, when the app comes back to the foreground.
+   * and `silent` re-fetches with no visible machinery, for the refresh nobody
+   * asked for when the app comes back to the foreground.
    */
   const run = useCallback(
     async (mode: "initial" | "refresh" | "silent") => {
@@ -1025,7 +1025,7 @@ export default function HomeScreen() {
   }, [userId, run]);
 
   // The entrance runs exactly once, on first data. It's an arrival, so it
-  // lands on the out-curve — and lands there instantly when the student has
+  // lands on the out-curve. It lands there instantly when the student has
   // asked the OS for less movement.
   useEffect(() => {
     if (!data || entranceRan.current) return;
@@ -1052,7 +1052,7 @@ export default function HomeScreen() {
    *
    * A dot is "the newest message is newer than my last_read_at", so refreshing
    * only the membership rows can move `lastReadAt` forward and never move the
-   * message — the dot could clear but could never appear. Opening a channel
+   * message. The dot could clear but could never appear. Opening a channel
    * bumps `last_read_at` (the room screen's job) and messages arrive while
    * Home sits there, so both sides have to come back from the same trip.
    *
@@ -1084,7 +1084,7 @@ export default function HomeScreen() {
     setData((prev) => {
       if (!prev) return prev;
       // The first focus can land before the first load, with no channels to
-      // ask about yet — don't let that empty answer erase real previews.
+      // ask about yet. Don't let that empty answer erase real previews.
       if (channels.length === 0) return { ...prev, memberMeta, blocked };
       return { ...prev, memberMeta, previews, blocked };
     });
@@ -1100,7 +1100,7 @@ export default function HomeScreen() {
   );
 
   /* Focus is not foreground. Lock the phone on Home and Home never blurs, so
-     `useFocusEffect` never fires again — the front door still shows whatever
+     `useFocusEffect` never fires again. The front door still shows whatever
      was true when the screen was locked. Coming back from the background is
      the other moment everything on this page can be stale, so it gets the
      same treatment, quietly and without a spinner. */
@@ -1132,7 +1132,7 @@ export default function HomeScreen() {
         icon: "volume-2",
         illustration: Mug,
         title: "No campus channels yet",
-        body: "Campus channels usually come free with your profile — they'll show up here soon.",
+        body: "Campus channels usually come free with your profile. They'll show up here soon.",
       });
     } else {
       for (const channel of data.campusChannels) {
@@ -1221,8 +1221,8 @@ export default function HomeScreen() {
       });
       // Same cut the board screen makes: somebody you blocked doesn't get a
       // slot on the front door either. Dropping their post can leave the
-      // preview short, or empty — and empty is the card's warm line, which is
-      // the right thing to read.
+      // preview short, or empty. Empty is the card's warm line, which is the
+      // right thing to read.
       out.push({
         type: "board",
         key: "board",
@@ -1317,9 +1317,9 @@ export default function HomeScreen() {
 
   /* Home builds its own header (instead of Screen's) for one reason: the
      greeting carries a quiet date line UNDER it, and Screen's title slot is a
-     single line. The date sits below because a screen title stands on its own
-     — an all-caps line above a heading reads as the heading. Metrics mirror
-     Screen exactly — same safe-area padding, same margins — so the front door
+     single line. The date sits below because a screen title stands on its
+     own: an all-caps line above a heading reads as the heading. Metrics mirror
+     Screen exactly (same safe-area padding, same margins), so the front door
      still feels like every room. */
   return (
     <View
@@ -1470,7 +1470,7 @@ export default function HomeScreen() {
               <View style={{ gap: space.close }}>
                 {error ? (
                   <AppText variant="caption" style={{ color: theme.danger }}>
-                    We couldn't refresh just now — pull down to try again.
+                    We couldn't refresh just now. Pull down to try again.
                   </AppText>
                 ) : null}
                 {todayLine ? <TodayCard line={todayLine} /> : null}

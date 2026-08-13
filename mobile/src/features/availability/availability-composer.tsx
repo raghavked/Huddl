@@ -30,7 +30,7 @@ export type AvailabilityComposerProps = {
    */
   channelId: string;
   /**
-   * Whether the sheet is shown. The room owns this — typically toggled from a
+   * Whether the sheet is shown. The room owns this, typically toggled from a
    * "+" or attachment action in the message bar. Drafts survive a dismiss;
    * the form only resets after a successful create. An untouched form
    * re-seeds its suggested times each time it opens, so a sheet left alone
@@ -47,7 +47,7 @@ export type AvailabilityComposerProps = {
    * Called with the new `availability_polls.id` after a successful create,
    * just before `onClose`. Worth keeping: the announcing chat message carries
    * no poll id of its own, so this is the cheapest moment for the room to
-   * learn which poll the message that's about to arrive belongs to — hand it
+   * learn which poll the message that's about to arrive belongs to. Hand it
    * straight to `<AvailabilityBubble pollId={…} />`.
    */
   onCreated?: (pollId: string) => void;
@@ -78,7 +78,7 @@ function pad2(value: number): string {
   return String(value).padStart(2, "0");
 }
 
-/** Days in a 1-based month — the same guard the event and calendar forms use. */
+/** Days in a 1-based month, the same guard the event and calendar forms use. */
 function daysInMonth(month: number, year: number): number {
   return new Date(year, month, 0).getDate();
 }
@@ -100,9 +100,9 @@ function draftFrom(at: Date): Draft {
 }
 
 /**
- * Read one row. A row left completely blank is not an error — it's skipped,
- * the same bargain the poll composer makes with an empty option — but a half
- * filled one gets a warm nudge on the field that's missing.
+ * Read one row. A row left completely blank isn't an error; it's skipped, the
+ * same bargain the poll composer makes with an empty option. A half-filled one
+ * gets a warm nudge on the field that's missing.
  */
 function parseDraft(draft: Draft): {
   at: Date | null;
@@ -123,13 +123,13 @@ function parseDraft(draft: Draft): {
   if (dateText === "") {
     dateError = "Add a date here, like 2026-10-14.";
   } else if (!dateMatch) {
-    dateError = "Dates look like YYYY-MM-DD — try 2026-10-14.";
+    dateError = "Dates look like YYYY-MM-DD, as in 2026-10-14.";
   } else {
     year = Number(dateMatch[1]);
     month = Number(dateMatch[2]);
     day = Number(dateMatch[3]);
     if (month < 1 || month > 12 || day < 1 || day > daysInMonth(month, year)) {
-      dateError = "That day doesn't exist — double-check the month and day.";
+      dateError = "That day doesn't exist. Double-check the month and day.";
     }
   }
 
@@ -140,12 +140,12 @@ function parseDraft(draft: Draft): {
   if (timeText === "") {
     timeError = "Add a start time, like 19:00.";
   } else if (!timeMatch) {
-    timeError = "Times look like HH:MM — try 19:00.";
+    timeError = "Times look like HH:MM, as in 19:00.";
   } else {
     hours = Number(timeMatch[1]);
     minutes = Number(timeMatch[2]);
     if (hours > 23 || minutes > 59) {
-      timeError = "Times look like HH:MM — try 19:00.";
+      timeError = "Times look like HH:MM, as in 19:00.";
     }
   }
 
@@ -159,7 +159,7 @@ function parseDraft(draft: Draft): {
   };
 }
 
-/** "Thu, Oct 15 · 7:00 PM" — the row read back in plain words. */
+/** "Thu, Oct 15 · 7:00 PM": the row read back in plain words. */
 function whenLabel(at: Date): string {
   const day = at.toLocaleDateString(undefined, {
     weekday: "short",
@@ -173,7 +173,7 @@ function whenLabel(at: Date): string {
   return `${day} · ${time}`;
 }
 
-/** The times the sheet opens with — a starting point, not a recommendation. */
+/** The times the sheet opens with: a starting point, not a recommendation. */
 function seedDrafts(now: Date): Draft[] {
   const seeded = suggestSlots(now, SUGGEST_SLOTS_DEFAULT).map(draftFrom);
   while (seeded.length < AVAILABILITY_SLOTS_MIN) seeded.push(blankDraft());
@@ -286,7 +286,7 @@ export function AvailabilityComposer({
       return;
     }
 
-    /* Read every row, then mark the second copy of a repeated time — two
+    /* Read every row, then mark the second copy of a repeated time. Two
        identical options aren't a choice, and the data layer would quietly
        drop one and leave the student wondering. */
     const read = rows.map((row) => ({ row, parsed: parseDraft(row) }));
@@ -310,7 +310,7 @@ export function AvailabilityComposer({
     if (checked.some((row) => row.dateError !== null || row.timeError !== null)) {
       setFormError(
         repeated
-          ? "Two of these are the same time — change one of them."
+          ? "Two of these are the same time. Change one of them."
           : "One of these times needs a fix."
       );
       return;
@@ -348,11 +348,11 @@ export function AvailabilityComposer({
 
   return (
     <Sheet visible={visible} onClose={onClose} title="Ask when everyone's free">
-      {/* `Sheet` sits on the bottom edge and owns no keyboard behaviour — every
-          other form in a sheet lifts its own content. On iOS the padding grows
-          the card upward so the Create button clears the keyboard; on Android
-          the window resize already does it. The scroll list is the part that
-          gives up the room. */}
+      {/* `Sheet` sits on the bottom edge and owns no keyboard behaviour, so
+          every other form in a sheet lifts its own content. On iOS the
+          padding grows the card upward so the Create button clears the
+          keyboard; on Android the window resize already does it. The scroll
+          list is the part that gives up the room. */}
       <KeyboardAvoidingView
         style={{ flexShrink: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}

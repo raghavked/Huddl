@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Start a group" };
 
 /**
  * The group composer: a name, a campus people picker, and the create call.
- * Everything interactive lives in GroupComposer — the page only resolves who
+ * Everything interactive lives in GroupComposer. The page only resolves who
  * is asking, since a group may only hold classmates from their university.
  */
 export default async function NewGroupPage() {

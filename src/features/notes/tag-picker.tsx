@@ -23,7 +23,7 @@ const NO_SUGGESTIONS: readonly string[] = [];
  * It offers the starter vocabulary from `SUGGESTED_TAGS` first, then the words
  * this course is already filing notes under (so a class converges on "problem
  * set" instead of drifting into four spellings of it), then anything the
- * student typed themselves. The order never changes as chips are clicked — a
+ * student typed themselves. The order never changes as chips are clicked. A
  * list that re-sorts under the cursor is how you click the wrong thing.
  *
  * Nothing here normalizes: the database trigger owns trimming, lowercasing and
@@ -69,7 +69,7 @@ export function TagPicker({
       return;
     }
     if (atCap) {
-      setHint(`That's ${MAX_NOTE_TAGS} — take one off to add another.`);
+      setHint(`That's ${MAX_NOTE_TAGS}. Take one off to add another.`);
       return;
     }
     setHint(null);
@@ -90,7 +90,7 @@ export function TagPicker({
       return;
     }
     if (atCap) {
-      setHint(`That's ${MAX_NOTE_TAGS} — take one off to add another.`);
+      setHint(`That's ${MAX_NOTE_TAGS}. Take one off to add another.`);
       return;
     }
     onChange([...value, typed]);
@@ -132,7 +132,7 @@ export function TagPicker({
               )}
             >
               {tag}
-              {/* The × only shows on the ones already chosen — an unselected
+              {/* The × only shows on the ones already chosen: an unselected
                   chip is an invitation, not a thing to dismiss. */}
               {on ? <X className="size-3.5" aria-hidden /> : null}
             </button>
@@ -184,7 +184,7 @@ export function TagPicker({
       ) : (
         <Hint>
           {value.length === 0
-            ? `Optional, and up to ${MAX_NOTE_TAGS} — they're how classmates find this later.`
+            ? `Optional, and up to ${MAX_NOTE_TAGS}. They're how classmates find this later.`
             : `${value.length} of ${MAX_NOTE_TAGS} tags.`}
         </Hint>
       )}

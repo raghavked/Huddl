@@ -5,7 +5,7 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * GET /messages/new?to=<userId> — start (or resume) a 1:1 DM and land in it.
+ * GET /messages/new?to=<userId> starts (or resumes) a 1:1 DM and lands in it.
  * Links like "Message" buttons on profiles point here; the create_dm_thread
  * RPC is idempotent, so repeat visits reuse the existing thread. Failures
  * bounce back to /messages with an error code the list page turns into copy.

@@ -29,7 +29,7 @@ export function PollComposer({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Escape closes the modal — captured so nothing underneath reacts too.
+  // Escape closes the modal, captured so nothing underneath reacts too.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
@@ -102,7 +102,7 @@ export function PollComposer({
                 Start a poll
               </h2>
               <p className="text-xs text-muted">
-                One vote each — changeable until you close it.
+                One vote each, changeable until you close it.
               </p>
             </div>
           </div>
@@ -164,7 +164,7 @@ export function PollComposer({
               </button>
             ) : (
               <p className="mt-2 text-xs text-muted">
-                Eight options is the max — keep it snappy.
+                Eight options is the max. Keep it snappy.
               </p>
             )}
           </fieldset>

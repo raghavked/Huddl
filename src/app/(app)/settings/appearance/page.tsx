@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button, Card, PageHeader, SectionHeader } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
-/* Appearance — the theme and the type size, kept on this device.
+/* Appearance: the theme and the type size, kept on this device.
  *
  * Two preferences, two mechanisms, and they deliberately stay separate:
  *
@@ -20,8 +20,8 @@ import { cn } from "@/lib/utils";
  *   TYPE SIZE is this page's own. The scale is stored under
  *   "huddl-text-size" and applied by stamping `--huddl-text-scale` and a
  *   percentage `font-size` on the document root. Every size in the app is a
- *   rem, so moving the root moves the whole app together — text, the rows it
- *   sits in, and the 44px targets around it — instead of leaving big type
+ *   rem, so moving the root moves the whole app together (text, the rows it
+ *   sits in, and the 44px targets around it) instead of leaving big type
  *   crammed into small rows.
  *
  * Both are per-device on purpose: the phone in a lecture hall and the laptop
@@ -56,7 +56,7 @@ function sameScale(a: number, b: number): boolean {
 }
 
 /**
- * Force any number — including a garbled value read back from storage — into
+ * Force any number, including a garbled value read back from storage, into
  * the safe range. Anything unusable lands on the default rather than
  * collapsing the layout.
  */
@@ -79,8 +79,8 @@ function readScale(): number {
 
 /**
  * Stamp the scale on the document root and remember it. At the default the
- * inline size is removed outright, so the browser's own font-size setting —
- * which is somebody else's accessibility preference — takes back over.
+ * inline size is removed outright, so the browser's own font-size setting
+ * (somebody else's accessibility preference) takes back over.
  */
 function applyScale(scale: number) {
   const root = document.documentElement;
@@ -129,7 +129,7 @@ export default function AppearanceSettingsPage() {
         backHref="/settings"
         backLabel="Settings"
         title="Appearance"
-        description="How Huddl looks on this device — the theme and the size of the type."
+        description="How Huddl looks on this device: the theme and the size of the type."
       />
 
       <section aria-label="Theme" className="mt-8">
@@ -210,7 +210,7 @@ export default function AppearanceSettingsPage() {
           Here&apos;s how a post reads at that size:
         </p>
         <Card className="mt-2">
-          {/* A sample, not a section — it stays out of the heading outline. */}
+          {/* A sample rather than a section, so it stays out of the heading outline. */}
           <p className="font-bold tracking-tight">
             Thursday night, Shields third floor
           </p>
@@ -223,7 +223,7 @@ export default function AppearanceSettingsPage() {
       </section>
 
       <p className="mt-8 px-1 text-xs leading-relaxed text-muted text-pretty">
-        Both settings are saved in this browser, on this device — signing in
+        Both settings are saved in this browser, on this device. Signing in
         somewhere else starts fresh.
       </p>
     </div>

@@ -15,7 +15,7 @@ import { useReducedMotion } from "./use-reduced-motion";
  * A ghost block for the first paint of a screen whose shape you already know.
  *
  * **No shimmer.** A sweeping highlight is decoration, and the hearth rule is
- * that motion reports arrival or completion — a loading state is neither.
+ * that motion reports arrival or completion. A loading state is neither.
  * The default is a still `surface2` block: the page looks like itself with
  * the words not yet written, which is calmer and reads better in dark.
  *
@@ -23,7 +23,7 @@ import { useReducedMotion } from "./use-reduced-motion";
  * reversible curve) for the rare case where a long wait needs a sign of
  * life. It turns itself off under reduce motion.
  *
- * Use skeletons where you can honestly predict the layout — a list of rows,
+ * Use skeletons where you can honestly predict the layout: a list of rows,
  * a profile header. Where you cannot, a centered `ActivityIndicator` in
  * `theme.brand` is the more honest loading state.
  *
@@ -79,7 +79,7 @@ export function Skeleton({
 
   return (
     <Animated.View
-      // Placeholders are furniture, not content — keep them out of the
+      // Placeholders are furniture, not content, so keep them out of the
       // screen reader's way entirely.
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
@@ -98,7 +98,7 @@ export function Skeleton({
 }
 
 /**
- * A card-shaped placeholder for one row of a list — the shape most Huddl
+ * A card-shaped placeholder for one row of a list: the shape most Huddl
  * lists actually have (avatar, a title line, a metadata line).
  *
  * Render three or four while the query is in flight, then swap in the real

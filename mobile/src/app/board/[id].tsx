@@ -50,8 +50,8 @@ import { useAuth } from "@/providers/auth-provider";
  * the same thread as every other time you've talked.
  *
  * For the author, the point is the sheet. Marking a post sorted is the
- * ordinary end of its life — the row stays readable, greyed, at the bottom of
- * the board — and it's optimistic, because the author already knows the ride
+ * ordinary end of its life. The row stays readable, greyed, at the bottom of
+ * the board, and it's optimistic, because the author already knows the ride
  * filled. Delete is the narrow case of a post that shouldn't have been
  * written, and its confirmation says what's actually lost.
  */
@@ -60,7 +60,7 @@ type FeatherName = ComponentProps<typeof Feather>["name"];
 
 type Status = "loading" | "error" | "missing" | "ready";
 
-/** "Friday, October 14" — the long form under a ride's short label. */
+/** "Friday, October 14", the long form under a ride's short label. */
 function longDay(day: Date): string {
   return day.toLocaleDateString([], {
     weekday: "long",
@@ -105,7 +105,7 @@ function MetaRow({ icon, children }: { icon: FeatherName; children: ReactNode })
       >
         <Feather name={icon} size={14} color={theme.brand} />
       </View>
-      {/* The 3 is optical — it sits the first text line level with the
+      {/* The 3 is optical: it sits the first text line level with the
           middle of the icon tile beside it, not on a rung. */}
       <View style={{ flex: 1, minWidth: 0, gap: space.hair, paddingTop: 3 }}>
         {children}
@@ -160,7 +160,7 @@ export default function BoardPostScreen() {
       setPost(row);
       setStatus("ready");
     } catch (caught) {
-      // A post already on screen stays on screen — a failed refresh says so
+      // A post already on screen stays on screen. A failed refresh says so
       // in one line at the top rather than throwing the reader out of it.
       setLoadError(
         caught instanceof BoardError
@@ -171,7 +171,7 @@ export default function BoardPostScreen() {
     }
   }, [postId]);
 
-  // Reload on focus, not just on mount — coming back from the composer should
+  // Reload on focus, not just on mount, because coming back from the composer should
   // show the edit that was just saved.
   useFocusEffect(
     useCallback(() => {
@@ -187,7 +187,7 @@ export default function BoardPostScreen() {
   /**
    * Mark it sorted, or put it back up. Optimistic: the author already knows
    * the ride filled, so the chip lands immediately and only a refusal takes
-   * it back — with a line saying so.
+   * it back, with a line saying so.
    *
    * `closePost` and `reopenPost` are guarded on the server, so a second tap
    * resolves with null rather than moving the time it closed. Null here means
@@ -260,7 +260,7 @@ export default function BoardPostScreen() {
    * before" and "we haven't".
    *
    * Every failure reads the same on purpose. The server also refuses across a
-   * block, and a block is one-way and private — a message that said "you two
+   * block, and a block is one-way and private. A message that said "you two
    * can't message each other" would only ever be read by the person who got
    * blocked, which tells them exactly what they were never meant to learn.
    */
@@ -299,7 +299,7 @@ export default function BoardPostScreen() {
     });
   }, [post]);
 
-  // A deep link can land here signed out — send them to a proper door.
+  // A deep link can land here signed out, so send them to a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -343,8 +343,8 @@ export default function BoardPostScreen() {
   /* --------------------------- pre-post states --------------------------- */
 
   if (status === "loading" && !post) {
-    /* Every post on the board has the same bones — a category chip, the
-       headline, when it went up, and the card with whoever put it there — so
+    /* Every post on the board has the same bones: a category chip, the
+       headline, when it went up, and the card with whoever put it there. So
        the page draws itself first and the words land into it. */
     return scaffold(
       <View
@@ -463,7 +463,7 @@ export default function BoardPostScreen() {
   const rideDay = parseBoardDay(post.happens_on);
   const author = post.author;
   // "Just now" opens a sentence everywhere else in the app; here it finishes
-  // one. Only that one label needs lowering — "Put up aug 2" would be worse.
+  // one. Only that one label needs lowering; "Put up aug 2" would be worse.
   const posted = timeAgo(post.created_at, now);
   const postedLine = posted === "Just now" ? "Put up just now" : `Put up ${posted}`;
   const authorName = mine

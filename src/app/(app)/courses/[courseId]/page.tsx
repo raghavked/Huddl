@@ -45,8 +45,8 @@ import { cn } from "@/lib/utils";
 import type { Course, EnrollmentSource, Term } from "@/lib/types";
 
 // instructor / meeting_info / location are the classmate-kept details from
-// migration 0024 — on the row via select("*"), typed here until they land in
-// the shared Course type.
+// migration 0024, carried on the row by select("*") and typed here until they
+// land in the shared Course type.
 type CourseRow = Course & {
   term: Pick<Term, "name"> | null;
   instructor: string | null;
@@ -55,7 +55,7 @@ type CourseRow = Course & {
 };
 
 // 'canvas' / 'schedule_image' are historical sources from retired import
-// flows — old rows keep them, so they render as a plain history label.
+// flows. Old rows keep them, so they render as a plain history label.
 const SOURCE_META: Record<
   EnrollmentSource,
   { label: string; icon: LucideIcon }
@@ -76,9 +76,9 @@ type StudyLink = {
 
 /**
  * Every room of the course. The study layer that grew out of the course chat
- * (migrations 0018 + 0024) — side rooms, the shared class calendar,
- * paste-first syllabus import, shared decks — plus what 0028 added: your
- * private grade sheet, the who's-looking list, and the campus focus room.
+ * (migrations 0018 + 0024) covers side rooms, the shared class calendar,
+ * paste-first syllabus import and shared decks. 0028 added your private grade
+ * sheet, the who's-looking list, and the campus focus room.
  */
 function studyLinks(courseId: string, buddyLabel: string | null): StudyLink[] {
   return [
@@ -93,7 +93,7 @@ function studyLinks(courseId: string, buddyLabel: string | null): StudyLink[] {
       key: "calendar",
       href: `/courses/${courseId}/calendar`,
       label: "Class calendar",
-      description: "Shared dates — check off what you've handled",
+      description: "Shared dates you check off as you go",
       icon: CalendarDays,
     },
     {
@@ -107,7 +107,7 @@ function studyLinks(courseId: string, buddyLabel: string | null): StudyLink[] {
       key: "grades",
       href: `/courses/${courseId}/grades`,
       label: "Grades",
-      description: "What you're carrying so far — only you see it",
+      description: "What you're carrying so far. Only you see it",
       icon: BarChart2,
     },
     {
@@ -134,7 +134,7 @@ function studyLinks(courseId: string, buddyLabel: string | null): StudyLink[] {
   ];
 }
 
-/** RLS scopes courses to the viewer's university — outside it this is null. */
+/** RLS scopes courses to the viewer's university, so outside it this is null. */
 const getCourse = cache(async (courseId: string): Promise<CourseRow | null> => {
   const supabase = await createClient();
   const { data } = await supabase
@@ -209,7 +209,7 @@ export default async function CoursePage({
     { data: linkRows },
     buddyCount,
   ] = await Promise.all([
-    // A course can have many rooms (0018) — link to the main one.
+    // A course can have many rooms (0018), so link to the main one.
     supabase
       .from("channels")
       .select("id")
@@ -229,7 +229,7 @@ export default async function CoursePage({
         "*, profile:profiles(id, handle, display_name, avatar_url, verified_at, major, grad_year, is_public, university_id)"
       )
       .eq("course_id", course.id),
-    // Pinned course links (0024) — RLS keeps them classmate-only.
+    // Pinned course links (0024). RLS keeps them classmate-only.
     supabase
       .from("course_links")
       .select(COURSE_LINK_SELECT)
@@ -262,7 +262,7 @@ export default async function CoursePage({
             className="mt-4 flex items-start gap-2 rounded-card border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger"
           >
             <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-            Couldn&apos;t join this course. Please try again.
+            Couldn&apos;t join this course. Give it another go.
           </p>
         ) : null}
 
@@ -277,8 +277,8 @@ export default async function CoursePage({
             <Badge tone="neutral">{user.university.short_name}</Badge>
           </div>
           <p className="mt-4 text-sm text-muted">
-            You&apos;re not in this course yet. Join to unlock the course chat,
-            shared notes and the classmate list.
+            You&apos;re not in this course yet. Join to see the course chat, the
+            shared notes and who else is in it.
           </p>
           <form action={joinCourse} className="mt-5">
             <input type="hidden" name="courseId" value={course.id} />
@@ -291,8 +291,8 @@ export default async function CoursePage({
             </button>
           </form>
           <p className="mt-3 text-center text-xs text-muted">
-            Joining adds you to the {course.code} channel automatically — you
-            can drop the course anytime.
+            Joining adds you to the {course.code} channel. You can drop the
+            course anytime.
           </p>
         </Card>
       </div>

@@ -51,7 +51,7 @@ export default async function CourseDecksPage({
       .order("created_at", { ascending: true }),
   ]);
 
-  // Decks are for classmates — the course page has the join door.
+  // Decks are for classmates, and the course page has the join door.
   if (!enrollment) redirect(`/courses/${course.id}`);
 
   const decks = (deckRows ?? []) as DeckRow[];
@@ -112,7 +112,7 @@ export default async function CourseDecksPage({
         backHref={`/courses/${course.id}`}
         backLabel={course.code}
         title={`${course.code} flashcards`}
-        description="Shared decks — anyone in the class can add cards. How well you know them stays yours."
+        description="Shared decks: anyone in the class can add cards. How well you know them stays yours."
       />
 
       <div className="mt-6">

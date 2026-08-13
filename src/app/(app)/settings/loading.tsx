@@ -25,7 +25,7 @@ export default function SettingsLoading() {
         </div>
       </div>
 
-      {/* Settings list ghost — one card, divided rows */}
+      {/* Settings list ghost: one card, divided rows */}
       <div className="mt-4 overflow-hidden rounded-card border border-border bg-surface shadow-soft">
         <div className="divide-y divide-border">
           {Array.from({ length: 4 }, (_, i) => (

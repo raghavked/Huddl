@@ -11,7 +11,7 @@ import { MessageItem, useReactions } from "@/features/chat/message-item";
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 
-/** The message row plus its joined author — one select shape everywhere. */
+/** The message row plus its joined author: one select shape everywhere. */
 const MESSAGE_WITH_AUTHOR_SELECT =
   "*, author:profiles(id, handle, display_name, avatar_url, verified_at, major, grad_year, is_public, university_id)";
 
@@ -36,7 +36,7 @@ export function ThreadPanel({
   threadId: string;
   userId: string;
   profile: Profile;
-  /** Parent message when the opener already has it — instant render. */
+  /** Parent message when the opener already has it, so it renders instantly. */
   parentSeed?: MessageWithAuthor;
   onClose: () => void;
   /** Lets the channel list bump its reply-count badge without a refetch. */
@@ -366,7 +366,7 @@ export function ThreadPanel({
             </div>
           ) : visibleReplies.length === 0 ? (
             <p className="px-2 py-6 text-center text-sm text-muted">
-              No replies yet — start the thread.
+              No replies yet. Start the thread.
             </p>
           ) : (
             visibleReplies.map((m, i) => {

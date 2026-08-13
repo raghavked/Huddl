@@ -1,11 +1,11 @@
 # Huddl Operations Playbook
 
-How Huddl launches, grows, and stays worth trusting — campus by campus.
+How Huddl launches, grows, and stays worth trusting, campus by campus.
 
 The core lesson we take from YikYak's rise (and the graveyard of "social apps
 for college"): **a half-empty campus is worse than no campus.** A student who
 opens Huddl and finds three people never comes back. So we optimize for
-*density before breadth* — one campus at a time, each one loud before the next
+*density before breadth*: one campus at a time, each one loud before the next
 one opens.
 
 ---
@@ -32,20 +32,20 @@ them. We never announce a campus before it crosses the line.
 
 ### Rollout order
 
-1. **UC Davis** — launch campus. Big undergrad population, quarter system
+1. **UC Davis**: the launch campus. Big undergrad population, quarter system
    (three enrollment shocks a year, each one a growth event), strong club
    culture.
-2. **Rest of the UC system** — Berkeley, UCLA, San Diego, Irvine, Santa
+2. **Rest of the UC system**: Berkeley, UCLA, San Diego, Irvine, Santa
    Barbara, Santa Cruz, Riverside, Merced (all pre-seeded in `seed.sql`).
-3. **CSUs** — added one row at a time to `seed.sql` as each campus is opened.
+3. **CSUs**, added one row at a time to `seed.sql` as each campus is opened.
 
 One new campus opens only when the previous one is **Active**. Never launch two
-campuses in the same week — launch weeks are hands-on.
+campuses in the same week: launch weeks are hands-on.
 
 ### Opening a campus (mechanics)
 
 1. Insert the university row (name, short name, email domain, city, state) into
-   `supabase/seed.sql` and run it — default channels (#general,
+   `supabase/seed.sql` and run it. Default channels (#general,
    #study-buddies, #campus-events, #asks-and-offers) and the current term are
    created by the same script.
 2. Verify signup with a test address on that domain: profile creation and
@@ -58,7 +58,7 @@ campuses in the same week — launch weeks are hands-on.
 
 ### T-minus 2 weeks
 
-- Recruit **5 student ambassadors**: aim for coverage, not clones — one from a
+- Recruit **5 student ambassadors**: aim for coverage, not clones. One from a
   big intro-course major (bio/econ/CS), one club officer, one from Greek or
   residential life, one transfer or grad student, one generally-online person
   who runs a meme page or group chats. Ambassadors get: founding-member flair
@@ -66,9 +66,9 @@ campuses in the same week — launch weeks are hands-on.
 - Each ambassador commits to: seeding their own course list on day one, posting
   daily in week one, and hosting or co-hosting one event.
 
-### Day 1 — seed the campus
+### Day 1: seed the campus
 
-- Default channels exist from day zero (seeded, auto-joined at signup) — the
+- Default channels exist from day zero (seeded, auto-joined at signup). The
   job is making them *look inhabited*. Every ambassador posts a real message in
   #general and a real ask in #asks-and-offers within the first hour.
 - Ambassadors add their full course lists by hand (the catalog autocompletes
@@ -77,7 +77,7 @@ campuses in the same week — launch weeks are hands-on.
   warm.
 - Ambassadors upload one genuinely useful note each to their biggest course.
 
-### Days 2–4 — first events
+### Days 2–4: first events
 
 - Each ambassador creates one **study session** tied to a large course
   (midterm review for the biggest intro class is the reliable winner) and one
@@ -85,10 +85,10 @@ campuses in the same week — launch weeks are hands-on.
 - Events are the demo: RSVP list fills → people see names they recognize →
   the event page does the selling.
 
-### Days 5–7 — the visible push
+### Days 5–7: the visible push
 
 - Tabling / flyering with a QR straight to `/signup`. The pitch is one
-  sentence: *"It's your classes, already set up — sign in with your school
+  sentence: *"It's your classes, already set up. Sign in with your school
   email."*
 - Club partnerships: offer club officers their own space (chat + roster +
   events) in exchange for announcing to members.
@@ -106,14 +106,14 @@ campuses in the same week — launch weeks are hands-on.
 
 Safety is a launch feature, not a scale feature. The approach mirrors the
 product: campus-scoped, student-led, with real accountability (every account is
-a verified student — there are no anonymous throwaways, which is the other
+a verified student, and there are no anonymous throwaways, which is the other
 YikYak lesson).
 
 ### Now (launch)
 
 - **Student moderators per channel.** Channel creators moderate what they
   create; default campus channels are moderated by ambassadors. Moderators can
-  remove messages (soft delete — `deleted_at`, nothing is destroyed) and set
+  remove messages (soft delete: `deleted_at`, nothing is destroyed) and set
   the tone by being the most active constructive voice.
 - **Community baseline**, stated in every default channel description and at
   signup: real names or known handles, no harassment, no selling exam
@@ -149,9 +149,9 @@ answer to.
 
 ### Roadmap (in order)
 
-1. **Removal history and a per-channel audit log** — the queue records the
+1. **Removal history and a per-channel audit log**: the queue records the
    triage decision but not yet the removals that followed it.
-2. **Campus moderator council** — per-campus group of vetted student mods for
+2. **Campus moderator council**: a per-campus group of vetted student mods for
    cross-channel issues, appeals, and policy input.
 3. **Rate limits + new-account friction** for burst abuse during rush periods.
    Reports are rate-limited today; messages and board posts are not.
@@ -162,7 +162,7 @@ answer to.
 
 Five `pg_cron` jobs run against the production database. They are defined in
 the migrations, not in the dashboard, so `supabase/migrations/` is the source
-of truth — but they run whether or not anyone is watching, and this is the
+of truth. But they run whether or not anyone is watching, and this is the
 list to check first when something arrives late, twice, or not at all.
 
 | Job | Schedule (UTC) | Function | What it does |
@@ -171,10 +171,10 @@ list to check first when something arrives late, twice, or not at all.
 | `huddl-calendar-reminders` | `10 * * * *` | `send_calendar_reminders()` | Your own lead time on a due date |
 | `huddl-event-reminders` | `25 * * * *` | `send_event_reminders()` | Before an event you said yes to |
 | `huddl-weekly-digest` | `0 15 * * 1` | `send_weekly_digest()` | The week ahead in your classes |
-| `huddl-weekly-recap` | `0 1 * * 0` | `send_weekly_recap()` | Your week, in short — Saturday evening on the coast |
+| `huddl-weekly-recap` | `0 1 * * 0` | `send_weekly_recap()` | Your week in short, Saturday evening on the coast |
 
-The two reminder sweeps run hourly, at :10 and :25 rather than both at :00 —
-staggered so they never contend, and offset from the digest sweep. Hourly is
+The two reminder sweeps run hourly, at :10 and :25 rather than both at :00,
+staggered so they never contend and offset from the digest sweep. Hourly is
 also the real resolution of a reminder: a lead time of "a day before" is
 honoured to within the hour, not to the minute, and the copy is written to
 match. Do not tighten these to `*/5` to make a reminder feel prompter; the
@@ -207,11 +207,11 @@ where user_id = '<uuid>' order by created_at desc limit 20;
 ```
 
 A row with `pushed_at` set was delivered to Expo. A row still null after the
-digest window means either quiet hours or no registered device — check
+digest window means either quiet hours or no registered device. Check
 `push_tokens` before assuming the pipeline is broken.
 
 Since 0039 there is a third state. A notification that was never going to be
-pushed — the student muted that room, or switched that kind off — is stamped
+pushed (the student muted that room, or switched that kind off) is stamped
 `pushed_at = '-infinity'` rather than `now()`. It reads as settled so the
 digest leaves it alone, but it can never be mistaken for a delivery, which is
 what the two-minute coalesce probe used to do: before the fix, one muted room
@@ -224,7 +224,7 @@ means deferred.
 ## 3b. Deploying migrations 0039 and 0040
 
 These two ship together and in order, and they are worth reading before you
-run them — 0039 in particular changes who can read files.
+run them. 0039 in particular changes who can read files.
 
 **0039 fixes a live data exposure.** The `chat-uploads` bucket granted read to
 every authenticated user, so every DM photo in the product was readable by any
@@ -242,7 +242,7 @@ images would go blank instead of merely getting safer.
 
 **Two operational notes on 0039.** It creates two partial indexes on
 `messages` and `dm_messages` non-concurrently, which takes a SHARE lock and
-blocks sends on both tables for the length of the build — deploy it in a quiet
+blocks sends on both tables for the length of the build. Deploy it in a quiet
 window, or build those two indexes CONCURRENTLY out-of-transaction first (the
 `if not exists` guards make the migration idempotent against that). And an
 object whose message row was hard-deleted becomes readable only to its
@@ -253,9 +253,9 @@ the one-hour TTL lapses.
 defaults to `'campus'`, which is exactly today's reach, so nothing changes on
 deploy for anyone who leaves it alone. But it binds the group RPCs as well as
 the 1:1 one, so a student who picks `'classmates'` can no longer be added to a
-club chat by an officer who shares no course with them. That is deliberate —
-it is the same inbox and the same push — but it is a product call, not purely
-a security fix.
+club chat by an officer who shares no course with them. That is deliberate,
+since it is the same inbox and the same push, but it is a product call and not
+purely a security fix.
 
 **The clients depend on both.** `focus_sessions.is_private` is in the mobile
 app's `FOCUS_SELECT` and `profiles.dm_privacy` is in its privacy query, so the
@@ -271,14 +271,14 @@ needed.
 
 0042 makes a block real at the database: a `dm_messages` row is no longer
 selectable by anyone who has blocked its author. Two things to know before
-running it. It does **not** refuse the blocked person's INSERT, deliberately —
+running it. It does **not** refuse the blocked person's INSERT, deliberately:
 the block sheet promises "they're never told", and a send that suddenly starts
 failing for one person in one conversation says everything. And it is one-way:
 the blocker stops seeing them, they keep seeing the blocker, because holes in
 their copy of the thread would be the same tell. Both clients keep their
 render-side filter on top of it so unblocking is instant rather than a
 refetch. The policy calls `i_blocked(author_id)` once per row, served by the
-`blocks` primary key — no new index. It is intentionally **not** applied to
+`blocks` primary key, so no new index. It is intentionally **not** applied to
 `public.messages`: `reportMessage` looks the message up first and uses RLS as
 its access check, so filtering channel messages would stop a student reporting
 somebody they had already blocked, which is the ordinary order to do those two
@@ -288,11 +288,11 @@ things in.
 default grant hands `anon` and `authenticated` TRUNCATE, REFERENCES and TRIGGER
 on every table in `public`. TRUNCATE is the one that matters: it is **not
 filtered by row-level security at all**. Demonstrated on a throwaway copy of
-this schema — a student who could read zero rows of `blocks` (RLS working, and
+this schema: a student who could read zero rows of `blocks` (RLS working, and
 `DELETE` correctly removing nothing) emptied the entire table with one
 TRUNCATE. Nothing reaches it today, because PostgREST speaks four verbs and
 TRUNCATE is not among them, so this is not a live hole. It becomes one the
-moment anything else can speak SQL as `authenticated` — a pooler connection
+moment anything else can speak SQL as `authenticated`: a pooler connection
 handed to a BI tool, an admin surface, a third-party integration given the
 key. Run this after any migration that creates a table:
 
@@ -319,15 +319,15 @@ trust.
 **Turn on leaked-password protection before launch.** Supabase Auth can check
 every new password against HaveIBeenPwned and refuse the ones that appear in a
 known breach. It is off, and it is the only security advisor still open at
-WARN that isn't a deliberate choice. There is no migration and no API for it —
-it is a toggle in the dashboard, under *Authentication → Sign In / Providers →
+WARN that isn't a deliberate choice. There is no migration and no API for it.
+It is a toggle in the dashboard, under *Authentication → Sign In / Providers →
 Password protection*. Flip it once, per project, and note the date here.
 
 It matters more than it sounds because of what it catches that we can't. Both
 clients run `lib/password.ts` on every signup and password change: it enforces
 8–72 characters, refuses passwords built out of the student's own email, and
 scores strength as they type. What it cannot know is whether a strong-looking
-password is already sitting in a credential-stuffing list — and a `.edu`
+password is already sitting in a credential-stuffing list, and a `.edu`
 address reused from a breached forum is the single likeliest way an account
 here gets taken. The check is server-side, costs nothing, and needs no client
 change: the refusal comes back as an ordinary sign-up error.
@@ -339,7 +339,7 @@ change: the refusal comes back as an ordinary sign-up error.
 The product grows itself when the loops are healthy; ops exists to keep them
 spinning.
 
-**Loop 1 — the course-channel pull (acquisition).**
+**Loop 1: the course-channel pull (acquisition).**
 A student adds their classes → channels for *their exact classes* exist and
 have classmates in them → the channel is useful within minutes (a due-date
 question gets answered) → they tell the classmate sitting next to them, whose
@@ -348,14 +348,14 @@ first five minutes better. Ops job: keep day-one course-channel coverage high
 at every campus (ambassador course lists, enrollment-shock pushes at the start
 of each term).
 
-**Loop 2 — notes and events (retention).**
+**Loop 2: notes and events (retention).**
 Chat brings you in; notes and events bring you *back*. A note uploaded in week
 2 pays off through finals; an RSVP is a promise to return on a specific date.
 Ops job: make sure every big course has at least one note early in the term and
 every campus has events on the board every week. These are the two levers we
 pull when a campus's return rate dips.
 
-**Loop 3 — the term reset (re-acquisition).**
+**Loop 3: the term reset (re-acquisition).**
 Every new term, class lists change and the course-channel pull fires again for
 *everyone*, including lapsed users. The first two weeks of each term are a
 launch-week-lite at every Active campus: ambassadors re-seed their course
@@ -367,19 +367,19 @@ midterm-season events follow.
 ## 5. Revenue model
 
 **The core is free, forever.** Course channels, campus channels, DMs, notes,
-events — a student never pays to talk to their classmates.
+events. A student never pays to talk to their classmates.
 
 Later, in rough order of appearance:
 
-1. **Campus partnerships** — universities, departments, and student
+1. **Campus partnerships**: universities, departments, and student
    governments pay for official presence and tools (verified org spaces,
    announcement reach, event promotion for official programming). They get
    distribution; students get signal.
-2. **Sponsored events & local businesses** — the coffee shop sponsors the
+2. **Sponsored events & local businesses**: the coffee shop sponsors the
    finals-week study session; the pizza place backs the club fair meetup.
    Clearly labeled, event-scoped, campus-local. Sponsorship buys presence at an
    event, never presence in a conversation.
-3. **Premium cosmetics** — profile flair, channel themes, founding-member
+3. **Premium cosmetics**: profile flair, channel themes, founding-member
    badges. Vanity, priced like vanity; zero functional gating.
 
 **Red lines, permanent:**
@@ -387,14 +387,14 @@ Later, in rough order of appearance:
 - **We never sell student data.** Not to advertisers, not to universities, not
   "anonymized and aggregated." The verification/privacy story *is* the brand.
 - **Never ads inside course channels.** Course channels are the classroom's
-  hallway — commercializing them burns the trust that makes everything else
+  hallway. Commercializing them burns the trust that makes everything else
   possible.
 
 ---
 
 ## 6. Success metrics
 
-Measured **per campus, per week** — a blended global number hides a dying
+Measured **per campus, per week**. A blended global number hides a dying
 campus behind a launching one.
 
 ### North-star set
@@ -402,18 +402,18 @@ campus behind a launching one.
 | Metric | Definition | Healthy signal |
 | --- | --- | --- |
 | **Weekly active per campus** | Verified students with ≥ 1 session in 7 days | Growing every week until Anchor; never > 20% week-over-week decline outside breaks |
-| **Messages per DAU** | Channel + DM messages sent ÷ daily actives | ≥ 5 — proves people talk, not lurk; falling means channels feel dead |
-| **Course-channel coverage per term** | Share of the campus's live course channels with ≥ 3 members | ≥ 60% by week 3 of each term at Active campuses — this is the acquisition loop's fuel gauge |
+| **Messages per DAU** | Channel + DM messages sent ÷ daily actives | ≥ 5. Proves people talk rather than lurk; falling means channels feel dead |
+| **Course-channel coverage per term** | Share of the campus's live course channels with ≥ 3 members | ≥ 60% by week 3 of each term at Active campuses. This is the acquisition loop's fuel gauge |
 
 ### Supporting set
 
-- **Week-1 return rate** (signed up last week, active this week) — the honest
+- **Week-1 return rate** (signed up last week, active this week): the honest
   launch-quality number.
-- **Notes per active course channel** and **weekly RSVPs per campus** — leading
+- **Notes per active course channel** and **weekly RSVPs per campus**: leading
   indicators for retention (Loop 2).
-- **Time-to-first-message** for new signups — the onboarding number; if it
+- **Time-to-first-message** for new signups: the onboarding number; if it
   rises, day-one channel warmth is slipping.
-- **Reports per 1k messages** — moderation guardrail; spikes trigger the
+- **Reports per 1k messages**: moderation guardrail; spikes trigger the
   escalation path review.
 
 ### Operating rhythm

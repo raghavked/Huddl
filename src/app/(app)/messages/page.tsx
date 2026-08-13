@@ -37,7 +37,7 @@ const ERROR_COPY: Record<string, string> = {
   self: "You can't start a conversation with yourself.",
   "no-user": "That person doesn't seem to be on Huddl.",
   invalid: "That link didn't point at anyone to message.",
-  failed: "Couldn't start the conversation. Please try again.",
+  failed: "Couldn't start the conversation. Try again.",
 };
 
 export default async function MessagesPage({
@@ -59,7 +59,7 @@ export default async function MessagesPage({
   const mine = (mineData ?? []) as unknown as MyParticipantRow[];
   const threadIds = mine.map((row) => row.thread_id);
 
-  // Everyone in each thread — me included, so a group's headcount is honest —
+  // Everyone in each thread (me included, so a group's headcount is honest),
   // plus the latest message per thread, all in parallel.
   const [peopleResult, latestResults] =
     threadIds.length > 0
@@ -187,7 +187,7 @@ export default async function MessagesPage({
             illustration={<ChatScene />}
             icon={MessageCircle}
             title="No conversations yet"
-            description="DM classmates to trade notes, plan study sessions, or just say hi. Find people from your courses to get started, or start a group with the whole study crew."
+            description="Everyone at your campus is in the directory, with their major and their year. Find someone to trade notes with, or pick a few and start a group."
             action={
               <Link href="/people" className={buttonClasses({ size: "sm" })}>
                 Find classmates

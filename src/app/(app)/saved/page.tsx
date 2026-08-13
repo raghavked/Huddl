@@ -7,13 +7,13 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Saved",
-  description: "The messages you kept — room numbers, hints, plans.",
+  description: "The messages you kept: room numbers, hints, plans.",
 };
 
 /**
  * One bookmark row with both possible subjects embedded. Exactly one of the
  * two id columns is set (the DB check guarantees it), and its embed comes
- * back null whenever the message itself is out of reach — soft-deleted, or
+ * back null whenever the message itself is out of reach: soft-deleted, or
  * behind a channel you've since left, since the embed reads through the
  * message's own RLS.
  */
@@ -48,7 +48,7 @@ const BOOKMARK_SELECT =
   "author:profiles(display_name, avatar_url))";
 
 /**
- * Saved messages — private to you, newest save first. One query covers both
+ * Saved messages, private to you, newest save first. One query covers both
  * sides of the bookmark (channel and DM), so the ordering by save time is
  * already the merge; rows whose message no longer resolves drop out quietly.
  */

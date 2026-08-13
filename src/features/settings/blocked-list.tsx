@@ -20,21 +20,21 @@ import { createClient } from "@/lib/supabase/client";
  * the profile page's Block button is the only thing that writes a row, and
  * the privacy page's list is the only place a student can see what they've
  * written. Keeping them apart would mean two files disagreeing about what
- * blocking costs — and the whole difficulty of this feature is that it costs
+ * blocking costs, and the whole difficulty of this feature is that it costs
  * nothing visible.
  *
  * BLOCKING IS SILENT, AND THAT IS THE DESIGN. The blocked person gets no
  * notification, sees no badge, and watches nothing change; the server just
  * refuses DM threads across the block (`create_dm_thread`, migration 0019)
  * and mutes their notifications, while the client filters their messages out
- * of your rooms. That silence is right — a block that announces itself
- * invites retaliation — but it has one cost worth designing around: a block
+ * of your rooms. That silence is right, because a block that announces itself
+ * invites retaliation, but it has one cost worth designing around: a block
  * you didn't mean to make is invisible from both ends. Nobody complains,
  * nothing looks broken, and a classmate simply stops existing. So the Block
  * button confirms before it writes, and the list is the receipt.
  *
  * Unblocking needs no confirmation. It undoes something rather than doing it,
- * and it's a click away from being redone — so the row just leaves, and comes
+ * and it's a click away from being redone, so the row just leaves and comes
  * back with a warm line if the server disagrees.
  */
 
@@ -59,7 +59,7 @@ type BlockRow = {
 };
 
 const LOAD_ERROR =
-  "We couldn't load your block list just now. Every block you've made is still in place — check your connection and give it another go.";
+  "We couldn't load your block list just now. Every block you've made is still in place. Check your connection and give it another go.";
 
 /* ---------------------------- the list section ---------------------------- */
 
@@ -69,7 +69,7 @@ const LOAD_ERROR =
  *
  * It loads itself rather than taking rows from the privacy page. The section
  * is below the fold, it needs a join nothing else on that page needs, and it
- * is interactive the moment it appears — so making the whole page's server
+ * is interactive the moment it appears, so making the whole page's server
  * render wait on it would hold up the switch at the top for a list most
  * students will find empty. The cost is a beat of skeleton, which is honest:
  * these rows have a shape worth ghosting.
@@ -100,7 +100,7 @@ export function BlockedList({ userId }: { userId: string }) {
     }
 
     /* A row whose profile came back null is someone who has since deleted
-       their account — the block outlived them and there is nobody left to
+       their account. The block outlived them and there is nobody left to
        unblock, so it isn't drawn. */
     setPeople(
       ((data ?? []) as unknown as BlockRow[]).flatMap((row) =>
@@ -135,7 +135,7 @@ export function BlockedList({ userId }: { userId: string }) {
     } catch {
       setPeople(previous);
       setRowError(
-        `We couldn't unblock ${person.displayName} just now — give it another try.`
+        `We couldn't unblock ${person.displayName} just now. Give it another try.`
       );
     } finally {
       setUnblockingId(null);
@@ -206,7 +206,7 @@ export function BlockedList({ userId }: { userId: string }) {
                 {/* The native list draws a deliberately colourless circle here
                     (DESIGN.md §4) so a block list can't read as a friends
                     list. On web that mark would be a second hand-rolled copy
-                    of `Avatar`, which the same note forbids — so this row
+                    of `Avatar`, which the same note forbids, so this row
                     uses the primitive, and it is the first caller in line the
                     day `Avatar` grows a documented quiet variant. */}
                 <Avatar
@@ -248,13 +248,13 @@ export function BlockedList({ userId }: { userId: string }) {
 /**
  * Block or unblock one classmate, from their profile.
  *
- * The confirmation is an inline panel, not `confirm()` — the same reasoning
+ * The confirmation is an inline panel, not `confirm()`, on the same reasoning
  * as `delete-account.tsx`: a browser dialog is a thing people dismiss
  * reflexively, and this one has to be read, because what it describes is
  * something the reader will never otherwise see happen.
  *
  * The Block button stays mounted while the panel is open, as a disclosure
- * with `aria-expanded` — the same shape as the board's post menu. Swapping
+ * with `aria-expanded`, the same shape as the board's post menu. Swapping
  * the button out for the panel would have dropped keyboard focus onto the
  * body at exactly the moment a destructive question appeared; leaving it
  * there means the answer is the next thing in the tab order.
@@ -262,7 +262,7 @@ export function BlockedList({ userId }: { userId: string }) {
  * `blocked` starts from a server-rendered lookup, so the hero paints the
  * right control on the first frame instead of flipping from Message to
  * Blocked a moment later. After either write we refresh the route, which is
- * what keeps the rest of the app — rooms, the DM list — agreeing with this
+ * what keeps the rest of the app (rooms, the DM list) agreeing with this
  * button.
  *
  * It renders bare flex children rather than its own wrapper, so the caller's
@@ -362,7 +362,7 @@ export function BlockPersonButton({
 
   return (
     <>
-      {/* Locked while the write is in flight — closing the panel underneath a
+      {/* Locked while the write is in flight. Closing the panel underneath a
           request would take its error message with it. */}
       <Button
         variant="danger-ghost"
@@ -390,7 +390,7 @@ export function BlockPersonButton({
           <p className="mt-1 text-sm text-muted text-pretty">
             They can&apos;t DM you, and their posts stay out of sight.
             They&apos;re never told and nothing changes on their side, so a
-            block you didn&apos;t mean is easy to miss — you can take it off
+            block you didn&apos;t mean is easy to miss. You can take it off
             any time under Settings, then Privacy.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">

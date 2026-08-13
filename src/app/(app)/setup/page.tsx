@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 const POINTS = [
   {
     icon: Hash,
-    text: "Every course gets its own chat — add a class and you're in it with your classmates.",
+    text: "Every course gets its own chat. Add a class and you're in it with your classmates.",
   },
   {
     icon: Sparkles,
@@ -18,7 +18,7 @@ const POINTS = [
   },
   {
     icon: Users,
-    text: "Class not listed yet? Add it — you'll be its first member and classmates join after you.",
+    text: "Class not listed yet? Add it. You'll be its first member, and classmates join after you.",
   },
 ];
 
@@ -27,7 +27,7 @@ export default function SetupPage() {
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
         title="Add your courses"
-        description="You're in charge of your course list — add your classes and each one opens its chat for you."
+        description="You're in charge of your course list. Add your classes and each one opens its chat for you."
       />
 
       <section
@@ -71,7 +71,7 @@ export default function SetupPage() {
           href="/home"
           className={buttonClasses({ variant: "ghost", size: "sm" })}
         >
-          Skip for now — you can add courses anytime
+          Skip for now. You can add courses anytime
         </Link>
       </p>
     </div>

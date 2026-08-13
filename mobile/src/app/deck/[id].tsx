@@ -22,9 +22,9 @@ import { useAuth } from "@/providers/auth-provider";
 
 /* Deck home: the shared card list, a big Study door, and an add-card form.
    Any classmate adds cards; authors long-press their own to edit or remove.
-   Due counts are yours alone — nobody else sees how you're doing. */
+   Due counts are yours alone; nobody else sees how you're doing. */
 
-/* Minimal local row shapes — the web app's types live outside this tsconfig. */
+/* Minimal local row shapes. The web app's types live outside this tsconfig. */
 type DeckRow = {
   id: string;
   course_id: string;
@@ -52,14 +52,15 @@ const CARD_SELECT = "id, deck_id, created_by, front, back, position, created_at"
 
 type ParsedCard = { front: string; back: string };
 
-/** Separators a pasted line can use, checked in this order. */
-const PASTE_SEPARATORS = [" - ", " — ", ": ", "\t"] as const;
+/** Separators a pasted line can use, checked in this order. \u2014 is an em dash. */
+const PASTE_SEPARATORS = [" - ", " \u2014 ", ": ", "\t"] as const;
 
 /**
- * One card per line: split on the first " - ", " — ", ": ", or tab (in that
- * priority), trim both sides, and skip anything that doesn't make a card —
- * no separator, an empty side, an oversized side, or a front the deck (or an
- * earlier line) already has, compared case-insensitively.
+ * One card per line: split on the first hyphen, em dash, colon, or tab (in
+ * that priority, and see PASTE_SEPARATORS for the exact strings), trim both
+ * sides, and skip anything that doesn't make a card: no separator, an empty
+ * side, an oversized side, or a front the deck (or an earlier line) already
+ * has, compared case-insensitively.
  */
 function parsePastedCards(
   text: string,
@@ -264,11 +265,11 @@ export default function DeckHomeScreen() {
     const frontText = front.trim();
     const backText = back.trim();
     if (frontText.length === 0 || backText.length === 0) {
-      setAddError("A card needs both sides — a prompt up front, the answer behind.");
+      setAddError("A card needs both sides: a prompt up front, the answer behind.");
       return;
     }
     if (frontText.length > 1000 || backText.length > 2000) {
-      setAddError("That's a lot of card — trim it down a little.");
+      setAddError("That's a lot of card. Trim it down a little.");
       return;
     }
     setAddError(null);
@@ -290,13 +291,13 @@ export default function DeckHomeScreen() {
     if (error || !data) {
       setAddError(
         error?.message.includes("row-level security")
-          ? "Cards are for classmates — add this course to your classes first."
+          ? "Cards are for classmates. Add this course to your classes first."
           : "We couldn't add that card just now. Give it another try."
       );
       return;
     }
     setCards((prev) => [...prev, data as unknown as CardRow]);
-    // Keep the form open and clear — card entry comes in bursts.
+    // Keep the form open and clear, because card entry comes in bursts.
     setFront("");
     setBack("");
   }, [userId, deckId, adding, front, back, cards]);
@@ -318,7 +319,7 @@ export default function DeckHomeScreen() {
     const ready = parsed.cards;
     if (ready.length === 0) {
       setPasteError(
-        "Nothing to add yet — paste a few lines, one card per line."
+        "Nothing to add yet. Paste a few lines, one card per line."
       );
       return;
     }
@@ -343,7 +344,7 @@ export default function DeckHomeScreen() {
     if (error || !data) {
       setPasteError(
         error?.message.includes("row-level security")
-          ? "Cards are for classmates — add this course to your classes first."
+          ? "Cards are for classmates. Add this course to your classes first."
           : "Those cards didn't make it in. Give it another try."
       );
       return;
@@ -355,7 +356,7 @@ export default function DeckHomeScreen() {
     setPasteText("");
     tapSuccess();
     setPasteSuccess(
-      `${inserted.length === 1 ? "1 card" : `${inserted.length} cards`} in — the class thanks you.`
+      `${inserted.length === 1 ? "1 card" : `${inserted.length} cards`} in. The class thanks you.`
     );
   }, [userId, deckId, bulkAdding, parsed, cards]);
 
@@ -380,11 +381,11 @@ export default function DeckHomeScreen() {
       const frontText = editFront.trim();
       const backText = editBack.trim();
       if (frontText.length === 0 || backText.length === 0) {
-        setEditError("A card needs both sides — keep a prompt and an answer.");
+        setEditError("A card needs both sides: keep a prompt and an answer.");
         return;
       }
       if (frontText.length > 1000 || backText.length > 2000) {
-        setEditError("That's a lot of card — trim it down a little.");
+        setEditError("That's a lot of card. Trim it down a little.");
         return;
       }
       // Optimistic: the row updates now, and reverts if the server minds.
@@ -401,7 +402,7 @@ export default function DeckHomeScreen() {
         .eq("id", card.id);
       if (error) {
         setCards(before);
-        setActionError("That edit didn't stick — give it another try.");
+        setActionError("That edit didn't stick. Give it another try.");
       }
     },
     [editFront, editBack, cards, closeEdit]
@@ -455,7 +456,7 @@ export default function DeckHomeScreen() {
     [userId]
   );
 
-  /** Close the sheet first, then act — the row is about to change under it. */
+  /** Close the sheet first, then act. The row is about to change under it. */
   const runFromMenu = useCallback(
     (action: (card: CardRow) => void) => () => {
       const card = menu;
@@ -465,7 +466,7 @@ export default function DeckHomeScreen() {
     [menu]
   );
 
-  // Deep links land here directly — a signed-out visitor gets a proper door.
+  // Deep links land here directly, so a signed-out visitor gets a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -560,7 +561,7 @@ export default function DeckHomeScreen() {
 
   // New cards count as due, so the queue length IS the honest due count.
   const due = buildQueue(cards, reviews, new Date(), cards.length).length;
-  /** Nothing owed, but there is a deck to run — the night-before lap. */
+  /** Nothing owed, but there is a deck to run: the night-before lap. */
   const cram = due === 0 && cards.length > 0;
   const cardsLabel = cards.length === 1 ? "1 card" : `${cards.length} cards`;
   const creatorName =
@@ -667,7 +668,7 @@ export default function DeckHomeScreen() {
           </Pressable>
         </View>
         <Field
-          label="One card per line — front and back separated by a dash, colon, or tab"
+          label="One card per line, front and back separated by a dash, colon, or tab"
           value={pasteText}
           onChangeText={(text) => {
             setPasteText(text);
@@ -684,7 +685,7 @@ export default function DeckHomeScreen() {
         />
         {pasteText.trim().length === 0 ? null : readyCount === 0 ? (
           <AppText variant="caption" muted>
-            No cards in there yet — try lines like "osmosis - water moving
+            No cards in there yet. Try lines like "osmosis - water moving
             across a membrane", one per line.
           </AppText>
         ) : (
@@ -789,8 +790,8 @@ export default function DeckHomeScreen() {
             {/* A deck with cards in it is always studyable. The schedule is
                 a suggestion, not a lock: grade a deck "good" three days out
                 and the old button went dark on the one night you needed it.
-                With nothing due, the door opens a cram lap — the whole deck,
-                no grading, no `card_reviews` written — so a panic run the
+                With nothing due, the door opens a cram lap: the whole deck,
+                no grading, no `card_reviews` written, so a panic run the
                 night before an exam can't wreck the real spacing. */}
             <View style={{ gap: space.snug }}>
               <Button

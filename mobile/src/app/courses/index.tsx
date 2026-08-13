@@ -52,7 +52,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 import { useResolvedScheme } from "@/providers/display-provider";
 
-/* My courses — two shelves.
+/* My courses, on two shelves.
  *
  * Active classes are the list students actually live in. Shelving moves a
  * finished class off that list without dropping it: the enrollment survives,
@@ -97,7 +97,7 @@ function byCode(a: MyCourse, b: MyCourse): number {
 
 /**
  * Move one course to the shelf its `archived_at` names, both sides left
- * code-sorted. Pure, and its own inverse — rolling a failed write back is the
+ * code-sorted. Pure, and its own inverse: rolling a failed write back is the
  * same call with the value the row had before.
  */
 function place(
@@ -107,7 +107,7 @@ function place(
 ): MyCourses {
   const id = course.enrollment_id;
   const match = (row: MyCourse) => row.enrollment_id !== id;
-  // Prefer the copy already on screen — a refresh may have landed since the
+  // Prefer the copy already on screen. A refresh may have landed since the
   // menu opened, and that copy is the fresher one.
   const current =
     shelves.active.find((row) => row.enrollment_id === id) ??
@@ -141,8 +141,8 @@ function restamp(
 /**
  * The two things the enrollment row knows that a {@link MyCourse} doesn't:
  * whether the catalog filled its details in, and which tint the student hung
- * on it. Neither belongs in the archive module — one is a note about where
- * the details came from, the other is a private, per-student pick — so they
+ * on it. Neither belongs in the archive module (one is a note about where
+ * the details came from, the other is a private, per-student pick), so they
  * ride along together in one cheap read.
  */
 type EnrollmentMarks = {
@@ -159,8 +159,8 @@ const NO_MARKS: EnrollmentMarks = {
 
 /**
  * Read both marks for one student's enrollments. If it fails the catalog
- * notes simply don't draw and every course falls back to its hashed tint —
- * neither is ever worth an error message on top of a list that loaded fine.
+ * notes simply don't draw and every course falls back to its hashed tint.
+ * Neither is ever worth an error message on top of a list that loaded fine.
  */
 async function fetchEnrollmentMarks(userId: string): Promise<EnrollmentMarks> {
   const { data, error } = await supabase
@@ -233,9 +233,9 @@ function CourseRow({
         {/* The course's colour, as a spine down the left of the card.
             The ink rather than the wash: a 4px bar in a soft fill would
             disappear against the paper, and the ink clears 6:1 on `surface`.
-            A flow child that stretches, not an absolute one — it sits inside
-            the card's padding of its own accord, and clipping the Card to
-            reach its rounded corner would take the warm shadow with it.
+            A flow child that stretches rather than an absolute one: it sits
+            inside the card's padding of its own accord, and clipping the Card
+            to reach its rounded corner would take the warm shadow with it.
             Decorative: the code is right beside it. */}
         <View
           style={{
@@ -252,7 +252,7 @@ function CourseRow({
           }
           accessibilityHint="Opens this course"
           onPress={onOpen}
-          // The long-press shortcut has to live on the inner target too —
+          // The long-press shortcut has to live on the inner target too;
           // otherwise holding the title would just open the course.
           onLongPress={busy ? undefined : onMenu}
           style={({ pressed }) => ({
@@ -276,7 +276,7 @@ function CourseRow({
               {course.code}
             </AppText>
             {/* Catalog-matched classes get a quiet note; hand-added ones stand
-                on their own — every class here counts the same. */}
+                on their own. Every class here counts the same. */}
             {fromCatalog ? (
               <Chip label="From catalog" icon="book" tone="neutral" />
             ) : null}
@@ -321,8 +321,8 @@ function CourseRow({
  * The one line on this screen that isn't about a single class: the term
  * across all of them. It sits under the intro rather than over the list,
  * because "how is this quarter going" is the question you ask after you've
- * seen what's in it — and it stays a quiet row, since the number on the other
- * side is scratch math from a private gradebook, not a result.
+ * seen what's in it. It stays a quiet row, since the number on the other
+ * side is scratch math from a private gradebook rather than a result.
  */
 function SemesterLink() {
   const theme = useTheme();
@@ -369,7 +369,7 @@ function SemesterLink() {
 }
 
 /** A shelved class: quieter than the cards above, one hairline between rows.
-    Still opens — shelving keeps the chat and the notes, so the door has to
+    Still opens: shelving keeps the chat and the notes, so the door has to
     stay on the row that says so. */
 function ArchivedRow({
   course,
@@ -454,7 +454,7 @@ function ArchivedRow({
 
 /**
  * One tint as a swatch: the wash it paints, ringed in its own ink when it's
- * the colour this course is already wearing, and named underneath — so the
+ * the colour this course is already wearing, and named underneath, so the
  * six are never told apart by colour alone.
  */
 function ColorSwatch({
@@ -490,7 +490,7 @@ function ColorSwatch({
           borderRadius: radius.full,
           backgroundColor: colors.soft,
           // The ring is always drawn so the swatches never shift when the
-          // pick moves — it just goes quiet on the five that aren't chosen.
+          // pick moves. It just goes quiet on the five that aren't chosen.
           borderWidth: 2,
           borderColor: selected ? colors.ink : theme.border,
           alignItems: "center",
@@ -613,7 +613,7 @@ function ArchivedShelf({
           }}
         >
           <AppText variant="caption" muted style={{ marginTop: space.tight }}>
-            These keep their chats and notes — they're just out of the way.
+            These keep their chats and notes. They're just out of the way.
           </AppText>
           {groups.map((group, index) => (
             <View key={group.term}>
@@ -716,7 +716,7 @@ export default function MyCoursesScreen() {
           .eq("user_id", userId);
         if (deleteError) throw deleteError;
         // Leave the course chat too: drop our channel_members row for this
-        // course's channel (the enrollment trigger also clears it — this
+        // course's channel (the enrollment trigger also clears it; this
         // makes the leave explicit and immediate either way).
         const { data: channel } = await supabase
           .from("channels")
@@ -755,7 +755,7 @@ export default function MyCoursesScreen() {
     (course: MyCourse) => {
       Alert.alert(
         `Drop ${course.code}?`,
-        "You'll leave its chat too — you can add it back anytime.",
+        "You'll leave its chat too. You can add it back anytime.",
         [
           { text: "Keep it", style: "cancel" },
           {
@@ -814,7 +814,7 @@ export default function MyCoursesScreen() {
   }, []);
 
   /**
-   * Hang a colour on a course. Optimistic — the spine changes under the
+   * Hang a colour on a course. Optimistic: the spine changes under the
    * sheet as it slides away, and changes back with an apology if the write
    * doesn't land.
    *
@@ -824,7 +824,7 @@ export default function MyCoursesScreen() {
    * The write reaches exactly two columns and no more. Migration 0029
    * revoked blanket UPDATE on `enrollments` and granted back `archived_at`
    * alone; 0037 widened that to `grant update (archived_at, color)`, so a
-   * student can recolour and shelve their own row and touch nothing else —
+   * student can recolour and shelve their own row and touch nothing else:
    * not `role`, not `source`, not `course_id`. The row policy from 0029
    * ("students shelve their own enrollments") scopes UPDATE to
    * `user_id = auth.uid()`, so no classmate's tint is writable either.
@@ -850,7 +850,7 @@ export default function MyCoursesScreen() {
         .select("id, color")
         .maybeSingle();
       // No row back means RLS refused the update and PostgREST reported no
-      // error — the same silent no-op `@/lib/course-archive` guards against.
+      // error, the same silent no-op `@/lib/course-archive` guards against.
       if (writeError || data === null) {
         paint(course.enrollment_id, previous);
         setActionError({
@@ -872,7 +872,7 @@ export default function MyCoursesScreen() {
     setSheetView("menu");
     setMenu(course);
   }, []);
-  // The face stays as it was while the sheet slides away — resetting it here
+  // The face stays as it was while the sheet slides away; resetting it here
   // would swap the picker back to the menu mid-dismissal. `openMenu` is what
   // puts the next sheet back on its first face.
   const closeMenu = useCallback(() => setMenu(null), []);
@@ -883,7 +883,7 @@ export default function MyCoursesScreen() {
   if (menu !== null) lastMenu.current = menu;
   const sheetCourse = menu ?? lastMenu.current;
 
-  /** Close the sheet first, then act — the row is about to move under it. */
+  /** Close the sheet first, then act; the row is about to move under it. */
   const runFromMenu = useCallback(
     (action: (course: MyCourse) => void) => () => {
       const course = menu;
@@ -893,7 +893,7 @@ export default function MyCoursesScreen() {
     [menu]
   );
 
-  /** Close the sheet, then paint — the row is about to change under it. */
+  /** Close the sheet, then paint; the row is about to change under it. */
   const pickColor = useCallback(
     (tint: CourseTint) => {
       const course = menu;
@@ -903,7 +903,7 @@ export default function MyCoursesScreen() {
     [menu, recolor]
   );
 
-  /** The colours this course wears right now — the student's pick, or the
+  /** The colours this course wears right now: the student's pick, or the
       tint hashed from its code when they never made one. */
   const tintFor = useCallback(
     (course: MyCourse): CourseTintColors =>
@@ -919,7 +919,7 @@ export default function MyCoursesScreen() {
 
   const intro = (
     <AppText variant="caption" muted>
-      All yours to manage — the catalog note just means the details filled
+      All yours to manage. The catalog note means the details filled
       themselves in.
     </AppText>
   );
@@ -1017,7 +1017,7 @@ export default function MyCoursesScreen() {
             >
               {error}
             </AppText>
-            {/* Nothing to retry when there's no session — the copy above is
+            {/* Nothing to retry when there's no session. The copy above is
                 already the next move. */}
             {userId ? (
               <Button
@@ -1054,7 +1054,7 @@ export default function MyCoursesScreen() {
                   {intro}
                   {error ? (
                     <AppText variant="caption" style={{ color: theme.danger }}>
-                      We couldn't refresh just now — pull down to try again.
+                      We couldn't refresh just now. Pull down to try again.
                     </AppText>
                   ) : null}
                   {topError ? (
@@ -1063,7 +1063,7 @@ export default function MyCoursesScreen() {
                     </AppText>
                   ) : null}
                 </View>
-                {/* Only worth offering once there's a class to average — the
+                {/* Only worth offering once there's a class to average. The
                     term overview of nothing is just its own empty state. */}
                 {active.length > 0 ? (
                   <View
@@ -1123,9 +1123,9 @@ export default function MyCoursesScreen() {
       </View>
 
       {/* One sheet, two faces. The picker swaps in behind the same card
-          rather than opening a second Modal on top of this one — stacked
+          rather than opening a second Modal on top of this one. Stacked
           native modals fight each other on the way in and out, and the
-          colour a course wears is a follow-up to the menu, not a new
+          colour a course wears is a follow-up to the menu rather than a new
           decision somewhere else. */}
       <Sheet
         visible={menu !== null}
@@ -1163,7 +1163,7 @@ export default function MyCoursesScreen() {
               ))}
             </View>
             <AppText variant="caption" muted>
-              Colours are yours — your classmates each pick their own.
+              Colours are yours. Your classmates each pick their own.
             </AppText>
           </View>
         ) : sheetCourse !== null && sheetCourse.archived_at === null ? (
@@ -1185,7 +1185,7 @@ export default function MyCoursesScreen() {
               muted
               style={{ marginLeft: 46, marginBottom: space.snug }}
             >
-              Its chat and notes stay put — it just moves off this list.
+              Its chat and notes stay put. It just moves off this list.
             </AppText>
             <Sheet.Row
               icon="trash-2"

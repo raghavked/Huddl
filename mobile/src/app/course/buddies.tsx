@@ -46,10 +46,10 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
-/* Study partners — one course's who's-looking list.
+/* Study partners: one course's who's-looking list.
  *
  * Two halves, stacked. Up top is the student's own state: an invitation to
- * put their name up, or — once they have — a fern-toned card holding the note
+ * put their name up, or, once they have, a fern-toned card holding the note
  * their classmates can read, with a way to change it and a way to step out.
  * Below is everyone else, newest first, their own row lifted to the top by
  * `@/lib/study-buddy`.
@@ -108,8 +108,8 @@ function InlineError({ message }: { message: string | null }) {
 }
 
 /**
- * The closing promise, stated plainly once. Fern-soft rather than ember —
- * this is reassurance about a mechanism, not a warning.
+ * The closing promise, stated plainly once. Fern-soft rather than ember,
+ * because this is reassurance about a mechanism, not a warning.
  */
 function PrivacyLine() {
   const theme = useTheme();
@@ -141,11 +141,11 @@ function PrivacyLine() {
 
 /**
  * One classmate: who they are, how they like to study, and the way to say
- * hello. My own row carries a "You" chip instead of a button — it is there so
- * I can see exactly what my classmates see.
+ * hello. My own row carries a "You" chip instead of a button, so I can see
+ * exactly what my classmates see.
  *
  * A classmate with a private profile arrives already stripped by
- * `@/lib/study-buddy` — handle, avatar, and their note, nothing else. Their
+ * `@/lib/study-buddy`: handle, avatar, and their note, nothing else. Their
  * row says so with a lock, the same as the new-message picker, so it reads as
  * a choice they made rather than a blank they forgot to fill.
  */
@@ -265,7 +265,7 @@ export default function StudyBuddiesScreen() {
   const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
   /**
    * Am I in this class? Null until the check lands, and null again if it
-   * can't be read — only a definitive `false` closes the door, so a flaky
+   * can't be read. Only a definitive `false` closes the door, so a flaky
    * connection never locks a classmate out of their own list.
    */
   const [enrolled, setEnrolled] = useState<boolean | null>(null);
@@ -273,8 +273,8 @@ export default function StudyBuddiesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // The note composer. `editing` only matters once I'm already on the list —
-  // before that the composer is the invitation itself.
+  // The note composer. `editing` only matters once I'm already on the list.
+  // Before that the composer is the invitation itself.
   const [noteDraft, setNoteDraft] = useState("");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -304,7 +304,7 @@ export default function StudyBuddiesScreen() {
 
     /* The gate, same as the web page's: this list is classmates only. RLS
        already refuses the write and hands back an empty read, but an empty
-       read renders as "nobody has raised a hand yet" — which may simply be
+       read renders as "nobody has raised a hand yet", which may simply be
        untrue, above a button the server will turn down. One cheap lookup
        buys an honest screen. */
     const enrollmentPromise = supabase
@@ -383,7 +383,7 @@ export default function StudyBuddiesScreen() {
   );
 
   /**
-   * Put my name up, or save an edited note — the same upsert either way.
+   * Put my name up, or save an edited note: the same upsert either way.
    * The card flips and the row lands before the request goes out; a refusal
    * puts both back and reopens the composer with the text still in it.
    */
@@ -392,7 +392,7 @@ export default function StudyBuddiesScreen() {
     const trimmed = noteDraft.trim();
     if (trimmed.length > BUDDY_NOTE_MAX) {
       setActionError(
-        `Keep your note to ${BUDDY_NOTE_MAX} characters — say when you study and where.`
+        `Keep your note to ${BUDDY_NOTE_MAX} characters. Say when you study and where.`
       );
       return;
     }
@@ -416,7 +416,7 @@ export default function StudyBuddiesScreen() {
       setNoteDraft("");
       // A completion moment: my name is up where my classmates can see it.
       if (!wasListed) tapSuccess();
-      // No local profile to draw with — let the server tell us how it looks.
+      // No local profile to draw with, so let the server tell us how it looks.
       if (!row) void load();
     } catch (caught) {
       setMine(previousMine);
@@ -468,7 +468,7 @@ export default function StudyBuddiesScreen() {
    * both "we've talked before" and "we haven't".
    *
    * Every failure reads the same on purpose. The server also refuses across a
-   * block, and a block is one-way and private — a message that said "you two
+   * block, and a block is one-way and private. A message that said "you two
    * can't message each other" would only ever be read by the person who got
    * blocked, which tells them exactly what they were never meant to learn.
    */
@@ -499,7 +499,7 @@ export default function StudyBuddiesScreen() {
 
   /* ------------------------------ scaffold ------------------------------ */
 
-  // A deep link can land here signed out — send them to a proper door.
+  // A deep link can land here signed out, so send them to a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -591,7 +591,7 @@ export default function StudyBuddiesScreen() {
   }
 
   /* Not in the class. Say so plainly rather than showing an empty list that
-     would read as "nobody's looking" — we genuinely can't see the list, and
+     would read as "nobody's looking". We genuinely can't see the list, and
      the course page is where the class gets added. */
   if (enrolled === false) {
     return scaffold(
@@ -606,7 +606,7 @@ export default function StudyBuddiesScreen() {
         <EmptyState
           illustration={Doorway}
           title="This list is for people in the class"
-          body={`Add ${courseLabel} to your courses and you'll see who's looking — and you can put your name up too.`}
+          body={`Add ${courseLabel} to your courses and you'll see who's looking, and you can put your name up too.`}
           action={{
             label: "Open the class",
             onPress: () => router.replace(`/course/${id}`),
@@ -651,7 +651,7 @@ export default function StudyBuddiesScreen() {
   const others = listed.filter((buddy) => !buddy.is_me);
   const composerOpen = mine === null || editing;
 
-  /* The composer — the invitation when I'm not on the list, and the same
+  /* The composer: the invitation when I'm not on the list, and the same
      field again when I'm editing the note that's already up there. */
   const composer = (
     <View style={{ gap: space.close }}>
@@ -703,7 +703,7 @@ export default function StudyBuddiesScreen() {
     </View>
   );
 
-  /* Writing keeps the plain paper card — a tinted surface can't carry muted
+  /* Writing keeps the plain paper card. A tinted surface can't carry muted
      helper text, and the fern is for the settled state, not the draft. */
   const myStateCard = composerOpen ? (
     <Card style={{ gap: space.close }}>
@@ -715,7 +715,7 @@ export default function StudyBuddiesScreen() {
       <AppText variant="caption" muted style={{ lineHeight: 17 }}>
         {mine === null
           ? `Put your name up and everyone in ${courseLabel} sees it here. Take it down whenever you like.`
-          : "Say when you study and where — that gets more replies than a friendly hello."}
+          : "Say when you study and where. That gets more replies than a friendly hello."}
       </AppText>
       {composer}
     </Card>
@@ -738,7 +738,7 @@ export default function StudyBuddiesScreen() {
         <AppText style={{ lineHeight: 21 }}>{mine.note}</AppText>
       ) : (
         <AppText style={{ color: theme.accent }}>
-          You didn't leave a note — classmates will just see your name.
+          You didn't leave a note. Classmates will just see your name.
         </AppText>
       )}
       <InlineError message={actionError} />

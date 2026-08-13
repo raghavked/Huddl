@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 
 /**
- * `/.well-known/apple-app-site-association` — the file iOS fetches to decide
+ * `/.well-known/apple-app-site-association`: the file iOS fetches to decide
  * whether a `https://huddl.app/...` link belongs to the Huddl app.
  *
  * Served with no extension and `application/json`, exactly as Apple's CDN
  * expects, and never behind a redirect (the middleware matcher lets this path
- * through untouched — see `docs/DEEP_LINKS.md`).
+ * through untouched; see `docs/DEEP_LINKS.md`).
  */
 
 /** Ten alphanumerics, Developer portal → Membership details → Team ID. */
@@ -16,7 +16,7 @@ const BUNDLE_ID = "app.huddl.mobile";
 
 /**
  * Apple's CDN re-fetches on its own schedule and devices cache what it hands
- * them, so serve this cold and let it sit. The 404 below is the opposite —
+ * them, so serve this cold and let it sit. The 404 below is the opposite:
  * `no-store`, so the day someone sets `APPLE_TEAM_ID` the real document is
  * live immediately instead of waiting out a cached miss.
  */
@@ -31,7 +31,7 @@ type AasaComponent = {
 
 /**
  * iOS takes the *first* component that matches, so the exclusions come first.
- * We claim only the paths the app can actually route — everything else stays
+ * We claim only the paths the app can actually route. Everything else stays
  * in the browser, which is a better outcome than opening the app onto a dead
  * end. Keep this list in step with the table in `docs/DEEP_LINKS.md`.
  */

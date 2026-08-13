@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** Loading placeholder block — pair shapes to the content they stand for. */
+/** Loading placeholder block. Pair shapes to the content they stand for. */
 export function Skeleton({
   className,
   ...props

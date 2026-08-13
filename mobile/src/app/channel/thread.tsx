@@ -60,7 +60,7 @@ import { forwardLabelFor, type ForwardSource } from "@/lib/forwarding";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
-/** Minimal local row shapes — mirrors channel/[id].tsx, with the power
+/** Minimal local row shapes, mirroring channel/[id].tsx, with the power
     columns so edits, deletes, polls, and attachments render honestly. */
 type Author = {
   id: string;
@@ -87,7 +87,7 @@ type MessageRow = {
   author: Author | null;
 };
 
-/** Raw realtime payload row — no joined author. */
+/** Raw realtime payload row: no joined author. */
 type RawMessageRow = {
   id: string;
   channel_id: string;
@@ -120,7 +120,7 @@ function embedded(raw: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-/** What the channel this thread hangs off is called — the same identity the
+/** What the channel this thread hangs off is called: the same identity the
     room's own header shows, so a forward's provenance line matches the place
     a student remembers being in. Null when we couldn't read it. */
 function channelNameFrom(raw: unknown): string | null {
@@ -138,7 +138,7 @@ function channelNameFrom(raw: unknown): string | null {
   return name.length > 0 ? name : null;
 }
 
-/** The message-body text style — MentionText needs it spelled out. */
+/** The message-body text style. MentionText needs it spelled out. */
 const BODY_TEXT = {
   fontFamily: fonts.body,
   fontSize: 15,
@@ -216,7 +216,7 @@ function BackChevron({ onPress }: { onPress: () => void }) {
   );
 }
 
-/** A chat image at thumb size — resolves its signed URL through the screen's
+/** A chat image at thumb size. Resolves its signed URL through the screen's
     per-path cache, then taps open the full-screen viewer. */
 function AttachmentImage({
   path,
@@ -288,7 +288,7 @@ export default function ThreadScreen() {
 
   const [status, setStatus] = useState<Status>("loading");
   const [parent, setParent] = useState<MessageRow | null>(null);
-  // Oldest first — replies read top-down under the pinned parent.
+  // Oldest first: replies read top-down under the pinned parent.
   const [replies, setReplies] = useState<MessageRow[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -307,7 +307,7 @@ export default function ThreadScreen() {
   const [blocking, setBlocking] = useState(false);
 
   // Drafts and the send queue. A thread is its own conversation, keyed on the
-  // parent message — leaving one mid-sentence keeps its own sentence.
+  // parent message, so leaving one mid-sentence keeps its own sentence.
   const conversationKey = useMemo(() => keyFor("thread", messageId), [messageId]);
   const [pending, setPending] = useState<QueuedMessage[]>([]);
   const draftRef = useRef(draft);
@@ -323,7 +323,7 @@ export default function ThreadScreen() {
   const noteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [channelName, setChannelName] = useState<string | null>(null);
   // Display names behind forwarded_author_id, fetched in one batch per page
-  // rather than embedded — `messages` has two foreign keys into `profiles`,
+  // rather than embedded. `messages` has two foreign keys into `profiles`,
   // and a mis-hinted embed would take the whole thread's query down with it.
   const [forwardedNames, setForwardedNames] = useState<Record<string, string>>(
     {}
@@ -401,7 +401,7 @@ export default function ThreadScreen() {
         .select(MESSAGE_SELECT)
         .eq("parent_id", messageId)
         .order("created_at", { ascending: true }),
-      // Only for the forward provenance line — a failure here costs a label,
+      // Only for the forward provenance line: a failure here costs a label,
       // never the thread.
       supabase
         .from("channels")
@@ -430,7 +430,7 @@ export default function ThreadScreen() {
   /* ------------------------ drafts and the queue ----------------------- */
 
   // Restore what was left mid-sentence, but never over something already
-  // typed — a slow read must not overwrite a fast typist.
+  // typed: a slow read must not overwrite a fast typist.
   useEffect(() => {
     let cancelled = false;
     void loadDraft(conversationKey).then((saved) => {
@@ -449,7 +449,7 @@ export default function ThreadScreen() {
       draftTimerRef.current = setTimeout(() => {
         draftTimerRef.current = null;
         // While editing, the composer holds someone's published words, not a
-        // draft — the real draft is parked in draftBeforeEditRef.
+        // draft. The real draft is parked in draftBeforeEditRef.
         if (editingRef.current) return;
         void saveDraft(conversationKey, text);
       }, DRAFT_SAVE_MS);
@@ -516,7 +516,7 @@ export default function ThreadScreen() {
       // The queue itself couldn't be read; the refresh below still tells the
       // truth about what's waiting.
     }
-    // Retire the pending bubbles BEFORE the real rows arrive — the other
+    // Retire the pending bubbles BEFORE the real rows arrive. The other
     // order shows both for a frame, which reads as a message sent twice.
     await refreshPending();
     await adoptSent(landed);
@@ -527,7 +527,7 @@ export default function ThreadScreen() {
   }, [refreshPending]);
 
   // Arriving in the thread is when anything the queue is holding gets another
-  // go — including replies queued from a previous visit.
+  // go, including replies queued from a previous visit.
   useFocusEffect(
     useCallback(() => {
       void runFlush();
@@ -599,7 +599,7 @@ export default function ThreadScreen() {
 
   // Live replies: the postgres filter is on the channel (mirrors the room's
   // subscription shape); parent_id is checked client-side. Own echoes are
-  // skipped — the optimistic path already has them. Updates (edits and soft
+  // skipped: the optimistic path already has them. Updates (edits and soft
   // deletes) merge into the parent card or the matching reply.
   const isReady = status === "ready";
   useEffect(() => {
@@ -696,7 +696,7 @@ export default function ThreadScreen() {
     const tempId = `temp-${Date.now().toString(36)}-${Math.random()
       .toString(36)
       .slice(2, 10)}`;
-    // Optimistic bubble — own messages don't render the author, so null is fine.
+    // Optimistic bubble: own messages don't render the author, so null is fine.
     const optimistic: MessageRow = {
       id: tempId,
       channel_id: channelId,
@@ -714,7 +714,7 @@ export default function ThreadScreen() {
     };
     appendReply(optimistic);
     setSending(true);
-    // Queue it first, then send the queue's own row — same as the room screen.
+    // Queue it first, then send the queue's own row, same as the room screen.
     // The point is the id: both attempts carry the same primary key, so a
     // reply that commits but never answers is retried as a unique violation
     // the queue reads as "it already landed", rather than posting the reply
@@ -734,7 +734,7 @@ export default function ThreadScreen() {
         payload,
       });
     } catch (thrown) {
-      // The device wouldn't hold it. Still worth the wire — this one reply
+      // The device wouldn't hold it. Still worth the wire: this one reply
       // just goes out with nothing behind it if it fails.
       queueError = thrown;
     }
@@ -748,12 +748,12 @@ export default function ThreadScreen() {
       noteConnectivity(!isLikelyOffline(insertError));
       setReplies((prev) => prev.filter((m) => m.id !== tempId));
       if (!queued) {
-        // Nothing is holding it — give the words back.
+        // Nothing is holding it, so give the words back.
         setDraft(content);
         setSendError(
           queueError instanceof DraftError
             ? queueError.message
-            : "Couldn't send that — check your connection and try again."
+            : "Couldn't send that. Check your connection and try again."
         );
         return;
       }
@@ -841,7 +841,7 @@ export default function ThreadScreen() {
         content: target.content,
         edited_at: target.edited_at,
       });
-      setSendError("Couldn't save your edit — give it another try.");
+      setSendError("Couldn't save your edit. Give it another try.");
     }
   }, [editing, userId, draft, mentions, patchMessage]);
 
@@ -858,7 +858,7 @@ export default function ThreadScreen() {
         .eq("author_id", userId);
       if (updateError) {
         patchMessage(target.id, { deleted_at: target.deleted_at });
-        setSendError("Couldn't delete that — give it another try.");
+        setSendError("Couldn't delete that. Give it another try.");
       }
     },
     [userId, patchMessage]
@@ -878,7 +878,7 @@ export default function ThreadScreen() {
       } catch {
         setBlockFor(null);
         setActionsFor(null);
-        setSendError("Couldn't block them just now — give it another try.");
+        setSendError("Couldn't block them just now. Give it another try.");
       } finally {
         setBlocking(false);
       }
@@ -1312,12 +1312,12 @@ export default function ThreadScreen() {
                 style={{ paddingVertical: space.chapter, alignItems: "center" }}
               >
                 <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
-                  No replies yet — start the thread.
+                  No replies yet. Start the thread.
                 </AppText>
               </View>
             }
             // Replies read top-down, so anything still waiting to send belongs
-            // at the end of them — right where it was typed.
+            // at the end of them, right where it was typed.
             ListFooterComponent={
               pending.length > 0 ? (
                 <View>
@@ -1555,7 +1555,7 @@ export default function ThreadScreen() {
         </KeyboardAvoidingView>
       )}
 
-      {/* Full-screen photo viewer — tap anywhere to close. */}
+      {/* Full-screen photo viewer: tap anywhere to close. */}
       <Modal
         visible={viewerUrl !== null}
         transparent
@@ -1581,7 +1581,7 @@ export default function ThreadScreen() {
 
       {/* The long-press menu: forwarding is for anyone's message, editing and
           deleting only for your own. Blocking asks its question inside the
-          same sheet rather than opening a second one — a Modal dismissing
+          same sheet rather than opening a second one. A Modal dismissing
           while another presents is how you get a sheet that never appears. */}
       <Sheet
         visible={actionsFor !== null}
@@ -1619,7 +1619,7 @@ export default function ThreadScreen() {
           </AppText>
           <View style={{ height: 1, backgroundColor: theme.border }} />
           {/* A poll carrier's words are the question, and the poll itself
-              doesn't travel — so there's nothing honest to forward. */}
+              doesn't travel, so there's nothing honest to forward. */}
           {actionsFor && !actionsFor.poll_id ? (
             <Sheet.Row
               icon="corner-up-right"
@@ -1656,7 +1656,7 @@ export default function ThreadScreen() {
               }}
             />
           ) : null}
-          {/* Reporting and blocking, one long-press away — the same two rows
+          {/* Reporting and blocking, one long-press away: the same two rows
               the room offers, because a thread is where a reply lands. */}
           {actionsFor && actionsFor.author_id !== userId ? (
             <>

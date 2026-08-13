@@ -1,14 +1,14 @@
 import { CALENDAR_KINDS, type CalendarKind } from "@/lib/syllabus";
 import { supabase } from "@/lib/supabase";
 
-/* Recurring calendar items — the generator and the series rules.
+/* Recurring calendar items: the generator and the series rules.
  *
  * A weekly lecture is not one clever row that knows how to repeat itself. It
  * is twenty ordinary rows on the class calendar that happen to have been
  * created together, and migration 0032 gives them the one thing they need to
  * stay together afterwards:
  *
- *   `course_calendar_items.series_id` — a uuid the CLIENT generates and stamps
+ *   `course_calendar_items.series_id`, a uuid the CLIENT generates and stamps
  *   on every row of one weekly pattern. Null for a one-off. Nothing in the
  *   database expands anything, schedules anything, or knows what "weekly"
  *   means; each row stays an ordinary calendar item that a student can open,
@@ -23,8 +23,8 @@ import { supabase } from "@/lib/supabase";
  *
  * PAST ROWS ARE HISTORY
  * {@link updateSeries} and {@link deleteSeries} only ever touch rows still in
- * the future. A lecture that already happened is a thing that happened —
- * renaming it retroactively or sweeping it away would rewrite the term. Which
+ * the future. A lecture that already happened is a thing that happened.
+ * Renaming it retroactively or sweeping it away would rewrite the term. Which
  * rows count as "the future" is decided by the CALLER, who passes the boundary
  * in, so a screen ticking every minute and a unit test frozen at a fixed
  * moment get the same answer, and neither this module nor its tests ever read
@@ -33,16 +33,16 @@ import { supabase } from "@/lib/supabase";
  * ONLY THE AUTHOR EDITS
  * The UPDATE and DELETE policies on `course_calendar_items` are
  * `created_by = auth.uid()`, so a classmate cannot edit or remove someone
- * else's dates. Every write here filters on `created_by` explicitly as well —
- * never lean on a policy alone to scope a "mine" write, and a filter that
+ * else's dates. Every write here filters on `created_by` explicitly as well.
+ * Never lean on a policy alone to scope a "mine" write, and a filter that
  * matches the policy turns a silent no-op into an honest empty result.
  *
- * WHAT A SERIES INSERT DOES TO EVERYONE ELSE'S INBOX — READ BEFORE WIRING UI
+ * WHAT A SERIES INSERT DOES TO EVERYONE ELSE'S INBOX: READ BEFORE WIRING UI
  * `course_calendar_item_notify` (migration 0018) is an AFTER INSERT FOR EACH
  * ROW trigger: every manual calendar row notifies every other student in the
  * course. A twenty-week lecture series is therefore twenty inbox rows per
- * classmate. Their phone only buzzes once — the push trigger coalesces to one
- * per two minutes (migration 0035) — but the notification list still fills up.
+ * classmate. Their phone only buzzes once (the push trigger coalesces to one
+ * per two minutes, migration 0035), but the notification list still fills up.
  * {@link SERIES_MAX_ROWS} bounds the damage; it does not fix it. The fix is one
  * migration, announcing only the first row of a series:
  *
@@ -58,7 +58,7 @@ import { supabase } from "@/lib/supabase";
  * Until that lands, keep series short and say plainly in the confirm step that
  * the whole class will see these dates.
  *
- * No React, no theme, no navigation in here — one pure generator, four
+ * No React, no theme, no navigation in here: one pure generator, four
  * queries, and small pure helpers. Every failure arrives as a
  * {@link SeriesError} whose message is warm, specific, and safe to drop
  * straight into an inline error.
@@ -68,7 +68,7 @@ import { supabase } from "@/lib/supabase";
 
 /**
  * A day of the week, ISO-numbered: Monday is 1 and Sunday is 7. Callers should
- * never build these by hand — map over {@link WEEKDAYS} and take `index`, so
+ * never build these by hand. Map over {@link WEEKDAYS} and take `index`, so
  * the numbering can only ever be right.
  */
 export type WeekdayIndex = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -77,9 +77,9 @@ export type WeekdayIndex = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export type Weekday = {
   /** ISO index: Monday 1 … Sunday 7. What {@link generateSeries} takes. */
   index: WeekdayIndex;
-  /** Chip label — "Mon". Sentence case, because everything is. */
+  /** Chip label: "Mon". Sentence case, because everything is. */
   short: string;
-  /** The full name — "Monday". For prose and accessibility labels. */
+  /** The full name: "Monday". For prose and accessibility labels. */
   label: string;
 };
 
@@ -94,7 +94,7 @@ export type TimeOfDay = {
 /** Everything {@link generateSeries} needs to lay out a weekly pattern. */
 export type SeriesSpec = {
   /**
-   * What every row is called — "Lecture", "Discussion section", "Problem set".
+   * What every row is called: "Lecture", "Discussion section", "Problem set".
    * Shared verbatim by all of them; the date is what tells them apart. Trimmed
    * here, and it has to survive as 1–200 characters (the column's own check).
    */
@@ -108,7 +108,7 @@ export type SeriesSpec = {
   weekdays: readonly WeekdayIndex[];
   /**
    * The first day the pattern can land on, inclusive. Only the calendar day is
-   * read — whatever time this Date carries is discarded in favour of
+   * read. Whatever time this Date carries is discarded in favour of
    * `timeOfDay`.
    *
    * This module never reads the clock, so it cannot know that today's meeting
@@ -142,7 +142,7 @@ export type CalendarRowDraft = {
   /**
    * The moment it happens, as an ISO timestamp. The column is called `due_at`
    * for the whole calendar, so a lecture's "due" time is really when class
-   * starts — the calendar screen just prints the time when it isn't 11:59pm.
+   * starts. The calendar screen just prints the time when it isn't 11:59pm.
    */
   due_at: string;
 };
@@ -152,7 +152,7 @@ export type SeriesRow = {
   /** `course_calendar_items.id`. */
   id: string;
   course_id: string;
-  /** The author — always the signed-in student for rows this module writes. */
+  /** The author: always the signed-in student for rows this module writes. */
   created_by: string | null;
   /** The shared id every row of this pattern carries. */
   series_id: string;
@@ -161,7 +161,7 @@ export type SeriesRow = {
   details: string | null;
   /** ISO timestamp. */
   due_at: string;
-  /** Always `"manual"` here — a series is hand-made, not parsed from a PDF. */
+  /** Always `"manual"` here: a series is hand-made, not parsed from a PDF. */
   source: "manual" | "syllabus";
 };
 
@@ -171,7 +171,7 @@ export type SeriesRow = {
  *
  * Times and weekdays are deliberately absent. Moving a lecture from 10am to
  * 11am changes every row to a DIFFERENT value, which no single update can
- * express, and adding a Friday isn't an edit at all — it's more rows. Both are
+ * express, and adding a Friday isn't an edit at all; it's more rows. Both are
  * the same recipe: {@link deleteSeries} the upcoming rows, then
  * {@link generateSeries} and {@link saveSeries} the new pattern. Say that out
  * loud in the UI ("this replaces the rest of the quarter") rather than hiding
@@ -189,7 +189,7 @@ export type SeriesPatch = {
 /* ══════════════════════════════ the days ════════════════════════════ */
 
 /**
- * The week, as data. A picker maps straight over this — no switch statement,
+ * The week, as data. A picker maps straight over this: no switch statement,
  * no array of magic numbers, and one place to change if a school ever wants
  * the week to start on Sunday.
  *
@@ -206,7 +206,7 @@ export const WEEKDAYS: readonly Weekday[] = [
 ];
 
 /**
- * 11:59pm — the time the rest of the app treats as "no particular time".
+ * 11:59pm, the time the rest of the app treats as "no particular time".
  * The syllabus importer writes it, and the calendar screen prints no time at
  * all when it sees it, so a weekly problem set due Friday night looks like a
  * due date rather than an appointment. Use it for assignment-shaped series;
@@ -226,7 +226,7 @@ export const END_OF_DAY: TimeOfDay = { hour: 23, minute: 59 };
  * instead of 2026 is a thousand rows on everyone's calendar and a thousand
  * notifications, and it is much easier to fix a date field than to unpick that.
  *
- * Going over is refused, never quietly trimmed — sixty rows ending on a date
+ * Going over is refused, never quietly trimmed. Sixty rows ending on a date
  * the student never picked would be a worse lie than the error.
  */
 export const SERIES_MAX_ROWS = 60;
@@ -242,7 +242,7 @@ const SERIES_SELECT =
 
 /**
  * A series failure with a message written for a person, not a log. Show
- * `err.message` directly in your inline error — it never leaks SQL, ids, or
+ * `err.message` directly in your inline error. It never leaks SQL, ids, or
  * PostgREST codes.
  */
 export class SeriesError extends Error {
@@ -256,9 +256,9 @@ export class SeriesError extends Error {
 const ENROLL_FIRST =
   "Add this class to your courses first, then you can put its schedule on the calendar.";
 
-const NO_TITLE = "Give these dates a name — Lecture, Lab, whatever it is.";
+const NO_TITLE = "Give these dates a name: Lecture, Lab, whatever it is.";
 
-const TITLE_TOO_LONG = "That name is a bit long — keep it under 200 characters.";
+const TITLE_TOO_LONG = "That name is a bit long. Keep it under 200 characters.";
 
 const NO_DAYS = "Pick at least one day of the week.";
 
@@ -266,7 +266,7 @@ const BAD_TIME = "Pick a time of day for these.";
 
 const BAD_RANGE = "Set the last date on or after the first one.";
 
-const TOO_MANY = `That's more than ${SERIES_MAX_ROWS} dates. Bring the last date closer in — a quarter of twice-weekly meetings is about twenty.`;
+const TOO_MANY = `That's more than ${SERIES_MAX_ROWS} dates. Bring the last date closer in. A quarter of twice-weekly meetings is about twenty.`;
 
 const NOTHING_TO_SAVE =
   "No dates fall in that range. Check the days of the week and try again.";
@@ -284,7 +284,7 @@ const COUNT_FAILED =
   "We couldn't check how many dates are left in this series. Give it another go.";
 
 const NOTHING_TO_CHANGE =
-  "Change something first — the name, the kind, or the note.";
+  "Change something first: the name, the kind, or the note.";
 
 /** PostgREST's code for "row-level security policy said no". */
 const RLS_DENIED = "42501";
@@ -326,7 +326,7 @@ function writeFailure(raw: unknown, fallback: string): SeriesError {
 /* ═════════════════════════════ narrowing ════════════════════════════ */
 
 /**
- * An embedded relation — or a `.single()` result — comes back as an object OR
+ * An embedded relation (or a `.single()` result) comes back as an object OR
  * a one-element array depending on how PostgREST resolves it. Unwrap both
  * shapes to a plain record. Same defence as `@/lib/reminders` and
  * `@/lib/course-archive`.
@@ -344,7 +344,7 @@ function optionalText(raw: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-/** A stored kind, or `"other"` when it's unreadable — same rule as the plan. */
+/** A stored kind, or `"other"` when it's unreadable: same rule as the plan. */
 function toKind(raw: unknown): CalendarKind {
   return typeof raw === "string" &&
     (CALENDAR_KINDS as readonly string[]).includes(raw)
@@ -354,7 +354,7 @@ function toKind(raw: unknown): CalendarKind {
 
 /**
  * Narrow one row into a {@link SeriesRow}. Returns null when it's missing an
- * id, a course, a series id or a due date — a row we can't place on a calendar
+ * id, a course, a series id or a due date. A row we can't place on a calendar
  * is better dropped than handed over half-built. A row with no readable title
  * keeps its place with an empty one; the date is what the student is looking
  * at.
@@ -397,8 +397,8 @@ function byDueAt(a: SeriesRow, b: SeriesRow): number {
  *
  * The `Math.random` arm is not cryptographic and doesn't need to be: a series
  * id is a grouping key, not a secret or a capability. Nobody can reach a row
- * by guessing one — RLS scopes every read to the student's own enrolments and
- * every write to the author — so the only cost of a collision would be two
+ * by guessing one (RLS scopes every read to the student's own enrolments and
+ * every write to the author), so the only cost of a collision would be two
  * series merging into one, and 122 random bits makes that impossible in
  * practice even from a weak source.
  */
@@ -421,7 +421,7 @@ function randomBytes16(): Uint8Array {
  * `crypto.randomUUID()` is there on web and on recent Hermes, and it is used
  * when it is. It is NOT guaranteed on every runtime this app ships to, and the
  * column is a real `uuid`, so a "close enough" random string would be rejected
- * outright — hence the hand-built fallback, which sets the version and variant
+ * outright. Hence the hand-built fallback, which sets the version and variant
  * bits properly so what we send is a genuine v4.
  */
 function newSeriesId(): string {
@@ -448,7 +448,7 @@ function newSeriesId(): string {
 /* ════════════════════════════════ auth ══════════════════════════════ */
 
 /**
- * The caller's `profiles.id`, read from the stored session (no network hop —
+ * The caller's `profiles.id`, read from the stored session (no network hop;
  * supabase-js refreshes the token itself when it's stale).
  *
  * @throws {SeriesError} When nobody's signed in.
@@ -464,7 +464,7 @@ async function requireUserId(): Promise<string> {
 
 /* ═══════════════════════════ the generator ══════════════════════════ */
 
-/** Local midnight on the given date — the day, with the time discarded. */
+/** Local midnight on the given date: the day, with the time discarded. */
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
@@ -480,7 +480,7 @@ function wholeInRange(value: number, min: number, max: number): number | null {
  * Every date a weekly pattern lands on, as drafts ready to be saved.
  *
  * Pure, and the heart of the feature: no ids, no network, no clock. Same spec
- * in, same drafts out, every time — which is exactly what a live preview
+ * in, same drafts out, every time, which is exactly what a live preview
  * needs, since it can regenerate on each keystroke and throw the result away
  * without having created anything.
  *
@@ -492,13 +492,13 @@ function wholeInRange(value: number, min: number, max: number): number | null {
  * on a spring-forward morning a time that doesn't exist locally, like 2:30am,
  * slides forward to 3:30am, because that is the moment the clock actually had.
  *
- * Drafts come back in chronological order, all carrying the same title — the
+ * Drafts come back in chronological order, all carrying the same title. The
  * date is what tells one Tuesday's lecture from the next.
  *
- * @param spec The pattern — see {@link SeriesSpec}.
+ * @param spec The pattern. See {@link SeriesSpec}.
  * @returns The drafts, earliest first. **Empty** when the range is valid but
  *   no chosen weekday falls inside it (a Friday pattern in a Monday-to-Tuesday
- *   window). That's a preview saying "no dates yet", not a failure —
+ *   window). That's a preview saying "no dates yet", not a failure.
  *   {@link saveSeries} is the one that refuses an empty list.
  * @throws {SeriesError} When the pattern can't be built at all: no name, a name
  *   over 200 characters, no weekdays, a nonsense time, a last date before the
@@ -571,7 +571,7 @@ export function generateSeries(spec: SeriesSpec): CalendarRowDraft[] {
  * Write a generated pattern to the class calendar as one series.
  *
  * One insert, one round trip, one freshly generated `series_id` stamped on
- * every row — so the whole pattern lands together or not at all, and the rows
+ * every row, so the whole pattern lands together or not at all, and the rows
  * can find each other again later. `created_by` is stamped with the caller's
  * own id because the INSERT policy requires it, and `source` is `"manual"`
  * because a student typed this; the syllabus importer owns the other value.
@@ -579,7 +579,7 @@ export function generateSeries(spec: SeriesSpec): CalendarRowDraft[] {
  * These dates are shared. Everyone in the course sees them on the class
  * calendar and gets them in their notifications (see the note at the top of
  * this file), so a confirm step should name the count and say who it reaches
- * before this is called — "20 dates, visible to everyone in ECS 36A".
+ * before this is called: "20 dates, visible to everyone in ECS 36A".
  *
  * Not safe to run optimistically: the ids come back from here, so wait for the
  * rows before drawing them.
@@ -596,7 +596,7 @@ export async function saveSeries(
   drafts: readonly CalendarRowDraft[]
 ): Promise<SeriesRow[]> {
   if (courseId.length === 0) throw new SeriesError(SAVE_FAILED);
-  // Checked before the session lookup — neither is worth a round trip to say.
+  // Checked before the session lookup: neither is worth a round trip to say.
   if (drafts.length === 0) throw new SeriesError(NOTHING_TO_SAVE);
   if (drafts.length > SERIES_MAX_ROWS) throw new SeriesError(TOO_MANY);
 
@@ -634,7 +634,7 @@ export async function saveSeries(
 /**
  * Change the shared facts on every upcoming row of a series at once.
  *
- * Only rows due strictly after `after` are touched — a lecture that already
+ * Only rows due strictly after `after` are touched. A lecture that already
  * happened keeps the name it happened under. `after` is passed in rather than
  * read from the clock so the boundary is the caller's decision and this stays
  * testable: a screen hands over `new Date()` at the moment the student taps
@@ -644,7 +644,7 @@ export async function saveSeries(
  * Only whoever created the series can rename it; for anyone else this changes
  * nothing and returns an empty array rather than pretending.
  *
- * Times and weekdays can't be changed here — see {@link SeriesPatch} for why,
+ * Times and weekdays can't be changed here. See {@link SeriesPatch} for why,
  * and for the delete-and-regenerate recipe that does it honestly.
  *
  * Safe to run optimistically: redraw the upcoming rows with the new title, call
@@ -655,8 +655,8 @@ export async function saveSeries(
  * @param after    Rows due after this moment are the future; everything at or
  *   before it is history and is left alone.
  * @returns The rows that actually changed, earliest first. **Empty** means
- *   there was nothing upcoming left to change (or the caller isn't the author)
- *   — call {@link fetchSeriesCount} first so the confirm step can say so
+ *   there was nothing upcoming left to change (or the caller isn't the author).
+ *   Call {@link fetchSeriesCount} first so the confirm step can say so
  *   instead of finding out afterwards.
  * @throws {SeriesError} With copy that's ready to render.
  */
@@ -715,7 +715,7 @@ export async function updateSeries(
  *
  * This removes shared rows from everyone's calendar, and the reminders anyone
  * set on them go with the rows (`calendar_reminders` cascades on delete). Name
- * that in the confirm — "removes the next 12 lectures for the whole class" —
+ * that in the confirm ("removes the next 12 lectures for the whole class"),
  * with the destructive button saying the verb and the cancel saying the
  * outcome ("Keep them").
  *
@@ -727,7 +727,7 @@ export async function updateSeries(
  * @param after    Rows due after this moment go; everything at or before it
  *   stays. Caller-passed for the same testability reason as
  *   {@link updateSeries}.
- * @returns How many rows were removed — the number a toast should name.
+ * @returns How many rows were removed: the number a toast should name.
  * @throws {SeriesError} With copy that's ready to render.
  */
 export async function deleteSeries(
@@ -753,7 +753,7 @@ export async function deleteSeries(
 /* ═══════════════════════════════ reads ══════════════════════════════ */
 
 /**
- * How many rows of a series are still ahead — the number a confirm dialog
+ * How many rows of a series are still ahead: the number a confirm dialog
  * should name.
  *
  * Counted with exactly the filters {@link updateSeries} and
@@ -762,7 +762,7 @@ export async function deleteSeries(
  * rows the policy will refuse. A student who isn't the author gets 0, which is
  * the truth about what they can change.
  *
- * `head: true` means no rows come back, just the count — cheap enough to call
+ * `head: true` means no rows come back, just the count. Cheap enough to call
  * every time a sheet opens.
  *
  * @param seriesId The shared id from {@link SeriesRow.series_id}.
@@ -795,7 +795,7 @@ export async function fetchSeriesCount(
  * Which day of the week a date falls on, as a {@link WeekdayIndex}.
  *
  * Use it to pre-select the weekday chip for the day the student started from,
- * so adding "every Tuesday" from Tuesday's calendar is one tap shorter. Pure —
+ * so adding "every Tuesday" from Tuesday's calendar is one tap shorter. Pure:
  * it reads the date it's given, never the clock.
  */
 export function weekdayOf(date: Date): WeekdayIndex {
@@ -804,15 +804,15 @@ export function weekdayOf(date: Date): WeekdayIndex {
 }
 
 /**
- * The chosen days as a phrase — "Mon, Wed & Fri", "Tue & Thu", "Mon".
+ * The chosen days as a phrase: "Mon, Wed & Fri", "Tue & Thu", "Mon".
  *
  * For the confirm step and the row subtitle, so the sentence is written once
  * instead of hand-rolled on every screen that shows a series. Days come out in
  * week order however they went in, duplicates dropped. An empty selection
- * gives an empty string — a form in that state should be prompting for a day
+ * gives an empty string. A form in that state should be prompting for a day
  * rather than describing one.
  *
- * Pure: no clock, no locale lookup — the short labels come straight from
+ * Pure: no clock, no locale lookup. The short labels come straight from
  * {@link WEEKDAYS}.
  */
 export function describeWeekdays(weekdays: readonly WeekdayIndex[]): string {

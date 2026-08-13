@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 /* Blocking is one-way and private: the blocked person never finds out.
    The server refuses new DM threads across a block (create_dm_thread), mutes
    their notifications, and since 0042 drops their direct messages from the
-   blocker's reads outright — their sends still succeed and still show up in
+   blocker's reads outright. Their sends still succeed and still show up in
    their own copy of the thread, which is what keeps the block invisible.
 
    Everything else is still filtered here, off the id set from

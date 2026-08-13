@@ -35,15 +35,15 @@ import {
   type DisplayMode,
 } from "@/providers/display-provider";
 
-/* Look and feel — appearance, type size, and the tick you feel, all three of
-   them local to this phone. Everything here applies on the tap: there is
+/* Look and feel: appearance, type size, and the tick you feel, all three of
+   them local to this phone. Everything here applies on the tap. There is
    nothing to save, no server round trip, and so no loading or error state to
    render. The only read that can fail is the provider's one pass at
    AsyncStorage on launch, which answers failure with the defaults behind the
    splash screen, so by the time this screen can be reached the three
    preferences are known and `ready` is long since true. The whole screen is
-   its own preview — choose dark and the page you are standing on goes dark
-   under your finger, and switch the tick on and it ticks.
+   its own preview: choose dark and the page you are standing on goes dark
+   under your finger, switch the tick on and it ticks.
 
    Haptics belong here rather than under Notifications: that screen is about
    what Huddl sends you, this one is about how it comes across in your hand,
@@ -59,13 +59,13 @@ const MODES: { mode: DisplayMode; label: string; hint: string }[] = [
 
 /**
  * One pane of a theme preview, painted entirely in the *other* palette's
- * tokens rather than the active one — that is the whole point: you can see
+ * tokens rather than the active one. That is the whole point: you can see
  * light while standing in dark.
  *
  * The numbers inside are off the spacing ladder deliberately. This is a
- * drawing of a screen at about a sixth scale, not a screen — 7 and 5 and the
- * 11px dot are the proportions of the picture, and snapping them to rungs
- * meant for real layout would only distort it.
+ * drawing of a screen at about a sixth scale, not a screen. The 7 and the 5
+ * and the 11px dot are the proportions of the picture, and snapping them to
+ * rungs meant for real layout would only distort it.
  */
 function PalettePane({ palette }: { palette: Palette }) {
   return (
@@ -113,7 +113,7 @@ function ModePreview({ mode }: { mode: DisplayMode }) {
   const theme = useTheme();
   return (
     <View
-      // Pure decoration — the card's own label is what a screen reader needs.
+      // Pure decoration; the card's own label is what a screen reader needs.
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={{
@@ -143,7 +143,7 @@ function ModeCard({
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
 
-  /* The check reports a completed choice, so it earns its 140ms — in and
+  /* The check reports a completed choice, so it earns its 140ms, in and
      out along the house `standard` curve, because choosing is reversible. */
   const check = useRef(new Animated.Value(selected ? 1 : 0)).current;
   useEffect(() => {
@@ -293,29 +293,29 @@ function SizeStep({
 
 /* A browser has nothing to buzz, and `@/lib/haptics` already no-ops there.
    The row still gets drawn rather than hidden, so the setting is where a
-   student went looking for it — it just says why it is doing nothing. */
+   student went looking for it. It just says why it is doing nothing. */
 const CAN_BUZZ = Platform.OS !== "web";
 
 /**
- * What the switch currently means, in a sentence under the card — the same
- * shape privacy-settings uses, and for the same reason: a switch says on or
- * off, it does not say what that bought you.
+ * What the switch currently means, in a sentence under the card. Same shape
+ * privacy-settings uses, and for the same reason: a switch says on or off, it
+ * does not say what that bought you.
  */
 function hapticsSentence(enabled: boolean): string {
   if (!CAN_BUZZ) {
     return "Huddl only taps back on a phone, so there's nothing here for this switch to quiet.";
   }
   if (enabled) {
-    return "It's on, which is how Huddl starts out. The tick only ever marks something finishing — never a keystroke, never a tab, never twice for the same thing.";
+    return "It's on, which is how Huddl starts out. The tick only marks something finishing: never a keystroke, never a tab, never twice for the same thing.";
   }
-  return "It's off. Your phone stays still, and nothing else changes — messages send, check-offs save, and notifications arrive exactly as you set them.";
+  return "It's off. Your phone stays still, and nothing else changes. Messages send, check-offs save, and notifications arrive exactly as you set them.";
 }
 
 /**
  * Icon tile + label + caption + a switch, in the push-settings idiom.
  *
- * That makes three hand-rolled copies of this row — push-settings,
- * privacy-settings, here — which by §8 of the design language is the moment
+ * That makes three hand-rolled copies of this row (push-settings,
+ * privacy-settings, here), which by §8 of the design language is the moment
  * it should become a `SwitchRow` primitive. It is not one yet because
  * promoting it means editing `components/ui` and rewriting two other screens
  * on top of a one-setting change. Whoever writes the fourth: stop and lift
@@ -331,7 +331,7 @@ function HapticsRow({
   const theme = useTheme();
   /* Where there is nothing to buzz the row dims and the switch stops taking
      taps, but it still shows the stored preference rather than a flat off:
-     the setting is real, it is simply not this device's to exercise. */
+     the setting is real, it just isn't this device's to exercise. */
   return (
     <View
       style={{
@@ -374,14 +374,14 @@ function HapticsRow({
         <View style={{ flex: 1, gap: space.hair }}>
           <AppText variant="bodySemi">Haptic taps</AppText>
           <AppText variant="caption" muted>
-            A short tick at the end of something — a message sent, a task
+            A short tick at the end of something: a message sent, a task
             checked off.
           </AppText>
         </View>
       </View>
       <Switch
         accessibilityRole="switch"
-        accessibilityLabel="Haptic taps. A short tick at the end of something — a message sent, a task checked off."
+        accessibilityLabel="Haptic taps. A short tick at the end of something: a message sent, a task checked off."
         accessibilityState={{ checked: value, disabled: !CAN_BUZZ }}
         disabled={!CAN_BUZZ}
         value={value}
@@ -429,7 +429,7 @@ export default function DisplaySettingsScreen() {
     (next: boolean) => {
       setHaptics(next);
       /* Turning them on is the one choice on this screen that can answer in
-         the medium it just switched on, so it ticks once — the setting
+         the medium it just switched on, so it ticks once: the setting
          demonstrating itself, not a new haptic moment. Turning them off
          answers with silence, which is the only honest confirmation there
          is. The order matters: `setHaptics` writes the preference through to
@@ -610,8 +610,8 @@ export default function DisplaySettingsScreen() {
             muted
             style={{ textAlign: "center", maxWidth: 300 }}
           >
-            All three stay on this phone and change nothing but how Huddl
-            looks and feels to you — not your profile, not your classes, and
+            All three stay on this phone. They change how Huddl looks and
+            feels to you, nothing else: not your profile, not your classes,
             not a thing anyone else sees.
           </AppText>
         </View>

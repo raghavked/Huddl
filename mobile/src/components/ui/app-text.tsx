@@ -5,8 +5,8 @@ import { useTheme } from "@/hooks/use-theme";
 import { clampTextScale, useDisplay } from "@/providers/display-provider";
 
 type Variant =
-  | "display" // Bricolage bold — screen titles
-  | "title" // Bricolage semibold — card/section titles
+  | "display" // Bricolage bold, screen titles
+  | "title" // Bricolage semibold, card/section titles
   | "body"
   | "bodyMedium"
   | "bodySemi"
@@ -27,7 +27,7 @@ const VARIANTS: Record<Variant, TextStyle> = {
  * Grow a variant by the student's type-size preference. Font size and line
  * height move together so the rhythm of a paragraph survives the scaling, and
  * both land on whole pixels. The scale is clamped here as well as in the
- * provider — a bad value read back from storage can never reach layout.
+ * provider, so a bad value read back from storage can never reach layout.
  */
 function scaleVariant(variant: Variant, scale: number): TextStyle {
   const base = VARIANTS[variant];

@@ -101,7 +101,7 @@ export default function SettingsScreen() {
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   /* Whether this account carries the moderator badge. `null` means we don't
-     know yet, and an unknown draws nothing — a row that appears for a beat
+     know yet, and an unknown draws nothing. A row that appears for a beat
      and then vanishes is worse than one that arrives a beat late. */
   const [isModerator, setIsModerator] = useState<boolean | null>(null);
 
@@ -158,8 +158,8 @@ export default function SettingsScreen() {
 
   /* Signing out is a handover, not just a token being dropped: this phone
      may well be the next person's phone. Three things leave with the
-     student — the push row, the drafts, and the offline queue — and the
-     order matters. The token row goes first, while the session RLS checks
+     student: the push row, the drafts, and the offline queue. The order
+     matters. The token row goes first, while the session RLS checks
      against is still alive; the device-local halves go after the sign-out
      actually lands, so a sign-out that fails doesn't also eat the
      half-written message the student is still sitting in front of. */
@@ -173,7 +173,7 @@ export default function SettingsScreen() {
     const { error: signOutErr } = await supabase.auth.signOut();
     if (signOutErr) {
       setSigningOut(false);
-      setSignOutError("Sign out didn't go through — give it another try.");
+      setSignOutError("Sign out didn't go through. Give it another try.");
       return;
     }
     /* Drafts and queued sends are keyed by conversation, never by account,
@@ -194,7 +194,7 @@ export default function SettingsScreen() {
       setDeleting(false);
       Alert.alert(
         "That didn't go through",
-        "We couldn't delete your account just now — nothing was removed. Give it another try in a minute."
+        "We couldn't delete your account just now, and nothing was removed. Give it another try in a minute."
       );
       return;
     }
@@ -203,7 +203,7 @@ export default function SettingsScreen() {
     try {
       await supabase.auth.signOut();
     } catch {
-      // Ignore — the session is dead either way.
+      // Ignore it. The session is dead either way.
     }
     /* The RPC can only reach rows; drafts and the offline queue sit in this
        phone's storage under a conversation key, so nothing server-side ever
@@ -241,7 +241,7 @@ export default function SettingsScreen() {
   }
 
   /* The tour is a one-time thing by default, so the way back to it lives
-     down by the version line — findable when you want it, invisible when you
+     down by the version line: findable when you want it, invisible when you
      don't. Clearing the flag is what makes the welcome willing to show. */
   const replayWelcome = useCallback(async () => {
     await resetFirstRun();
@@ -276,7 +276,7 @@ export default function SettingsScreen() {
         <Feather name="chevron-left" size={26} color={theme.foreground} />
       </Pressable>
 
-      {/* `chapter` under the title, the same as `Screen` — a screen title
+      {/* `chapter` under the title, the same as `Screen`. A screen title
           starts a new thought, and the old 16 read as a caption stuck to the
           profile card. */}
       <AppText
@@ -288,7 +288,7 @@ export default function SettingsScreen() {
 
       {/* The list outgrew the screen. `flexGrow: 1` keeps the version line
           pinned to the bottom on a tall phone and lets it scroll on a short
-          one — the footer's `marginTop: "auto"` still does the pinning. */}
+          one, and the footer's `marginTop: "auto"` still does the pinning. */}
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
@@ -337,7 +337,7 @@ export default function SettingsScreen() {
           >
             <AppText variant="bodySemi">We couldn't find your profile</AppText>
             <AppText variant="caption" muted style={{ textAlign: "center" }}>
-              Try signing out and back in — that usually clears it up.
+              Try signing out and back in. That usually clears it up.
             </AppText>
           </Card>
         ) : (
@@ -392,7 +392,7 @@ export default function SettingsScreen() {
         )}
 
         {/* Fifteen destinations used to sit in one card as fifteen rows of
-            identical height, which is a wall rather than a list — nothing to
+            identical height, which is a wall rather than a list: nothing to
             aim at, and finding "Blocked people" meant reading every label.
             Grouped under section labels, the scroll has handholds and each
             group is short enough to take in at once. */}
@@ -405,15 +405,15 @@ export default function SettingsScreen() {
             onPress={() => router.push("/account")}
           />
           {/* Sits right under Account because it is the other half of it:
-              who you are, then what keeps it yours. `key` rather than `lock`
-              — lock is already Privacy two groups down, and one glyph doing
-              two jobs makes them read as the same row. */}
+              who you are, then what keeps it yours. `key` rather than
+              `lock`, because lock is already Privacy two groups down, and one
+              glyph doing two jobs makes them read as the same row. */}
           <SettingsLink
             icon="key"
             label="Security"
             onPress={() => router.push("/security")}
           />
-          {/* Appearance sits high — it changes every other screen. */}
+          {/* Appearance sits high, because it changes every other screen. */}
           <SettingsLink
             icon="sliders"
             label="Look and feel"
@@ -482,14 +482,22 @@ export default function SettingsScreen() {
 
         <SectionLabel text="About" />
         <Card padded={false}>
+          {/* First in the group on purpose. Someone opening "About" is more
+              often lost than curious about the terms, and the tour they saw on
+              day one is long gone by the time they need it. */}
+          <SettingsLink
+            icon="help-circle"
+            label="How Huddl works"
+            first
+            onPress={() => router.push("/help")}
+          />
           <SettingsLink
             icon="book"
             label="Community guidelines"
-            first
             onPress={() => router.push("/legal/guidelines")}
           />
           {/* Onboarding records that these were accepted, so they have to
-              stay readable afterwards — not only on the signup screen. */}
+              stay readable afterwards, not only on the signup screen. */}
           <SettingsLink
             icon="file-text"
             label="Terms of service"
@@ -503,8 +511,8 @@ export default function SettingsScreen() {
         </Card>
 
         {/* Only campus moderators have a queue to open, and it is a different
-            job from anything above — its own group rather than a fifteenth
-            row nobody else can see. */}
+            job from anything above, so it gets its own group rather than a
+            fifteenth row nobody else can see. */}
         {isModerator === true ? (
           <>
             <SectionLabel text="Moderation" />
@@ -559,7 +567,7 @@ export default function SettingsScreen() {
           ) : null}
         </View>
 
-        {/* Danger zone — deletion is real and forever, so it sits apart. */}
+        {/* Danger zone: deletion is real and forever, so it sits apart. */}
         <View style={{ marginTop: space.chapter, gap: space.cosy }}>
           <AppText variant="label" style={{ color: theme.danger }}>
             Danger zone

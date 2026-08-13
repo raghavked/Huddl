@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { safeNextPath } from "./safe-next";
 
-describe("safeNextPath — the bypasses that motivated it", () => {
+describe("safeNextPath: the bypasses that motivated it", () => {
   it("rejects the backslash open redirect", () => {
     // The whole reason this module exists: the old startsWith guard passed
     // this and new URL() resolved it to https://evil.com/.
@@ -33,7 +33,7 @@ describe("safeNextPath — the bypasses that motivated it", () => {
   });
 });
 
-describe("safeNextPath — the legitimate paths it must keep", () => {
+describe("safeNextPath: the legitimate paths it must keep", () => {
   it("keeps a plain same-origin path", () => {
     expect(safeNextPath("/reset-password")).toBe("/reset-password");
     expect(safeNextPath("/home")).toBe("/home");
@@ -51,7 +51,7 @@ describe("safeNextPath — the legitimate paths it must keep", () => {
   });
 });
 
-describe("safeNextPath — the fallback", () => {
+describe("safeNextPath: the fallback", () => {
   it("returns null by default when the candidate is missing", () => {
     expect(safeNextPath(null)).toBeNull();
     expect(safeNextPath(undefined)).toBeNull();

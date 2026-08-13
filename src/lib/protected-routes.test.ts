@@ -14,8 +14,8 @@ import {
  * them is accounted for.
  *
  * The drift it exists to catch already happened once. Eight routes shipped
- * after launch — /board, /saved, /focus, /plan, /semester, /calendar, /decks
- * and /moderation — were private in the app and missing from both the
+ * after launch (/board, /saved, /focus, /plan, /semester, /calendar, /decks
+ * and /moderation) were private in the app and missing from both the
  * middleware and robots.txt, so following a link to a board post survived
  * login by dumping the student on /home, and crawlers were free to walk the
  * signed-in surface. Nobody noticed because nothing failed; it just quietly

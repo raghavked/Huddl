@@ -11,7 +11,7 @@ const DEBOUNCE_MS = 300;
 
 /**
  * `is_public` rides along because nothing in the database withholds a private
- * student's name — see {@link authorName}, which is the whole of the
+ * student's name. See {@link authorName}, which is the whole of the
  * redaction on this surface.
  */
 const RESULT_SELECT =
@@ -37,12 +37,12 @@ function escapeLike(value: string): string {
 /**
  * What to call whoever wrote the hit. A classmate with Public profile off
  * stands under their handle here, the same way the board, the people
- * directory and the command palette read them, and it fails closed —
+ * directory and the command palette read them, and it fails closed:
  * anything other than an explicit `is_public: true` counts as private, so a
  * select that loses the column redacts rather than leaks.
  *
  * You always see yourself in full, which is what `viewerId` is for. It comes
- * down as a prop from the channel page, which already has it — resolving it
+ * down as a prop from the channel page, which already has it. Resolving it
  * here with a second `auth.getUser()` would cost a round trip per mount and
  * would redact a private student's own name back at them until it landed.
  */
@@ -58,7 +58,7 @@ function authorName(
 /**
  * In-channel message search. Renders a round icon trigger for the room header
  * plus an inline panel pinned below it. The panel positions against the
- * nearest `relative` ancestor — the room header — so it spans the header's
+ * nearest `relative` ancestor (the room header), so it spans the header's
  * full width. Results are read-only rows for now; jumping to a message is a
  * follow-up.
  */
@@ -290,7 +290,7 @@ export function MessageSearch({
                 role="alert"
                 className="px-3 py-8 text-center text-sm font-medium text-danger"
               >
-                Search hit a snag — try again.
+                Search hit a snag. Try again.
               </p>
             ) : !searched ? (
               <p className="px-3 py-8 text-center text-sm text-muted">
@@ -298,7 +298,7 @@ export function MessageSearch({
               </p>
             ) : results.length === 0 ? (
               <p role="status" className="px-3 py-8 text-center text-sm text-muted">
-                Nothing matches — try another word.
+                Nothing matches. Try another word.
               </p>
             ) : (
               <>

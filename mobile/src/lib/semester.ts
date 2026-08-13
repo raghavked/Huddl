@@ -9,7 +9,7 @@ import {
 } from "@/lib/grades";
 import { supabase } from "@/lib/supabase";
 
-/* The semester overview — one number across every class, and the read behind it.
+/* The semester overview: one number across every class, and the read behind it.
  *
  * THIS IS SCRATCH MATH. Read that twice before writing copy against it.
  *
@@ -19,8 +19,8 @@ import { supabase } from "@/lib/supabase";
  * not a claim about their record". Nothing here is a transcript, a registrar
  * figure, or a grade of record. It is never shared with a classmate, never
  * written back anywhere, never shown to anyone but the person who typed the
- * numbers in. If a screen ever renders one of these as official — a badge on a
- * profile, a line in a group, a number another student can see — that is a bug
+ * numbers in. If a screen ever renders one of these as official (a badge on a
+ * profile, a line in a group, a number another student can see), that is a bug
  * in the screen, not a feature of this file.
  *
  * It is also an estimate OF an estimate. Each course number from
@@ -33,7 +33,7 @@ import { supabase } from "@/lib/supabase";
  *   1. THE MATH is pure. No Supabase, no Date.now(), no React, no theme.
  *      Numbers in, numbers and one warm sentence out. Nothing in this module
  *      reads the clock at all, so every function is deterministic and
- *      unit-testable on plain object literals — including on the optimistic
+ *      unit-testable on plain object literals, including on the optimistic
  *      rows a screen is holding mid-edit.
  *
  *   2. THE DATA half is one batched read. Three queries total, no matter how
@@ -43,7 +43,7 @@ import { supabase } from "@/lib/supabase";
  *
  * WHAT THIS REUSES
  * The per-course percentage comes from {@link courseEstimate} in
- * `@/lib/grades` — the same function the single-course grade screen calls, so
+ * `@/lib/grades`, the same function the single-course grade screen calls, so
  * a course reads identically in both places. The letter comes from
  * `letterFor`, and {@link gradePointFor} is defined on top of that letter
  * rather than on its own cutoffs, so the two can never drift apart.
@@ -58,12 +58,12 @@ import { supabase } from "@/lib/supabase";
 export type SemesterCourseInput = {
   /** `courses.id`. Carried so a caller can pass its own row shape unchanged. */
   courseId: string;
-  /** e.g. "ECS 36A" — the only thing the note ever names a class by. */
+  /** e.g. "ECS 36A": the only thing the note ever names a class by. */
   code: string;
   /**
    * `courses.units`, or null when the class hasn't had its units filled in.
    * Null, zero, and anything non-finite all read as "unknown" and tip the
-   * whole estimate to an unweighted mean — see {@link semesterEstimate}.
+   * whole estimate to an unweighted mean. See {@link semesterEstimate}.
    */
   units: number | null;
   /** The course's own estimate; `pct` null means it isn't graded yet. */
@@ -74,7 +74,7 @@ export type SemesterCourseInput = {
 export type SemesterEstimate = {
   /**
    * The estimated grade-point average on a 4.0 scale, rounded to two
-   * decimals — or null when no class has a grade yet. Never NaN.
+   * decimals, or null when no class has a grade yet. Never NaN.
    */
   gpa: number | null;
   /** How many classes had an estimate to contribute. */
@@ -94,9 +94,9 @@ export type SemesterEstimate = {
 
 /** One class on the semester screen: the course, its estimate, its tint. */
 export type SemesterCourse = {
-  /** `enrollments.id` — what the archive and colour writes take. */
+  /** `enrollments.id`: what the archive and colour writes take. */
   enrollmentId: string;
-  /** `courses.id` — what every other course surface keys off. */
+  /** `courses.id`: what every other course surface keys off. */
   courseId: string;
   /** e.g. "ECS 36A". The list is ordered by this. */
   code: string;
@@ -165,12 +165,12 @@ export const GRADE_POINTS: Record<Letter, number> = {
   F: 0,
 };
 
-/** The most any single class can be worth here — there is no A+ on this scale. */
+/** The most any single class can be worth here; there is no A+ on this scale. */
 export const GRADE_POINT_MAX = 4;
 
 /* ═══════════════════════ small number helpers ═══════════════════════ */
 
-/** Float slop guard — unit totals never differ by anything this small. */
+/** Float slop guard: unit totals never differ by anything this small. */
 const EPSILON = 1e-9;
 
 /** Round to two decimals: the precision a GPA is always reported at. */
@@ -233,7 +233,7 @@ function countWordCapitalized(count: number): string {
  *
  * **An estimate, not a promise.** Instructors curve, drop a low score, and
  * weight differently than the syllabus reads; schools count plus/minus
- * differently or not at all. Extra credit above 100% still lands at 4.0 —
+ * differently or not at all. Extra credit above 100% still lands at 4.0:
  * there is no A+ on this scale, so the number tops out where an A does.
  *
  * Null in, null out, so it can be handed a {@link CourseEstimate.pct} directly.
@@ -262,8 +262,8 @@ export function gradePointFor(pct: number | null): number | null {
  * **Units are all-or-nothing.** If even one graded class is missing its units,
  * the whole average falls back to a plain mean over the graded classes,
  * `unweighted` comes back true, and the note names how many classes are
- * missing them. The alternative — inventing a default of 4 units for the
- * unknown ones — would quietly weight a seminar like a lecture and never tell
+ * missing them. The alternative (inventing a default of 4 units for the
+ * unknown ones) would quietly weight a seminar like a lecture and never tell
  * anyone. Units are classmate-editable (`courses.units`), so the fix is one
  * student typing one number, and the note is what points at it.
  *
@@ -300,7 +300,7 @@ export function semesterEstimate(
       note:
         total === 0
           ? "Add your classes to see where the semester stands."
-          : "Nothing's graded yet — your first score in any class starts this off.",
+          : "Nothing's graded yet. Your first score in any class starts this off.",
     };
   }
 
@@ -341,9 +341,9 @@ export function semesterEstimate(
 }
 
 /**
- * The one sentence under the number. Four things can be true at once — some
+ * The one sentence under the number. Four things can be true at once (some
  * classes ungraded, some missing units, only one class counting, everything
- * covered — and this picks the one a student most needs to know.
+ * covered), and this picks the one a student most needs to know.
  *
  * Order of honesty: missing units change what the number *is*, so they always
  * get said; partial coverage changes what it *covers*, so it rides along in
@@ -358,11 +358,11 @@ function summaryNote(args: {
   const { total, graded, missingUnits, onlyCode } = args;
 
   // A single class carries the whole number, and weighting one thing by its
-  // units changes nothing — so name the class instead of explaining the math.
+  // units changes nothing, so name the class instead of explaining the math.
   if (graded === 1) {
     const named =
       onlyCode !== null && onlyCode.length > 0 ? onlyCode : "one class";
-    return `Only ${named} has scores so far — this is that class on its own.`;
+    return `Only ${named} has scores so far, so this is that class on its own.`;
   }
 
   const covered = graded >= total;
@@ -383,7 +383,7 @@ function summaryNote(args: {
 }
 
 /**
- * A GPA the way a person writes one: two decimals, always — "3.40", not "3.4".
+ * A GPA the way a person writes one: always two decimals, so "3.40", not "3.4".
  *
  * Lives here so the headline, the share of it in a summary row, and anything
  * else that prints the number all agree on its shape. Null in, null out, so a
@@ -403,7 +403,7 @@ export function formatGpa(gpa: number | null): string | null {
  * known. Returns null when no class has units at all, so a screen can leave
  * the line out entirely instead of printing "0 units".
  *
- * @param courses Any classes carrying units — {@link SemesterCourse} fits.
+ * @param courses Any classes carrying units; {@link SemesterCourse} fits.
  */
 export function totalUnits(
   courses: readonly Pick<SemesterCourseInput, "units">[]
@@ -426,7 +426,7 @@ export function totalUnits(
 
 /**
  * A semester-overview failure with a message written for a person, not a log.
- * Render `err.message` straight into an inline error — it never leaks SQL,
+ * Render `err.message` straight into an inline error: it never leaks SQL,
  * ids, or PostgREST codes.
  */
 export class SemesterError extends Error {
@@ -451,10 +451,10 @@ const LOAD_GRADES_FAILED =
 /** Columns the active-enrollments read needs. Keep selects aligned. */
 const ENROLLMENT_SELECT = "id, color, course:courses(id, code, title, units)";
 
-/** Columns the batched category read needs — weights only, no names. */
+/** Columns the batched category read needs: weights only, no names. */
 const CATEGORY_SELECT = "id, course_id, weight";
 
-/** Columns the batched score read needs — points only, no titles. */
+/** Columns the batched score read needs: points only, no titles. */
 const ENTRY_SELECT = "category_id, points_earned, points_possible";
 
 /* ═════════════════════════════ narrowing ════════════════════════════ */
@@ -495,7 +495,7 @@ function num(raw: unknown): number | null {
   return null;
 }
 
-/** Rows or nothing — PostgREST returns null data alongside a null error. */
+/** Rows or nothing: PostgREST returns null data alongside a null error. */
 function rows(raw: unknown): unknown[] {
   return Array.isArray(raw) ? raw : [];
 }
@@ -518,7 +518,7 @@ function byCode(a: SemesterCourse, b: SemesterCourse): number {
 }
 
 /**
- * The caller's `profiles.id`, read from the stored session (no network hop —
+ * The caller's `profiles.id`, read from the stored session (no network hop;
  * supabase-js refreshes a stale token itself).
  *
  * @throws {SemesterError} When nobody's signed in.
@@ -544,7 +544,7 @@ type CourseShell = Pick<
  * Narrow one joined enrollment row. Returns null when the row is missing
  * something a course line can't be drawn without: the enrollment id, the
  * course, its id, or its code. A course whose title didn't come through keeps
- * its code and shows an empty title rather than vanishing — the code is what
+ * its code and shows an empty title rather than vanishing: the code is what
  * students navigate by.
  */
 function toShell(raw: unknown): CourseShell | null {
@@ -590,7 +590,7 @@ function toShell(raw: unknown): CourseShell | null {
  * the same number in both places.
  *
  * **Shelved classes are out.** Last quarter's grades are still there, still
- * private, still reachable from the course itself — but a finished class has
+ * private, still reachable from the course itself, but a finished class has
  * no business in this quarter's average, which is the whole point of shelving.
  *
  * Both list queries filter on `user_id` explicitly. The grade tables are
@@ -599,7 +599,7 @@ function toShell(raw: unknown): CourseShell | null {
  * stay mine.
  *
  * A student with no classes gets `{ courses: [], summary }` where the summary
- * invites them to add one — an empty state, not an error.
+ * invites them to add one: an empty state, not an error.
  *
  * @returns Classes ordered by course code, and the semester summary.
  * @throws {SemesterError} With copy that's ready to render.
@@ -650,7 +650,7 @@ export async function fetchSemester(): Promise<Semester> {
   }
 
   // Every category id in one lookup, then handed whole to each course's
-  // estimate — `courseEstimate` only ever indexes the ids it was given.
+  // estimate; `courseEstimate` only ever indexes the ids it was given.
   const entriesByCategory: Record<string, EntryScore[]> = {};
   if (categoryIds.length > 0) {
     const { data: entryRows, error: entryError } = await supabase
@@ -704,7 +704,7 @@ export const UNITS_MAX = 30;
 
 /**
  * Read what a student typed into the units field as a number the RPC will
- * accept — or as null, which is a real value meaning "nobody's filled this
+ * accept, or as null, which is a real value meaning "nobody's filled this
  * in", not a failure.
  *
  * Blank clears. Anything else has to be a number in range, because a units
@@ -722,7 +722,7 @@ export function unitsFrom(text: string | null | undefined): number | null {
   const parsed = Number(trimmed);
   if (!Number.isFinite(parsed)) {
     throw new SemesterError(
-      "Units should be a number — 4, or 1.5. Leave it blank if you're not sure."
+      "Units should be a number, like 4 or 1.5. Leave it blank if you're not sure."
     );
   }
   const rounded = Math.round(parsed * 100) / 100;
@@ -735,7 +735,7 @@ export function unitsFrom(text: string | null | undefined): number | null {
 /**
  * Set or clear a course's units, for anyone enrolled in it.
  *
- * This is a **shared** column — one number per course, not per student — so
+ * This is a **shared** column (one number per course, not per student), so
  * filling it in fixes the semester GPA for the whole class, and clearing it
  * un-fixes it for the whole class too. That's the same bargain as the
  * instructor and room fields, and the screen says so before it offers the
@@ -761,7 +761,7 @@ export async function setCourseUnits(
   if (!error) return;
   if (error.message.includes("join the course")) {
     throw new SemesterError(
-      "Units are kept by the class — add this course to your classes first."
+      "Units are kept by the class, so add this course to your classes first."
     );
   }
   if (error.message.includes("units run")) {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 /**
- * `/.well-known/assetlinks.json` — the Digital Asset Links statement Android
+ * `/.well-known/assetlinks.json`, the Digital Asset Links statement Android
  * fetches to verify that `app.huddl.mobile` may open `https://huddl.app/...`
  * links without the disambiguation dialog.
  */
@@ -34,7 +34,7 @@ export async function GET() {
     ),
   ];
 
-  // Nothing usable — serve no document at all. A statement with a wrong or
+  // Nothing usable, so serve no document at all. A statement with a wrong or
   // half-typed fingerprint fails verification silently and Android backs off
   // for a long while before it asks again.
   if (fingerprints.length === 0) {

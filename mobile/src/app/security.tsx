@@ -26,34 +26,34 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
-/* Security — the password, and everywhere it's still signed in.
+/* Security: the password, and everywhere it's still signed in.
  *
  * Two controls, and both of them are really the same worry said twice: a
  * password somebody else may have seen, and a session somebody else may still
  * be holding. They sit together because that is how a student arrives at
- * them — "I typed it into a library computer" is one thought, not two.
+ * them. "I typed it into a library computer" is one thought, not two.
  *
  * WHY THE CURRENT PASSWORD IS ASKED FOR. `updateUser` will happily change the
  * password of whoever is holding the token, and on a phone the token is
  * simply *there*. The current-password field is the only thing standing
  * between a borrowed unlocked phone and an account somebody else now owns, so
- * it is checked for real — a `signInWithPassword` against the same address —
+ * it is checked for real (a `signInWithPassword` against the same address)
  * rather than trusted because the form drew a box for it.
  *
  * WHAT IT REFUSES TO DO. It never invents its own password rules: everything
  * about what is acceptable comes from `@/lib/password`, where `ok` gates the
  * submit and `strength` only labels the field. It never repeats a raw
- * Supabase sentence to a student — every failure lands as one warm line with
+ * Supabase sentence to a student. Every failure lands as one warm line with
  * the next move in it. And it never claims a password is safe; the strongest
  * thing this screen will say about one is "Strong".
  *
  * THE SESSION MAY BE PULLED OUT FROM UNDER IT. A password change can revoke
  * the account's other sessions, and depending on how the project is
  * configured, this one along with them. That arrives here as a null session
- * through `onAuthStateChange` in the auth provider — and `/security` is not
+ * through `onAuthStateChange` in the auth provider, and `/security` is not
  * inside `(tabs)`, so nothing redirects on our behalf. So the success state
- * outranks the signed-out one — once a change has landed, no later loss of
- * the session may take the news of it off the screen — and it reads the live
+ * outranks the signed-out one: once a change has landed, no later loss of
+ * the session may take the news of it off the screen. And it reads the live
  * session to decide its own last sentence. The student sees "it worked, and
  * you'll need to log in again", never a screen that empties itself the
  * instant it succeeded.
@@ -75,7 +75,7 @@ type FormErrors = {
 
 /**
  * A field's error, said as part of the field rather than only drawn in red
- * beside it — the same trick `account.tsx` uses, for the same reason: `Field`
+ * beside it, the same trick `account.tsx` uses, for the same reason: `Field`
  * puts its `label` on the input, and a passed `accessibilityLabel` wins.
  */
 function fieldLabel(label: string, error?: string | null): string {
@@ -91,9 +91,9 @@ function strengthNote(strength: PasswordStrength): string {
   const word = describeStrength(strength);
   switch (strength) {
     case "weak":
-      return `${word} — length is the easiest fix. A few unrelated words beat one clever one.`;
+      return `${word}. Length is the easiest fix. A few unrelated words beat one clever one.`;
     case "ok":
-      return `${word} — a couple more characters and it's strong.`;
+      return `${word}. A couple more characters and it's strong.`;
     case "strong":
       return `${word}.`;
   }
@@ -131,7 +131,7 @@ export default function SecurityScreen() {
     setPhase("loading");
     const { data, error } = await supabase.auth.getUser();
     if (error) {
-      // A token the server has already retired isn't a network blip — there
+      // A token the server has already retired isn't a network blip. There
       // is nothing to retry, they are simply signed out.
       const gone =
         error.code === "session_not_found" ||
@@ -143,7 +143,7 @@ export default function SecurityScreen() {
       return;
     }
     // Every Huddl account is a university email address, so a user with none
-    // isn't a case to design for — it's a sign-in we couldn't re-check.
+    // isn't a case to design for; it's a sign-in we couldn't re-check.
     const address = data.user?.email ?? null;
     setEmail(address);
     setPhase(address ? "ready" : "signed-out");
@@ -155,7 +155,7 @@ export default function SecurityScreen() {
 
   /* The session going away while the screen is open: a password changed on a
      laptop can revoke this phone, and it lands as a null session here. Two
-     moments are deliberately exempt — mid-save, because `handleChange` is
+     moments are deliberately exempt: mid-save, because `handleChange` is
      holding the outcome and is about to render it, and after a change, where
      the success card says so itself. */
   useEffect(() => {
@@ -179,7 +179,7 @@ export default function SecurityScreen() {
     if (!next) {
       found.next = "Pick a new password.";
     } else if (!check.ok) {
-      // One sentence, the first one worth saying — the library orders them.
+      // One sentence, the first one worth saying; the library orders them.
       found.next = describeProblem(check.problems[0]);
     } else if (next === current) {
       found.next = "That's the password you already have. Pick a different one.";
@@ -199,7 +199,7 @@ export default function SecurityScreen() {
 
     /* Step one: prove the current password. Signing in with it is the only
        way to actually check it, and it costs a fresh session for the same
-       student — which is also what keeps `updateUser` from being refused for
+       student, which is also what keeps `updateUser` from being refused for
        a login that happened three weeks ago. */
     const { error: reauthError } = await supabase.auth.signInWithPassword({
       email,
@@ -219,7 +219,7 @@ export default function SecurityScreen() {
         /rate limit/i.test(reauthError.message)
       ) {
         setErrors({
-          form: "That's a few tries in a row — give it a minute, then try again. Nothing changed.",
+          form: "That's a few tries in a row. Give it a minute, then try again. Nothing changed.",
         });
       } else {
         setErrors({
@@ -246,7 +246,7 @@ export default function SecurityScreen() {
         // Our own rules passed it and the server's didn't. Say what to do,
         // not whose rule it was.
         setErrors({
-          next: "That one came back as too easy to guess. Longer beats fancier — try a few unrelated words.",
+          next: "That one came back as too easy to guess. Longer beats fancier, so try a few unrelated words.",
         });
       } else if (
         updateError.code === "reauthentication_needed" ||
@@ -256,7 +256,7 @@ export default function SecurityScreen() {
         // Some projects want a fresh sign-in of their own before a password
         // moves. We can't do that from in here, so we hand over both exits.
         setErrors({
-          form: "This account wants a fresh sign-in before its password can change, so nothing changed. Sign out, sign back in, and come straight here — or reset it by email from the login screen.",
+          form: "This account wants a fresh sign-in before its password can change, so nothing changed. Sign out, sign back in, and come straight here. Or reset it by email from the login screen.",
         });
       } else if (
         updateError.code === "session_not_found" ||
@@ -270,7 +270,7 @@ export default function SecurityScreen() {
         /rate limit/i.test(updateError.message)
       ) {
         setErrors({
-          form: "That's a few tries in a row — give it a minute, then try again. Nothing changed.",
+          form: "That's a few tries in a row. Give it a minute, then try again. Nothing changed.",
         });
       } else {
         setErrors({
@@ -294,14 +294,14 @@ export default function SecurityScreen() {
     setOthersPending(true);
     setOthersError(null);
     setOthersDone(false);
-    /* `scope: "others"` leaves this device's session alone — that's the whole
+    /* `scope: "others"` leaves this device's session alone. That's the whole
        point of the control, and it's why this one doesn't clear the push
        token the way signing out does. */
     const { error } = await supabase.auth.signOut({ scope: "others" });
     setOthersPending(false);
     if (error) {
       setOthersError(
-        "Those other sessions are still signed in — give it another go."
+        "Those other sessions are still signed in. Give it another go."
       );
       return;
     }
@@ -462,8 +462,8 @@ export default function SecurityScreen() {
       />
 
       {/* The way out for someone who can't fill the first field. The emailed
-          link opens the web app — the same round trip signup and
-          forgot-password already document — and setting a password there can
+          link opens the web app, the same round trip signup and
+          forgot-password already document, and setting a password there can
           sign this phone out, which is fine: they'll come back and log in. */}
       <Pressable
         accessibilityRole="button"
@@ -528,7 +528,7 @@ export default function SecurityScreen() {
       </AppText>
 
       {/* Which of these is true gets decided somewhere else, and possibly a
-          second after the tap — so it reads the session live rather than
+          second after the tap, so it reads the session live rather than
           whatever it was when the change went through. */}
       <AppText variant="body" muted style={{ textAlign: "center" }}>
         {sessionLost
@@ -554,7 +554,7 @@ export default function SecurityScreen() {
         </AppText>
         <AppText variant="caption" muted>
           Signs you out on every other phone, tablet and browser signed in as
-          you. This one stays put — worth doing if you left yourself logged in
+          you. This one stays put. Worth doing if you left yourself logged in
           on a library computer.
         </AppText>
       </View>
@@ -670,7 +670,7 @@ export default function SecurityScreen() {
     body = (
       <View style={{ gap: space.card }}>
         {changed ? successCard : changePasswordCard}
-        {/* Only offered while there's a session to do it with — after a change
+        {/* Only offered while there's a session to do it with. After a change
             that took this phone down with it, the button would fail on tap. */}
         {session ? signOutOthersCard : null}
       </View>

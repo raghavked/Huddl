@@ -14,19 +14,19 @@ type FeatherName = ComponentProps<typeof Feather>["name"];
  * The dashed card that stands in for a list with nothing in it.
  *
  * An empty state in Huddl does one of two jobs and should say which in its
- * first three words: it **recruits** ("Be the first — add a course and its
+ * first three words: it **recruits** ("Be the first: add a course and its
  * chat opens for everyone in it") or it **reassures** ("You haven't blocked
  * anyone. Hopefully it stays that way"). Never "No data found."
  *
  * Pick one mark, not both:
- * - `illustration` — a hand-drawn component from `@/components/illustrations`
+ * - `illustration`: a hand-drawn component from `@/components/illustrations`
  *   (Mug, Doorway, PaperPlane, Pennant, Lantern, PinnedNote, WallCalendar,
  *   MagnifyingGlass, Tray, Shoebox). Use it on the empties a student will
  *   actually meet: the front door, an empty inbox, a search that found
- *   nothing. Pick the one whose *mood* is true — the doc comment on each
- *   names it. It gets its colors from the theme here, so just pass the
+ *   nothing. Pick the one whose *mood* is true. The doc comment on each
+ *   names it. It gets its colors from the theme here, so pass the
  *   component: `illustration={Mug}`.
- * - `icon` — a Feather name in a soft ember tile. The workhorse for the
+ * - `icon`: a Feather name in a soft ember tile. The workhorse for the
  *   dozens of smaller empties inside a room.
  *
  * `action` is the way out. If the reader can fix the emptiness themselves,

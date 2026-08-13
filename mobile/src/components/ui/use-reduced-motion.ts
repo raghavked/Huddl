@@ -5,7 +5,7 @@ import { AccessibilityInfo } from "react-native";
  * Whether the OS "reduce motion" setting is on, live.
  *
  * Every animated primitive in the hearth system asks this first. The house
- * rule is not "animate less" but "land in the same place instantly" — pass
+ * rule is not "animate less" but "land in the same place instantly": pass
  * `motion.instant` as the duration rather than skipping the animation, so
  * state still ends up where it should.
  *

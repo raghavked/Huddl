@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 /* The two things a signed-in student can do about their own credentials:
  * change the password, and throw everyone else off the account.
  *
- * WHY THERE IS A "CURRENT PASSWORD" FIELD. Supabase doesn't ask for one —
+ * WHY THERE IS A "CURRENT PASSWORD" FIELD. Supabase doesn't ask for one.
  * `updateUser({ password })` will happily rewrite the password of whatever
  * session is on the device. That is the wrong default for a campus app.
  * Laptops get left open on the third floor of Shields for an hour at a time,
@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils";
  *
  * WHAT THAT COSTS. The re-auth is a real login attempt: it counts against
  * Supabase's auth rate limit and it mints a fresh session for this device. So
- * a wrong guess can't be hammered — every miss puts the submit button behind
+ * a wrong guess can't be hammered: every miss puts the submit button behind
  * a countdown that doubles, 15 seconds then 30 then a minute. That is a
  * kinder wall than the 429 a student would otherwise walk into, and it is
  * the same reasoning as the resend cooldown on the verify screen.
@@ -49,11 +49,11 @@ import { cn } from "@/lib/utils";
  * accepted on the phone that sets it next. `ok` gates the button; `strength`
  * is only a word under the field.
  *
- * Nothing Supabase says out loud reaches a student — every failure below is
+ * Nothing Supabase says out loud reaches a student. Every failure below is
  * mapped to a sentence that explains what happened and what to do next.
  */
 
-/** The word under the field, tinted. Weak never blocks — it only advises. */
+/** The word under the field, tinted. Weak never blocks; it only advises. */
 const STRENGTH_TONE = {
   weak: "text-warning",
   ok: "text-muted",
@@ -102,7 +102,7 @@ function describeUpdateFailure(error: AuthError): ChangeError {
   const message = error.message ?? "";
   if (code === "same_password" || /should be different/i.test(message)) {
     return {
-      message: "That's the password you already have — pick a different one.",
+      message: "That's the password you already have. Pick a different one.",
       offerReset: false,
     };
   }
@@ -122,7 +122,7 @@ function describeUpdateFailure(error: AuthError): ChangeError {
   }
   if (error.status === 429) {
     return {
-      message: "That's a lot of tries in a row — wait a minute, then save again.",
+      message: "That's a lot of tries in a row. Wait a minute, then save again.",
       offerReset: false,
     };
   }
@@ -139,7 +139,7 @@ function describeUpdateFailure(error: AuthError): ChangeError {
   }
   return {
     message:
-      "We couldn't save that password just now. Your old one still works — give it another go in a moment.",
+      "We couldn't save that password just now. Your old one still works, so give it another go in a moment.",
     offerReset: false,
   };
 }
@@ -187,7 +187,7 @@ export function ChangePasswordForm({ email }: { email: string }) {
     const supabase = createClient();
 
     /* Step one: prove it's you. This is a genuine sign-in, so it also swaps
-       this device onto a brand-new session — the one it was holding a second
+       this device onto a brand-new session. The one it was holding a second
        ago becomes just another signed-in device, which "sign out everywhere
        else" below will tidy up. */
     let reauthError: AuthError | null;
@@ -228,7 +228,7 @@ export function ChangePasswordForm({ email }: { email: string }) {
       setPending(false);
       setError({
         message:
-          "We couldn't reach Huddl to save that. Your old password still works — try again in a moment.",
+          "We couldn't reach Huddl to save that. Your old password still works, so try again in a moment.",
         offerReset: false,
       });
       return;
@@ -259,7 +259,7 @@ export function ChangePasswordForm({ email }: { email: string }) {
         <div className="min-w-0">
           <h2 className="font-bold tracking-tight">Change your password</h2>
           <p className="mt-1 text-sm text-muted text-pretty">
-            We&apos;ll ask for the one you have now first — otherwise anyone
+            We&apos;ll ask for the one you have now first. Otherwise anyone
             who found your laptop open could lock you out of your own account.
           </p>
         </div>
@@ -365,7 +365,7 @@ export function ChangePasswordForm({ email }: { email: string }) {
             {sameAsCurrent ? (
               <FieldError className="flex items-start gap-1.5 text-xs">
                 <AlertCircle className="mt-px size-3.5 shrink-0" aria-hidden />
-                That&apos;s the password you already have — pick a different
+                That&apos;s the password you already have. Pick a different
                 one.
               </FieldError>
             ) : problem ? (
@@ -380,7 +380,7 @@ export function ChangePasswordForm({ email }: { email: string }) {
                   STRENGTH_TONE[check.strength]
                 )}
               >
-                {describeStrength(check.strength)} — length matters more than
+                {describeStrength(check.strength)}. Length matters more than
                 symbols.
               </p>
             ) : (
@@ -439,8 +439,8 @@ export function ChangePasswordForm({ email }: { email: string }) {
 
         {saved ? (
           <p className="text-xs text-muted text-pretty">
-            You&apos;re still signed in here. If Huddl is open anywhere else —
-            your phone, a lab machine — that device will ask for the new
+            You&apos;re still signed in here. If Huddl is open anywhere else
+            (your phone, a lab machine), that device will ask for the new
             password next time.
           </p>
         ) : null}
@@ -455,7 +455,7 @@ type SweepPhase = "idle" | "working" | "done" | "error";
 
 /**
  * Sign out everywhere else. One Supabase call with `scope: 'others'`, which
- * revokes every session on the account except the one asking — so the student
+ * revokes every session on the account except the one asking, so the student
  * doing the tidying doesn't tidy themselves out and have to log back in on the
  * device they're holding.
  */

@@ -28,7 +28,7 @@ import { tapSuccess } from "@/lib/haptics";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
-/* Looking after a club — the door the phone was missing.
+/* Looking after a club: the door the phone was missing.
  *
  * Officers and the owner edit the name, the category and the description; the
  * owner alone can disband. Those are not new rules: migration 0009 already
@@ -45,12 +45,12 @@ import { useAuth } from "@/providers/auth-provider";
  * so out loud, because a rename that silently moved the chat would be worse
  * than one that doesn't.
  *
- * It also doesn't hand over ownership or promote officers — the roster is
- * still the web app's job — and it doesn't offer "leave club", which lives on
+ * It also doesn't hand over ownership or promote officers (the roster is
+ * still the web app's job), and it doesn't offer "leave club", which lives on
  * the club page where it always has.
  */
 
-/** Minimal local row shape — the web app's types live outside this tsconfig. */
+/** Minimal local row shape. The web app's types live outside this tsconfig. */
 type ClubCategory =
   | "academic"
   | "professional"
@@ -86,7 +86,7 @@ const NAME_MIN = 3;
 const NAME_MAX = 80;
 const DESCRIPTION_MAX = 500;
 
-/** "academic" -> "Academic" — every category is a single word. */
+/** "academic" -> "Academic". Every category is a single word. */
 function categoryLabel(category: ClubCategory): string {
   return category.charAt(0).toUpperCase() + category.slice(1);
 }
@@ -105,7 +105,7 @@ function toRole(raw: unknown): ClubRole | null {
 }
 
 /**
- * Who may edit the details — the client-side twin of `is_club_officer`, the
+ * Who may edit the details: the client-side twin of `is_club_officer`, the
  * function behind the "officers can update their club" policy.
  */
 function canEditClub(role: ClubRole | null): boolean {
@@ -113,7 +113,7 @@ function canEditClub(role: ClubRole | null): boolean {
 }
 
 /**
- * Who may disband — the twin of the delete policy, which wants an owner row
+ * Who may disband: the twin of the delete policy, which wants an owner row
  * and nothing less. An officer with a grudge can't take the club down.
  */
 function canDisbandClub(role: ClubRole | null): boolean {
@@ -126,7 +126,7 @@ export default function ClubSettingsScreen() {
   const insets = useSafeAreaInsets();
   const { session, ready } = useAuth();
   const userId = session?.user.id ?? null;
-  // Just the id — the name, category and description are read fresh here, so
+  // Just the id. The name, category and description are read fresh here, so
   // the form can never open onto a stale copy of what it's about to save.
   const { clubId } = useLocalSearchParams<{ clubId?: string }>();
   const id = clubId ?? "";
@@ -170,7 +170,7 @@ export default function ClubSettingsScreen() {
           .eq("club_id", id)
           .eq("user_id", userId)
           .maybeSingle(),
-        // Head-only count — the disband warning says how many people this
+        // Head-only count. The disband warning says how many people this
         // costs, and that number is the whole point of saying it.
         supabase
           .from("club_members")
@@ -192,8 +192,8 @@ export default function ClubSettingsScreen() {
         description: string | null;
         category: unknown;
       } | null;
-      // RLS hides other campuses' clubs, so "not found" covers both cases —
-      // and covers a club somebody else disbanded while this was open.
+      // RLS hides other campuses' clubs, so "not found" covers both cases,
+      // including a club somebody else disbanded while this was open.
       if (!row) {
         setStatus("notFound");
         return;
@@ -232,7 +232,7 @@ export default function ClubSettingsScreen() {
       return;
     }
     if (cleanName.length > NAME_MAX) {
-      setFormError(`Club names stop at ${NAME_MAX} characters — trim it a bit.`);
+      setFormError(`Club names stop at ${NAME_MAX} characters. Trim it a bit.`);
       return;
     }
 
@@ -255,7 +255,7 @@ export default function ClubSettingsScreen() {
       setFormError("We couldn't save your changes. Give it another try.");
       return;
     }
-    // No rows back means RLS turned it down — your role changed under you.
+    // No rows back means RLS turned it down: your role changed under you.
     if (!data || data.length === 0) {
       setFormError(
         "Only officers can change these details. Check with the owner if that's a surprise."
@@ -264,7 +264,7 @@ export default function ClubSettingsScreen() {
     }
 
     // A completion moment. The club page refetches on focus, so the new name
-    // waiting there is the receipt — no confirmation screen needed.
+    // waiting there is the receipt, so no confirmation screen is needed.
     tapSuccess();
     goBack();
   }, [club, saving, disbanding, name, category, description, goBack]);
@@ -292,7 +292,7 @@ export default function ClubSettingsScreen() {
     }
 
     /* Going back would land on the club page, and there's no club there any
-       more — so pop past it to the clubs list instead. */
+       more, so pop past it to the clubs list instead. */
     router.dismissTo("/(tabs)/clubs");
   }, [club, disbanding, router]);
 
@@ -312,7 +312,7 @@ export default function ClubSettingsScreen() {
     );
   }, [club, doDisband]);
 
-  // Deep links land here directly — signed-out visitors get a proper door.
+  // Deep links land here directly, so signed-out visitors get a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -351,7 +351,7 @@ export default function ClubSettingsScreen() {
 
   /* -------------------------- before the form -------------------------- */
 
-  // Only reachable from a stray deep link — the club page always passes the
+  // Only reachable from a stray deep link. The club page always passes the
   // id. Say what's missing rather than pretending the club is closed.
   if (!id) {
     return scaffold(
@@ -493,7 +493,7 @@ export default function ClubSettingsScreen() {
           }
           body={
             role === null
-              ? "Join the club first — its officers are the ones who keep the name and description up to date."
+              ? "Join the club first. Its officers are the ones who keep the name and description up to date."
               : "Only officers and the owner can change the club's name, category or description. If something's out of date, nudge one of them in the club chat."
           }
           action={{ label: "Back to the club", onPress: goBack }}
@@ -525,7 +525,7 @@ export default function ClubSettingsScreen() {
       <View style={{ gap: space.snug }}>
         <AppText variant="display">Club settings</AppText>
         <AppText variant="caption" muted>
-          {club.name} — everyone on campus sees these on its page.
+          {club.name}. Everyone on campus sees these on its page.
         </AppText>
       </View>
 
@@ -540,7 +540,7 @@ export default function ClubSettingsScreen() {
         />
         <AppText variant="caption" muted>
           {channelSlug
-            ? `The club chat keeps its name — #${channelSlug} stays where it is.`
+            ? `The club chat keeps its name: #${channelSlug} stays where it is.`
             : "Renaming the club doesn't rename its chat channel."}
         </AppText>
       </View>
@@ -596,7 +596,7 @@ export default function ClubSettingsScreen() {
       />
 
       {/* Disbanding is the owner's alone, and it takes the whole club with
-          it — so it sits under its own heading, well below Save. */}
+          it, so it sits under its own heading, well below Save. */}
       {canDisbandClub(role) ? (
         <>
           <SectionLabel text="Disbanding" />

@@ -11,7 +11,7 @@ import {
 /* The two pure halves of reminders: reading a stored lead back as words, and
  * working out whether a nudge can still reach anybody.
  *
- * Neither reads the clock — `reminderFiresAt` takes `now` — so every case is
+ * Neither reads the clock (`reminderFiresAt` takes `now`), so every case is
  * fixed moments in, a boolean and a Date out.
  */
 
@@ -50,7 +50,7 @@ describe("the lead ladder", () => {
 
 /* ------------------------------- describeLead ----------------------------- */
 
-describe("describeLead — a stored lead as words", () => {
+describe("describeLead: a stored lead as words", () => {
   it("gives a ladder value its own warm label", () => {
     expect(describeLead(900)).toBe("The night before");
     expect(describeLead(1440)).toBe("A day before");
@@ -79,7 +79,7 @@ describe("describeLead — a stored lead as words", () => {
 
 /* ----------------------------- reminderFiresAt ---------------------------- */
 
-describe("reminderFiresAt — when the nudge is actually due", () => {
+describe("reminderFiresAt: when the nudge is actually due", () => {
   it("is the deadline minus the lead", () => {
     const timing = reminderFiresAt(fromNow(180), 60, NOW);
     expect(timing.at.getTime()).toBe(fromNow(120).getTime());
@@ -93,7 +93,7 @@ describe("reminderFiresAt — when the nudge is actually due", () => {
     expect(timing.at.getTime()).toBeLessThan(NOW.getTime());
   });
 
-  it("counts the exact moment as gone — the sweep ticks after it, not on it", () => {
+  it("counts the exact moment as gone, since the sweep ticks after it", () => {
     expect(reminderFiresAt(fromNow(15), 15, NOW).past).toBe(true);
     expect(reminderFiresAt(fromNow(16), 15, NOW).past).toBe(false);
   });

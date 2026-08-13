@@ -46,7 +46,7 @@ const PLACEHOLDER =
 /**
  * Paste-first syllabus import: the parser runs right here in the browser,
  * the student shapes the preview, and only the confirmed dates are written
- * to the shared class calendar (plus one audit row — never the text).
+ * to the shared class calendar (plus one audit row, never the text).
  */
 export function SyllabusImport({
   courseId,
@@ -123,12 +123,12 @@ export function SyllabusImport({
   async function handleAdd() {
     if (rows === null || rows.length === 0 || adding) return;
     if (rows.some((row) => row.title.trim() === "")) {
-      setAddError("Every date needs a title — fill in the blank ones first.");
+      setAddError("Every date needs a title. Fill in the blank ones first.");
       return;
     }
     setAdding(true);
     setAddError(null);
-    // RLS wants created_by to be the caller — stamp it onto each row.
+    // RLS wants created_by to be the caller, so stamp it onto each row.
     const inserts = toCalendarRows(
       rows.map((row) => ({
         kind: row.kind,
@@ -145,7 +145,7 @@ export function SyllabusImport({
     if (error) {
       setAdding(false);
       setAddError(
-        "We couldn't add those dates — check you're still in this course and give it another try."
+        "We couldn't add those dates. Check you're still in this course and give it another try."
       );
       return;
     }
@@ -172,7 +172,7 @@ export function SyllabusImport({
           {doneCount} {noun} on the class calendar
         </p>
         <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
-          Everyone in {courseCode} sees them now — nice one.
+          Everyone in {courseCode} sees them now.
         </p>
         <Link
           href={calendarHref}
@@ -195,7 +195,7 @@ export function SyllabusImport({
   return (
     <div>
       <Label htmlFor="syllabus-text">
-        Paste your syllabus — the schedule section works best
+        Paste your syllabus (the schedule section works best)
       </Label>
       <Textarea
         id="syllabus-text"
@@ -221,7 +221,7 @@ export function SyllabusImport({
           <CalendarDays className="size-5 text-muted" aria-hidden />
           <p className="mt-1 text-sm font-bold tracking-tight">No dates found</p>
           <p className="max-w-sm text-sm text-muted">
-            Paste the part of the syllabus with the schedule table — the lines
+            Paste the part of the syllabus with the schedule table: the lines
             that pair a date with an assignment or exam.
           </p>
         </div>
@@ -230,7 +230,7 @@ export function SyllabusImport({
       {rows !== null && rows.length > 0 ? (
         <div className="mt-6">
           <p className="text-sm text-muted">
-            Found {count} {countNoun} — click a chip to change what it is, fix
+            Found {count} {countNoun}. Click a chip to change what it is, fix
             any titles, and drop anything that doesn&apos;t belong.
           </p>
 

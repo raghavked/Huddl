@@ -1,20 +1,20 @@
-# Huddl UI v3 — "hearth" design system reference
+# Huddl UI v3: "hearth" design system reference
 
 > **Which doc?** This one is the **web** reference: the Tailwind tokens,
 > utilities, primitives, and layout patterns that ship from
 > `src/app/globals.css` and `src/components/ui/` in the Next.js app. The design
-> language behind them — why the palette is warm, what each token means, the
-> type scale, motion and elevation rules, the copy voice, the craft floor — is
-> `docs/DESIGN.md`, which also covers the native app in `mobile/`. Read that
-> one first; read this one when you are writing web components. On a
-> disagreement, `DESIGN.md` wins.
+> language behind them lives in `docs/DESIGN.md`: why the palette is warm, what
+> each token means, the type scale, motion and elevation rules, the copy voice,
+> and the craft floor. That doc also covers the native app in `mobile/`. Read it
+> first; read this one when you're writing web components. On a disagreement,
+> `DESIGN.md` wins.
 
 v3 "hearth" keeps the huddl brand voice (sentence case, empty states that
-recruit — see `BRAND.md`) and re-grounds the visual layer in warmth: cream
+recruit; see `BRAND.md`) and re-grounds the visual layer in warmth: cream
 paper and espresso ink, an ember primary with clay softs, fern for trust, a
 candle-lit dark theme. Soft elevation instead of flat hairline boxes, frosted
-glass in the shell, one motion curve everywhere — and no gradients: the v2
-gradient signature is retired, along with kickers/eyebrows above headings.
+glass in the shell, one motion curve everywhere. No gradients: the v2 gradient
+signature is retired, along with kickers/eyebrows above headings.
 
 Everything below ships from `src/app/globals.css` and `src/components/ui/`.
 
@@ -23,26 +23,26 @@ Type: `h1`–`h3` render in **Bricolage Grotesque** automatically (see
 text. Body/UI is **Plus Jakarta Sans**; `font-mono` is JetBrains Mono.
 Illustrations: `@/components/illustrations` exports warm, hand-drawn,
 token-driven SVG scenes (Chat, Calendar, Notes, Huddle, Shield, Discover),
-accented with steam curls, crumb dots, and stitch dashes — pass one to
+accented with steam curls, crumb dots, and stitch dashes. Pass one to
 `<EmptyState illustration={…}>` on marquee empty states; route-level loading
 states use `Skeleton` / `SkeletonRow` / `SkeletonPage` from `@/components/ui`.
 
 ## Tokens
 
-Color tokens carry the hearth palette — cream paper, espresso ink, ember,
-clay, fern (see `BRAND.md` §4 for the full hex tables):
+Color tokens carry the hearth palette of cream paper, espresso ink, ember,
+clay, and fern (see `BRAND.md` §4 for the full hex tables):
 
-- `brand-2` — the warm ember highlight. **Decoration only** (illustration
+- `brand-2`: the warm ember highlight. **Decoration only** (illustration
   accents: steam curls, crumb dots); never a flat UI fill or text color on
   its own.
-- `brand-fg` — the text/icon color on `bg-brand` fills (white in light,
-  dark espresso in dark — AA in both themes).
-- `brand-ink` — readable brand-colored text on soft/neutral fills
+- `brand-fg`: the text/icon color on `bg-brand` fills (white in light, dark
+  espresso in dark, AA in both themes).
+- `brand-ink`: readable brand-colored text on soft/neutral fills
   (`bg-brand-soft` chips, active nav, dock labels, unread rows). Use it
   wherever brand *text* sits on a soft fill; `text-brand` is for icons only
-  there. Never `text-muted` on a colored surface — secondary text tints
-  from the surface hue instead.
-- `on-solid` — white foreground for saturated status fills
+  there. Never `text-muted` on a colored surface. Secondary text tints from
+  the surface hue instead.
+- `on-solid`: white foreground for saturated status fills
   (`bg-accent`/`bg-success`/`bg-danger` solids).
 
 New non-color tokens:
@@ -51,13 +51,13 @@ New non-color tokens:
 | --- | --- |
 | `shadow-soft` | Resting elevation for cards, buttons, pills |
 | `shadow-lift` | Hover/floating elevation (docks, popovers, hover cards) |
-| `rounded-card` | 1.25rem — the card radius |
+| `rounded-card` | 1.25rem, the card radius |
 | `animate-fade-up` | Entrance for page headers and hero content |
 | `animate-fade-in` | Entrance for overlays/panels |
 | `animate-scale-in` | Entrance for small popping elements |
 | `.glass` | Frosted translucent surface (shell chrome only) |
 
-There are no gradient utilities — `.bg-gradient-brand` and
+There are no gradient utilities: `.bg-gradient-brand` and
 `.text-gradient-brand` were retired in v3. Emphasis comes from weight and
 size, not gradient fills or gradient text.
 
@@ -69,7 +69,7 @@ in both themes with no component code.
 Theme: light is default; dark applies via system preference or the
 `data-theme` override on `<html>` set by `<ThemeToggle />`
 (`src/components/theme-toggle.tsx`), persisted as `huddl-theme` in
-localStorage. Never branch on theme in components — tokens handle it.
+localStorage. Never branch on theme in components. Tokens handle it.
 
 ## Primitives (`@/components/ui`)
 
@@ -91,7 +91,7 @@ import {
 
 - **Links that look like buttons:** `<Link className={buttonClasses({ variant: "primary" })}>`.
 - **Cards that are links:** `<Link className={cardClasses({ interactive: true })}>`.
-- `Button` renders a real `<button>` (default `type="button"` — pass
+- `Button` renders a real `<button>` (default `type="button"`, so pass
   `type="submit"` in forms).
 
 ## Layout patterns
@@ -99,9 +99,9 @@ import {
 - **Page container:** `mx-auto max-w-3xl px-4 py-6 md:py-10` (wide directory /
   browse pages may use `max-w-4xl`). Chat/DM rooms keep their own full-height
   scroll layout.
-- **Every page starts with `<PageHeader />`** — title (sentence case),
+- **Every page starts with `<PageHeader />`**: title (sentence case),
   optional description, the page's single primary action on the right,
-  `backHref` on detail/sub pages. There is no eyebrow prop — kickers above
+  `backHref` on detail/sub pages. There is no eyebrow prop. Kickers above
   headings are banned; the title carries its own weight.
 - **Sections** inside a page use `<SectionHeader />` + `mt-8` rhythm.
 - **List rows:** `Card` (or `cardClasses({ interactive: true })` on a Link)
@@ -119,7 +119,7 @@ import {
 
 ## Shell
 
-Huddl is **mobile-exclusive**: there is exactly one shell — the phone one —
+Huddl is **mobile-exclusive**: there is exactly one shell, the phone one,
 at every viewport. The app renders in a centered `max-w-md` column
 (soft `md:border-x` edges on larger screens); there is no desktop layout.
 
@@ -131,9 +131,9 @@ at every viewport. The app renders in a centered `max-w-md` column
 
 ## Rules (unchanged from BRAND.md, restated)
 
-- Tokens only — no raw hex, no grays outside the set. Check both themes.
+- Tokens only: no raw hex, no grays outside the set. Check both themes.
 - One ember primary action per view. Button has no `gradient` variant and
-  there are no gradient utilities — hero CTAs use `primary`; emphasis comes
+  there are no gradient utilities. Hero CTAs use `primary`; emphasis comes
   from weight and size.
 - `lucide-react` only, `size-4`/`size-5`, `text-muted` unless meaningful.
 - Focus visible on everything interactive

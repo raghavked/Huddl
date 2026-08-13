@@ -15,7 +15,7 @@ type RoomRow = Pick<Channel, "id" | "name" | "is_main">;
 
 /**
  * A course's rooms: the main chat for the whole class plus side rooms
- * (lectures, study groups, …). Enrolled classmates only — everyone else
+ * (lectures, study groups, …). Enrolled classmates only; everyone else
  * lands on the course page's join door.
  */
 export default async function CourseRoomsPage({
@@ -55,7 +55,7 @@ export default async function CourseRoomsPage({
         .eq("user_id", user.userId),
     ]);
 
-  // Rooms are for classmates — the course page has the join door.
+  // Rooms are for classmates; the course page has the join door.
   if (!enrollment) redirect(`/courses/${course.id}`);
 
   const rooms = (roomRows ?? []) as RoomRow[];
@@ -79,7 +79,7 @@ export default async function CourseRoomsPage({
           <EmptyState
             icon={Home}
             title="No rooms yet"
-            description="The course chat opens up as classmates add this class — or start a room below."
+            description="The course chat opens up as classmates add this class. Or start a room below."
           />
         </div>
       ) : (

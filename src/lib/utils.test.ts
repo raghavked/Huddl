@@ -52,7 +52,7 @@ describe("formatFileSize", () => {
   });
 
   it("flips to MB at exactly 1024 KB", () => {
-    // One byte shy of a megabyte still reads as KB — the one-decimal
+    // One byte shy of a megabyte still reads as KB: the one-decimal
     // rounding lands on 1024.0 at the seam.
     expect(formatFileSize(1024 * 1024 - 1)).toBe("1024.0 KB");
     expect(formatFileSize(1024 * 1024)).toBe("1.0 MB");

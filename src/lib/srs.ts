@@ -4,11 +4,11 @@
  * factor, no fractional intervals to explain. Each card you've seen carries a
  * single streak (consecutive non-"again" reviews) and a due time:
  *
- *   - "again" — resets the streak to 0 and brings the card back in 10
+ *   - "again" resets the streak to 0 and brings the card back in 10
  *     minutes, so it can be re-drilled within the same sitting.
- *   - "good"  — bumps the streak by 1 and schedules 1 / 3 / 7 / 14 / 30 days
+ *   - "good"  bumps the streak by 1 and schedules 1 / 3 / 7 / 14 / 30 days
  *     out, stepped by how long the streak already was.
- *   - "easy"  — bumps the streak by 2 and jumps straight to the longer
+ *   - "easy"  bumps the streak by 2 and jumps straight to the longer
  *     ladder: 3 / 7 / 14 / 30 / 60 days.
  *
  * Both ladders are indexed by the PRE-update streak (capped at the last
@@ -19,7 +19,7 @@
  * deterministic and unit-testable. Screens feed rows from cards +
  * card_reviews and write the returned state back themselves.
  *
- * Kept in lockstep with mobile/src/lib/srs.ts — the two clients must agree
+ * Kept in lockstep with mobile/src/lib/srs.ts. The two clients must agree
  * on what a streak buys, or the same student gets two different schedules.
  */
 
@@ -32,13 +32,13 @@ export type ReviewState = { streak: number; dueAt: Date };
 const MINUTE_MS = 60 * 1000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
 
-/** "Again" brings the card back this soon — same sitting, not same month. */
+/** "Again" brings the card back this soon: same sitting, not same month. */
 export const AGAIN_DELAY_MINUTES = 10;
 
 /** Days until the next look after "good", indexed by the pre-update streak. */
 export const GOOD_INTERVAL_DAYS: readonly number[] = [1, 3, 7, 14, 30];
 
-/** Days until the next look after "easy" — the same ladder, one rung up. */
+/** Days until the next look after "easy": the same ladder, one rung up. */
 export const EASY_INTERVAL_DAYS: readonly number[] = [3, 7, 14, 30, 60];
 
 /** Ladder lookup, clamped to the ends so any streak resolves to a rung. */
@@ -54,7 +54,7 @@ function intervalDays(ladder: readonly number[], prevStreak: number): number {
  *
  * @param prev  The existing review row's streak, or null on first contact.
  * @param grade Which of the three buttons was pressed.
- * @param now   The current moment — passed in, never read from the clock.
+ * @param now   The current moment, passed in and never read from the clock.
  */
 export function nextReview(
   prev: { streak: number } | null,
@@ -78,19 +78,19 @@ export function nextReview(
 /**
  * Assemble a study queue from a deck's cards and this student's review rows:
  *
- *   1. NEW cards (no review row yet) first, in deck position order — ties
+ *   1. NEW cards (no review row yet) first, in deck position order. Ties
  *      keep the caller's order, so pass cards as fetched (position, then
  *      created_at).
  *   2. Then DUE cards (due_at <= now), oldest-due first.
  *
  * Cards with a review row that isn't due yet stay out entirely. The result
- * is capped (default 30) so a monster deck stays a sit-downable session —
- * pass `cards.length` as the cap to get the full due set (handy for "4 due
+ * is capped (default 30) so a monster deck stays a sit-downable session.
+ * Pass `cards.length` as the cap to get the full due set (handy for "4 due
  * for you" counts).
  *
  * @param cards   The deck's cards, in (position, created_at) order.
  * @param reviews This student's review state, keyed by card id.
- * @param now     The current moment — passed in, never read from the clock.
+ * @param now     The current moment, passed in and never read from the clock.
  * @param cap     Maximum queue length; non-positive means an empty queue.
  */
 export function buildQueue<C extends { id: string; position: number }>(

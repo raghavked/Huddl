@@ -50,7 +50,7 @@ function foldLine(line: string): string {
 }
 
 /**
- * GET — download the event as an .ics file ("Add to calendar"). Auth'd via
+ * GET: download the event as an .ics file ("Add to calendar"). Auth'd via
  * the session client, so RLS decides whether this event is visible at all.
  */
 export async function GET(

@@ -5,7 +5,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 export type ForwardedFromProps = {
   /**
-   * The row's `forwarded_from` — "#mat-21a", "a direct message". Comes off the
+   * The row's `forwarded_from`: "#mat-21a", "a direct message". Comes off the
    * message straight from the column; `forwardLabelFor` wrote it.
    */
   from: string;

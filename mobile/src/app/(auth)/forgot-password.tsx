@@ -17,8 +17,8 @@ import { supabase } from "@/lib/supabase";
 /* Forgot password, the native half.
  *
  * The emailed link does not come back to this app. Native deliberately sends
- * auth mail to the web app — signup.tsx documents the same round trip for
- * confirmation links — because a recovery link that opens a browser and then
+ * auth mail to the web app (signup.tsx documents the same round trip for
+ * confirmation links) because a recovery link that opens a browser and then
  * has to hand a live session across to a bundle is three moving parts where
  * one will do. The student picks the new password on the web, then comes back
  * here and logs in with it. No password is ever typed on this screen.
@@ -27,13 +27,13 @@ import { supabase } from "@/lib/supabase";
  * account. `resetPasswordForEmail` succeeds either way, and that is a feature
  * rather than a limitation: a screen that answers "we don't know that email"
  * is a membership oracle for a campus app, which is exactly the question a
- * student is entitled to keep private. So every sentence here is conditional —
- * "if that address has an account" — and the confirmation looks identical for
+ * student is entitled to keep private. So every sentence here is conditional
+ * ("if that address has an account"), and the confirmation looks identical for
  * a real address and a typo.
  *
  * The four states arrive in the shape a form takes rather than the shape a
  * query takes: ready (the address), sending, failed with the send still one
- * tap away, and sent. There is no empty state because nothing is fetched —
+ * tap away, and sent. There is no empty state because nothing is fetched:
  * there is no list here that could come back with nothing in it.
  */
 
@@ -52,7 +52,7 @@ const RESEND_COOLDOWN_S = 30;
        recovery link comes back carrying `?code=`, a query parameter, and
        /auth/confirm is the server route that exchanges it for cookies.
      - This app runs supabase-js with its default `flowType: 'implicit'` (see
-       lib/supabase.ts — nothing overrides it). An implicit recovery link comes
+       lib/supabase.ts; nothing overrides it). An implicit recovery link comes
        back carrying `#access_token=…`, a URL *fragment*, which by definition
        never reaches a server. Sending it to /auth/confirm would hand the
        server a request with no code and no token_hash, and the student would
@@ -62,7 +62,7 @@ const RESEND_COOLDOWN_S = 30;
    client has `detectSessionInUrl` on by default, so it reads the fragment on
    load and the recovery session is established client-side.
 
-   Switching this app to PKCE would NOT let both share the door — PKCE binds
+   Switching this app to PKCE would NOT let both share the door. PKCE binds
    the exchange to the client that started it, and the phone is not the
    browser that finishes it. Two flows, two entrances, on purpose. */
 const WEB_ORIGIN = (
@@ -70,7 +70,7 @@ const WEB_ORIGIN = (
 ).replace(/\/+$/, "");
 const RESET_URL = `${WEB_ORIGIN}/reset-password`;
 
-/** Enough of a check to catch a fat-fingered address, and no more — the real
+/** Enough of a check to catch a fat-fingered address, and no more. The real
     verdict is the inbox, and we're not in the business of rejecting valid
     addresses because they didn't match a regex. */
 function looksLikeEmail(value: string) {
@@ -98,7 +98,7 @@ export default function ForgotPasswordScreen() {
   }, [params.email]);
 
   // Reachable from login and from a cold deep link, so there isn't always
-  // something behind us — fall back to the screen that sent people here.
+  // something behind us. Fall back to the screen that sent people here.
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace("/(auth)/login");
@@ -131,7 +131,7 @@ export default function ForgotPasswordScreen() {
 
     if (sendError) {
       // Supabase rate-limits auth mail hard, and "try again" on a throttled
-      // send just burns another attempt — so that one case gets its own
+      // send just burns another attempt, so that one case gets its own
       // sentence and its own wait. Everything else is one warm line; the raw
       // API string never reaches a student.
       const throttled =
@@ -140,7 +140,7 @@ export default function ForgotPasswordScreen() {
       if (throttled) {
         setCooldown(RESEND_COOLDOWN_S);
         setError(
-          "That's a few reset emails in a row — give it a minute, then try again."
+          "That's a few reset emails in a row. Give it a minute, then try again."
         );
       } else {
         setError(
@@ -257,11 +257,11 @@ export default function ForgotPasswordScreen() {
                 </AppText>
               </View>
 
-              {/* Conditional on purpose — see the note at the top of the file.
+              {/* Conditional on purpose. See the note at the top of the file.
                   We never say whether that address has an account. */}
               <AppText muted style={{ textAlign: "center" }}>
                 If that address has a Huddl account, a link to set a new
-                password is on its way. It opens in your browser — pick the new
+                password is on its way. It opens in your browser. Pick the new
                 password there, then come back here and log in with it.
               </AppText>
 
@@ -314,7 +314,7 @@ export default function ForgotPasswordScreen() {
                     color={theme.success}
                   />
                   <AppText variant="caption" style={{ color: theme.success }}>
-                    Sent again — check your inbox (and spam).
+                    Sent again. Check your inbox (and spam).
                   </AppText>
                 </View>
               ) : null}
@@ -343,7 +343,7 @@ export default function ForgotPasswordScreen() {
               </AppText>
             </Card>
 
-            {/* Back to the form with the cooldown still running — a typo in
+            {/* Back to the form with the cooldown still running. A typo in
                 the address is the likeliest reason nothing arrived, but auth
                 mail is rate-limited per project rather than per address, so
                 the next send waits its turn either way. */}
@@ -429,8 +429,8 @@ export default function ForgotPasswordScreen() {
                   error={fieldError}
                 />
                 <AppText variant="caption" muted>
-                  The link opens on the web — you'll set the new password
-                  there, then log in here.
+                  The link opens on the web. You'll set the new password there,
+                  then log in here.
                 </AppText>
               </View>
 

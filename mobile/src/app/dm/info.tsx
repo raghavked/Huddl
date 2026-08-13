@@ -42,7 +42,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { CampusPeoplePicker } from "./new";
 
 /* The group's own page: who's in it, what it's called, and the two things
-   only a member can do — add someone else, or slip out. A 1:1 thread has
+   only a member can do: add someone else, or slip out. A 1:1 thread has
    none of that, so it never gets to stay here. */
 
 /** The same order fetchThreadPeople returns, so an optimistic add lands right. */
@@ -143,7 +143,7 @@ export default function GroupInfoScreen() {
         return;
       }
       setThread(row);
-      // A 1:1 has no group page — the guard below sends it home.
+      // A 1:1 has no group page, so the guard below sends it home.
       if (!row.is_group) return;
       const roster = await fetchThreadPeople(threadId);
       setPeople(roster);
@@ -360,7 +360,7 @@ export default function GroupInfoScreen() {
   ) : null;
 
   // "Add people" takes over the screen rather than nesting a second list
-  // inside this one — the keyboard and the search box both need the room.
+  // inside this one. The keyboard and the search box both need the room.
   if (adding && thread) {
     return (
       <KeyboardAvoidingView
@@ -435,7 +435,7 @@ export default function GroupInfoScreen() {
                     muted
                     style={{ marginBottom: space.close }}
                   >
-                    Everyone in {display.title} is on your campus — that's the
+                    Everyone in {display.title} is on your campus. That's the
                     only rule. Tap someone to add them right away.
                   </AppText>
                 }

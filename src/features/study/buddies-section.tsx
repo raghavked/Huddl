@@ -40,10 +40,10 @@ import {
   type StudyBuddy,
 } from "@/lib/study-buddy";
 
-/* Study partners — one course's who's-looking list.
+/* Study partners: one course's who's-looking list.
  *
  * Two halves, stacked. Up top is the student's own state: an invitation to
- * put their name up, or — once they have — a fern-toned card holding the note
+ * put their name up, or (once they have) a fern-toned card holding the note
  * their classmates can read, with a way to change it and a way to step out.
  * Below is everyone else, newest first, their own row lifted to the top by
  * `@/lib/study-buddy`.
@@ -78,7 +78,7 @@ function InlineError({ message }: { message: string | null }) {
 }
 
 /**
- * The closing promise, stated plainly once. Fern-soft rather than ember —
+ * The closing promise, stated plainly once. Fern-soft rather than ember:
  * this is reassurance about a mechanism, not a warning.
  */
 function PrivacyLine() {
@@ -93,8 +93,8 @@ function PrivacyLine() {
 
 /**
  * One classmate: who they are, how they like to study, and the way to say
- * hello. My own row carries a "You" badge instead of a button — it is there
- * so I can see exactly what my classmates see.
+ * hello. My own row carries a "You" badge instead of a button, so I can see
+ * exactly what my classmates see.
  */
 function BuddyRow({
   buddy,
@@ -191,7 +191,7 @@ export function BuddiesSection({
   initialError,
 }: {
   courseId: string;
-  /** e.g. "ECS 36A" — the class this list belongs to. */
+  /** e.g. "ECS 36A": the class this list belongs to. */
   courseCode: string;
   /** The viewer's `profiles.id`, so an optimistic row is a real row. */
   userId: string;
@@ -207,7 +207,7 @@ export function BuddiesSection({
   const [error, setError] = useState<string | null>(initialError);
   const [reloading, setReloading] = useState(false);
 
-  // The note composer. `editing` only matters once I'm already on the list —
+  // The note composer. `editing` only matters once I'm already on the list;
   // before that the composer is the invitation itself.
   const [noteDraft, setNoteDraft] = useState("");
   const [editing, setEditing] = useState(false);
@@ -261,7 +261,7 @@ export function BuddiesSection({
   );
 
   /**
-   * Put my name up, or save an edited note — the same upsert either way. The
+   * Put my name up, or save an edited note: the same upsert either way. The
    * card flips and the row lands before the request goes out; a refusal puts
    * both back and reopens the composer with the text still in it.
    */
@@ -270,7 +270,7 @@ export function BuddiesSection({
     const trimmed = noteDraft.trim();
     if (trimmed.length > BUDDY_NOTE_MAX) {
       setActionError(
-        `Keep your note to ${BUDDY_NOTE_MAX} characters — say when you study and where.`
+        `Keep your note to ${BUDDY_NOTE_MAX} characters. Say when you study and where.`
       );
       return;
     }
@@ -401,7 +401,7 @@ export function BuddiesSection({
   const others = buddies.filter((buddy) => !buddy.is_me);
   const composerOpen = mine === null || editing;
 
-  /* The composer — the invitation when I'm not on the list, and the same
+  /* The composer: the invitation when I'm not on the list, and the same
      field again when I'm editing the note that's already up there. */
   const composer = (
     <form
@@ -461,7 +461,7 @@ export function BuddiesSection({
     </form>
   );
 
-  /* Writing keeps the plain paper card — a tinted surface can't carry muted
+  /* Writing keeps the plain paper card. A tinted surface can't carry muted
      helper text, and the fern is for the settled state, not the draft. */
   const myStateCard = composerOpen ? (
     <Card className="animate-fade-up">
@@ -473,7 +473,7 @@ export function BuddiesSection({
       <p className="mt-1.5 text-sm text-muted text-pretty">
         {mine === null
           ? `Put your name up and everyone in ${courseCode} sees it here. Take it down whenever you like.`
-          : "Say when you study and where — that gets more replies than a friendly hello."}
+          : "Say when you study and where. That gets more replies than a friendly hello."}
       </p>
       <div className="mt-4">{composer}</div>
     </Card>
@@ -489,7 +489,7 @@ export function BuddiesSection({
         </p>
       ) : (
         <p className="mt-2 text-sm text-accent">
-          You didn&apos;t leave a note — classmates will just see your name.
+          You didn&apos;t leave a note. Classmates will just see your name.
         </p>
       )}
       <div className="mt-2">

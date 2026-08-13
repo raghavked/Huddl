@@ -23,7 +23,7 @@ export default async function SignupPage() {
       <Card padding="lg">
         <h1 className="text-2xl font-bold tracking-tight">Join your campus</h1>
         <p className="mt-1.5 text-sm text-muted">
-          Sign up with your university email — that&apos;s how we know
+          Sign up with your university email. That&apos;s how we know
           you&apos;re a student.
         </p>
         <SignupForm />

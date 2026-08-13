@@ -39,7 +39,7 @@ export default async function DmThreadPage({
         .select(GROUP_THREAD_SELECT)
         .eq("id", threadId)
         .maybeSingle(),
-      // Everyone in the thread, me included — a group needs the full roster
+      // Everyone in the thread, me included. A group needs the full roster
       // for author names and its "N people" line.
       supabase
         .from("dm_participants")
@@ -69,7 +69,7 @@ export default async function DmThreadPage({
     ? null
     : (people.find((person) => person.id !== user.userId) ?? null);
   // On a 1:1, the other account is gone (a cascade took their participant
-  // row with it) — the thread has nothing left to show.
+  // row with it), so the thread has nothing left to show.
   if (!thread.is_group && !other) redirect("/messages");
 
   // Last 50, oldest first for rendering.

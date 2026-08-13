@@ -28,7 +28,7 @@ type FeatherName = ComponentProps<typeof Feather>["name"];
 
 type ChannelKind = "campus" | "course" | "topic" | "club";
 
-/** Minimal local row shapes — the web app's types live outside this tsconfig. */
+/** Minimal local row shapes: the web app's types live outside this tsconfig. */
 type ChannelRow = {
   id: string;
   kind: ChannelKind;
@@ -39,7 +39,7 @@ type ChannelRow = {
   course: { id: string; code: string; title: string } | null;
 };
 
-/** My membership extras per channel — unread and mute both hang off these. */
+/** My membership extras per channel. Unread and mute both hang off these. */
 type MemberMeta = { lastReadAt: string; muted: boolean };
 
 type MemberJoinRow = {
@@ -91,7 +91,7 @@ function channelSubtitle(channel: ChannelRow): string | null {
     A muted channel never shows a dot.
 
     Both marks are shape and colour with no words in them, so both are hidden
-    from the screen reader and said instead by the row's own label — see
+    from the screen reader and said instead by the row's own label. See
     {@link stateWords}. */
 function RowIndicator({ muted, unread }: { muted: boolean; unread: boolean }) {
   const theme = useTheme();
@@ -173,7 +173,7 @@ export default function ChannelsScreen() {
     // Newest message per joined channel: one tiny indexed lookup each
     // ((channel_id, created_at desc)), all in flight together.
     //
-    // This used to be a single windowed query — the newest 300 messages
+    // This used to be a single windowed query: the newest 300 messages
     // across every channel, reduced client-side. Cheaper, and wrong in the
     // direction that costs the most: a chatty #general fills the window, a
     // quiet course room falls out of it entirely, and a room with no entry
@@ -186,7 +186,7 @@ export default function ChannelsScreen() {
     const newest: Record<string, LatestMessage> = {};
     await Promise.all(
       rows.map(async (channel) => {
-        // A lookup that fails just leaves the channel out — its dot goes
+        // A lookup that fails just leaves the channel out. Its dot goes
         // quiet for a beat rather than the screen growing an error state.
         const { data: message } = await supabase
           .from("messages")
@@ -256,19 +256,19 @@ export default function ChannelsScreen() {
       .update({ muted: !wasMuted })
       .eq("channel_id", channelId)
       .eq("user_id", userId);
-    // Roll the optimistic flip back if the write didn't land — and say so,
+    // Roll the optimistic flip back if the write didn't land, and say so,
     // because a row that quietly un-mutes itself looks like a bug.
     if (writeError) {
       applyMuted(wasMuted);
       const verb = wasMuted ? "unmute" : "mute";
       setMuteError(
-        `We couldn't ${verb} ${name} just now — press and hold to try again.`
+        `We couldn't ${verb} ${name} just now. Press and hold to try again.`
       );
     }
   }, [menu, memberMeta, userId, closeMenu]);
 
   /* Long-press is the only route to mute, and a long press is invisible to a
-     screen reader — so every joined row also offers it as a named action and
+     screen reader, so every joined row also offers it as a named action and
      says so in its hint. */
   const muteProps = useCallback(
     (channel: ChannelRow, muted: boolean) => ({
@@ -385,7 +385,7 @@ export default function ChannelsScreen() {
       <AppText variant="caption" muted style={{ marginTop: space.tight }}>
         {menuMuted
           ? "You'll hear about new messages here again."
-          : "It stays in your list — you just won't be notified about it."}
+          : "It stays in your list. You won't hear about new messages."}
       </AppText>
     </Sheet>
   );
@@ -520,8 +520,8 @@ export default function ChannelsScreen() {
                 No channels yet
               </AppText>
               <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
-                Add your courses and you'll land in a channel for each class
-                automatically — campus channels come free with your profile.
+                Add your courses and you'll land in a channel for each class.
+                Campus channels come free with your profile.
               </AppText>
             </View>
           }

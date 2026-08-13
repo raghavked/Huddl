@@ -19,7 +19,7 @@ type DeckQueryRow = {
   course: { code: string } | null;
 };
 
-/** RLS hides other classes' decks — outside the viewer's classes this is null. */
+/** RLS hides other classes' decks, so outside the viewer's classes this is null. */
 const getDeck = cache(async (deckId: string): Promise<DeckQueryRow | null> => {
   const supabase = await createClient();
   const { data } = await supabase
@@ -44,7 +44,7 @@ export async function generateMetadata({
 
 /**
  * Deck home + study session on one page: the shared card list, a big Study
- * door, and — client-side — the flip-and-grade session itself. Cards are the
+ * door, and (client-side) the flip-and-grade session itself. Cards are the
  * class's; the review rows loaded here are the viewer's alone.
  */
 export default async function DeckPage({

@@ -13,13 +13,13 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-/** Names classmates reach for first — a click prefills the field below. */
+/** Names classmates reach for first. A click prefills the field below. */
 const SUGGESTIONS = ["Lectures", "Discussion", "Study group", "Notes"];
 
 /**
  * Join button for a course room the viewer isn't in yet. The standard
  * university-scoped membership policy allows the insert; 23505 means
- * we're already in — treat it as a win and head on through.
+ * we're already in, so treat it as a win and head on through.
  */
 export function JoinRoomButton({
   channelId,
@@ -27,7 +27,7 @@ export function JoinRoomButton({
   userId,
 }: {
   channelId: string;
-  /** Accessible name — screen readers hear "Join Course chat". */
+  /** Accessible name: screen readers hear "Join Course chat". */
   roomName: string;
   userId: string;
 }) {
@@ -106,9 +106,9 @@ export function CreateRoomForm({ courseId }: { courseId: string }) {
       const message = rpcError?.message ?? "";
       setError(
         message.includes("join the course")
-          ? "Rooms are for classmates — add this course to your classes first."
+          ? "Rooms are for classmates. Add this course to your classes first."
           : rpcError?.code === "23505"
-            ? "Looks like that room already exists — it should be in the list above."
+            ? "Looks like that room already exists. It should be in the list above."
             : "We couldn't create that room just now. Give it another try."
       );
       return;
@@ -125,7 +125,7 @@ export function CreateRoomForm({ courseId }: { courseId: string }) {
         New room
       </h2>
       <p className="mt-1.5 text-sm text-muted">
-        Side rooms keep the main chat tidy — one for lectures, one for your
+        Side rooms keep the main chat tidy: one for lectures, one for your
         study group, whatever helps.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">

@@ -3,7 +3,7 @@ import type { Profile } from "@/lib/types";
 /**
  * The verified badge, from the client's side.
  *
- * `profiles.verified_at` is decided by the database — the
+ * `profiles.verified_at` is decided by the database. The
  * `sync_profile_verified` trigger in migration 0047 recomputes it from
  * `profile_is_complete()` and the account's `email_confirmed_at`, and the
  * column is outside the authenticated UPDATE grant so nothing here can award
@@ -11,8 +11,8 @@ import type { Profile } from "@/lib/types";
  * has not earned it what is missing, without making them guess.
  *
  * The field list below therefore MIRRORS `profile_is_complete()` and is not
- * the authority for it. If that function changes, change this to match — and
- * the two are kept honest by a test that asserts the same shape. Being out of
+ * the authority for it. If that function changes, change this to match. The
+ * two are kept honest by a test that asserts the same shape. Being out of
  * step here is not a security problem (the database still decides) but it is a
  * usability one: a checklist that says you are done while the badge stays off
  * is worse than no checklist.
@@ -52,7 +52,7 @@ function blank(value: string | null | undefined): boolean {
  *
  * @param profile        Their own profile row.
  * @param emailConfirmed Whether the account has confirmed its email. This
- *   lives on the auth user, not the profile, so the caller supplies it —
+ *   lives on the auth user, not the profile, so the caller supplies it.
  *   Supabase puts `email_confirmed_at` on the session's user object.
  */
 export function verificationGaps(
@@ -90,11 +90,11 @@ export function describeGap(gap: VerificationGap): string {
 
 /**
  * One line for a settings row: "Add a profile photo and your major to get
- * verified". Names at most two things — a list of five reads as a chore, and
+ * verified". Names at most two things, because a list of five reads as a chore and
  * the full checklist is one tap away on the account screen.
  */
 export function summariseGaps(gaps: readonly VerificationGap[]): string {
-  if (gaps.length === 0) return "Verified — your profile is complete";
+  if (gaps.length === 0) return "Verified. Your profile is complete";
   const first = describeGap(gaps[0]).toLowerCase();
   if (gaps.length === 1) return `${capitalise(first)} to get verified`;
   const second = describeGap(gaps[1]).toLowerCase();

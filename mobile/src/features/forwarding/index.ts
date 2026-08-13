@@ -1,10 +1,10 @@
 /* Forwarding in the chat stream: passing a message along to another room with
-   its provenance intact — the new room sees the words plus a quiet line saying
+   its provenance intact: the new room sees the words plus a quiet line saying
    who wrote them and where they came from. `@/lib/forwarding` is the data
    layer underneath (targets, the write, the copy helpers); this module is what
    a room renders.
  *
- * All three rooms — a channel, a thread of replies, a conversation — forward,
+ * All three rooms (a channel, a thread of replies, a conversation) forward,
  * and they forward identically: the same picker over the same targets, the
  * same provenance line above a forwarded bubble. So the pieces live here once
  * and each room passes in what differs.

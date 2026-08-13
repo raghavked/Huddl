@@ -1,4 +1,4 @@
-/* Syllabus parsing — pure, dependency-free, and entirely on-device.
+/* Syllabus parsing: pure, dependency-free, and entirely on-device.
    A pasted syllabus never leaves the browser: we scan it line by line with
    deterministic heuristics, and only the dates the student confirms are
    written to the shared class calendar. No network, no React, no AI. */
@@ -21,7 +21,7 @@ export type ParsedItem = {
 };
 
 /** Insert shape for public.course_calendar_items. RLS requires the caller to
-    also stamp `created_by` with their own auth uid — spread it in at insert
+    also stamp `created_by` with their own auth uid, so spread it in at insert
     time (`{ ...row, created_by: userId }`). */
 export type CalendarInsertRow = {
   course_id: string;
@@ -123,7 +123,7 @@ type DateHit = {
   length: number;
 };
 
-/** Find the first date on a line — numeric or month-name, whichever comes
+/** Find the first date on a line, numeric or month-name, whichever comes
     first. Returns null when the line carries no recognizable date. */
 function findDate(line: string): DateHit | null {
   const numeric = NUMERIC_DATE.exec(line);
@@ -212,10 +212,10 @@ function cleanTitle(line: string, dateStart: number, dateLength: number): string
   const without =
     line.slice(0, dateStart) + " " + line.slice(dateStart + dateLength);
   return without
-    .replace(/\(\s*\)|\[\s*\]/g, " ") // "(10/14)" leaves "( )" — drop the shell
+    .replace(/\(\s*\)|\[\s*\]/g, " ") // "(10/14)" leaves "( )", so drop the shell
     .replace(/\s+/g, " ")
-    .replace(/^[\s\-–—:;,.|>*•·\])]+/, "") // leading bullets/separators
-    .replace(/[\s\-–—:;,|(\[]+$/, "") // trailing separators the date left
+    .replace(/^[\s\-\u2013\u2014:;,.|>*•·\])]+/, "") // leading bullets/separators
+    .replace(/[\s\-\u2013\u2014:;,|(\[]+$/, "") // trailing separators the date left
     .trim()
     .slice(0, 120)
     .trim();
@@ -234,7 +234,7 @@ function fallbackTitle(kind: CalendarKind): string {
     item. Deterministic: same text in, same items out.
     - Lines without a recognizable date are skipped.
     - Date ranges take their start date.
-    - Due times default to 11:59 PM local — syllabi rarely carry times, and
+    - Due times default to 11:59 PM local. Syllabi rarely carry times, and
       end-of-day is the honest default for due dates.
     - Confidence is "high" only when a kind keyword matched AND a real title
       survived the date removal; everything else is flagged for review.
@@ -275,7 +275,7 @@ export function parseSyllabus(
 }
 
 /** Map confirmed items to course_calendar_items insert rows (source
-    'syllabus'). Callers add `created_by` — see CalendarInsertRow. */
+    'syllabus'). Callers add `created_by`. See CalendarInsertRow. */
 export function toCalendarRows(
   items: ParsedItem[],
   courseId: string

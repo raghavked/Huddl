@@ -4,7 +4,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 /**
  * OAuth / PKCE callback. Exchanges the `code` for a session (sets cookies)
- * and forwards to the `next` path — same-origin paths only (see safeNextPath;
+ * and forwards to the `next` path, same-origin paths only (see safeNextPath;
  * a plausible-looking `next` can otherwise resolve off-origin).
  */
 export async function GET(request: Request) {
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   return NextResponse.redirect(
     new URL(
       `/login?error=${encodeURIComponent(
-        "We couldn't finish signing you in. Please try again."
+        "We couldn't finish signing you in. Give it another go."
       )}`,
       url.origin
     )

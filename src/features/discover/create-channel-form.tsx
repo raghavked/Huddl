@@ -14,7 +14,7 @@ import {
 import { createTopicChannel } from "@/features/discover/actions";
 
 /**
- * Client-side mirror of the server action's slugifier — the preview under the
+ * Client-side mirror of the server action's slugifier. The preview under the
  * name field has to match what actually lands in the database.
  * "AI Study Buddies!" -> "ai-study-buddies".
  */
@@ -30,7 +30,7 @@ function slugify(name: string): string {
 /**
  * Topic-channel creation form. The createTopicChannel server action inserts
  * the channel, adds the creator as moderator, and hands back the id (or an
- * inline error — most notably "slug already taken").
+ * inline error, most notably "slug already taken").
  */
 export function CreateChannelForm({
   universityName,

@@ -26,7 +26,7 @@ import { useAuth } from "@/providers/auth-provider";
 
 type FeatherName = ComponentProps<typeof Feather>["name"];
 
-/* Minimal local row shapes — the web app's types live outside this tsconfig. */
+/* Minimal local row shapes. The web app's types live outside this tsconfig. */
 
 type RsvpStatus = "going" | "maybe" | "declined";
 
@@ -82,7 +82,7 @@ const RSVP_OPTIONS: readonly {
   { value: "declined", label: "Can't", icon: "x-circle" },
 ];
 
-/** "Sat, Aug 9 · 3:00 PM–5:00 PM" — local device time, like the web. */
+/** "Sat, Aug 9 · 3:00 PM–5:00 PM": local device time, like the web. */
 function formatEventTime(startIso: string, endIso: string | null): string {
   const start = new Date(startIso);
   const datePart = start.toLocaleDateString([], {
@@ -102,7 +102,7 @@ function formatEventTime(startIso: string, endIso: string | null): string {
   return `${datePart} · ${startTime}–${endTime}`;
 }
 
-/** Large weekday / day / month tile — accent, matching the events tab. */
+/** Large weekday / day / month tile, accent, matching the events tab. */
 function DateTile({ iso }: { iso: string }) {
   const theme = useTheme();
   const d = new Date(iso);
@@ -199,12 +199,12 @@ function MetaRow({
 
 /**
  * One person who said they're coming. A count tells you how full the room
- * is; a name tells you whether you know anyone in it — which is the actual
+ * is; a name tells you whether you know anyone in it, which is the actual
  * question somebody asks before walking into a meetup alone.
  *
  * A private classmate shows as their handle behind a lock, same as the
  * directory. A row whose profile didn't come back is drawn quietly and isn't
- * tappable, rather than dropped — the headcount has to stay honest.
+ * tappable, rather than dropped. The headcount has to stay honest.
  */
 function AttendeeRow({
   person,
@@ -322,8 +322,8 @@ export default function EventDetailScreen() {
   /**
    * Which read the screen is currently listening to. The focus effect and
    * pull-to-refresh both reload over content that stays tappable, so a reply
-   * can come back describing a moment that has already been overtaken — by a
-   * newer load, or by an RSVP written while it was in the air. Bumping the
+   * can come back describing a moment that has already been overtaken, by a
+   * newer load or by an RSVP written while it was in the air. Bumping the
    * token retires everything older; a stale reply drops itself on the floor.
    */
   const requestRef = useRef(0);
@@ -372,7 +372,7 @@ export default function EventDetailScreen() {
     setStatus("ready");
   }, [eventId]);
 
-  // Reload on focus, not just mount — coming back from the edit screen
+  // Reload on focus, not just mount, because coming back from the edit screen
   // should show the saved changes right away.
   useFocusEffect(
     useCallback(() => {
@@ -441,14 +441,14 @@ export default function EventDetailScreen() {
       if (next === current) return;
       setRsvpError(null);
       // Mirror the web rsvp action's capacity check, simply: count everyone
-      // else who's going — re-confirming your own spot is fine.
+      // else who's going. Re-confirming your own spot is fine.
       if (next === "going" && event.capacity !== null) {
         const othersGoing = rsvps.filter(
           (r) => r.status === "going" && r.user_id !== userId
         ).length;
         if (othersGoing >= event.capacity) {
           setRsvpError(
-            `This event is full — all ${event.capacity} spots are taken.`
+            `This event is full. All ${event.capacity} spots are taken.`
           );
           return;
         }
@@ -634,7 +634,7 @@ export default function EventDetailScreen() {
       >
         <AppText variant="display">{event.title}</AppText>
         {host ? (
-          /* The host has a name and now a way to reach them — before this,
+          /* The host has a name and now a way to reach them. Before this,
              "Hosted by Maya Chen" was a dead end. */
           <Pressable
             accessibilityRole="button"
@@ -736,7 +736,7 @@ export default function EventDetailScreen() {
           >
             <AppText muted>
               This event has ended
-              {myStatus === "going" ? " — hope it was a good one." : "."}
+              {myStatus === "going" ? ". Hope it was a good one." : "."}
             </AppText>
           </Card>
         ) : (
@@ -777,7 +777,7 @@ export default function EventDetailScreen() {
                 muted
                 style={{ marginTop: space.cosy }}
               >
-                This event is full — you can still RSVP "maybe" in case a spot
+                This event is full, but you can still RSVP "maybe" in case a spot
                 opens up.
               </AppText>
             ) : null}

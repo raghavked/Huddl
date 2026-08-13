@@ -35,7 +35,7 @@ import { useAuth } from "@/providers/auth-provider";
 
 /* Writing to the whole club at once.
  *
- * One title, one body, one notification each — that last part is the reason
+ * One title, one body, one notification each. That last part is the reason
  * this screen exists instead of a pinned chat message, and the reason the
  * line above the form says so out loud before anyone starts typing.
  *
@@ -44,7 +44,7 @@ import { useAuth } from "@/providers/auth-provider";
  * instead of a permissions error. Every query and every error sentence comes
  * from `@/lib/club-announcements`. */
 
-/** Start warning about the cap this late — earlier is just nagging. */
+/** Start warning about the cap this late. Earlier is just nagging. */
 const COUNT_VISIBLE_FROM = 1800;
 
 /** How long the "posted" note sits on screen before we hand the club back. */
@@ -58,7 +58,7 @@ function PostedNote() {
   const reduceMotion = useReducedMotion();
   const enter = useRef(new Animated.Value(0)).current;
 
-  // An arrival, so it lands on the out-curve — and lands instantly when the
+  // An arrival, so it lands on the out-curve, and instantly when the
   // student has asked the OS for less movement.
   useEffect(() => {
     Animated.timing(enter, {
@@ -101,7 +101,7 @@ function PostedNote() {
       >
         <Feather name="check" size={24} color={theme.accent} />
       </View>
-      <AppText variant="title">Posted — the club has it.</AppText>
+      <AppText variant="title">Posted. The club has it.</AppText>
     </Animated.View>
   );
 }
@@ -177,7 +177,7 @@ export default function ClubAnnounceScreen() {
     }
   }, [pending, posted, club, title, body]);
 
-  // Deep links land here directly — signed-out visitors get a proper door.
+  // Deep links land here directly, so signed-out visitors get a proper door.
   if (ready && !session) {
     return <Redirect href="/(auth)/login" />;
   }
@@ -224,7 +224,7 @@ export default function ClubAnnounceScreen() {
     return scaffold(<PostedNote />);
   }
 
-  // Only reachable from a stray deep link — the club page always passes both
+  // Only reachable from a stray deep link. The club page always passes both
   // params. Say what's missing instead of pretending the club is closed.
   if (!club) {
     return scaffold(
@@ -296,7 +296,7 @@ export default function ClubAnnounceScreen() {
     );
   }
 
-  // Not an officer — or not in the club at all. Either way, an explanation
+  // Not an officer, or not in the club at all. Either way, an explanation
   // and a way out, never a raw permissions error.
   if (!mayPost) {
     return scaffold(
@@ -375,7 +375,7 @@ export default function ClubAnnounceScreen() {
               variant="caption"
               style={{ alignSelf: "flex-end", color: theme.danger }}
             >
-              That's the full {ANNOUNCEMENT_BODY_MAX} characters — trim
+              That's the full {ANNOUNCEMENT_BODY_MAX} characters. Trim
               something to add more.
             </AppText>
           )

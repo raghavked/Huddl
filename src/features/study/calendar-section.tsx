@@ -91,7 +91,7 @@ export function CalendarSection({
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // The inline "Add a date" form — no datepicker dependency, just honest text.
+  // The inline "Add a date" form: no datepicker dependency, just honest text.
   const [formOpen, setFormOpen] = useState(false);
   const [formKind, setFormKind] = useState<CalendarKind>("assignment");
   const [formTitle, setFormTitle] = useState("");
@@ -135,7 +135,7 @@ export function CalendarSection({
         else next.delete(item.id);
         return next;
       });
-      setActionError("That check-off didn't save — give it another tap.");
+      setActionError("That check-off didn't save. Give it another tap.");
     }
   }
 
@@ -174,19 +174,19 @@ export function CalendarSection({
     if (formPending) return;
     const title = formTitle.trim();
     if (title === "") {
-      setFormError("Give it a title — “Midterm 2”, “HW 4”, that kind of thing.");
+      setFormError("Give it a title: “Midterm 2”, “HW 4”, that kind of thing.");
       return;
     }
     const dateMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(formDate.trim());
     if (!dateMatch) {
-      setFormError("Dates look like YYYY-MM-DD — try 2026-10-14.");
+      setFormError("Dates look like YYYY-MM-DD, as in 2026-10-14.");
       return;
     }
     const year = Number(dateMatch[1]);
     const month = Number(dateMatch[2]);
     const day = Number(dateMatch[3]);
     if (month < 1 || month > 12 || day < 1 || day > daysInMonth(month, year)) {
-      setFormError("That day doesn't exist — double-check the month and day.");
+      setFormError("That day doesn't exist. Double-check the month and day.");
       return;
     }
     let hours = 23;
@@ -197,7 +197,7 @@ export function CalendarSection({
       const h = timeMatch ? Number(timeMatch[1]) : NaN;
       const m = timeMatch ? Number(timeMatch[2]) : NaN;
       if (!timeMatch || h > 23 || m > 59) {
-        setFormError("Times look like HH:MM — try 14:30, or leave it blank.");
+        setFormError("Times look like HH:MM, as in 14:30, or leave it blank.");
         return;
       }
       hours = h;
@@ -222,7 +222,7 @@ export function CalendarSection({
     setFormPending(false);
     if (error || !data) {
       setFormError(
-        "We couldn't add that date — check you're still in this course and try again."
+        "We couldn't add that date. Check you're still in this course and try again."
       );
       return;
     }

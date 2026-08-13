@@ -43,7 +43,7 @@ export async function generateMetadata({
   return { title: data?.title ?? "Campus board" };
 }
 
-/** "Friday, October 14" — the long form under a ride's short label. */
+/** "Friday, October 14": the long form under a ride's short label. */
 function longDay(day: Date): string {
   return day.toLocaleDateString([], {
     weekday: "long",
@@ -73,7 +73,7 @@ function MetaRow({
 /**
  * One post on the campus board.
  *
- * For a reader this page exists for the Message button — a board post is only
+ * For a reader this page exists for the Message button. A board post is only
  * ever half an arrangement. For the author it exists for the menu: mark it
  * sorted when the ride fills (the post stays readable, sunk to the bottom of
  * the board), edit it, or take it down for good.
@@ -156,7 +156,7 @@ export default async function BoardPostPage({
   const rideDay = parseBoardDay(post.happens_on);
   const author = post.author;
   // "Just now" opens a sentence everywhere else in the app; here it finishes
-  // one. Only that one label needs lowering — "Put up aug 2" would be worse.
+  // one. Only that one label needs lowering; "Put up aug 2" would be worse.
   const posted = timeAgo(post.created_at, now);
   const postedLine = posted === "Just now" ? "Put up just now" : `Put up ${posted}`;
   const authorName = mine

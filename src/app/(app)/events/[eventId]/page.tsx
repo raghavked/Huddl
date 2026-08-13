@@ -368,7 +368,7 @@ export default async function EventPage({
         {isPast ? (
           <p className="rounded-card border border-border bg-surface-2 px-4 py-3 text-sm text-muted">
             This event has ended
-            {myStatus === "going" ? " — hope it was a good one." : "."}
+            {myStatus === "going" ? ". Hope it was a good one." : "."}
           </p>
         ) : (
           <RsvpBar
@@ -419,7 +419,7 @@ export default async function EventPage({
               description={
                 isPast
                   ? "Nobody RSVP'd to this one."
-                  : "Be the first — tap an RSVP above."
+                  : "Be the first. Tap an RSVP above."
               }
               className="py-10"
             />

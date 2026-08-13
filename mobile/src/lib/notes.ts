@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabase";
    - table public.notes with storage_path / file_name / file_size / mime_type
    - reads via short-lived signed URLs.
 
-   Migration 0032 added notes.tags — see the tags block below. */
+   Migration 0032 added notes.tags; see the tags block below. */
 
 export const NOTES_BUCKET = "notes";
 
@@ -23,7 +23,7 @@ export const MAX_NOTE_BYTES = 25 * 1024 * 1024;
    that: we send what the student typed and read the saved row back, so the
    screen settles on the database's answer instead of guessing at it. The
    constants exist so a composer can cap the picker and the text field
-   politely — not so it can pre-normalize. */
+   politely, not so it can pre-normalize. */
 
 /** The trigger keeps the first five tags; don't let a student pick a sixth. */
 export const MAX_NOTE_TAGS = 5;
@@ -33,7 +33,7 @@ export const MIN_NOTE_TAG_LENGTH = 2;
 export const MAX_NOTE_TAG_LENGTH = 24;
 
 /**
- * A starter vocabulary for the composer to offer as Chips — the words a class
+ * A starter vocabulary for the composer to offer as Chips: the words a class
  * actually files notes under. Not a whitelist: "discussion 2" or "orgo" are
  * just as welcome, so keep the free-text field next to the chips.
  */
@@ -47,7 +47,7 @@ export const SUGGESTED_TAGS: readonly string[] = [
   "reading",
 ];
 
-/** Same allow-list as the web uploader — parity, not a security boundary. */
+/** Same allow-list as the web uploader: parity, not a security boundary. */
 const ACCEPTED_EXTENSIONS: readonly string[] = [
   "pdf",
   "doc",
@@ -68,7 +68,7 @@ const ACCEPTED_EXTENSIONS: readonly string[] = [
   "heic",
 ];
 
-/* Minimal local row shapes — the web app's types live outside this tsconfig. */
+/* Minimal local row shapes: the web app's types live outside this tsconfig. */
 
 export type NoteUploader = {
   id: string;
@@ -87,7 +87,7 @@ export type NoteRow = {
   file_size: number;
   mime_type: string | null;
   /**
-   * Lowercase, deduped, at most five — whatever the trigger settled on, never
+   * Lowercase, deduped, at most five: whatever the trigger settled on, never
    * whatever was sent. Always an array; empty is the common case.
    */
   tags: string[];
@@ -104,10 +104,10 @@ export type CourseTag = {
 const NOTE_SELECT =
   "id, course_id, uploader_id, title, description, storage_path, file_name, file_size, mime_type, tags, created_at, uploader:profiles(id, display_name, avatar_url)";
 
-/** Warm, user-facing failures — safe to show as-is. */
+/** Warm, user-facing failures, safe to show as-is. */
 export class NotesError extends Error {}
 
-/** "1.2 MB" — same buckets as the web's formatFileSize. */
+/** "1.2 MB", using the same buckets as the web's formatFileSize. */
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -156,7 +156,7 @@ export async function listNotes(courseId: string): Promise<NoteRow[]> {
 }
 
 /**
- * Every tag in use on this course's notes, with a count each — busiest first,
+ * Every tag in use on this course's notes, with a count each: busiest first,
  * alphabetical within a tie. That ordering is what makes a filter bar useful:
  * "lecture (18)" sits where the eye lands, and the long tail stays stable
  * between refreshes instead of shuffling.
@@ -165,7 +165,7 @@ export async function listNotes(courseId: string): Promise<NoteRow[]> {
  * a course's notes number in the dozens, not the thousands, and a `select
  * tags` is cheaper than teaching the database a new RPC.
  *
- * A course with no tagged notes returns an empty array, not an error — the
+ * A course with no tagged notes returns an empty array, not an error. The
  * filter bar simply doesn't appear yet.
  *
  * @throws {NotesError} With copy that's ready to render.
@@ -190,7 +190,7 @@ export async function fetchCourseTags(courseId: string): Promise<CourseTag[]> {
 }
 
 /**
- * Short-lived (60s) signed URL for a note file — open it right away.
+ * Short-lived (60s) signed URL for a note file. Open it right away.
  * `filePath` is the notes row's storage_path.
  */
 export async function getSignedUrl(filePath: string): Promise<string> {
@@ -208,7 +208,7 @@ export async function getSignedUrl(filePath: string): Promise<string> {
  * path convention (`<userId>/<random>-<name>`). Rolls the file back if the
  * row insert fails. Throws NotesError with a warm message on any failure.
  *
- * `tags` goes to the database exactly as typed — the trigger does the
+ * `tags` goes to the database exactly as typed. The trigger does the
  * trimming, lowercasing and capping, and the returned row carries the result.
  */
 export async function uploadNote({
@@ -239,7 +239,7 @@ export async function uploadNote({
   }
   if (typeof file.size === "number" && file.size > MAX_NOTE_BYTES) {
     throw new NotesError(
-      `That file is ${formatFileSize(file.size)} — the limit is 25 MB.`
+      `That file is ${formatFileSize(file.size)}. The limit is 25 MB.`
     );
   }
 
@@ -257,7 +257,7 @@ export async function uploadNote({
   }
   if (bytes.byteLength > MAX_NOTE_BYTES) {
     throw new NotesError(
-      `That file is ${formatFileSize(bytes.byteLength)} — the limit is 25 MB.`
+      `That file is ${formatFileSize(bytes.byteLength)}. The limit is 25 MB.`
     );
   }
 
@@ -301,12 +301,12 @@ export async function uploadNote({
 }
 
 /**
- * Replace a note's tags. Only the uploader may do this — 0006's "uploaders can
+ * Replace a note's tags. Only the uploader may do this. 0006's "uploaders can
  * manage own notes" policy scopes the UPDATE to `uploader_id = auth.uid()`, so
  * a classmate's attempt updates nothing rather than erroring.
  *
  * Pass the whole set every time, not a delta: `[]` clears the note's tags.
- * The saved row comes back so the screen can settle on the normalized tags —
+ * The saved row comes back so the screen can settle on the normalized tags:
  * "  Midterm 2 " went out, `midterm 2` comes home, and a duplicate or a
  * one-letter typo quietly vanishes. Safe to run optimistically: show the tags
  * as typed, then replace them with `row.tags` when this resolves, and roll
@@ -330,7 +330,7 @@ export async function setNoteTags(
   if (error) {
     throw new NotesError("Those tags didn't save. Give it another try.");
   }
-  // Zero rows updated isn't an error to PostgREST — it means the policy didn't
+  // Zero rows updated isn't an error to PostgREST. It means the policy didn't
   // match: someone else shared this note, or it's been taken down since.
   if (!data) {
     throw new NotesError("Only whoever shared this note can change its tags.");
@@ -376,7 +376,7 @@ function toTagList(value: unknown): string[] {
 
 /**
  * Count how many notes wear each tag: busiest first, alphabetical within a
- * tie. Pure — hand it the tag arrays of any set of notes, including ones a
+ * tie. Pure: hand it the tag arrays of any set of notes, including ones a
  * screen already has in state, and no second round trip is needed.
  *
  * A note counts once per tag even if its array somehow repeats one, so the

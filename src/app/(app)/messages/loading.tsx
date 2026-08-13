@@ -13,7 +13,7 @@ export default function MessagesLoading() {
       <Skeleton className="mt-3 h-8 w-48" />
       <Skeleton className="mt-3 h-3.5 w-72 max-w-full" />
 
-      {/* Conversation rows — round avatar + preview lines + timestamp */}
+      {/* Conversation rows: round avatar + preview lines + timestamp */}
       <div className="mt-6 flex flex-col gap-2.5">
         {Array.from({ length: 6 }, (_, i) => (
           <div
