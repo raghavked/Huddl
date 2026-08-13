@@ -1,4 +1,5 @@
 import type { DocumentPickerAsset } from "expo-document-picker";
+import { isAcceptedNote, noteContentType } from "@/lib/note-types";
 import { supabase } from "@/lib/supabase";
 
 /* Shared course notes: storage + table helpers, mirroring the web app's
@@ -47,26 +48,6 @@ export const SUGGESTED_TAGS: readonly string[] = [
   "reading",
 ];
 
-/** Same allow-list as the web uploader: parity, not a security boundary. */
-const ACCEPTED_EXTENSIONS: readonly string[] = [
-  "pdf",
-  "doc",
-  "docx",
-  "ppt",
-  "pptx",
-  "xls",
-  "xlsx",
-  "csv",
-  "txt",
-  "md",
-  "rtf",
-  "png",
-  "jpg",
-  "jpeg",
-  "gif",
-  "webp",
-  "heic",
-];
 
 /* Minimal local row shapes: the web app's types live outside this tsconfig. */
 
@@ -112,10 +93,6 @@ export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function fileExtension(name: string): string {
-  return name.split(".").pop()?.toLowerCase() ?? "";
 }
 
 /** Keep the original name readable but safe for a storage key (web parity). */
@@ -232,7 +209,7 @@ export async function uploadNote({
   if (!cleanTitle) {
     throw new NotesError("Give your note a title first.");
   }
-  if (!ACCEPTED_EXTENSIONS.includes(fileExtension(file.name))) {
+  if (!isAcceptedNote(file.name)) {
     throw new NotesError(
       "That file type isn't supported. Share a document, slides, spreadsheet or image."
     );
@@ -262,12 +239,20 @@ export async function uploadNote({
   }
 
   const storagePath = `${userId}/${randomKey()}-${sanitizeFileName(file.name)}`;
-  const mimeType = file.mimeType ?? null;
+  /* Derived from the extension, not taken from the picker. The bucket
+     checks the type now (0049) and a picker that says octet-stream for a
+     .md file would have the upload refused. */
+  const mimeType = noteContentType(file.name);
+  if (mimeType === null) {
+    // Unreachable: isAcceptedNote refused this file above. Belt and braces,
+    // because uploading a type the bucket rejects reads as a network fault.
+    throw new NotesError("Huddl can't take that kind of file.");
+  }
 
   const { error: uploadError } = await supabase.storage
     .from(NOTES_BUCKET)
     .upload(storagePath, bytes, {
-      contentType: mimeType ?? "application/octet-stream",
+      contentType: mimeType,
       upsert: false,
     });
   if (uploadError) {

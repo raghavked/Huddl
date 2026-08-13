@@ -472,7 +472,7 @@ export function MessageItem({
             className="mt-1 flex w-fit items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-medium text-success"
           >
             <Flag className="size-3" aria-hidden />
-            Report sent. A person reads it within 24 hours.
+            Report sent. A person reads it, usually within a day.
           </p>
         ) : null}
       </div>
@@ -642,7 +642,7 @@ export function MessageItem({
                     </p>
                     <p className="mt-0.5 text-[11px] leading-snug text-muted">
                       Reports are private. They won&apos;t know it was you. A
-                      person reads every one within 24 hours.
+                      person reads every one, usually within a day.
                     </p>
 
                     <p

@@ -6,8 +6,8 @@ storage, no ads, no data sale):
 
 | Document | Updated | Covers |
 | --- | --- | --- |
-| Terms of Service | August 2026 | Eligibility (13+, enrolled at or affiliated with a supported university), account rules, content ownership and license, enforcement, independence from universities, account deletion, plain-words liability, changes |
-| Privacy Policy | August 2026 | What we collect and what we never collect, campus-scoped visibility, Supabase hosting, sharing (service providers only: Supabase hosting, Expo push delivery), retention and in-app deletion, age, changes |
+| Terms of Service | August 2026 | Eligibility (16+, enrolled at or affiliated with a supported university), account rules, content ownership and license, DMCA notice-and-takedown and repeat-infringer termination, enforcement, independence from universities, account deletion, liability and indemnity, governing law, changes |
+| Privacy Policy | August 2026 | What we collect and what we never collect, the private-to-you data (grade estimator, blocks, saved messages, review history), campus-scoped visibility, Supabase hosting in us-west-2 and transfers out of the UK and EU, sharing (service providers only: Supabase hosting, Expo push delivery), retention periods, GDPR and CCPA rights, in-app deletion, age (16+), changes |
 | Community Guidelines | August 2026 | Harassment, hate, impersonation, spam/scams, sexual content, self-harm response (988 lifeline), academic honesty, privacy of others, enforcement, how to report |
 
 > **Status: launch drafts pending attorney review before public launch.**
@@ -69,8 +69,12 @@ keep them true:
   match the live `reports.category` check constraint (migration 0020):
   harassment, spam, hate, impersonation, sexual_content, self_harm,
   academic_dishonesty, other.
-- **Human review within 24 hours** of every report. (Also promised in the
-  report screen's confirmation copy; the docs and the app agree.)
+- **Human review of every report**, aimed at within a day, with safety
+  reports taken first. This was an unconditional "within 24 hours" in all
+  three documents and in the report screen. It was changed because it is a
+  binding promise to users and a representation to Apple, and a volunteer
+  student moderator queue cannot guarantee a deadline. If the report screen's
+  confirmation copy is edited, it has to keep saying the weaker true thing.
 - **Blocking:** instant and silent, managed under Settings → Blocked people.
   It is **one-way, not mutual**, and the copy has to keep saying so. What a
   block does: no new DM thread can be opened in either direction

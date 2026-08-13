@@ -393,7 +393,7 @@ export default function SignupScreen() {
               </AppText>
             </Pressable>
             <AppText variant="caption" muted>
-              .
+              , and confirm you are 16 or older.
             </AppText>
           </View>
 

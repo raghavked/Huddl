@@ -345,7 +345,7 @@ export default function ReportScreen() {
           </View>
           <AppText variant="title">Report sent</AppText>
           <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
-            Thanks for looking out. We review reports within 24 hours.
+            Thanks for looking out. A person reads every report, usually within a day.
           </AppText>
           {/* Reporting and blocking are one intent. The report is filed
               either way; this is the half that changes her day today. */}

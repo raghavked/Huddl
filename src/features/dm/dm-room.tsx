@@ -195,7 +195,7 @@ function ReportPanel({
       </p>
       <p className="mt-0.5 text-xs text-muted text-pretty">
         Reports are private. They won&apos;t know it was you. A person reads
-        every one within 24 hours.
+        every one, usually within a day.
       </p>
 
       <p
@@ -1056,7 +1056,7 @@ export function DmRoom({
                       className="flex w-fit items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-medium text-success"
                     >
                       <Flag className="size-3 shrink-0" aria-hidden />
-                      Report sent. A person reads it within 24 hours.
+                      Report sent. A person reads it, usually within a day.
                     </p>
                   ) : null}
 

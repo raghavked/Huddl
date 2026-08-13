@@ -117,7 +117,7 @@ export function ReportPersonButton({
           role="status"
           className="w-full text-sm font-medium text-success text-pretty"
         >
-          Report sent. A person reads it within 24 hours. You won&apos;t hear
+          Report sent. A person reads it, usually within a day. You won&apos;t hear
           back about what we decide, and {name} isn&apos;t told you reported
           them.
         </p>
@@ -138,7 +138,7 @@ export function ReportPersonButton({
           </p>
           <p className="mt-1 text-sm text-muted text-pretty">
             Reports are private. They won&apos;t know it was you. A person
-            reads every one within 24 hours. This one is about {name}, not
+            reads every one, usually within a day. This one is about {name}, not
             about a single message; to report something they said, use the flag
             on the message itself.
           </p>

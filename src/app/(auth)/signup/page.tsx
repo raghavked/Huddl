@@ -42,7 +42,7 @@ export default async function SignupPage() {
           >
             Privacy Policy
           </Link>
-          .
+          , and confirm you are 16 or older.
         </p>
       </Card>
       <p className="mt-6 text-center text-sm text-muted">

@@ -10,6 +10,11 @@ import {
   controlClasses,
 } from "@/components/ui";
 import { TagPicker } from "@/features/notes/tag-picker";
+import {
+  ACCEPTED_NOTE_EXTENSIONS,
+  isAcceptedNote,
+  noteContentType,
+} from "@/lib/note-types";
 import { MAX_NOTE_TAGS, toTagList } from "@/lib/notes";
 import { createClient } from "@/lib/supabase/client";
 import { formatFileSize } from "@/lib/utils";
@@ -24,27 +29,7 @@ export type UploadedNote = Note & { tags: string[] };
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
-const ACCEPTED_EXTENSIONS: readonly string[] = [
-  "pdf",
-  "doc",
-  "docx",
-  "ppt",
-  "pptx",
-  "xls",
-  "xlsx",
-  "csv",
-  "txt",
-  "md",
-  "rtf",
-  "png",
-  "jpg",
-  "jpeg",
-  "gif",
-  "webp",
-  "heic",
-];
-
-const ACCEPT_ATTR = ACCEPTED_EXTENSIONS.map((ext) => `.${ext}`).join(",");
+const ACCEPT_ATTR = ACCEPTED_NOTE_EXTENSIONS.map((ext) => `.${ext}`).join(",");
 
 /** Keep the original name readable but safe for a storage key. */
 function sanitizeFileName(name: string): string {
@@ -53,10 +38,6 @@ function sanitizeFileName(name: string): string {
     .replace(/-{2,}/g, "-")
     .replace(/^[-.]+/, "");
   return (cleaned || "file").slice(-100);
-}
-
-function fileExtension(name: string): string {
-  return name.split(".").pop()?.toLowerCase() ?? "";
 }
 
 /**
@@ -129,7 +110,7 @@ export function NoteUpload({
     if (file.size > MAX_FILE_BYTES) {
       return `That file is ${formatFileSize(file.size)}. The limit is 25 MB.`;
     }
-    if (!ACCEPTED_EXTENSIONS.includes(fileExtension(file.name))) {
+    if (!isAcceptedNote(file.name)) {
       return "That file type isn't supported. Share a document, slides, spreadsheet or image.";
     }
     return null;
@@ -151,12 +132,18 @@ export function NoteUpload({
       file.name
     )}`;
 
+    /* From the extension, not from file.type. The bucket checks the type
+       now (0049), and a browser that reports an empty type for a .md file
+       would otherwise have a good upload refused. */
+    const contentType = noteContentType(file.name);
+    if (contentType === null) {
+      setError("Huddl can't take that kind of file.");
+      setPending(false);
+      return;
+    }
     const { error: uploadError } = await supabase.storage
       .from("notes")
-      .upload(storagePath, file, {
-        contentType: file.type || "application/octet-stream",
-        upsert: false,
-      });
+      .upload(storagePath, file, { contentType, upsert: false });
     if (uploadError) {
       setError("Upload failed. Check your connection and try again.");
       setPending(false);
