@@ -79,7 +79,7 @@ function describeReauthFailure(error: AuthError): ChangeError {
   if (error.status === 429 || /rate limit/i.test(error.message ?? "")) {
     return {
       message:
-        "That's a few tries in a row, so Huddl is asking us to slow down. Give it a moment and go again.",
+        "That's a few tries in a row, so Hearth is asking us to slow down. Give it a moment and go again.",
       offerReset: true,
     };
   }
@@ -116,7 +116,7 @@ function describeUpdateFailure(error: AuthError): ChangeError {
   if (code === "reauthentication_needed" || /reauthenticat/i.test(message)) {
     return {
       message:
-        "Huddl wants a fresher login before it'll change a password. Sign out, sign back in, and this will go through.",
+        "Hearth wants a fresher login before it'll change a password. Sign out, sign back in, and this will go through.",
       offerReset: false,
     };
   }
@@ -201,7 +201,7 @@ export function ChangePasswordForm({ email }: { email: string }) {
       setPending(false);
       setError({
         message:
-          "We couldn't reach Huddl to check that password. Check your connection and try again.",
+          "We couldn't reach Hearth to check that password. Check your connection and try again.",
         offerReset: false,
       });
       return;
@@ -228,7 +228,7 @@ export function ChangePasswordForm({ email }: { email: string }) {
       setPending(false);
       setError({
         message:
-          "We couldn't reach Huddl to save that. Your old password still works, so try again in a moment.",
+          "We couldn't reach Hearth to save that. Your old password still works, so try again in a moment.",
         offerReset: false,
       });
       return;
@@ -439,7 +439,7 @@ export function ChangePasswordForm({ email }: { email: string }) {
 
         {saved ? (
           <p className="text-xs text-muted text-pretty">
-            You&apos;re still signed in here. If Huddl is open anywhere else
+            You&apos;re still signed in here. If Hearth is open anywhere else
             (your phone, a lab machine), that device will ask for the new
             password next time.
           </p>
@@ -482,7 +482,7 @@ export function SignOutOtherDevices() {
         <div className="min-w-0">
           <h2 className="font-bold tracking-tight">Other devices</h2>
           <p className="mt-1 text-sm text-muted text-pretty">
-            Left Huddl open on a library machine, or passed an old phone along?
+            Left Hearth open on a library machine, or passed an old phone along?
             This signs out every other browser and device on your account. You
             stay signed in here.
           </p>

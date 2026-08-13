@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 /**
  * `/.well-known/apple-app-site-association`: the file iOS fetches to decide
- * whether a `https://huddl.app/...` link belongs to the Huddl app.
+ * whether a `https://uhearth.app/...` link belongs to the Hearth app.
  *
  * Served with no extension and `application/json`, exactly as Apple's CDN
  * expects, and never behind a redirect (the middleware matcher lets this path
@@ -12,7 +12,7 @@ import { NextResponse } from "next/server";
 /** Ten alphanumerics, Developer portal → Membership details → Team ID. */
 const TEAM_ID_PATTERN = /^[A-Z0-9]{10}$/;
 
-const BUNDLE_ID = "app.huddl.mobile";
+const BUNDLE_ID = "app.uhearth.mobile";
 
 /**
  * Apple's CDN re-fetches on its own schedule and devices cache what it hands

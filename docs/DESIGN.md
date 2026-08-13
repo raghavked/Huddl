@@ -11,7 +11,7 @@
 > this file is right and the other is stale. Keep them separate; a change to a
 > token or a rule belongs in both.
 
-Huddl is a campus community platform for college students, launching at UC
+Hearth is a campus community platform for college students, launching at UC
 Davis. Everything a student does in a semester (their classes, their clubs,
 their group chats, their study nights, their calendar) lives in one app.
 
@@ -115,7 +115,7 @@ screen ever looks slate or navy, a raw color slipped in.
 
 **Bricolage Grotesque** for display, **Plus Jakarta Sans** for everything else.
 Bricolage has personality (a little squared, a little humanist) and that
-personality is the entire reason a title feels like Huddl and not like a
+personality is the entire reason a title feels like Hearth and not like a
 framework default. It appears in exactly two places: screen titles and card
 titles. Everywhere else is Jakarta.
 
@@ -394,7 +394,7 @@ Plus:
 
 ## 6. Copy
 
-Huddl sounds like the classmate who has their act together and shares their
+Hearth sounds like the classmate who has their act together and shares their
 notes anyway.
 
 **Warm, not chummy.** Talk *to* students, never at them or down to them. No
@@ -455,7 +455,7 @@ Not preferences. The floor.
   `motion.instant`. No exceptions. See §3.
 - **Both themes, every time.**
 - **`react-native`'s `Animated` only.** No new dependencies for motion.
-- **Never describe Huddl in terms of another product.** Not in the UI, not in
+- **Never describe Hearth in terms of another product.** Not in the UI, not in
   onboarding, not in an empty state. It is a campus community platform, full
   stop.
 

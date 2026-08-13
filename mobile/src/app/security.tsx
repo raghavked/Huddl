@@ -142,7 +142,7 @@ export default function SecurityScreen() {
       setPhase(gone ? "signed-out" : "error");
       return;
     }
-    // Every Huddl account is a university email address, so a user with none
+    // Every Hearth account is a university email address, so a user with none
     // isn't a case to design for; it's a sign-in we couldn't re-check.
     const address = data.user?.email ?? null;
     setEmail(address);

@@ -1,6 +1,6 @@
-# Huddl — native app
+# Hearth — native app
 
-The Expo (React Native) client for Huddl, sharing the Supabase backend
+The Expo (React Native) client for Hearth, sharing the Supabase backend
 with the web PWA at the repo root. Hearth design system, five-tab shell,
 realtime everything — built with Expo SDK 57, expo-router, and strict
 TypeScript.
@@ -18,7 +18,7 @@ npm start              # Metro, for a device that already has a dev build
 Hermes bundle and verifies the whole app compiles without a native
 toolchain — that one runs anywhere, including Linux and CI.
 
-**Expo Go will not run this app.** Huddl uses native modules that are
+**Expo Go will not run this app.** Hearth uses native modules that are
 not in the Go client (`@expo/ui`, `expo-glass-effect`, `expo-dev-client`)
 and push notifications need a real build. Use a development build, below.
 
@@ -61,7 +61,7 @@ npm run device          # builds, installs over the cable, starts Metro
 the native `ios/` project, installs pods, builds, and installs to the
 phone — allow ten to fifteen minutes. After that it is under a minute,
 and you usually do not need it at all: leave the app installed and just
-run `npm start`, then open Huddl on the phone.
+run `npm start`, then open Hearth on the phone.
 
 If more than one device is attached, Expo prompts you to pick. To skip
 the prompt: `npx expo run:ios --device "Raghav's iPhone"`.
@@ -93,7 +93,7 @@ xcrun devicectl device console --device <udid>   # Xcode 15+
 
 | Symptom | Fix |
 | --- | --- |
-| `Signing for "Huddl" requires a development team` | Open `ios/Huddl.xcworkspace`, target Huddl → Signing & Capabilities → pick your team, then re-run |
+| `Signing for "Hearth" requires a development team` | Open `ios/Hearth.xcworkspace`, target Hearth → Signing & Capabilities → pick your team, then re-run |
 | `Unable to boot device` / device not listed | Unlock the phone, re-Trust, confirm Developer Mode is on |
 | Build fails right after a dependency change | `npm run prebuild` to regenerate `ios/` from `app.json`, then `npm run device` |
 | App installs but shows a white screen | Metro is not reachable — same Wi-Fi, or `npx expo start --dev-client --tunnel` |

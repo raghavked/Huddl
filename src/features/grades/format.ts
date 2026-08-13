@@ -157,7 +157,7 @@ export function sumWeights(categories: readonly GradeCategory[]): number {
  * edit form, the delete button, the add-a-score row) stays shut until the
  * insert settles and the row swaps for the saved one.
  */
-const DRAFT_PREFIX = "huddl-draft:";
+const DRAFT_PREFIX = "hearth-draft:";
 let draftSeq = 0;
 
 /** A throwaway id for a row that's still in flight. */

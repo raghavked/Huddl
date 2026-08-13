@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
-/* Huddl illustration library: original SVG scenes in a warm,          */
+/* Hearth illustration library: original SVG scenes in a warm,          */
 /* hand-drawn style: tilted shapes, steam curls, crumb dots, stitch    */
 /* dashes. Everything is token-driven (fill-brand, fill-accent-soft,   */
 /* …) so scenes recolor with the theme and stay on-palette by          */
@@ -146,8 +146,8 @@ export function NotesScene({ className }: SceneProps) {
   );
 }
 
-/** Three figures leaning into a huddle: people, clubs, community. */
-export function HuddleScene({ className }: SceneProps) {
+/** Three figures leaning together: people, clubs, community. */
+export function GatheringScene({ className }: SceneProps) {
   return (
     <Scene className={className}>
       <ellipse cx="100" cy="124" rx="66" ry="8" className="fill-surface-3" opacity="0.6" />

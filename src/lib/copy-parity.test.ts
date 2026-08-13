@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 /**
  * The two clients must not say almost the same thing.
  *
- * Huddl ships the same product twice, once in Expo and once in Next, and the
+ * Hearth ships the same product twice, once in Expo and once in Next, and the
  * copy is duplicated because neither tsconfig can reach the other. Identical
  * duplication is fine and there is a lot of it. What goes wrong is the near
  * miss: someone improves a sentence on one side, the other side keeps the old

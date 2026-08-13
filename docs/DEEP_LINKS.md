@@ -1,8 +1,8 @@
 # Deep links and universal links
 
-A link to Huddl should land where the student expects. Paste
-`https://huddl.app/events/8f2c…` into a group chat and a friend with the app
-installed opens the event *in Huddl*, not in a browser tab that asks them to
+A link to Hearth should land where the student expects. Paste
+`https://uhearth.app/events/8f2c…` into a group chat and a friend with the app
+installed opens the event *in Hearth*, not in a browser tab that asks them to
 log in again. A friend without the app opens the same URL and reads the same
 event on the web. One link, two good outcomes, no "open in app" banner.
 
@@ -18,10 +18,10 @@ list of what has to be true before any of it works.
 
 ## 1. The link language
 
-Every link Huddl produces (a share sheet, a push payload, an email) is
+Every link Hearth produces (a share sheet, a push payload, an email) is
 written in the **web app's URL space**. That is the one address space both
 clients understand, and it is the only one that survives being pasted
-somewhere Huddl doesn't control.
+somewhere Hearth doesn't control.
 
 The native app's routes are not identical to the web's (ours are singular:
 `/event/…`, not `/events/…`). The translation lives in one place,
@@ -31,12 +31,12 @@ links.
 
 | Shared URL | Opens on web | Opens in the app | Native file |
 | --- | --- | --- | --- |
-| `https://huddl.app/channels/<id>` | Channel | `/channel/<id>` | `mobile/src/app/channel/[id].tsx` |
-| `https://huddl.app/clubs/<id>` | Club | `/club/<id>` | `mobile/src/app/club/[id].tsx` |
-| `https://huddl.app/courses/<id>` | Course home | `/course/<id>` | `mobile/src/app/course/[id].tsx` |
-| `https://huddl.app/events/<id>` | Event | `/event/<id>` | `mobile/src/app/event/[id].tsx` |
-| `https://huddl.app/messages/<id>` | DM thread | `/dm/<id>` | `mobile/src/app/dm/[id].tsx` |
-| `https://huddl.app/u/<handle>` | Profile | `/u/<handle>` | `mobile/src/app/u/[handle].tsx` |
+| `https://uhearth.app/channels/<id>` | Channel | `/channel/<id>` | `mobile/src/app/channel/[id].tsx` |
+| `https://uhearth.app/clubs/<id>` | Club | `/club/<id>` | `mobile/src/app/club/[id].tsx` |
+| `https://uhearth.app/courses/<id>` | Course home | `/course/<id>` | `mobile/src/app/course/[id].tsx` |
+| `https://uhearth.app/events/<id>` | Event | `/event/<id>` | `mobile/src/app/event/[id].tsx` |
+| `https://uhearth.app/messages/<id>` | DM thread | `/dm/<id>` | `mobile/src/app/dm/[id].tsx` |
+| `https://uhearth.app/u/<handle>` | Profile | `/u/<handle>` | `mobile/src/app/u/[handle].tsx` |
 
 Query strings and fragments are ignored by the mapping. Deeper course paths
 collapse to the course home: `/courses/<id>/grades` opens `/course/<id>`,
@@ -67,13 +67,13 @@ AASA components and the Android intent filter, in that order.
 
 ### The custom scheme still exists
 
-`huddl://` is unchanged and still the fastest way to test routing without any
+`hearth://` is unchanged and still the fastest way to test routing without any
 domain setup. It takes **native** paths, not web ones, because nothing
 translates it:
 
 ```
-huddl://event/8f2c…      # opens the event
-huddl://dm/1a4b…         # opens the DM thread
+hearth://event/8f2c…      # opens the event
+hearth://dm/1a4b…         # opens the DM thread
 ```
 
 Universal links are the shareable public face; the scheme is the back door for
@@ -90,7 +90,7 @@ into `com.apple.developer.associated-domains` in the entitlements file:
 
 ```json
 "ios": {
-  "associatedDomains": ["applinks:huddl.app"]
+  "associatedDomains": ["applinks:uhearth.app"]
 }
 ```
 
@@ -104,7 +104,7 @@ prefix. `autoVerify` is what removes the "open with" dialog:
       "action": "VIEW",
       "autoVerify": true,
       "category": ["BROWSABLE", "DEFAULT"],
-      "data": [{ "scheme": "https", "host": "huddl.app", "pathPrefix": "/events/" }]
+      "data": [{ "scheme": "https", "host": "uhearth.app", "pathPrefix": "/events/" }]
     }
   ]
 }
@@ -136,7 +136,7 @@ which is correct; Apple wants it bare) and a one-day cache header with a week of
 **Both return 404 when their env var is missing or malformed, and the 404 is
 `no-store`.** This is the important design decision in these two files. iOS
 caches the AASA it fetches through Apple's CDN, so a document containing
-`TEAMID.app.huddl.mobile` or a half-typed fingerprint doesn't merely fail. It
+`TEAMID.app.uhearth.mobile` or a half-typed fingerprint doesn't merely fail. It
 fails *and sticks*, on every device that saw it, long after the fix ships. A
 missing file fails cleanly and retries. So the handlers validate before they
 serve: the team ID must match `^[A-Z0-9]{10}$`, each fingerprint must be 32
@@ -157,7 +157,7 @@ Ten alphanumeric characters, e.g. `A1B2C3D4E5`.
 
 It also appears as the prefix of the App ID in Certificates, Identifiers &
 Profiles. The AASA pairs it with the bundle identifier to form the app ID
-`<APPLE_TEAM_ID>.app.huddl.mobile`; if the bundle identifier in `app.json`
+`<APPLE_TEAM_ID>.app.uhearth.mobile`; if the bundle identifier in `app.json`
 ever changes, change it in the AASA route too.
 
 ### `ANDROID_CERT_SHA256`
@@ -188,12 +188,12 @@ keytool -list -v -keystore <path.jks> -alias <alias>   # SHA-256 line
 ### The documents themselves
 
 ```bash
-curl -i https://huddl.app/.well-known/apple-app-site-association
-curl -i https://huddl.app/.well-known/assetlinks.json
+curl -i https://uhearth.app/.well-known/apple-app-site-association
+curl -i https://uhearth.app/.well-known/assetlinks.json
 ```
 
 Look for `200`, `content-type: application/json`, and **no redirect**. Apple
-does not follow them, and a single `301` from `huddl.app` to `www.huddl.app`
+does not follow them, and a single `301` from `uhearth.app` to `www.uhearth.app`
 is enough to break the whole feature silently.
 
 ### iOS
@@ -202,7 +202,7 @@ Apple's App Search validation tool is retired; the CDN copy is the real source
 of truth, because that is what devices actually read:
 
 ```bash
-curl -s https://app-site-association.cdn-apple.com/a/v1/huddl.app
+curl -s https://app-site-association.cdn-apple.com/a/v1/uhearth.app
 ```
 
 An empty or stale response means Apple hasn't crawled the new document yet.
@@ -212,15 +212,15 @@ reason universal links "don't work" on day one.
 On a Mac with the device connected, or in the simulator:
 
 ```bash
-sudo swcutil dl -d huddl.app     # force a fetch, print the result
-swcutil show --domain huddl.app  # what this machine currently believes
+sudo swcutil dl -d uhearth.app     # force a fetch, print the result
+swcutil show --domain uhearth.app  # what this machine currently believes
 ```
 
 On device: Settings → Developer → **Universal Links** → Diagnostics, paste a
 URL, and it tells you which app (if any) claims it.
 
 **For development builds**, iOS can skip the CDN entirely. Use
-`applinks:huddl.app?mode=developer` in `associatedDomains` on a dev build,
+`applinks:uhearth.app?mode=developer` in `associatedDomains` on a dev build,
 enable Settings → Developer → **Associated Domains Development**, and the
 device fetches the file straight from the domain. Never ship that suffix in a
 store build.
@@ -229,25 +229,25 @@ store build.
 
 ```bash
 # What the system thinks about our claim
-adb shell pm get-app-links app.huddl.mobile
+adb shell pm get-app-links app.uhearth.mobile
 
 # Ask it to re-verify (also happens automatically at install)
-adb shell pm verify-app-links --re-verify app.huddl.mobile
+adb shell pm verify-app-links --re-verify app.uhearth.mobile
 
 # Fire a link at the device the way a browser would
 adb shell am start -a android.intent.action.VIEW \
   -c android.intent.category.BROWSABLE \
-  -d "https://huddl.app/events/8f2c0000-0000-4000-8000-000000000000"
+  -d "https://uhearth.app/events/8f2c0000-0000-4000-8000-000000000000"
 ```
 
-`get-app-links` should print `huddl.app: verified`. `none` means the statement
+`get-app-links` should print `uhearth.app: verified`. `none` means the statement
 wasn't reachable; `legacy_failure` usually means the fingerprint doesn't match
 the certificate that signed the installed build.
 
 Google's verifier will also tell you what it sees:
 
 ```
-https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://huddl.app&relation=delegate_permission/common.handle_all_urls
+https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://uhearth.app&relation=delegate_permission/common.handle_all_urls
 ```
 
 ---
@@ -260,7 +260,7 @@ at once, and today none of them are:
 1. **The env vars are set.** Until then both routes return 404 and neither OS
    has anything to verify. Nothing else is broken; links open the website,
    which is a perfectly good outcome.
-2. **`huddl.app` serves them over public HTTPS.** Apple's CDN and Google's
+2. **`uhearth.app` serves them over public HTTPS.** Apple's CDN and Google's
    verifier both crawl from the outside. They cannot reach `localhost`, and
    they cannot get past Vercel's password protection on a preview deployment.
    Preview URLs will never verify; only the real domain does.
@@ -293,7 +293,7 @@ import { routeForLink } from "@/lib/notification-links";
 export function redirectSystemPath({ path }: { path: string }): string {
   try {
     // `path` arrives as the full URL for universal links.
-    const { pathname } = new URL(path, "https://huddl.app");
+    const { pathname } = new URL(path, "https://uhearth.app");
     return (routeForLink(pathname) as string | null) ?? path;
   } catch {
     return path;
@@ -318,6 +318,6 @@ as ids.
   CDN still caches), but adding `\\.well-known/` to the matcher's negative
   lookahead makes the crawl faster and removes any chance of a `Set-Cookie`
   landing on a cacheable response.
-- **Only the apex domain is claimed.** If `www.huddl.app` or a staging host
+- **Only the apex domain is claimed.** If `www.uhearth.app` or a staging host
   ever serves the app, each one needs its own `applinks:` entry, its own
   `data` entry, and its own copy of both documents on that host.

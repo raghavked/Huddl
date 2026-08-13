@@ -88,11 +88,11 @@ export async function GET(
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Huddl//EN",
+    "PRODID:-//Hearth//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:${event.id}@huddl`,
+    `UID:${event.id}@hearth`,
     `DTSTAMP:${toIcsUtc(new Date())}`,
     `DTSTART:${toIcsUtc(start)}`,
     `DTEND:${toIcsUtc(end)}`,
@@ -111,7 +111,7 @@ export async function GET(
   return new NextResponse(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="huddl-event.ics"',
+      "Content-Disposition": 'attachment; filename="hearth-event.ics"',
       "Cache-Control": "no-store",
     },
   });

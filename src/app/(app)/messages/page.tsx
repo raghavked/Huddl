@@ -35,7 +35,7 @@ type ParticipantRow = {
 /** Friendly copy for the ?error= codes set by /messages/new. */
 const ERROR_COPY: Record<string, string> = {
   self: "You can't start a conversation with yourself.",
-  "no-user": "That person doesn't seem to be on Huddl.",
+  "no-user": "That person doesn't seem to be on Hearth.",
   invalid: "That link didn't point at anyone to message.",
   failed: "Couldn't start the conversation. Try again.",
 };

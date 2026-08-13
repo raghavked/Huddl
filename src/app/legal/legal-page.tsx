@@ -25,7 +25,7 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
           <Link
             href="/"
             className="rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
-            aria-label="Huddl home"
+            aria-label="Hearth home"
           >
             <Wordmark />
           </Link>
@@ -86,7 +86,7 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
             Made for students, between classes. Never selling your data, never
             running ads in your course channels.
           </p>
-          <p>&copy; {new Date().getFullYear()} Huddl</p>
+          <p>&copy; {new Date().getFullYear()} Hearth</p>
         </div>
       </footer>
     </div>

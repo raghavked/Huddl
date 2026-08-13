@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
-import { HuddleScene, ShieldScene } from "@/components/illustrations";
+import { GatheringScene, ShieldScene } from "@/components/illustrations";
 import { Badge, Button, Card, Skeleton, cardClasses } from "@/components/ui";
 import {
   ModerationError,
@@ -585,7 +585,7 @@ export function ModerationQueue({
     return (
       <div className="mt-8 rounded-card border border-dashed border-border">
         <EmptyState
-          illustration={<HuddleScene />}
+          illustration={<GatheringScene />}
           icon={ShieldCheck}
           title="This one's for the moderators"
           description="A few students look after campus here. They read what gets flagged and decide what happens next. Anything you've reported is already with them."

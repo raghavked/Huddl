@@ -216,7 +216,7 @@ export default function SettingsScreen() {
   function confirmDeleteAccount() {
     Alert.alert(
       "Delete your account?",
-      "This permanently deletes your profile and everything you've shared on Huddl. It can't be undone.",
+      "This permanently deletes your profile and everything you've shared on Hearth. It can't be undone.",
       [
         { text: "Keep it", style: "cancel" },
         {
@@ -487,7 +487,7 @@ export default function SettingsScreen() {
               day one is long gone by the time they need it. */}
           <SettingsLink
             icon="help-circle"
-            label="How Huddl works"
+            label="How Hearth works"
             first
             onPress={() => router.push("/help")}
           />
@@ -634,7 +634,7 @@ export default function SettingsScreen() {
             onPress={() => void replayWelcome()}
           />
           <AppText variant="caption" muted>
-            Huddl v{version}
+            Hearth v{version}
           </AppText>
           <AppText variant="caption" muted>
             Made for campus, with love.

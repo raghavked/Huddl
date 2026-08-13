@@ -318,7 +318,7 @@ export default function OnboardingScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <AppText variant="display" style={{ marginBottom: space.snug }}>
-          {firstName ? `Welcome to Huddl, ${firstName}` : "Welcome to Huddl"}
+          {firstName ? `Welcome to Hearth, ${firstName}` : "Welcome to Hearth"}
         </AppText>
         <AppText muted style={{ marginBottom: space.cosy }}>
           Tell your classmates a little about yourself. You can change any of

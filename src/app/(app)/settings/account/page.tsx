@@ -8,7 +8,7 @@ import { InterestsEditor } from "@/features/profile/interests-editor";
 export const metadata: Metadata = {
   title: "Account settings",
   description:
-    "Edit your Huddl profile: name, handle, major, bio, photo, and what you're into.",
+    "Edit your Hearth profile: name, handle, major, bio, photo, and what you're into.",
 };
 
 export default async function AccountSettingsPage() {

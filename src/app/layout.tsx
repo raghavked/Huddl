@@ -25,21 +25,21 @@ const monoFont = JetBrains_Mono({
   subsets: ["latin"],
 });
 
-const siteUrl = process.env.SITE_URL ?? "https://huddl.app";
+const siteUrl = process.env.SITE_URL ?? "https://uhearth.app";
 const description =
-  "Huddl is one app for college life: a chat for every class you add, study sessions, note sharing, meetups, voice rooms and DMs. Verified with your university email.";
+  "Hearth is one app for college life: a chat for every class you add, study sessions, note sharing, meetups, voice rooms and DMs. Verified with your university email.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Huddl · Your campus, in one huddle",
-    template: "%s · Huddl",
+    default: "Hearth · Your campus, gathered",
+    template: "%s · Hearth",
   },
   description,
   openGraph: {
     type: "website",
-    siteName: "Huddl",
-    title: "Huddl · Your campus, in one huddle",
+    siteName: "Hearth",
+    title: "Hearth · Your campus, gathered",
     description,
     url: "/",
   },
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Huddl",
+    title: "Hearth",
     statusBarStyle: "default",
   },
 };
@@ -70,7 +70,7 @@ export const viewport: Viewport = {
 // theme choice, then the text scale (every size in the app is a rem, so one
 // root font-size carries the whole ladder). Both are per-device settings.
 // See /settings/appearance.
-const themeInit = `try{var t=localStorage.getItem("huddl-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}try{var s=parseFloat(localStorage.getItem("huddl-text-size"));if(s>=0.9&&s<=1.4&&s!==1){document.documentElement.style.setProperty("--huddl-text-scale",String(s));document.documentElement.style.fontSize=Math.round(s*100)+"%"}}catch(e){}`;
+const themeInit = `try{var t=localStorage.getItem("hearth-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}try{var s=parseFloat(localStorage.getItem("hearth-text-size"));if(s>=0.9&&s<=1.4&&s!==1){document.documentElement.style.setProperty("--hearth-text-scale",String(s));document.documentElement.style.fontSize=Math.round(s*100)+"%"}}catch(e){}`;
 
 export default function RootLayout({
   children,

@@ -45,7 +45,7 @@ export const metadata: Metadata = {
  *
  * There was one, right up there beside typing, and 0033 still carries the
  * `profiles.share_read_receipts` column it wrote. It should never have
- * shipped. Huddl draws no read receipt anywhere: no screen tells one person
+ * shipped. Hearth draws no read receipt anywhere: no screen tells one person
  * whether another has opened a message. The only thing the column could have
  * gated is `channel_members.last_read_at` / `dm_participants.last_read_at`,
  * which is the app's own unread cursor: the thing that decides whether YOUR
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
  * The native app removed it first; see the long note at the top of
  * `mobile/src/hooks/use-privacy-prefs.ts`.
  *
- * The column stays in the database. The day Huddl actually renders a receipt,
+ * The column stays in the database. The day Hearth actually renders a receipt,
  * the switch comes back here, gated at the surface that draws it, not at the
  * cursor that tracks unread. Until then, don't re-add it.
  *
@@ -100,7 +100,7 @@ const TOGGLES: readonly SharingToggle[] = [
  */
 function sharingSentence(typing: boolean): string {
   if (typing) {
-    return "It's on, which is how Huddl starts out: classmates can tell when you're composing a message, and you can tell the same about them.";
+    return "It's on, which is how Hearth starts out: classmates can tell when you're composing a message, and you can tell the same about them.";
   }
   /* "and notify" matters: the commonest worry about this switch is that it
      quietly mutes something. It does not. `share_typing` is read by the
@@ -347,7 +347,7 @@ export default async function PrivacySettingsPage({
                 illustration={<ShieldScene />}
                 icon={ShieldCheck}
                 title="Nothing stored, nothing to audit"
-                description="You've never stored an image with Huddl. If you had, its full audit trail would live here: every access logged, every log a notification."
+                description="You've never stored an image with Hearth. If you had, its full audit trail would live here: every access logged, every log a notification."
               />
             </div>
           ) : (

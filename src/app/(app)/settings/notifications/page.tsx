@@ -98,7 +98,7 @@ const PUSH_KINDS: {
     kind: "system",
     icon: Bell,
     label: "Weekly digest + announcements",
-    caption: "Your Monday look-ahead, plus the rare heads-up from Huddl.",
+    caption: "Your Monday look-ahead, plus the rare heads-up from Hearth.",
   },
 ];
 
@@ -180,7 +180,7 @@ function quietSentence(quiet: QuietHours | null): string {
 }
 
 const DIGEST_NOTE =
-  "When a class channel gets going, Huddl rolls the pile into one nudge (the “4 new notifications” kind) instead of buzzing twelve times. Tapping it opens your inbox with all of them in it.";
+  "When a class channel gets going, Hearth rolls the pile into one nudge (the “4 new notifications” kind) instead of buzzing twelve times. Tapping it opens your inbox with all of them in it.";
 
 /* ------------------------------- pieces ------------------------------ */
 
@@ -305,7 +305,7 @@ function WarningLine({ children }: { children: React.ReactNode }) {
  * Push preferences: the quiet window, then what gets through when the window
  * is open. Both live on `profiles` (`quiet_hours` from 0035 and
  * `notification_prefs`), and both are written straight from here, optimistically.
- * Push lands on the phone where Huddl is installed; this page is the one dial
+ * Push lands on the phone where Hearth is installed; this page is the one dial
  * for what gets through. The in-app inbox never filters.
  */
 export default function NotificationSettingsPage() {

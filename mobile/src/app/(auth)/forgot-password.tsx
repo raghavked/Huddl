@@ -66,7 +66,7 @@ const RESEND_COOLDOWN_S = 30;
    the exchange to the client that started it, and the phone is not the
    browser that finishes it. Two flows, two entrances, on purpose. */
 const WEB_ORIGIN = (
-  process.env.EXPO_PUBLIC_WEB_URL ?? "https://huddl.app"
+  process.env.EXPO_PUBLIC_WEB_URL ?? "https://uhearth.app"
 ).replace(/\/+$/, "");
 const RESET_URL = `${WEB_ORIGIN}/reset-password`;
 
@@ -260,7 +260,7 @@ export default function ForgotPasswordScreen() {
               {/* Conditional on purpose. See the note at the top of the file.
                   We never say whether that address has an account. */}
               <AppText muted style={{ textAlign: "center" }}>
-                If that address has a Huddl account, a link to set a new
+                If that address has a Hearth account, a link to set a new
                 password is on its way. It opens in your browser. Pick the new
                 password there, then come back here and log in with it.
               </AppText>

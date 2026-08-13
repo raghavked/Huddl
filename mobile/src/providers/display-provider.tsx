@@ -87,9 +87,9 @@ export const HAPTICS_DEFAULT = true;
 
 /* -------------------------------- storage -------------------------------- */
 
-const MODE_KEY = "huddl.display.mode";
-const SCALE_KEY = "huddl.display.textScale";
-const HAPTICS_KEY = "huddl.display.haptics";
+const MODE_KEY = "hearth.display.mode";
+const SCALE_KEY = "hearth.display.textScale";
+const HAPTICS_KEY = "hearth.display.haptics";
 
 function parseMode(raw: string | null): DisplayMode {
   return raw === "light" || raw === "dark" || raw === "system"

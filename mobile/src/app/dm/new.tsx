@@ -484,7 +484,7 @@ export function CampusPeoplePicker({
             title={query.trim() ? "Nobody by that name" : "Nobody to add yet"}
             body={
               query.trim()
-                ? "Try a different name or handle. Huddl keeps you to your own campus."
+                ? "Try a different name or handle. Hearth keeps you to your own campus."
                 : "As classmates join your campus they'll show up here."
             }
           />

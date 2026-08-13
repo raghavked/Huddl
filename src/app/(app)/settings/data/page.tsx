@@ -37,7 +37,7 @@ import {
   type SummaryLine,
 } from "@/lib/data-export";
 
-/* Your data: everything Huddl holds that's yours, in one file you can take
+/* Your data: everything Hearth holds that's yours, in one file you can take
    with you. The page explains before it does anything: what's in the file,
    what stays behind, and only then a button.
 
@@ -143,7 +143,7 @@ export default function DataExportPage() {
         backHref="/settings"
         backLabel="Settings"
         title="Your data"
-        description="One file with everything Huddl holds that's yours. Yours to keep, wherever you keep things."
+        description="One file with everything Hearth holds that's yours. Yours to keep, wherever you keep things."
       />
 
       <Card className="mt-8 animate-fade-up">

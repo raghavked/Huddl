@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The Huddl mark: three heads leaning together inside a speech bubble.
+ * The Hearth mark: three heads leaning together inside a speech bubble.
  *
  * The bubble is the category: this is a place where people talk, and an
  * icon on a home screen has about a tenth of a second to say so. The three
- * heads inside are the huddle: the middle one sits a little larger and a
+ * heads inside are leaning together: the middle one sits a little larger and a
  * little higher, the way the person leaning furthest in always does.
  *
  * They are cut out of the bubble rather than drawn on top of it, so the
@@ -35,7 +35,7 @@ export function LogoMark({ className }: { className?: string }) {
     <svg
       viewBox="0 0 32 32"
       role="img"
-      aria-label="Huddl"
+      aria-label="Hearth"
       className={cn("size-8", className)}
     >
       {/* evenodd is what makes the heads holes rather than a second shape. */}
@@ -63,7 +63,7 @@ export function Wordmark({ className }: { className?: string }) {
     <span className={cn("flex items-center gap-2", className)}>
       <LogoMark className="size-7 text-brand" />
       <span className="font-display text-xl font-bold tracking-tight">
-        huddl
+        hearth
       </span>
     </span>
   );

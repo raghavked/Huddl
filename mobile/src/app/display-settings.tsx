@@ -46,7 +46,7 @@ import {
    under your finger, switch the tick on and it ticks.
 
    Haptics belong here rather than under Notifications: that screen is about
-   what Huddl sends you, this one is about how it comes across in your hand,
+   what Hearth sends you, this one is about how it comes across in your hand,
    and "feel" was the half of the title nothing on the screen was honouring. */
 
 /* ------------------------------ appearance ------------------------------ */
@@ -303,10 +303,10 @@ const CAN_BUZZ = Platform.OS !== "web";
  */
 function hapticsSentence(enabled: boolean): string {
   if (!CAN_BUZZ) {
-    return "Huddl only taps back on a phone, so there's nothing here for this switch to quiet.";
+    return "Hearth only taps back on a phone, so there's nothing here for this switch to quiet.";
   }
   if (enabled) {
-    return "It's on, which is how Huddl starts out. The tick only marks something finishing: never a keystroke, never a tab, never twice for the same thing.";
+    return "It's on, which is how Hearth starts out. The tick only marks something finishing: never a keystroke, never a tab, never twice for the same thing.";
   }
   return "It's off. Your phone stays still, and nothing else changes. Messages send, check-offs save, and notifications arrive exactly as you set them.";
 }
@@ -481,7 +481,7 @@ export default function DisplaySettingsScreen() {
         Look and feel
       </AppText>
       <AppText variant="caption" muted style={{ marginTop: space.tight }}>
-        Set the appearance, the type size, and whether Huddl taps back. All
+        Set the appearance, the type size, and whether Hearth taps back. All
         three take hold the moment you tap.
       </AppText>
 
@@ -610,7 +610,7 @@ export default function DisplaySettingsScreen() {
             muted
             style={{ textAlign: "center", maxWidth: 300 }}
           >
-            All three stay on this phone. They change how Huddl looks and
+            All three stay on this phone. They change how Hearth looks and
             feels to you, nothing else: not your profile, not your classes,
             not a thing anyone else sees.
           </AppText>

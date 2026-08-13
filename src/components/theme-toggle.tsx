@@ -20,7 +20,7 @@ const OPTIONS: {
 
 function readPref(): ThemePref {
   if (typeof window === "undefined") return "system";
-  const stored = localStorage.getItem("huddl-theme");
+  const stored = localStorage.getItem("hearth-theme");
   return stored === "light" || stored === "dark" ? stored : "system";
 }
 
@@ -45,10 +45,10 @@ function syncThemeColorMeta(pref: ThemePref) {
 function applyPref(pref: ThemePref) {
   if (pref === "system") {
     delete document.documentElement.dataset.theme;
-    localStorage.removeItem("huddl-theme");
+    localStorage.removeItem("hearth-theme");
   } else {
     document.documentElement.dataset.theme = pref;
-    localStorage.setItem("huddl-theme", pref);
+    localStorage.setItem("hearth-theme", pref);
   }
   syncThemeColorMeta(pref);
 }

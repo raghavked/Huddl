@@ -1,5 +1,5 @@
 /**
- * "How Huddl works" as structured data for the /help page.
+ * "How Hearth works" as structured data for the /help page.
  *
  * NOTE ON DUPLICATION: the native app is the source of truth for this copy,
  * at mobile/src/lib/help-content.ts, but the web tsconfig cannot import from
@@ -27,7 +27,7 @@ export type HelpSection = {
 };
 
 export const HELP_INTRO =
-  "Huddl is your campus in one app: the people in your classes, the ones " +
+  "Hearth is your campus in one app: the people in your classes, the ones " +
   "running clubs, and everything the two of you might want to do this week. " +
   "Here is where everything lives.";
 

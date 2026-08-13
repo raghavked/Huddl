@@ -22,7 +22,7 @@ import { useAuth } from "@/providers/auth-provider";
  * ## Who can start a DM with you (`profiles.dm_privacy`, 0040)
  *
  * Three values, widest first: `campus` (anyone who can find you, the column
- * default, and what Huddl has always done), `classmates` (only people you
+ * default, and what Hearth has always done), `classmates` (only people you
  * share a course with, this term or a past one), `nobody`.
  *
  * This one is not enforced here at all, and that is the point. The refusal
@@ -41,7 +41,7 @@ import { useAuth } from "@/providers/auth-provider";
  * ## Why read receipts are not in here
  *
  * 0033 added `profiles.share_read_receipts` beside `share_typing`, and this
- * hook used to carry both. It shouldn't have: Huddl has no read receipt. No
+ * hook used to carry both. It shouldn't have: Hearth has no read receipt. No
  * screen anywhere shows one person whether another has opened a message, and
  * the only thing the column could have gated (`channel_members.last_read_at`
  * and `dm_participants.last_read_at`) is the app's own unread cursor, the
@@ -54,7 +54,7 @@ import { useAuth } from "@/providers/auth-provider";
  * when you've read a message", is a false statement about a student's own
  * privacy, and it discredits the one beside it that genuinely works.
  *
- * The column stays in the database. The day Huddl actually renders a receipt,
+ * The column stays in the database. The day Hearth actually renders a receipt,
  * the preference comes back here, gated at the surface that draws it, not at
  * the cursor that tracks unread.
  *

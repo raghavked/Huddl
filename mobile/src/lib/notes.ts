@@ -246,7 +246,7 @@ export async function uploadNote({
   if (mimeType === null) {
     // Unreachable: isAcceptedNote refused this file above. Belt and braces,
     // because uploading a type the bucket rejects reads as a network fault.
-    throw new NotesError("Huddl can't take that kind of file.");
+    throw new NotesError("Hearth can't take that kind of file.");
   }
 
   const { error: uploadError } = await supabase.storage

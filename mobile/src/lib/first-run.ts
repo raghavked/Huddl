@@ -27,14 +27,14 @@ import { supabase } from "@/lib/supabase";
 /* ------------------------------ storage ----------------------------- */
 
 /**
- * The one key. Namespaced like `huddl.display.mode` so everything Huddl
+ * The one key. Namespaced like `hearth.display.mode` so everything Hearth
  * stores on the device sorts together and nothing else can collide with it.
  *
  * Bump the suffix (not the prefix) if a future welcome should be shown again
  * to students who dismissed the old one. That is a deliberate re-run, and it
  * should look deliberate in the diff.
  */
-const WELCOME_KEY = "huddl.firstRun.welcomeSeen";
+const WELCOME_KEY = "hearth.firstRun.welcomeSeen";
 
 /** What we write. Presence is the flag; the value is only ever read back as "something is here". */
 const WELCOME_VALUE = "1";

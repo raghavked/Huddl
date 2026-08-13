@@ -1,5 +1,5 @@
 /**
- * Huddl's legal documents (Terms of Service, Privacy Policy, and Community
+ * Hearth's legal documents (Terms of Service, Privacy Policy, and Community
  * Guidelines) as structured data. The native /legal/* screens render these
  * through AppText.
  *
@@ -26,11 +26,11 @@ export const TERMS_OF_SERVICE: LegalDoc = {
   sections: [
     {
       heading: "Welcome",
-      body: "Huddl is where your campus hangs out: a chat for every course you add, campus channels, clubs, study sessions, shared notes, and messages, all verified by your school email. These terms are the agreement between you and Huddl when you use our app or website. They're written to be read, not skimmed past: they cover who can join, what you can post, and what we do to keep Huddl a good place to be.",
+      body: "Hearth is where your campus hangs out: a chat for every course you add, campus channels, clubs, study sessions, shared notes, and messages, all verified by your school email. These terms are the agreement between you and Hearth when you use our app or website. They're written to be read, not skimmed past: they cover who can join, what you can post, and what we do to keep Hearth a good place to be.",
     },
     {
       heading: "Who can join",
-      body: "Huddl is for people who are part of a campus. You must be at least 16 years old and enrolled at or affiliated with a supported university. Your university email address is how we check. You sign up with it and confirm it from your inbox, and that places you in your campus community, and only that one. If you are under 18, please read these terms with a parent or guardian.",
+      body: "Hearth is for people who are part of a campus. You must be at least 16 years old and enrolled at or affiliated with a supported university. Your university email address is how we check. You sign up with it and confirm it from your inbox, and that places you in your campus community, and only that one. If you are under 18, please read these terms with a parent or guardian.",
     },
     {
       heading: "Your account",
@@ -38,7 +38,7 @@ export const TERMS_OF_SERVICE: LegalDoc = {
     },
     {
       heading: "What you post is yours",
-      body: "Everything you share on Huddl belongs to you: messages, notes, files, events, polls, your course list, your profile. To run the service, you give us permission to store it, back it up, and show it to the classmates you shared it with. That permission exists so Huddl can work; it doesn't let us sell your content or use it for advertising, and it ends for anything you delete.",
+      body: "Everything you share on Hearth belongs to you: messages, notes, files, events, polls, your course list, your profile. To run the service, you give us permission to store it, back it up, and show it to the classmates you shared it with. That permission exists so Hearth can work; it doesn't let us sell your content or use it for advertising, and it ends for anything you delete.",
     },
     {
       heading: "What you're responsible for",
@@ -46,35 +46,35 @@ export const TERMS_OF_SERVICE: LegalDoc = {
     },
     {
       heading: "Copyright, and how to get something taken down",
-      body: "Huddl hosts what students upload, and we take copyright seriously. If you own the rights to something posted here without your permission, tell us and we will act. Email [DMCA AGENT EMAIL] with: your contact details; enough detail to find the material, such as a link or the course and the file name; a statement that you believe in good faith the use is not authorised; a statement, under penalty of perjury, that the information is accurate and you are the owner or authorised to act for them; and your signature, typed is fine. We remove or disable access to material that is properly reported, and we tell the person who posted it. If you think your material was removed by mistake, you can send a counter notice to the same address and we will pass it on. Accounts that infringe repeatedly are terminated. Our designated agent for copyright notices is [DMCA AGENT NAME], [DMCA AGENT ADDRESS], [DMCA AGENT EMAIL].",
+      body: "Hearth hosts what students upload, and we take copyright seriously. If you own the rights to something posted here without your permission, tell us and we will act. Email [DMCA AGENT EMAIL] with: your contact details; enough detail to find the material, such as a link or the course and the file name; a statement that you believe in good faith the use is not authorised; a statement, under penalty of perjury, that the information is accurate and you are the owner or authorised to act for them; and your signature, typed is fine. We remove or disable access to material that is properly reported, and we tell the person who posted it. If you think your material was removed by mistake, you can send a counter notice to the same address and we will pass it on. Accounts that infringe repeatedly are terminated. Our designated agent for copyright notices is [DMCA AGENT NAME], [DMCA AGENT ADDRESS], [DMCA AGENT EMAIL].",
     },
     {
       heading: "The ground rules",
-      body: "Our Community Guidelines are part of these terms, and they spell out what being a good classmate looks like on Huddl. The short version: no harassment, no hate, no spam, no impersonation, no sexual content, take self-harm concerns seriously, and keep your schoolwork honest.",
+      body: "Our Community Guidelines are part of these terms, and they spell out what being a good classmate looks like on Hearth. The short version: no harassment, no hate, no spam, no impersonation, no sexual content, take self-harm concerns seriously, and keep your schoolwork honest.",
     },
     {
       heading: "Reporting and enforcement",
-      body: "Every message and profile on Huddl can be reported in the app, with a category so we can sort out the urgent things first. A person reads every report. We aim to get to all of them within a day, and we look at anything flagged as a safety risk before anything else. Depending on what we find, we may remove content, warn the person, or suspend or ban the account, permanently for serious or repeated violations, including repeated copyright infringement. We also apply gentle rate limits so no one can flood a channel or the report queue.",
+      body: "Every message and profile on Hearth can be reported in the app, with a category so we can sort out the urgent things first. A person reads every report. We aim to get to all of them within a day, and we look at anything flagged as a safety risk before anything else. Depending on what we find, we may remove content, warn the person, or suspend or ban the account, permanently for serious or repeated violations, including repeated copyright infringement. We also apply gentle rate limits so no one can flood a channel or the report queue.",
     },
     {
-      heading: "Huddl and your university",
-      body: "Huddl is an independent student space. We're not affiliated with, run by, or endorsed by your university, and nothing on Huddl connects to your school's official systems. University names are used only to say which campus a community belongs to. Your course list is entered by you and managed by you. We never pull your grades, transcripts, enrollment records or school accounts from your university, and no official record of yours reaches Huddl. If you choose to type your own marks into the grade estimator, that is your own note to yourself: it is stored privately, only you can read it, and it is not a school record.",
+      heading: "Hearth and your university",
+      body: "Hearth is an independent student space. We're not affiliated with, run by, or endorsed by your university, and nothing on Hearth connects to your school's official systems. University names are used only to say which campus a community belongs to. Your course list is entered by you and managed by you. We never pull your grades, transcripts, enrollment records or school accounts from your university, and no official record of yours reaches Hearth. If you choose to type your own marks into the grade estimator, that is your own note to yourself: it is stored privately, only you can read it, and it is not a school record.",
     },
     {
-      heading: "Leaving Huddl",
+      heading: "Leaving Hearth",
       body: "You can delete your account any time from Settings in the app. Deletion is immediate and permanent: your profile, messages, files, courses, and everything else tied to your account are erased. There's no archive we quietly keep. Two kinds of thing survive, and we'd rather say so than let you find out. If a classmate forwarded one of your messages, that forward is their message, in their room, and it keeps the text. It just stops being credited to you. And anything you made for a class or a club to share and keep using (a flashcard deck, a card in one, a deadline on a course calendar, a link you added, a club announcement, a club or a channel you started) stays where it is, with your name taken off it. Deleting your account shouldn't empty your study group's deck or wipe a deadline off everyone else's calendar. Everything that was yours alone is gone: your profile, your messages, your files, your courses, your blocks, your push tokens.",
     },
     {
       heading: "Our service to you",
-      body: "The core of Huddl is free for students, carries no ads, and your data is never for sale. We work hard to keep Huddl fast and available, but like any online service we can't promise it will never hiccup. Huddl is provided as is, and features may change as the product grows. If we make a change that meaningfully affects you, we'll tell you in the app first.",
+      body: "The core of Hearth is free for students, carries no ads, and your data is never for sale. We work hard to keep Hearth fast and available, but like any online service we can't promise it will never hiccup. Hearth is provided as is, and features may change as the product grows. If we make a change that meaningfully affects you, we'll tell you in the app first.",
     },
     {
       heading: "When we can close an account",
-      body: "We can suspend or close an account that breaks these terms or the Community Guidelines, that infringes copyright repeatedly, or that puts other students at risk. For anything short of a serious safety problem we'll tell you what happened and why. We can also stop offering Huddl, or any part of it, and if we ever do we'll give you notice in the app and time to take your data with you.",
+      body: "We can suspend or close an account that breaks these terms or the Community Guidelines, that infringes copyright repeatedly, or that puts other students at risk. For anything short of a serious safety problem we'll tell you what happened and why. We can also stop offering Hearth, or any part of it, and if we ever do we'll give you notice in the app and time to take your data with you.",
     },
     {
       heading: "The fine print, in plain words",
-      body: "To the extent the law allows, Huddl isn't liable for indirect damages, things like lost data from an outage or what another user says or does, and our total liability to you is limited to the amount you have paid us, which for the free service is nothing. If something you do on Huddl causes a legal claim against us, for example posting something you didn't have the right to post, you agree to cover the reasonable cost of dealing with it. Nothing in these terms takes away rights the law guarantees you, and if any part of these terms turns out to be unenforceable, the rest still stands.",
+      body: "To the extent the law allows, Hearth isn't liable for indirect damages, things like lost data from an outage or what another user says or does, and our total liability to you is limited to the amount you have paid us, which for the free service is nothing. If something you do on Hearth causes a legal claim against us, for example posting something you didn't have the right to post, you agree to cover the reasonable cost of dealing with it. Nothing in these terms takes away rights the law guarantees you, and if any part of these terms turns out to be unenforceable, the rest still stands.",
     },
     {
       heading: "Which law applies",
@@ -82,11 +82,11 @@ export const TERMS_OF_SERVICE: LegalDoc = {
     },
     {
       heading: "Changes to these terms",
-      body: "If we update these terms, we'll change the date at the top, and for anything significant we'll let you know in the app before it takes effect. Continuing to use Huddl after that means you accept the update.",
+      body: "If we update these terms, we'll change the date at the top, and for anything significant we'll let you know in the app before it takes effect. Continuing to use Hearth after that means you accept the update.",
     },
     {
       heading: "Talk to us",
-      body: "Huddl is operated by [LEGAL ENTITY NAME], [ADDRESS]. Questions about these terms, or something that doesn't seem right? Email hello@huddl.app. A human reads it.",
+      body: "Hearth is operated by [LEGAL ENTITY NAME], [ADDRESS]. Questions about these terms, or something that doesn't seem right? Email hello@uhearth.app. A human reads it.",
     },
   ],
 };
@@ -97,7 +97,7 @@ export const PRIVACY_POLICY: LegalDoc = {
   sections: [
     {
       heading: "The short version",
-      body: "We collect what Huddl needs to work and nothing more. Your data is never sold, never used for advertising, and never shared with your university. Everything you post stays inside your verified campus, and you can delete your account, and everything in it, right from the app.",
+      body: "We collect what Hearth needs to work and nothing more. Your data is never sold, never used for advertising, and never shared with your university. Everything you post stays inside your verified campus, and you can delete your account, and everything in it, right from the app.",
     },
     {
       heading: "What you give us",
@@ -113,23 +113,23 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "Safety and device data",
-      body: "If you report something or block someone, we keep a record so we can act on the report and keep the block working. A report is read by a moderator, who at most schools is a student at your own. They see the message or profile you reported and who wrote it, and nothing else about your account. Blocks are never shown to anyone but you. If you turn on notifications, we store a push token, the delivery address your device gives us, which you can switch off any time. We also keep routine technical records, like the timestamps behind our rate limits, to keep Huddl healthy.",
+      body: "If you report something or block someone, we keep a record so we can act on the report and keep the block working. A report is read by a moderator, who at most schools is a student at your own. They see the message or profile you reported and who wrote it, and nothing else about your account. Blocks are never shown to anyone but you. If you turn on notifications, we store a push token, the delivery address your device gives us, which you can switch off any time. We also keep routine technical records, like the timestamps behind our rate limits, to keep Hearth healthy.",
     },
     {
       heading: "What we never collect",
-      body: "We don't connect to your university's systems, so no official record of yours reaches us: not your transcript, not your real class roster, not your enrollment, not your student ID. Anything about your coursework on Huddl is there because you typed it. We don't track your location, we don't read your contacts, we don't ask for your phone number, and there are no advertising trackers or analytics SDKs anywhere in Huddl.",
+      body: "We don't connect to your university's systems, so no official record of yours reaches us: not your transcript, not your real class roster, not your enrollment, not your student ID. Anything about your coursework on Hearth is there because you typed it. We don't track your location, we don't read your contacts, we don't ask for your phone number, and there are no advertising trackers or analytics SDKs anywhere in Hearth.",
     },
     {
       heading: "Who can see what",
-      body: "Course chats are visible only to classmates who added the same course. Campus channels are visible only to verified students at your school. Club spaces are for their members, and direct messages are for the people in that thread: just the two of you, or, in a named group, everyone in it (up to 16). Your profile is visible to your campus; turn Public profile off and classmates see only your handle and your photo. Nothing you write on Huddl is reachable from the wider internet. The one exception is your profile photo, which is served from a public link, so anyone who has that link can open it without signing in. Someone you block can't message you, and the things they write stay out of your view: messages, board posts, the line on their study session. They're never told, and nothing in Huddl will tell them.",
+      body: "Course chats are visible only to classmates who added the same course. Campus channels are visible only to verified students at your school. Club spaces are for their members, and direct messages are for the people in that thread: just the two of you, or, in a named group, everyone in it (up to 16). Your profile is visible to your campus; turn Public profile off and classmates see only your handle and your photo. Nothing you write on Hearth is reachable from the wider internet. The one exception is your profile photo, which is served from a public link, so anyone who has that link can open it without signing in. Someone you block can't message you, and the things they write stay out of your view: messages, board posts, the line on their study session. They're never told, and nothing in Hearth will tell them.",
     },
     {
       heading: "How we use your data",
-      body: "To run Huddl: showing the right content to the right classmates, delivering your messages and notifications, and keeping the community safe by reviewing reports and enforcing blocks and rate limits. That's it: no ad targeting, no marketing profiles, no selling.",
+      body: "To run Hearth: showing the right content to the right classmates, delivering your messages and notifications, and keeping the community safe by reviewing reports and enforcing blocks and rate limits. That's it: no ad targeting, no marketing profiles, no selling.",
     },
     {
       heading: "Where your data lives",
-      body: "Huddl's database and uploaded files are hosted with Supabase, our infrastructure provider, in a data center in Oregon in the United States. Data is encrypted in transit and at rest, and access rules are enforced at the database level, so a direct message, for example, can only ever be read by the people in that thread: the two of you in a one-to-one, or everyone in a group. If you're using Huddl from outside the United States, including from the UK or the EU, your data is transferred to and stored in the US, under the data processing terms we have in place with our host.",
+      body: "Hearth's database and uploaded files are hosted with Supabase, our infrastructure provider, in a data center in Oregon in the United States. Data is encrypted in transit and at rest, and access rules are enforced at the database level, so a direct message, for example, can only ever be read by the people in that thread: the two of you in a one-to-one, or everyone in a group. If you're using Hearth from outside the United States, including from the UK or the EU, your data is transferred to and stored in the US, under the data processing terms we have in place with our host.",
     },
     {
       heading: "How long we keep things",
@@ -137,7 +137,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "When we share",
-      body: "We never sell your data, full stop. We share it only with the services that make Huddl run (Supabase for hosting and Expo for delivering push notifications) and only as needed for them to do that job. Beyond that, we would disclose data only if the law requires it or it's necessary to prevent serious harm to someone.",
+      body: "We never sell your data, full stop. We share it only with the services that make Hearth run (Supabase for hosting and Expo for delivering push notifications) and only as needed for them to do that job. Beyond that, we would disclose data only if the law requires it or it's necessary to prevent serious harm to someone.",
     },
     {
       heading: "Deleting your data",
@@ -145,11 +145,11 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "Your rights over your data",
-      body: "Wherever you live: you can see everything we hold about you (Settings, then Your data, gives you one file), correct it, or delete all of it from Settings without asking us first. If you'd rather we did any of it, email hello@huddl.app and we'll answer within 30 days. We don't sell your data and we never have, we don't share it for advertising, and there's nothing to opt out of because none of it happens. If you're in the UK or the EU, our legal basis for handling your data is that we need it to provide the service you signed up for, and for safety features it's our legitimate interest in keeping the community safe. You can also object to how we use it, ask us to restrict it, and complain to your national data protection authority. If you're in California, the rights to know, delete, correct and not be discriminated against for asking are the same ones described here, and you can use them the same way.",
+      body: "Wherever you live: you can see everything we hold about you (Settings, then Your data, gives you one file), correct it, or delete all of it from Settings without asking us first. If you'd rather we did any of it, email hello@uhearth.app and we'll answer within 30 days. We don't sell your data and we never have, we don't share it for advertising, and there's nothing to opt out of because none of it happens. If you're in the UK or the EU, our legal basis for handling your data is that we need it to provide the service you signed up for, and for safety features it's our legitimate interest in keeping the community safe. You can also object to how we use it, ask us to restrict it, and complain to your national data protection authority. If you're in California, the rights to know, delete, correct and not be discriminated against for asking are the same ones described here, and you can use them the same way.",
     },
     {
       heading: "Age",
-      body: "Huddl is for people 16 and older who are enrolled at or affiliated with a supported university. We don't knowingly collect data from anyone under 16, and if we learn that we have, we'll delete the account and everything in it. If you're a parent or guardian and think your child has an account, email hello@huddl.app and we'll take care of it.",
+      body: "Hearth is for people 16 and older who are enrolled at or affiliated with a supported university. We don't knowingly collect data from anyone under 16, and if we learn that we have, we'll delete the account and everything in it. If you're a parent or guardian and think your child has an account, email hello@uhearth.app and we'll take care of it.",
     },
     {
       heading: "Changes to this policy",
@@ -157,7 +157,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "Talk to us",
-      body: "The controller of your data is [LEGAL ENTITY NAME], [ADDRESS]. Questions about your data, or a request we can help with? Email hello@huddl.app. A human reads it.",
+      body: "The controller of your data is [LEGAL ENTITY NAME], [ADDRESS]. Questions about your data, or a request we can help with? Email hello@uhearth.app. A human reads it.",
     },
   ],
 };
@@ -168,7 +168,7 @@ export const COMMUNITY_GUIDELINES: LegalDoc = {
   sections: [
     {
       heading: "Why these exist",
-      body: "Huddl is your campus, the same people you sit next to in lecture. These guidelines keep it a place worth showing up to, and they apply everywhere on Huddl: course chats, campus channels, clubs, events, direct messages, notes, and profiles.",
+      body: "Hearth is your campus, the same people you sit next to in lecture. These guidelines keep it a place worth showing up to, and they apply everywhere on Hearth: course chats, campus channels, clubs, events, direct messages, notes, and profiles.",
     },
     {
       heading: "Be a good classmate",
@@ -184,7 +184,7 @@ export const COMMUNITY_GUIDELINES: LegalDoc = {
     },
     {
       heading: "Be yourself",
-      body: "Use your own name or a handle your classmates know you by. Don't impersonate other students, professors, clubs, or Huddl itself, and stick to one account.",
+      body: "Use your own name or a handle your classmates know you by. Don't impersonate other students, professors, clubs, or Hearth itself, and stick to one account.",
     },
     {
       heading: "No spam or scams",
@@ -192,7 +192,7 @@ export const COMMUNITY_GUIDELINES: LegalDoc = {
     },
     {
       heading: "Keep it appropriate",
-      body: "No sexual content on Huddl. This is a campus community and it includes students under 18. Anything sexualizing a minor is removed, the account is banned, and we report it to the National Center for Missing and Exploited Children as the law requires.",
+      body: "No sexual content on Hearth. This is a campus community and it includes students under 18. Anything sexualizing a minor is removed, the account is banned, and we report it to the National Center for Missing and Exploited Children as the law requires.",
     },
     {
       heading: "Take care of each other",
@@ -200,11 +200,11 @@ export const COMMUNITY_GUIDELINES: LegalDoc = {
     },
     {
       heading: "Keep your work honest",
-      body: "Sharing notes, forming study groups, and walking each other through a tough problem set is exactly what Huddl is for. Uploading exam answers, doing someone's assignment for them, or organizing plagiarism is not. Your school's academic integrity policy applies to what you do here, and so do we. The same goes for other people's work: your own notes are yours to share, but a scanned textbook chapter or a professor's slide deck is theirs. Owners can ask us to take material down, and accounts that keep infringing are closed.",
+      body: "Sharing notes, forming study groups, and walking each other through a tough problem set is exactly what Hearth is for. Uploading exam answers, doing someone's assignment for them, or organizing plagiarism is not. Your school's academic integrity policy applies to what you do here, and so do we. The same goes for other people's work: your own notes are yours to share, but a scanned textbook chapter or a professor's slide deck is theirs. Owners can ask us to take material down, and accounts that keep infringing are closed.",
     },
     {
       heading: "Respect people's privacy",
-      body: "Don't share anyone's personal information (address, phone number, schedule, photos) without their okay, and don't screenshot private conversations to embarrass someone. What classmates share inside Huddl stays in its room.",
+      body: "Don't share anyone's personal information (address, phone number, schedule, photos) without their okay, and don't screenshot private conversations to embarrass someone. What classmates share inside Hearth stays in its room.",
     },
     {
       heading: "What happens when rules break",

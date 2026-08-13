@@ -1,6 +1,6 @@
 import Svg, { Path } from "react-native-svg";
 
-/* Hand-drawn marks for Huddl's quiet moments. Ten small stroke
+/* Hand-drawn marks for Hearth's quiet moments. Ten small stroke
    illustrations, deliberately imperfect (gentle quadratic wobble, round
    caps, no geometric-perfect circles) so an empty screen feels like a
    note left on the kitchen table, not a dashboard placeholder.

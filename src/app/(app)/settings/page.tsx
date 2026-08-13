@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Settings",
-  description: "Manage your Huddl account, profile and privacy.",
+  description: "Manage your Hearth account, profile and privacy.",
 };
 
 async function signOut() {
@@ -138,7 +138,7 @@ export default async function SettingsPage() {
       icon: Download,
       tile: "bg-accent-soft text-accent",
       title: "Your data",
-      description: "One file with everything Huddl holds that's yours",
+      description: "One file with everything Hearth holds that's yours",
       trailing: null as React.ReactNode,
     },
     {
@@ -157,7 +157,7 @@ export default async function SettingsPage() {
       href: "/help",
       icon: HelpCircle,
       tile: "bg-brand-soft text-brand",
-      title: "How Huddl works",
+      title: "How Hearth works",
       description: "What each tab does, and who can see what",
       trailing: null as React.ReactNode,
     },
@@ -278,7 +278,7 @@ export default async function SettingsPage() {
       </form>
 
       <footer className="mt-10 text-center text-xs text-muted">
-        Huddl 0.1
+        Hearth 0.1
       </footer>
     </div>
   );

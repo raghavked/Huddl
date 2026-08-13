@@ -66,7 +66,7 @@ export type AvailabilityPoll = {
   /** ISO timestamp the poll was created. */
   created_at: string;
   /**
-   * The creator's profile, or null when they've left Huddl or their profile
+   * The creator's profile, or null when they've left Hearth or their profile
    * isn't readable. Show a quiet fallback byline rather than hiding the poll.
    */
   creator: AvailabilityPerson | null;

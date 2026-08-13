@@ -1,4 +1,4 @@
-# Huddl development log
+# Hearth development log
 
 ## Round 15: keeping the promises, and saying them plainly
 
@@ -62,7 +62,7 @@ their posts, which was never true.
     against the database, and editing it to tidy comments would trade a real
     property for a cosmetic one. `no-em-dashes.test.ts` enforces the rule
     everywhere else and documents the exemption.
-- **"How Huddl works"**, on both clients, from one shared module with a test
+- **"How Hearth works"**, on both clients, from one shared module with a test
   keeping the copies byte-identical. The welcome tour runs once on first
   launch, and nothing explained the app to a student in week three who wanted
   to know who could see their grades. Writing it turned up two claims that
@@ -175,7 +175,7 @@ plus the platform work that makes living in it bearable.
 - **Reciprocal privacy toggles**: turn off read receipts or typing indicators
   and you stop seeing other people's too. The reciprocal version is the only
   honest one, and it's documented on the columns.
-- **Data export**: `export_my_data()` returns everything Huddl holds that's
+- **Data export**: `export_my_data()` returns everything Hearth holds that's
   yours as one JSON document. It's the other half of the deletion promise.
 - **A moderation queue**: `/moderation`, open / reviewed / dismissed with the
   reported content in place. `is_moderator` is enforced by a **column-scoped
@@ -505,7 +505,7 @@ performance sweep):
   server-side rate limits (30 messages/min, 10 reports/hour), and
   in-app account deletion (`delete_own_account`, storage swept).
 - **Legal**: Terms of Service, Privacy Policy, and Community Guidelines
-  written for Huddl specifically, rendered in both clients from one
+  written for Hearth specifically, rendered in both clients from one
   content source, linked at signup, acceptance stamped at onboarding
   (`accepted_terms_at`); docs/LEGAL.md tracks the attorney-review
   checklist.
@@ -569,11 +569,11 @@ AsyncStorage-persisted auth, five-tab shell, and real screens: home
 feed, channels + realtime chat room with optimistic sends, messages +
 DM room with unread dots, clubs with join, events with RSVP, settings
 with sign-out. Verified by full iOS Hermes bundle export. App identity
-app.huddl.mobile; EAS build/submit are the remaining user-side steps.
+app.uhearth.mobile; EAS build/submit are the remaining user-side steps.
 
 ## Round 5: mobile-exclusive
 
-Huddl is a mobile app, full stop: the desktop sidebar is gone, every
+Hearth is a mobile app, full stop: the desktop sidebar is gone, every
 viewport gets the phone shell, and on larger screens the app renders as a
 centered phone-width column with soft edges. Chat/DM room heights and
 loading ghosts follow the single-shell math.
@@ -591,7 +591,7 @@ loading ghosts follow the single-shell math.
   plus a quiet secondary button on the event page.
 
 A running record of the major development rounds on the
-`claude/huddl-ui-development` line. Verification for every round: TypeScript
+`claude/hearth-ui-development` line. Verification for every round: TypeScript
 strict, ESLint, the Vitest suite, and a production build; visual rounds also
 ship rendered screenshots in both themes.
 
@@ -646,4 +646,4 @@ ui-ux-pro-max checklists (both vendored from source and applied by hand):
 ## Backend
 
 - Live Supabase project (all 14 migrations applied, seeded demo campus).
-- Demo login for previews: `alex.rivera@ucdavis.edu` / `huddl-demo-2026`.
+- Demo login for previews: `alex.rivera@ucdavis.edu` / `hearth-demo-2026`.

@@ -1,4 +1,4 @@
-/* Huddl's spaced-repetition brain, as pure functions.
+/* Hearth's spaced-repetition brain, as pure functions.
  *
  * The model is deliberately simpler than full SM-2: three buttons, no ease
  * factor, no fractional intervals to explain. Each card you've seen carries a

@@ -3,7 +3,7 @@ import { PageHeader, Card } from "@/components/ui";
 import { HELP_INTRO, HELP_SECTIONS } from "@/lib/help-content";
 
 export const metadata: Metadata = {
-  title: "How Huddl works",
+  title: "How Hearth works",
   description:
     "What each tab does, what a class brings with it, and who can see what.",
 };
@@ -20,7 +20,7 @@ export default function HelpPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-16 pt-6 sm:px-6">
       <PageHeader
-        title="How Huddl works"
+        title="How Hearth works"
         description={HELP_INTRO}
         backHref="/settings"
         backLabel="Settings"

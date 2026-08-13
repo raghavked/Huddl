@@ -39,7 +39,7 @@ describe("checkPassword: common passwords", () => {
   });
 
   it("refuses the campus-flavoured ones a student here would reach for", () => {
-    for (const bad of ["ucdavis123", "huddl123", "college123"]) {
+    for (const bad of ["ucdavis123", "hearth123", "college123"]) {
       expect(checkPassword(bad).problems).toContain("too-common");
     }
   });

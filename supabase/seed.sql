@@ -1,4 +1,4 @@
--- Huddl seed: structural data only — no sample content. Courses, clubs and
+-- Hearth seed: structural data only — no sample content. Courses, clubs and
 -- everything else come from users. Universities are the allow-list that makes
 -- "verified per university" work; default campus channels are product
 -- infrastructure every campus starts with.

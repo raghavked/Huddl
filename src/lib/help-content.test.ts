@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { HELP_INTRO, HELP_SECTIONS } from "./help-content";
 
 /**
- * "How Huddl works" exists twice, for the same reason the legal copy does:
+ * "How Hearth works" exists twice, for the same reason the legal copy does:
  * mobile/src/lib/help-content.ts is the source of truth, and this directory's
  * copy is a verbatim duplicate because the web tsconfig cannot reach into
  * mobile/.

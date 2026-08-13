@@ -174,7 +174,7 @@ export function ResetPasswordForm() {
         setPending(false);
         setError({
           message:
-            "We couldn't reach Huddl to save that. Check your connection and try again.",
+            "We couldn't reach Hearth to save that. Check your connection and try again.",
           offerFreshLink: false,
         });
       }
@@ -273,7 +273,7 @@ export function ResetPasswordForm() {
           Your new password is saved
         </h1>
         <p className="mt-3 text-sm text-muted text-pretty">
-          You&apos;re still signed in here. If Huddl is open anywhere else
+          You&apos;re still signed in here. If Hearth is open anywhere else
           (your phone, a lab machine), that device will ask for the new
           password next time.
         </p>
@@ -281,7 +281,7 @@ export function ResetPasswordForm() {
           href="/home"
           className={buttonClasses({ size: "lg", className: "mt-5" })}
         >
-          Back to Huddl
+          Back to Hearth
         </Link>
       </Card>
     );

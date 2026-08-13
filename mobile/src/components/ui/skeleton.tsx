@@ -98,7 +98,7 @@ export function Skeleton({
 }
 
 /**
- * A card-shaped placeholder for one row of a list: the shape most Huddl
+ * A card-shaped placeholder for one row of a list: the shape most Hearth
  * lists actually have (avatar, a title line, a metadata line).
  *
  * Render three or four while the query is in flight, then swap in the real

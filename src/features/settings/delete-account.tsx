@@ -98,7 +98,7 @@ export function DeleteAccount({ handle }: { handle: string }) {
           Your account is deleted
         </h2>
         <p className="mx-auto mt-3 max-w-sm text-sm text-muted text-pretty">
-          Everything of yours is gone from Huddl, and you&apos;re signed out on
+          Everything of yours is gone from Hearth, and you&apos;re signed out on
           this device too. If you ever come back, you&apos;ll start from a
           blank page, which is a fine way to start a semester.
         </p>
@@ -127,7 +127,7 @@ export function DeleteAccount({ handle }: { handle: string }) {
           <h2 className="font-bold tracking-tight">Delete your account</h2>
           <p className="mt-1 text-sm text-muted text-pretty">
             This happens the moment you confirm it. There&apos;s no recovery
-            window, no archive, and nobody at Huddl can put it back.
+            window, no archive, and nobody at Hearth can put it back.
           </p>
         </div>
       </div>
@@ -152,7 +152,7 @@ export function DeleteAccount({ handle }: { handle: string }) {
         >
           Your data
         </Link>{" "}
-        hands you one file with everything Huddl holds that&apos;s yours. It
+        hands you one file with everything Hearth holds that&apos;s yours. It
         takes a minute, and it&apos;s the last chance to take it.
       </p>
 

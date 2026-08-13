@@ -42,7 +42,7 @@ const SCHOOLS = [
 
 const FAQS: { q: string; a: string }[] = [
   {
-    q: "Who can join Huddl?",
+    q: "Who can join Hearth?",
     a: "Anyone with a student email at a supported school. You sign up with your @school.edu address, confirm it from your inbox, and you land in your campus. Only yours: there are no open servers and no cross-campus browsing.",
   },
   {
@@ -54,16 +54,16 @@ const FAQS: { q: string; a: string }[] = [
     a: "You add your classes yourself: type a course code and its chat opens, and the campus catalog fills in codes and titles as you go. If a class isn't in the catalog yet, adding it makes you its first member, and classmates who add the same class land right beside you.",
   },
   {
-    q: "Does Huddl connect to my school's systems?",
-    a: "No. Your course list on Huddl is yours alone: you add classes, we rename nothing behind your back, and you drop them whenever you like. Nothing links to your school accounts, and we never see your grades, submissions, or official enrollment.",
+    q: "Does Hearth connect to my school's systems?",
+    a: "No. Your course list on Hearth is yours alone: you add classes, we rename nothing behind your back, and you drop them whenever you like. Nothing links to your school accounts, and we never see your grades, submissions, or official enrollment.",
   },
   {
     q: "Can professors or administrators see my messages?",
-    a: "No. Huddl is a student space. Course channels are visible only to students enrolled in that course, campus channels only to verified students at your school, and a direct message only to the people in that thread: the two of you, or everyone in a group you started together.",
+    a: "No. Hearth is a student space. Course channels are visible only to students enrolled in that course, campus channels only to verified students at your school, and a direct message only to the people in that thread: the two of you, or everyone in a group you started together.",
   },
   {
     q: "How much does it cost?",
-    a: "Nothing. The core of Huddl (course channels, campus channels, DMs, notes, and events) is free for students, and staying that way. We will never sell student data and never put ads inside course channels.",
+    a: "Nothing. The core of Hearth (course channels, campus channels, DMs, notes, and events) is free for students, and staying that way. We will never sell student data and never put ads inside course channels.",
   },
 ];
 
@@ -85,7 +85,7 @@ export default function LandingPage() {
           <Link
             href="/"
             className="rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
-            aria-label="Huddl home"
+            aria-label="Hearth home"
           >
             <Wordmark />
           </Link>
@@ -134,9 +134,9 @@ export default function LandingPage() {
                 id="hero-heading"
                 className="mt-6 text-4xl font-bold tracking-tight text-balance sm:text-6xl lg:text-7xl"
               >
-                Your campus, in{" "}
+                Your campus,{" "}
                 <span className="relative inline-block">
-                  one huddle
+                  gathered
                   {/* Hand-drawn underline: one wobbly ember stroke. */}
                   <svg
                     aria-hidden="true"
@@ -248,7 +248,7 @@ export default function LandingPage() {
         {/* Stats strip: honest, token-built                          */}
         {/* -------------------------------------------------------- */}
         <section
-          aria-label="Huddl at a glance"
+          aria-label="Hearth at a glance"
           className="mx-auto w-full max-w-5xl px-4 sm:px-6"
         >
           <dl
@@ -268,7 +268,7 @@ export default function LandingPage() {
             </div>
             <div className="flex flex-col gap-1 px-6 py-5 text-center">
               <dt className="order-2 text-xs text-muted">
-                the core of Huddl, staying that way
+                the core of Hearth, staying that way
               </dt>
               <dd className="order-1 text-lg font-bold tracking-tight sm:text-xl">
                 Free for students
@@ -320,7 +320,7 @@ export default function LandingPage() {
             <FeatureCard
               icon={FileText}
               title="Notes that don't die in group chats"
-              body="Week 5 slides shouldn't be 400 messages deep in someone else's thread. On Huddl, notes live with the course: uploader credit, one tap to download, there for everyone all term."
+              body="Week 5 slides shouldn't be 400 messages deep in someone else's thread. On Hearth, notes live with the course: uploader credit, one tap to download, there for everyone all term."
               points={[
                 "Files attach to the course, not to a conversation",
                 "Whoever shared it gets the credit, always",
@@ -450,7 +450,7 @@ export default function LandingPage() {
               id="cta-heading"
               className="mt-4 text-2xl font-bold tracking-tight text-balance text-brand-fg sm:text-4xl"
             >
-              Your classmates are one huddle away
+              Your classmates are already here
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm text-brand-fg sm:text-base">
               It takes your school email and about a minute. Add your classes
@@ -476,7 +476,7 @@ export default function LandingPage() {
             <div>
               <Wordmark />
               <p className="mt-2 text-sm text-muted">
-                Your campus, in one huddle.
+                Your campus, gathered.
               </p>
             </div>
             <nav aria-label="Footer" className="flex items-center gap-2">
@@ -499,7 +499,7 @@ export default function LandingPage() {
               Made for students, between classes. Never selling your data, never
               running ads in your course channels.
             </p>
-            <p>&copy; {new Date().getFullYear()} Huddl</p>
+            <p>&copy; {new Date().getFullYear()} Hearth</p>
           </div>
         </div>
       </footer>

@@ -72,7 +72,7 @@ export function SignupForm() {
     if (unsupportedDomain && domain) {
       setIsDomainError(true);
       setError(
-        `Huddl isn't at ${domain} yet. Sign up with an email from a supported school.`
+        `Hearth isn't at ${domain} yet. Sign up with an email from a supported school.`
       );
       return;
     }
@@ -95,8 +95,8 @@ export function SignupForm() {
         setIsDomainError(true);
         setError(
           domain
-            ? `Huddl isn't at ${domain} yet. We're adding new schools all the time, so check back soon.`
-            : "Huddl isn't at your school yet. We're adding new schools all the time, so check back soon."
+            ? `Hearth isn't at ${domain} yet. We're adding new schools all the time, so check back soon.`
+            : "Hearth isn't at your school yet. We're adding new schools all the time, so check back soon."
         );
       } else if (/already registered/i.test(signUpError.message)) {
         setAccountExists(true);
@@ -135,7 +135,7 @@ export function SignupForm() {
           </p>
           {isDomainError && universities && universities.length > 0 ? (
             <div className="pl-6 text-foreground">
-              <p className="font-medium">Huddl is currently at:</p>
+              <p className="font-medium">Hearth is currently at:</p>
               <ul className="mt-1 space-y-0.5 text-muted">
                 {universities.map((u) => (
                   <li key={u.id}>
@@ -205,7 +205,7 @@ export function SignupForm() {
             <p className="flex items-start gap-1.5 text-sm text-danger">
               <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
               <span>
-                Huddl isn&apos;t at <strong>{domain}</strong> yet.
+                Hearth isn&apos;t at <strong>{domain}</strong> yet.
               </span>
             </p>
           ) : (

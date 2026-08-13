@@ -1,5 +1,5 @@
 /**
- * What Huddl accepts when it asks for a picture.
+ * What Hearth accepts when it asks for a picture.
  *
  * Three file inputs used to say `accept="image/*"` and check
  * `file.type.startsWith("image/")`, which reads as "any image" and means
@@ -7,7 +7,7 @@
  * picture in the sense meant here. It is a document, it can carry a
  * `<script>` element, and the avatars bucket is public, so opening its URL
  * runs that script in the storage domain's origin. Not a route into anyone's
- * account, since no Huddl session lives on that origin, but a way to host an
+ * account, since no Hearth session lives on that origin, but a way to host an
  * executable page on infrastructure that answers to this project.
  *
  * So the list is named rather than wildcarded, and deliberately generous

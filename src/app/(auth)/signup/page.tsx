@@ -46,7 +46,7 @@ export default async function SignupPage() {
         </p>
       </Card>
       <p className="mt-6 text-center text-sm text-muted">
-        Already on Huddl?{" "}
+        Already on Hearth?{" "}
         <Link href="/login" className="font-semibold text-brand hover:underline">
           Log in
         </Link>

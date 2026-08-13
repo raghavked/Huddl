@@ -5,7 +5,7 @@ import { LegalPage } from "../legal-page";
 export const metadata: Metadata = {
   title: "Community Guidelines",
   description:
-    "How to be a good classmate on Huddl, and what happens when someone isn't. A person reads every report.",
+    "How to be a good classmate on Hearth, and what happens when someone isn't. A person reads every report.",
 };
 
 export default function GuidelinesPage() {

@@ -1,4 +1,4 @@
-# Huddl compliance checklist
+# Hearth compliance checklist
 
 What the code and the documents now say, and what is left that only the
 operator can do. Written after an audit that read the three legal documents
@@ -12,7 +12,7 @@ list of things to hand to one.
 
 | Was | Now |
 | --- | --- |
-| Terms said "your grades never touch Huddl"; the app has a grade estimator | Discloses self-entered marks as private to the student, and separates "we never pull from your university" from "you can type your own" |
+| Terms said "your grades never touch Hearth"; the app has a grade estimator | Discloses self-entered marks as private to the student, and separates "we never pull from your university" from "you can type your own" |
 | No copyright position at all, on a product whose core feature is uploading coursework | Notice-and-takedown, counter notice, and repeat-infringer termination in the Terms, echoed in the Guidelines |
 | "We review reports within 24 hours", unconditional, in 3 documents and 8 places in the clients | "A person reads every report, usually within a day", safety first, in all eleven |
 | No governing law, venue, indemnity, liability cap, or termination right | All present, with `[STATE]` and `[COUNTY, STATE]` to fill |
@@ -34,7 +34,7 @@ list of things to hand to one.
    agent does not get you the section 512 safe harbour, and without the safe
    harbour you are directly liable for a textbook chapter a student uploads.
    The registered details must match what the Terms say.
-3. **Make the mailboxes real.** `hello@huddl.app` and the DMCA address have
+3. **Make the mailboxes real.** `hello@uhearth.app` and the DMCA address have
    to receive mail and be read. A contact address that bounces is a GDPR
    failure and an App Store rejection.
 4. **Have a lawyer read all three documents.** `docs/LEGAL.md` has said this
@@ -77,7 +77,7 @@ list of things to hand to one.
 11. **The Supabase project is on the Free plan.** Two consequences worth
     knowing. Free projects pause after a week of inactivity, which is a
     service problem for a launched app and sits awkwardly with the Terms
-    saying we work hard to keep Huddl available. And there is no backup
+    saying we work hard to keep Hearth available. And there is no backup
     retention window you can point at, which is why the retention section
     says a deleted message "can sit in our host's routine backups for a short
     while" rather than naming a number. Move to a paid plan and you can state
@@ -114,22 +114,23 @@ list of things to hand to one.
 
 ## Watch list, not urgent
 
-- **The name.** "Huddl" against "Hudl" (hudl.com), a large and
-  well-established sports and athlete platform whose users are largely
-  students and teams. That is a real likelihood-of-confusion question in an
-  overlapping market, and it is much cheaper to answer before you spend on
-  branding than after. Worth a trademark search.
+- **The name.** Resolved in the strong direction: the app was renamed from
+  Huddl to Hearth in August 2026, retiring the likelihood-of-confusion risk
+  against Hudl (hudl.com). One caution remains: "hearth" is a common English
+  word and other products use it, so a trademark search is still worth doing
+  before spending on branding. The domain is uhearth.app, which is more
+  distinctive than the bare word.
 - **University names.** Using "UC Davis" to say which campus a community
   belongs to is nominative use and the Terms disclaim affiliation, which is
   the right posture. Do not use any university's logo, seal, or wordmark, and
   do not imply endorsement. UC's licensing office is active.
 - **FERPA does not apply to you.** It binds schools and their contractors.
-  Stay on that side of the line: do not market Huddl as school-affiliated,
+  Stay on that side of the line: do not market Hearth as school-affiliated,
   do not accept a feed of institutional records, and keep the course list
   something students type.
 - **CCPA thresholds are not met** at current scale. Revisit at 100,000 users
   or if the business model ever changes. The rights section already grants
   the substance.
-- **Under-18 users still exist** at a 16+ floor. If Huddl ever opens beyond a
+- **Under-18 users still exist** at a 16+ floor. If Hearth ever opens beyond a
   single verified campus, or lets adults outside the campus start
   conversations, that changes and the minor-safety analysis has to be redone.

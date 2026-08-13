@@ -9,7 +9,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { resetFirstRun } from "@/lib/first-run";
 import { HELP_INTRO, HELP_SECTIONS } from "@/lib/help-content";
 
-/* "How Huddl works". The welcome tour runs once, on the first launch, and
+/* "How Hearth works". The welcome tour runs once, on the first launch, and
    most students will have swiped through it before they had any reason to
    care. This is where the same explanation waits for them afterwards.
 
@@ -75,7 +75,7 @@ export default function HelpScreen() {
         showsVerticalScrollIndicator={false}
       >
         <AppText variant="display" style={{ marginTop: space.hair }}>
-          How Huddl works
+          How Hearth works
         </AppText>
         <AppText variant="body" muted style={{ marginTop: space.snug }}>
           {HELP_INTRO}

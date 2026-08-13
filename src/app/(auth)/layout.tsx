@@ -20,11 +20,11 @@ export default function AuthLayout({
       />
       <Link
         href="/"
-        aria-label="Huddl home"
+        aria-label="Hearth home"
         className="mb-8 flex items-center gap-2.5 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
       >
         <LogoTile />
-        <span className="text-xl font-bold tracking-tight">huddl</span>
+        <span className="text-xl font-bold tracking-tight">hearth</span>
       </Link>
       <main className="w-full max-w-md">{children}</main>
     </div>

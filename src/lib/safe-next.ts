@@ -29,7 +29,7 @@
 /* A fixed, unroutable origin to resolve against. Its only job is to be a
    stable yardstick. If a candidate resolves somewhere other than here, it
    escaped, and where it escaped to does not matter. */
-const SENTINEL_ORIGIN = "https://huddl.invalid";
+const SENTINEL_ORIGIN = "https://hearth.invalid";
 
 /**
  * The safe same-origin path from an untrusted `?next=`, or `fallback` when the

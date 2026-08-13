@@ -1,6 +1,6 @@
-# Huddl legal layer
+# Hearth legal layer
 
-Three documents, written specifically for Huddl (campus communities, university-email
+Three documents, written specifically for Hearth (campus communities, university-email
 verification, user-entered course data, user-generated content, Supabase-hosted
 storage, no ads, no data sale):
 
@@ -104,7 +104,7 @@ keep them true:
   account should not empty a study group's deck or wipe a deadline off
   everyone else's calendar) but it is a disclosure, not a detail. If a future
   migration changes one of these to `CASCADE`, or adds a new `SET NULL`
-  reference, the "Leaving Huddl" and "Deleting your data" sections have to
+  reference, the "Leaving Hearth" and "Deleting your data" sections have to
   move with it. Query to re-derive the list:
 
   ```sql
@@ -129,7 +129,7 @@ keep them true:
   leaving every photo a student had ever set live at its own public URL.
 - Push tokens are stored only for notification delivery and can be turned off.
 - **The verified badge: no phone, no SMS, no third party.** Migration 0047
-  retired the phone badge and replaced it with one earned from things Huddl
+  retired the phone badge and replaced it with one earned from things Hearth
   already holds: a confirmed university email plus a complete profile
   (`profile_is_complete`: display name distinct from the auto-generated
   handle, photo, major, graduation year). `profiles.verified_at` is recomputed
@@ -146,14 +146,14 @@ keep them true:
   documents used to say a direct message could "only ever be read by the two
   people in it", which was false of every group thread and was also on the
   marketing FAQ. All three now describe thread participants instead.
-- Contact address used throughout: **hello@huddl.app**. This mailbox must
+- Contact address used throughout: **hello@uhearth.app**. This mailbox must
   exist and be monitored before launch.
 - The guidelines reference the 988 Suicide & Crisis Lifeline (US).
 
 ## Pre-launch checklist
 
 - [ ] Attorney review of all three documents (both copies updated in sync)
-- [ ] hello@huddl.app mailbox live and monitored
+- [ ] hello@uhearth.app mailbox live and monitored
 - [ ] 24-hour report-review rotation actually staffed
 - [x] `/legal/*` in `src/app/sitemap.ts`: done. The sitemap and robots.txt
       are both built from `src/lib/protected-routes.ts`, so a page cannot be

@@ -51,7 +51,7 @@ export type ClubAnnouncement = {
   id: string;
   /** Which club it belongs to (`clubs.id`). */
   club_id: string;
-  /** Who wrote it (`profiles.id`), or null once they've left Huddl. */
+  /** Who wrote it (`profiles.id`), or null once they've left Hearth. */
   author_id: string | null;
   /** The headline, 1-120 characters. */
   title: string;

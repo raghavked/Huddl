@@ -678,7 +678,7 @@ export default function AccountScreen() {
                 ) : null}
               </View>
               {/* Said here, at the moment she chooses one, because it is the
-                  one thing on Huddl that leaves the campus: the avatars
+                  one thing on Hearth that leaves the campus: the avatars
                   bucket is public-read. Removing the photo now deletes the
                   file, so the second sentence is a fact, not a comfort. */}
               <AppText variant="caption" muted>

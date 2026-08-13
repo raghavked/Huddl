@@ -238,7 +238,7 @@ export function exportedAt(data: DataExport): Date | null {
 }
 
 /**
- * What to call the file: `huddl-data-2026-08-11.json`. Used as the share
+ * What to call the file: `hearth-data-2026-08-11.json`. Used as the share
  * sheet's title and subject so an emailed export arrives named, and shown on
  * screen so a student knows what they're looking for afterwards.
  */
@@ -246,7 +246,7 @@ export function exportFileName(at: Date = new Date()): string {
   const stamp = Number.isNaN(at.getTime())
     ? new Date().toISOString()
     : at.toISOString();
-  return `huddl-data-${stamp.slice(0, 10)}.json`;
+  return `hearth-data-${stamp.slice(0, 10)}.json`;
 }
 
 /* ------------------------------ handing it over ------------------------------ */

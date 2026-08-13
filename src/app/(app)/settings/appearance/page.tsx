@@ -11,14 +11,14 @@ import { cn } from "@/lib/utils";
  * Two preferences, two mechanisms, and they deliberately stay separate:
  *
  *   THEME is already solved. `@/components/theme-toggle` owns the
- *   "huddl-theme" key, stamps `data-theme` on the document root, and keeps
+ *   "hearth-theme" key, stamps `data-theme` on the document root, and keeps
  *   the browser-chrome color in step; the boot script in the root layout
  *   replays it before first paint so nobody sees a flash of cream. This page
  *   reuses that control rather than growing a second one that could drift out
  *   of sync with it.
  *
  *   TYPE SIZE is this page's own. The scale is stored under
- *   "huddl-text-size" and applied by stamping `--huddl-text-scale` and a
+ *   "hearth-text-size" and applied by stamping `--hearth-text-scale` and a
  *   percentage `font-size` on the document root. Every size in the app is a
  *   rem, so moving the root moves the whole app together (text, the rows it
  *   sits in, and the 44px targets around it) instead of leaving big type
@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 /* ------------------------------- text size ------------------------------- */
 
 /** Where the preference lives. Read by this page and applied to the root. */
-const SCALE_KEY = "huddl-text-size";
+const SCALE_KEY = "hearth-text-size";
 
 /** Below this, captions stop being legible. */
 const SCALE_MIN = 0.9;
@@ -84,7 +84,7 @@ function readScale(): number {
  */
 function applyScale(scale: number) {
   const root = document.documentElement;
-  root.style.setProperty("--huddl-text-scale", String(scale));
+  root.style.setProperty("--hearth-text-scale", String(scale));
   if (sameScale(scale, SCALE_DEFAULT)) {
     root.style.removeProperty("font-size");
   } else {
@@ -129,7 +129,7 @@ export default function AppearanceSettingsPage() {
         backHref="/settings"
         backLabel="Settings"
         title="Appearance"
-        description="How Huddl looks on this device: the theme and the size of the type."
+        description="How Hearth looks on this device: the theme and the size of the type."
       />
 
       <section aria-label="Theme" className="mt-8">

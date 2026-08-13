@@ -6,15 +6,15 @@ checklist.
 
 ## Listing copy
 
-- **Name**: Huddl
-- **Subtitle** (30 chars): Your campus, in one huddle.
+- **Name**: Hearth
+- **Subtitle** (30 chars): Your campus, gathered.
 - **Category**: Social Networking (secondary: Education)
 - **Keywords** (100 chars):
   `college,campus,classes,study,flashcards,notes,grades,focus,student,clubs,rideshare,gpa,uc davis`
 
 **Description**:
 
-> Huddl is your whole campus in one app: every class, club, and study
+> Hearth is your whole campus in one app: every class, club, and study
 > session, with the people actually in them.
 >
 > Add your classes in seconds: type a course code and the campus catalog
@@ -59,7 +59,7 @@ checklist.
 > real, closed community. Blocking, reporting, and a 24-hour moderation
 > promise are built in. Read receipts and typing indicators are yours to
 > switch off. When you do, you stop seeing other people's too. You can
-> export everything Huddl holds that's yours in one tap, and delete your
+> export everything Hearth holds that's yours in one tap, and delete your
 > account and everything in it anytime, right from Settings.
 >
 > Launching at UC Davis. Your campus is next.
@@ -67,8 +67,8 @@ checklist.
 - **Promotional text** (170 chars): Every class, club, and study night on
   your campus, in one app. Syllabus in, study plan out, decks and grades in
   your pocket, and the chat is your classmates.
-- **Support URL**: https://huddl.app (privacy: https://huddl.app/legal/privacy)
-- **Marketing URL**: https://huddl.app
+- **Support URL**: https://uhearth.app (privacy: https://uhearth.app/legal/privacy)
+- **Marketing URL**: https://uhearth.app
 
 ## Age rating & review notes
 
@@ -77,7 +77,7 @@ checklist.
   satisfied by in-app report + block + 24h moderation (App Review
   Guideline 1.2). Expected rating: **12+**.
 - **Sign-in for review**: provide the demo account
-  `alex.rivera@ucdavis.edu` / `huddl-demo-2026` in App Review notes, with
+  `alex.rivera@ucdavis.edu` / `hearth-demo-2026` in App Review notes, with
   the note that any-campus email signup is restricted to supported
   universities by design.
 - **Account deletion** (Guideline 5.1.1(v)): Settings → Delete account.
@@ -104,7 +104,7 @@ checklist.
 
 ## Screenshot plan (6.7" + 6.1", both themes)
 
-1. Home: today strip + plan card ("Your campus, in one huddle")
+1. Home: today strip + plan card ("Your campus, gathered")
 2. Course home: the six-doorway grid ("Every class is a home")
 3. Syllabus import preview ("Paste the syllabus, get the quarter")
 4. Study plan ("Always know what's next")
@@ -128,7 +128,7 @@ stranger understands with no context, so it earns a slot near the front.
 - [ ] EAS projectId written into app.json by `eas init` (this also
       activates production push delivery end to end)
 - [ ] Legal docs attorney-reviewed (docs/LEGAL.md checklist)
-- [ ] hello@huddl.app mailbox live (referenced by Terms + Privacy)
+- [ ] hello@uhearth.app mailbox live (referenced by Terms + Privacy)
 - [ ] Supabase Auth: enable leaked-password protection (dashboard)
 - [ ] Supabase Auth: production SMTP + email templates branded
 - [ ] App Privacy questionnaire: collects email, name, user content

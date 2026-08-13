@@ -55,7 +55,7 @@ export default function GlobalError({
               opacity: 0.7,
             }}
           >
-            It&apos;s not you. Huddl hit a snag it couldn&apos;t recover
+            It&apos;s not you. Hearth hit a snag it couldn&apos;t recover
             from, and a retry usually brings it back.
           </p>
           <button

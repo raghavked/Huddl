@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Huddl",
-    short_name: "Huddl",
+    name: "Hearth",
+    short_name: "Hearth",
     description:
       "The all-in-one platform for college students: course chat, study sessions, notes, meetups, voice rooms and DMs.",
     start_url: "/home",

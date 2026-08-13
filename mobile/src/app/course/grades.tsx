@@ -183,7 +183,7 @@ function sumWeights(categories: readonly GradeCategory[]): number {
  * long-press menu, the add-a-score row) stays shut until the insert settles
  * and the row swaps for the saved one.
  */
-const DRAFT_PREFIX = "huddl-draft:";
+const DRAFT_PREFIX = "hearth-draft:";
 let draftSeq = 0;
 function draftId(kind: string): string {
   draftSeq += 1;
@@ -255,7 +255,7 @@ function PrivacyLine() {
         style={{ marginTop: space.hair }}
       />
       <AppText variant="caption" style={{ flex: 1, lineHeight: 17 }}>
-        Only you can see this. Huddl never shares your grades with classmates
+        Only you can see this. Hearth never shares your grades with classmates
         or your school.
       </AppText>
     </View>

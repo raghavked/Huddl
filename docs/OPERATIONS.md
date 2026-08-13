@@ -1,10 +1,10 @@
-# Huddl Operations Playbook
+# Hearth Operations Playbook
 
-How Huddl launches, grows, and stays worth trusting, campus by campus.
+How Hearth launches, grows, and stays worth trusting, campus by campus.
 
 The core lesson we take from YikYak's rise (and the graveyard of "social apps
 for college"): **a half-empty campus is worse than no campus.** A student who
-opens Huddl and finds three people never comes back. So we optimize for
+opens Hearth and finds three people never comes back. So we optimize for
 *density before breadth*: one campus at a time, each one loud before the next
 one opens.
 
@@ -167,11 +167,11 @@ list to check first when something arrives late, twice, or not at all.
 
 | Job | Schedule (UTC) | Function | What it does |
 | --- | --- | --- | --- |
-| `huddl-push-digests` | `*/5 * * * *` | `send_push_digests()` | One push for a pile of deferred notifications |
-| `huddl-calendar-reminders` | `10 * * * *` | `send_calendar_reminders()` | Your own lead time on a due date |
-| `huddl-event-reminders` | `25 * * * *` | `send_event_reminders()` | Before an event you said yes to |
-| `huddl-weekly-digest` | `0 15 * * 1` | `send_weekly_digest()` | The week ahead in your classes |
-| `huddl-weekly-recap` | `0 1 * * 0` | `send_weekly_recap()` | Your week in short, Saturday evening on the coast |
+| `hearth-push-digests` | `*/5 * * * *` | `send_push_digests()` | One push for a pile of deferred notifications |
+| `hearth-calendar-reminders` | `10 * * * *` | `send_calendar_reminders()` | Your own lead time on a due date |
+| `hearth-event-reminders` | `25 * * * *` | `send_event_reminders()` | Before an event you said yes to |
+| `hearth-weekly-digest` | `0 15 * * 1` | `send_weekly_digest()` | The week ahead in your classes |
+| `hearth-weekly-recap` | `0 1 * * 0` | `send_weekly_recap()` | Your week in short, Saturday evening on the coast |
 
 The two reminder sweeps run hourly, at :10 and :25 rather than both at :00,
 staggered so they never contend and offset from the digest sweep. Hourly is
@@ -196,7 +196,7 @@ order by r.start_time desc limit 50;
 written by the app and pushed by a BEFORE-INSERT trigger on `notifications`;
 the trigger defers rather than sends when the student is inside their quiet
 hours, or when a push already went out in the last two minutes. Deferred rows
-have `pushed_at is null`, and `huddl-push-digests` is what eventually carries
+have `pushed_at is null`, and `hearth-push-digests` is what eventually carries
 them. So "no push arrived" is usually correct behaviour, and the query that
 tells you which is:
 

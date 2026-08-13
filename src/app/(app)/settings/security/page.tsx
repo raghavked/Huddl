@@ -11,7 +11,7 @@ import { DeleteAccount } from "@/features/settings/delete-account";
 export const metadata: Metadata = {
   title: "Password and security",
   description:
-    "Change your Huddl password, sign out on every other device, or delete your account for good.",
+    "Change your Hearth password, sign out on every other device, or delete your account for good.",
 };
 
 /* Password and security: everything a student can do about the credentials
@@ -59,7 +59,7 @@ export default async function SecuritySettingsPage() {
       {/* `scroll-mt` keeps the heading clear of the frosted top bar when the
           Settings index jumps a student straight down here. */}
       <section id="delete-account" className="mt-10 scroll-mt-24">
-        <SectionHeader title="Leaving Huddl" />
+        <SectionHeader title="Leaving Hearth" />
         <div className="mt-3">
           <DeleteAccount handle={user.profile.handle} />
         </div>

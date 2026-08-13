@@ -1,4 +1,4 @@
-/* "How Huddl works", written once and read in two places.
+/* "How Hearth works", written once and read in two places.
  *
  * The welcome tour is three panels and a checklist, and it runs once. This is
  * the other half: the page you go looking for in week three when you want to
@@ -33,7 +33,7 @@ export type HelpSection = {
 };
 
 export const HELP_INTRO =
-  "Huddl is your campus in one app: the people in your classes, the ones " +
+  "Hearth is your campus in one app: the people in your classes, the ones " +
   "running clubs, and everything the two of you might want to do this week. " +
   "Here is where everything lives.";
 

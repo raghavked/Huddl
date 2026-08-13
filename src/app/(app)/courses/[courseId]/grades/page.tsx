@@ -75,7 +75,7 @@ export default async function CourseGradesPage({
           than ember: reassurance about a mechanism, not a warning. */}
       <p className="mt-4 flex items-start gap-2.5 rounded-xl bg-accent-soft px-3 py-3 text-xs leading-relaxed text-foreground">
         <Lock className="mt-0.5 size-3.5 shrink-0 text-accent" aria-hidden />
-        Only you can see this. Huddl never shares your grades with classmates
+        Only you can see this. Hearth never shares your grades with classmates
         or your school.
       </p>
 

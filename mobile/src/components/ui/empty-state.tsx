@@ -13,7 +13,7 @@ type FeatherName = ComponentProps<typeof Feather>["name"];
 /**
  * The dashed card that stands in for a list with nothing in it.
  *
- * An empty state in Huddl does one of two jobs and should say which in its
+ * An empty state in Hearth does one of two jobs and should say which in its
  * first three words: it **recruits** ("Be the first: add a course and its
  * chat opens for everyone in it") or it **reassures** ("You haven't blocked
  * anyone. Hopefully it stays that way"). Never "No data found."

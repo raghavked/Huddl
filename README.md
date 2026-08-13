@@ -1,8 +1,8 @@
-# Huddl
+# Hearth
 
-**Your campus, in one huddle.** Huddl is an all-in-one communication platform for
+**Your campus, gathered.** Hearth is an all-in-one communication platform for
 college students — realtime course and campus channels with a
-community-first, campus-by-campus operating model. Huddl is its own
+community-first, campus-by-campus operating model. Hearth is its own
 standalone platform: every room, thread, and notification is built in-house
 on our own backend.
 
@@ -120,7 +120,7 @@ roster and events.
   database triggers
 - **Reciprocal privacy toggles** — turn off read receipts or typing indicators
   and you stop seeing them too, which is the only version that's honest
-- **Take your data with you** — one tap exports everything Huddl holds that's
+- **Take your data with you** — one tap exports everything Hearth holds that's
   yours as a single JSON document, the other half of the deletion promise
 
 ## Stack
@@ -176,6 +176,6 @@ docs/                 DESIGN.md (the design language), UI.md (its web side),
 
 ## Operating model
 
-Huddl launches campus-by-campus (density before breadth): UC Davis first, then
+Hearth launches campus-by-campus (density before breadth): UC Davis first, then
 the rest of the UC system, then CSUs. See `docs/OPERATIONS.md` for the launch
 playbook and revenue model, and `docs/BRAND.md` for the brand system.

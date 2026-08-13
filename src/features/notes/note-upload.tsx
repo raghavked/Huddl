@@ -137,7 +137,7 @@ export function NoteUpload({
        would otherwise have a good upload refused. */
     const contentType = noteContentType(file.name);
     if (contentType === null) {
-      setError("Huddl can't take that kind of file.");
+      setError("Hearth can't take that kind of file.");
       setPending(false);
       return;
     }

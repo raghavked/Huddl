@@ -68,7 +68,7 @@ import { useAuth } from "@/providers/auth-provider";
 /**
  * The three tour panels, in order. Copy lives here, not in the render.
  *
- * One panel each for the three reasons someone opens Huddl: the classes
+ * One panel each for the three reasons someone opens Hearth: the classes
  * they're taking, the people they haven't met yet, and whether this is a
  * place they can be honest in. Coursework gets one panel, not two. A transfer
  * student who knows nobody is not helped by hearing about syllabi twice, and the calendar belongs in the same breath as the class it came
@@ -518,7 +518,7 @@ export default function WelcomeScreen() {
                     coming back re-reads the checklist on focus. */}
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Read how Huddl works"
+                  accessibilityLabel="Read how Hearth works"
                   onPress={() => router.push("/help")}
                   hitSlop={8}
                   style={({ pressed }) => ({
@@ -528,7 +528,7 @@ export default function WelcomeScreen() {
                   })}
                 >
                   <AppText variant="bodySemi" style={{ color: theme.brand }}>
-                    Or read how Huddl works
+                    Or read how Hearth works
                   </AppText>
                 </Pressable>
               </>

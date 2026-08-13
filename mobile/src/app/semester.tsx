@@ -229,7 +229,7 @@ function PrivacyLine() {
         style={{ marginTop: space.hair }}
       />
       <AppText variant="caption" style={{ flex: 1, lineHeight: 17 }}>
-        Only you can see this. Huddl never shares your grades with classmates
+        Only you can see this. Hearth never shares your grades with classmates
         or your school.
       </AppText>
     </View>

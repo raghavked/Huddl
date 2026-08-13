@@ -179,7 +179,7 @@ export const radius = {
  * - `chapter` (24): above a `SectionLabel`.
  * - `rest` (32): the bottom of a scroll, and the air around an empty state.
  *
- * **Comfort is mostly this.** The palette makes Huddl warm; the spacing makes
+ * **Comfort is mostly this.** The palette makes Hearth warm; the spacing makes
  * it unhurried. When a screen feels cramped the fix is almost never a colour.
  * It is `cosy` where the content wanted `gutter`. Reach one rung wider than
  * feels necessary, especially around anything a student reads rather than

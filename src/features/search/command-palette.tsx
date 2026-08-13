@@ -25,7 +25,7 @@ import {
 } from "./use-palette-data";
 
 /** Dispatch this event on `window` to open the palette from anywhere. */
-export const OPEN_PALETTE_EVENT = "huddl:open-palette";
+export const OPEN_PALETTE_EVENT = "hearth:open-palette";
 
 const KBD =
   "inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-border bg-surface-2 px-1.5 font-mono text-[10px]";

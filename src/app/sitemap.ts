@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { isProtectedPath, PUBLIC_PATHS } from "@/lib/protected-routes";
 
-const siteUrl = process.env.SITE_URL ?? "https://huddl.app";
+const siteUrl = process.env.SITE_URL ?? "https://uhearth.app";
 
 /** How eagerly a crawler should come back, per public page. */
 const WEIGHT: Record<string, { priority: number; changeFrequency: "weekly" | "monthly" }> = {

@@ -147,7 +147,7 @@ const UNTITLED_GROUP = "Group chat";
 /** Shown before `people` has loaded, when there's nothing honest to say yet. */
 const UNKNOWN_THREAD = "Conversation";
 
-/** Shown on a 1:1 whose other person has deleted their Huddl account. */
+/** Shown on a 1:1 whose other person has deleted their Hearth account. */
 const DEPARTED_PERSON = "Someone who left";
 
 /**

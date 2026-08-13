@@ -165,13 +165,13 @@ export default function LoginScreen() {
           variant="display"
           style={{ textAlign: "center", marginBottom: space.snug }}
         >
-          huddl
+          hearth
         </AppText>
         <AppText
           muted
           style={{ textAlign: "center", marginBottom: space.chapter }}
         >
-          Your campus, in one huddle.
+          Your campus, gathered.
         </AppText>
 
         <Card style={{ gap: space.card }}>

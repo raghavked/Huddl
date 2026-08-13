@@ -86,7 +86,7 @@ const DM_OPTIONS: Record<
     icon: "globe",
     label: "Anyone on campus",
     caption:
-      "Anyone who can find your profile can start a conversation. This is how Huddl starts out.",
+      "Anyone who can find your profile can start a conversation. This is how Hearth starts out.",
   },
   classmates: {
     icon: "book-open",
@@ -113,7 +113,7 @@ const DM_OPTIONS: Record<
 function dmSentence(value: DmPrivacy): string {
   switch (value) {
     case "campus":
-      return "Anyone at your university can open a thread with you, which is what Huddl has always done. Narrowing it later never closes a conversation you're already in.";
+      return "Anyone at your university can open a thread with you, which is what Hearth has always done. Narrowing it later never closes a conversation you're already in.";
     case "classmates":
       return "Someone who shares a course with you can start a thread or add you to a group chat. Everyone else is told you aren't taking new messages, and nothing more than that: not which classes you're in, and not that they were refused by name.";
     case "nobody":
@@ -133,7 +133,7 @@ function dmSentence(value: DmPrivacy): string {
    so "notify exactly the same" is a claim the code actually keeps. */
 function sharingSentence(prefs: PrivacyPrefs): string {
   if (prefs.shareTyping) {
-    return "It's on, which is how Huddl starts out: classmates can tell when you're composing a message, and you can tell the same about them.";
+    return "It's on, which is how Hearth starts out: classmates can tell when you're composing a message, and you can tell the same about them.";
   }
   return "It's off. Nobody sees you composing, and you won't see them composing either. Your messages still send, arrive and notify exactly the same.";
 }
@@ -632,12 +632,12 @@ export default function PrivacySettingsScreen() {
             policy.
           </Fact>
           <Fact icon="book" tint={theme.accent}>
-            Your grades and your notes. Huddl never connects to your
+            Your grades and your notes. Hearth never connects to your
             university's systems, so there's no transcript here to leak, and
             what you write for yourself stays yours.
           </Fact>
           <Fact icon="check-circle" tint={theme.accent}>
-            Whether you've read a message. Huddl has no read receipts: no
+            Whether you've read a message. Hearth has no read receipts: no
             screen tells anyone you've opened theirs.
           </Fact>
           <Fact icon="slash" tint={theme.accent}>
@@ -647,7 +647,7 @@ export default function PrivacySettingsScreen() {
         </Card>
 
         <AppText variant="caption" muted style={{ marginTop: space.room }}>
-          Apart from your profile photo, nothing on Huddl is reachable from
+          Apart from your profile photo, nothing on Hearth is reachable from
           the wider internet. Your university never gets a copy, and none of
           it is ever sold.
         </AppText>

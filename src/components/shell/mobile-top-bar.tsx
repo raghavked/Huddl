@@ -19,7 +19,7 @@ export function MobileTopBar({
         <div className="flex min-w-0 items-center gap-2.5">
           <Link
             href="/home"
-            aria-label="Huddl home"
+            aria-label="Hearth home"
             className="rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
           >
             <Wordmark />

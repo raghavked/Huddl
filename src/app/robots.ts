@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { PROTECTED_PREFIXES, PUBLIC_PATHS } from "@/lib/protected-routes";
 
-const siteUrl = process.env.SITE_URL ?? "https://huddl.app";
+const siteUrl = process.env.SITE_URL ?? "https://uhearth.app";
 
 /**
  * Crawlers get the marketing surface; the signed-in app stays private.

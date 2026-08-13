@@ -268,7 +268,7 @@ export function exportedAt(data: DataExport): Date | null {
 }
 
 /**
- * What to call the file: `huddl-data-2026-08-11.json`. It is the download's
+ * What to call the file: `hearth-data-2026-08-11.json`. It is the download's
  * name, and it is shown on screen too so a student knows what they're looking
  * for in their downloads folder afterwards.
  */
@@ -276,7 +276,7 @@ export function exportFileName(at: Date = new Date()): string {
   const stamp = Number.isNaN(at.getTime())
     ? new Date().toISOString()
     : at.toISOString();
-  return `huddl-data-${stamp.slice(0, 10)}.json`;
+  return `hearth-data-${stamp.slice(0, 10)}.json`;
 }
 
 /**

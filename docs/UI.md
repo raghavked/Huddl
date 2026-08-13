@@ -1,4 +1,4 @@
-# Huddl UI v3: "hearth" design system reference
+# Hearth UI v3: "hearth" design system reference
 
 > **Which doc?** This one is the **web** reference: the Tailwind tokens,
 > utilities, primitives, and layout patterns that ship from
@@ -9,7 +9,7 @@
 > first; read this one when you're writing web components. On a disagreement,
 > `DESIGN.md` wins.
 
-v3 "hearth" keeps the huddl brand voice (sentence case, empty states that
+v3 "hearth" keeps the hearth brand voice (sentence case, empty states that
 recruit; see `BRAND.md`) and re-grounds the visual layer in warmth: cream
 paper and espresso ink, an ember primary with clay softs, fern for trust, a
 candle-lit dark theme. Soft elevation instead of flat hairline boxes, frosted
@@ -22,7 +22,7 @@ Type: `h1`–`h3` render in **Bricolage Grotesque** automatically (see
 `globals.css`); the `font-display` utility applies it to non-heading display
 text. Body/UI is **Plus Jakarta Sans**; `font-mono` is JetBrains Mono.
 Illustrations: `@/components/illustrations` exports warm, hand-drawn,
-token-driven SVG scenes (Chat, Calendar, Notes, Huddle, Shield, Discover),
+token-driven SVG scenes (Chat, Calendar, Notes, Gathering, Shield, Discover),
 accented with steam curls, crumb dots, and stitch dashes. Pass one to
 `<EmptyState illustration={…}>` on marquee empty states; route-level loading
 states use `Skeleton` / `SkeletonRow` / `SkeletonPage` from `@/components/ui`.
@@ -68,7 +68,7 @@ in both themes with no component code.
 
 Theme: light is default; dark applies via system preference or the
 `data-theme` override on `<html>` set by `<ThemeToggle />`
-(`src/components/theme-toggle.tsx`), persisted as `huddl-theme` in
+(`src/components/theme-toggle.tsx`), persisted as `hearth-theme` in
 localStorage. Never branch on theme in components. Tokens handle it.
 
 ## Primitives (`@/components/ui`)
@@ -119,7 +119,7 @@ import {
 
 ## Shell
 
-Huddl is **mobile-exclusive**: there is exactly one shell, the phone one,
+Hearth is **mobile-exclusive**: there is exactly one shell, the phone one,
 at every viewport. The app renders in a centered `max-w-md` column
 (soft `md:border-x` edges on larger screens); there is no desktop layout.
 

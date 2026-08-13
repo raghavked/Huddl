@@ -6,7 +6,7 @@ import { ImageResponse } from "next/og";
    mark geometry is copied verbatim from src/components/logo.tsx; keep them in
    sync if the logo ever changes. */
 
-export const alt = "Huddl · Your campus, in one huddle.";
+export const alt = "Hearth · Your campus, gathered.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -28,7 +28,7 @@ export default function OpengraphImage() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 36 }}>
-          {/* The huddl mark: four rounded students leaning into a huddle */}
+          {/* The hearth mark: four rounded students leaning together */}
           <svg width={150} height={150} viewBox="0 0 32 32" aria-hidden>
             <circle cx="16" cy="7.5" r="4.1" fill="#ffffff" />
             <circle cx="7" cy="14.5" r="3.4" fill="rgba(255, 255, 255, 0.75)" />
@@ -51,7 +51,7 @@ export default function OpengraphImage() {
               lineHeight: 1,
             }}
           >
-            huddl
+            hearth
           </div>
         </div>
         <div
@@ -62,7 +62,7 @@ export default function OpengraphImage() {
             letterSpacing: "-0.01em",
           }}
         >
-          Your campus, in one huddle.
+          Your campus, gathered.
         </div>
       </div>
     ),

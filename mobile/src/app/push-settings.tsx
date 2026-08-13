@@ -55,7 +55,7 @@ type PushKind =
   | "system";
 
 /* Every kind the push trigger can send, in the order a student thinks about
-   them: people talking to you, then your week, then Huddl itself. The gate
+   them: people talking to you, then your week, then Hearth itself. The gate
    in push_notification() is generic (it reads
    `notification_prefs ->> kind` for whatever kind is on the row), so this
    list is not a server contract, it is a promise that anything which can
@@ -116,7 +116,7 @@ const PUSH_KINDS: {
     kind: "system",
     icon: "bell",
     label: "Weekly digest + announcements",
-    caption: "Your Monday look-ahead, plus the rare heads-up from Huddl.",
+    caption: "Your Monday look-ahead, plus the rare heads-up from Hearth.",
   },
 ];
 
@@ -202,7 +202,7 @@ function quietSentence(quiet: QuietHours | null): string {
 }
 
 const DIGEST_NOTE =
-  "When a class channel gets going, Huddl rolls the pile into one nudge (the “4 new notifications” kind) instead of buzzing twelve times. Tapping it opens your inbox with all of them in it.";
+  "When a class channel gets going, Hearth rolls the pile into one nudge (the “4 new notifications” kind) instead of buzzing twelve times. Tapping it opens your inbox with all of them in it.";
 
 /* ------------------------------ saving ------------------------------- */
 
@@ -623,7 +623,7 @@ export default function PushSettingsScreen() {
     permission === "granted"
       ? "DMs, mentions, and class dates reach you here."
       : permission === "denied"
-        ? "Notifications are turned off for Huddl in your phone's settings."
+        ? "Notifications are turned off for Hearth in your phone's settings."
         : "Turn it on and this phone starts getting nudges.";
 
   const pushReady = isDevice && permission === "granted";
@@ -764,7 +764,7 @@ export default function PushSettingsScreen() {
               <Button
                 label="Open Settings"
                 variant="soft"
-                accessibilityLabel="Open your phone's settings for Huddl"
+                accessibilityLabel="Open your phone's settings for Hearth"
                 onPress={() => void Linking.openSettings()}
               />
             ) : null}

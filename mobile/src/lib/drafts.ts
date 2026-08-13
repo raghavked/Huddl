@@ -163,7 +163,7 @@ export type ConnectivityListener = (online: boolean) => void;
 
 /**
  * The prefix every draft key sits behind, namespaced like
- * `huddl.display.mode` and `huddl.firstRun.welcomeSeen` so everything Huddl
+ * `hearth.display.mode` and `hearth.firstRun.welcomeSeen` so everything Hearth
  * keeps on the device sorts together.
  *
  * A draft lives at `` `${DRAFT_KEY_PREFIX}${conversationKey}` ``: one storage
@@ -172,7 +172,7 @@ export type ConnectivityListener = (online: boolean) => void;
  * sign-out, or a "forget my drafts" control) can find them all with
  * `getAllKeys()` without knowing this module's internals.
  */
-export const DRAFT_KEY_PREFIX = "huddl.draft.";
+export const DRAFT_KEY_PREFIX = "hearth.draft.";
 
 /**
  * The single key the send queue lives under, holding a JSON array in send
@@ -180,7 +180,7 @@ export const DRAFT_KEY_PREFIX = "huddl.draft.";
  * can't satisfy should bump the suffix rather than try to migrate messages
  * nobody can see.
  */
-export const QUEUE_STORAGE_KEY = "huddl.sendQueue.v1";
+export const QUEUE_STORAGE_KEY = "hearth.sendQueue.v1";
 
 /**
  * Longest draft we'll keep, matching the 1-4000 character window both
@@ -402,7 +402,7 @@ export async function loadAllDrafts(): Promise<Map<ConversationKey, string>> {
  * not find half a sentence you were writing to your section.
  *
  * **Never throws.** Finds its keys by {@link DRAFT_KEY_PREFIX} and touches
- * nothing else Huddl stores.
+ * nothing else Hearth stores.
  */
 export async function clearAllDrafts(): Promise<void> {
   try {

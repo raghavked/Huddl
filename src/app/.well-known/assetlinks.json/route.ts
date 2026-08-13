@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 
 /**
  * `/.well-known/assetlinks.json`, the Digital Asset Links statement Android
- * fetches to verify that `app.huddl.mobile` may open `https://huddl.app/...`
+ * fetches to verify that `app.uhearth.mobile` may open `https://uhearth.app/...`
  * links without the disambiguation dialog.
  */
 
 /** Uppercase hex, colon-separated: 32 bytes → 32 pairs, 31 colons. */
 const FINGERPRINT_PATTERN = /^[0-9A-F]{2}(:[0-9A-F]{2}){31}$/;
 
-const PACKAGE_NAME = "app.huddl.mobile";
+const PACKAGE_NAME = "app.uhearth.mobile";
 
 /**
  * Long, because the statement changes about once a decade. The 404 below is

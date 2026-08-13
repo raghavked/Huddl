@@ -1,6 +1,6 @@
-# Huddl Brand Guide
+# Hearth Brand Guide
 
-Huddl is what happens when your best group chat meets your favorite study spot.
+Hearth is what happens when your best group chat meets your favorite study spot.
 Everything in this guide exists to protect that feeling: warm, collegiate,
 energetic, and trustworthy enough that students run their whole semester
 through it.
@@ -12,26 +12,30 @@ home in an enterprise dashboard, redo it.
 
 ## 1. The name
 
-**huddl** (always lowercase in the wordmark, "Huddl" in prose).
+**hearth** (always lowercase in the wordmark, "Hearth" in prose).
 
-- A *huddle* is the tightest formation a team makes: heads in, everyone talking,
-  nobody outside the circle. That's the product: your campus, in one huddle.
-- The dropped "e" is student shorthand, the way "u" replaces "you" in a text.
-  It signals: built by people who text like you do.
-- It's a verb waiting to happen. "Huddl up before the midterm" is the behavior
-  we want, written into the name.
+- A *hearth* is the warm center of a house: the fire everyone ends up sitting
+  around without being asked to. That's the product: the place your campus
+  gathers at the end of the day.
+- The app was called Huddl until August 2026; it was renamed over a
+  likelihood-of-confusion risk with Hudl, the sports platform. The rename was
+  a gift: the palette was already ember-and-cream, the design system already
+  calls its cards "Hearth cards", and the accent color was already named
+  `ember`. The name caught up with the design.
+- The domain is **uhearth.app** ("u" + hearth, your hearth), so the bundle id
+  is `app.uhearth.mobile`. The product name in prose is Hearth alone; the "u"
+  lives only in the domain and identifiers derived from it.
 
-**Tagline:** *Your campus, in one huddle.*
+**Tagline:** *Your campus, gathered.*
 
-Use the tagline verbatim on the landing page, app store copy, and posters. Don't
-riff on it in-product ("huddle up!" as button copy is fine at launch events, not
-in the app).
+Use the tagline verbatim on the landing page, app store copy, and posters.
+Don't riff on it in-product.
 
 ---
 
 ## 2. Voice & tone
 
-Huddl sounds like the classmate who has their act together and shares their
+Hearth sounds like the classmate who has their act together and shares their
 notes anyway. Specifically:
 
 | Principle | It means | Not |
@@ -54,7 +58,7 @@ notes anyway. Specifically:
    message.
 4. **"Textbooks, rides, sublets, help"** (*#asks-and-offers description*). Four
    nouns, zero fluff. This is "concrete over clever" in its purest form.
-5. **"You've never stored an image with Huddl. If you had, its full audit trail
+5. **"You've never stored an image with Hearth. If you had, its full audit trail
    would live here: every access logged, every log a notification."**
    (*privacy dashboard, empty*). The privacy voice: calm, specific, mechanical.
    Instead of "we take your privacy seriously", we show the log.
@@ -77,7 +81,7 @@ The mark is **three heads leaning together inside a speech bubble**.
 
 The bubble is the category: this is a place where people talk, and an icon on a
 home screen has about a tenth of a second to say so. The three heads inside are
-the huddle. The middle one sits a little larger and a little higher, the way
+the gathering. The middle one sits a little larger and a little higher, the way
 the person leaning furthest in always is. They're *cut out* of the bubble rather
 than drawn on top of it, so the entire mark is one path in one color, drawn in
 `currentColor`. That's what lets it sit on an ember tile, in a cream nav bar,
@@ -95,13 +99,14 @@ about 40 px.
 | Component | Always render via `<LogoMark />` or `<Wordmark />` from `src/components/logo.tsx`. Never re-draw or export flattened copies. |
 | App icons | All of `mobile/assets/images/*.png` and `public/icons/*.svg` are generated from the same path as `<LogoMark />`. If the mark changes, regenerate them together. The mobile icon was an unrelated "h." monogram for a while, and one mark that is actually one mark is the point. |
 | Color | Mark in `text-brand` next to foreground-colored wordmark text (the default). One-color contexts: all-foreground or all-`brand-fg` on brand backgrounds. App-icon / tile contexts: `brand-fg` mark on a **solid ember** (`bg-brand`) tile. The gradient tile is retired. |
-| Wordmark | "huddl", lowercase, bold, tight tracking, exactly as `<Wordmark />` renders it. |
+| Wordmark | "hearth", lowercase, bold, tight tracking, exactly as `<Wordmark />` renders it. |
 | Minimum size | Mark: 20 px. Wordmark: 88 px wide. Below that, use the mark alone. |
 | Clear space | Keep a margin of at least the height of one "head" circle on all sides. |
 
 **Don't:** rotate it, add gradients or shadows to it, outline it, recolor it
 outside the token palette, put it on photos without a surface behind it, or
-spell the wordmark "Huddle".
+spell the wordmark "Hearth" with a capital H, or write "uhearth" anywhere a
+person reads.
 
 ---
 

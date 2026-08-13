@@ -27,7 +27,7 @@ import {
 } from "@/lib/data-export";
 import { tapSuccess } from "@/lib/haptics";
 
-/* Your data: everything Huddl holds that's yours, in one file you can take
+/* Your data: everything Hearth holds that's yours, in one file you can take
    with you. The screen explains before it does anything: what's in the file,
    what stays behind, and only then a button.
 
@@ -266,7 +266,7 @@ export default function DataExportScreen() {
         showsVerticalScrollIndicator={false}
       >
         <AppText variant="body" muted style={{ marginTop: space.snug }}>
-          This is your copy of everything Huddl holds that's yours: your
+          This is your copy of everything Hearth holds that's yours: your
           profile, your classes, the messages and notes you've written, your
           focus sessions and grades, and the safety records: who you've
           blocked and what you've reported. Things you shared stay in the
@@ -407,7 +407,7 @@ export default function DataExportScreen() {
 
         {/* The companion action, mentioned once and left alone. */}
         <AppText variant="caption" muted style={{ marginTop: space.rest }}>
-          Leaving is the other half of this. Whenever you want Huddl to hold
+          Leaving is the other half of this. Whenever you want Hearth to hold
           none of it, Delete account sits at the bottom of Settings.
         </AppText>
       </ScrollView>

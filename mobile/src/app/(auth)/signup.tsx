@@ -93,7 +93,7 @@ export default function SignupScreen() {
 
     if (unsupportedDomain && domain) {
       setIsDomainError(true);
-      setError("Huddl is campus-only. Use your school email.");
+      setError("Hearth is campus-only. Use your school email.");
       return;
     }
 
@@ -113,8 +113,8 @@ export default function SignupScreen() {
         setIsDomainError(true);
         setError(
           domain
-            ? `Huddl isn't at ${domain} yet. We're adding new schools all the time, so check back soon.`
-            : "Huddl isn't at your school yet. We're adding new schools all the time, so check back soon."
+            ? `Hearth isn't at ${domain} yet. We're adding new schools all the time, so check back soon.`
+            : "Hearth isn't at your school yet. We're adding new schools all the time, so check back soon."
         );
       } else if (/already registered/i.test(signUpError.message)) {
         setAccountExists(true);
@@ -194,7 +194,7 @@ export default function SignupScreen() {
           Join your campus
         </AppText>
         <AppText muted style={{ marginBottom: space.gutter }}>
-          Sign up with your school email. That's how we keep Huddl
+          Sign up with your school email. That's how we keep Hearth
           campus-only.
         </AppText>
 
@@ -253,7 +253,7 @@ export default function SignupScreen() {
               </View>
               {isDomainError && universities && universities.length > 0 ? (
                 <View style={{ paddingLeft: space.chapter, gap: space.hair }}>
-                  <AppText variant="bodySemi">Huddl is currently at:</AppText>
+                  <AppText variant="bodySemi">Hearth is currently at:</AppText>
                   {universities.map((u) => (
                     <AppText key={u.id} variant="caption" muted>
                       {u.name} (@{u.email_domain})
@@ -304,7 +304,7 @@ export default function SignupScreen() {
                   variant="caption"
                   style={{ color: theme.danger, flex: 1 }}
                 >
-                  Huddl is campus-only. Use your school email.
+                  Hearth is campus-only. Use your school email.
                 </AppText>
               </View>
             ) : (

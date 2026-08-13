@@ -19,7 +19,7 @@ import { createClient } from "@/lib/supabase/client";
  * an address has an account. `resetPasswordForEmail` succeeds either way by
  * design, and so does the copy: "if that address has an account" is not
  * hedging, it's the feature. A campus is a small place and knowing which of
- * your classmates is on Huddl is not something a stranger with a form should
+ * your classmates is on Hearth is not something a stranger with a form should
  * be able to find out.
  *
  * The link goes to /auth/confirm rather than straight to /reset-password: the
@@ -132,9 +132,9 @@ export function ForgotPasswordForm({
           </Badge>
         </p>
         {/* Neutral on purpose: we don't confirm whether that address is on
-            Huddl, to anyone, ever. */}
+            Hearth, to anyone, ever. */}
         <p className="mt-3 text-sm text-muted text-pretty">
-          If that address has a Huddl account, a link to set a new password is
+          If that address has a Hearth account, a link to set a new password is
           on its way. It works once, and it doesn&apos;t stay good for long, so
           open it when it lands.
         </p>

@@ -20,7 +20,7 @@
  * label the field, not to gate it: only {@link PasswordCheck.ok} decides
  * whether a form may submit, and it ignores strength entirely.
  *
- * WHY THE EMAIL CHECK. Huddl accounts are university email addresses, which
+ * WHY THE EMAIL CHECK. Hearth accounts are university email addresses, which
  * means the local part is usually the student's name or their campus ID:
  * public, guessable, and the first thing anyone tries. A password that
  * contains it is the one bad password we can actually detect for certain.
@@ -74,7 +74,7 @@ export type PasswordCheck = {
 /*
  * The hundred or so passwords that turn up first in every leaked-credential
  * dump, plus the handful this product invites specifically. A campus app
- * gets "huddl", "password", and the school's own name more than its share.
+ * gets "hearth", "password", and the school's own name more than its share.
  * Compared lowercased, so casing variants collapse onto one entry.
  */
 const COMMON_PASSWORDS: ReadonlySet<string> = new Set([
@@ -93,7 +93,7 @@ const COMMON_PASSWORDS: ReadonlySet<string> = new Set([
   "sunshine1", "chocolate", "butterfly", "cheese123", "flower123", "purple12",
   "orange123", "banana123", "summer123", "winter123", "spring123", "autumn123",
   "student1", "student123", "college1", "college123", "university", "campus123",
-  "huddl123", "huddlhuddl", "gohuddl1", "aggies123", "ucdavis1", "ucdavis123",
+  "hearth123", "hearthhearth", "gohearth1", "aggies123", "ucdavis1", "ucdavis123",
   "davis123", "california", "sacramento", "graduate1", "freshman1", "senior123",
 ]);
 

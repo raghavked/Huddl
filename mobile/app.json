@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "Huddl",
-    "slug": "huddl",
+    "name": "Hearth",
+    "slug": "hearth",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "huddl",
+    "scheme": "hearth",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "app.huddl.mobile",
+      "bundleIdentifier": "app.uhearth.mobile",
       "buildNumber": "1",
       "supportsTablet": false,
-      "associatedDomains": ["applinks:huddl.app"],
+      "associatedDomains": ["applinks:uhearth.app"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -24,19 +24,19 @@
       },
       "versionCode": 1,
       "predictiveBackGestureEnabled": false,
-      "package": "app.huddl.mobile",
+      "package": "app.uhearth.mobile",
       "intentFilters": [
         {
           "action": "VIEW",
           "autoVerify": true,
           "category": ["BROWSABLE", "DEFAULT"],
           "data": [
-            { "scheme": "https", "host": "huddl.app", "pathPrefix": "/channels/" },
-            { "scheme": "https", "host": "huddl.app", "pathPrefix": "/clubs/" },
-            { "scheme": "https", "host": "huddl.app", "pathPrefix": "/courses/" },
-            { "scheme": "https", "host": "huddl.app", "pathPrefix": "/events/" },
-            { "scheme": "https", "host": "huddl.app", "pathPrefix": "/messages/" },
-            { "scheme": "https", "host": "huddl.app", "pathPrefix": "/u/" }
+            { "scheme": "https", "host": "uhearth.app", "pathPrefix": "/channels/" },
+            { "scheme": "https", "host": "uhearth.app", "pathPrefix": "/clubs/" },
+            { "scheme": "https", "host": "uhearth.app", "pathPrefix": "/courses/" },
+            { "scheme": "https", "host": "uhearth.app", "pathPrefix": "/events/" },
+            { "scheme": "https", "host": "uhearth.app", "pathPrefix": "/messages/" },
+            { "scheme": "https", "host": "uhearth.app", "pathPrefix": "/u/" }
           ]
         }
       ]
@@ -57,8 +57,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Huddl uses your photo library so you can share pictures in chats and set a profile photo.",
-          "cameraPermission": "Huddl uses the camera so you can take a photo to share in chats or use as your profile photo."
+          "photosPermission": "Hearth uses your photo library so you can share pictures in chats and set a profile photo.",
+          "cameraPermission": "Hearth uses the camera so you can take a photo to share in chats or use as your profile photo."
         }
       ],
       [

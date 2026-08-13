@@ -41,10 +41,10 @@ export const RECENT_SEARCHES_MAX = 8;
 export const RECENT_QUERY_MAX = 80;
 
 /**
- * The one key. Namespaced like `huddl.firstRun.welcomeSeen` so everything
- * Huddl keeps on the device sorts together and nothing else can collide.
+ * The one key. Namespaced like `hearth.firstRun.welcomeSeen` so everything
+ * Hearth keeps on the device sorts together and nothing else can collide.
  */
-const KEY = "huddl.search.recents";
+const KEY = "hearth.search.recents";
 
 /* ------------------------------ storage ----------------------------- */
 

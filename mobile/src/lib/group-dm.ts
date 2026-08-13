@@ -36,7 +36,7 @@ export type GroupThreadRow = {
   is_group: boolean;
   /** The group's name, 2-60 characters. Always null on a 1:1. */
   title: string | null;
-  /** Who started the group (`profiles.id`), or null if they've left Huddl. */
+  /** Who started the group (`profiles.id`), or null if they've left Hearth. */
   created_by: string | null;
 };
 
@@ -402,7 +402,7 @@ const UNTITLED_GROUP = "Group chat";
 /** Shown before `people` has loaded, when there's nothing honest to say yet. */
 const UNKNOWN_THREAD = "Conversation";
 
-/** Shown on a 1:1 whose other person has deleted their Huddl account. */
+/** Shown on a 1:1 whose other person has deleted their Hearth account. */
 const DEPARTED_PERSON = "Someone who left";
 
 /**

@@ -15,7 +15,7 @@ export default async function AppLayout({
     return (
       <main className="flex min-h-dvh items-center justify-center p-6">
         <Card padding="lg" className="max-w-md text-center">
-          <h1 className="text-lg font-bold">Huddl needs a backend</h1>
+          <h1 className="text-lg font-bold">Hearth needs a backend</h1>
           <p className="mt-2 text-sm text-muted">
             Copy <code>.env.example</code> to <code>.env.local</code> and fill
             in your Supabase project URL and publishable key, then restart the
@@ -45,7 +45,7 @@ export default async function AppLayout({
     typeof unreadDmsRes.data === "number" ? unreadDmsRes.data : 0;
 
   return (
-    /* Huddl is mobile-exclusive: one phone-width column at every viewport.
+    /* Hearth is mobile-exclusive: one phone-width column at every viewport.
        On larger screens the app centers itself with soft edges. There is no
        desktop layout, only the mobile app, comfortably framed. */
     <div className="min-h-dvh">

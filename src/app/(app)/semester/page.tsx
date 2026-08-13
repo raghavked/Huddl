@@ -137,7 +137,7 @@ function PrivacyLine() {
   return (
     <p className="mt-3 flex items-start gap-2.5 rounded-xl bg-accent-soft px-3 py-2.5 text-xs leading-relaxed text-accent">
       <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-      Only you can see this. Huddl never shares your grades with classmates or
+      Only you can see this. Hearth never shares your grades with classmates or
       your school.
     </p>
   );

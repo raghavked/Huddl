@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
-import { HuddleScene } from "@/components/illustrations";
+import { GatheringScene } from "@/components/illustrations";
 import {
   Badge,
   Button,
@@ -575,7 +575,7 @@ export function BuddiesSection({
         {others.length === 0 ? (
           <div className="mt-3 rounded-card border border-dashed border-border">
             <EmptyState
-              illustration={mine === null ? <HuddleScene /> : undefined}
+              illustration={mine === null ? <GatheringScene /> : undefined}
               icon={UsersRound}
               title={
                 mine === null
