@@ -471,7 +471,7 @@ export function NotesSection({
           illustration={<NotesScene />}
           icon={FileText}
           title="No notes yet"
-          description="Be the first to share lecture notes, study guides or slides with your classmates."
+          description="Be the first to share lecture notes, a study guide or slides with your class."
         />
       ) : shown.length === 0 ? (
         <EmptyState

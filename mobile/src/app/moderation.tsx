@@ -509,7 +509,10 @@ const EMPTIES: Record<
   reviewed: {
     illustration: Shoebox,
     title: "Nothing reviewed yet",
-    body: "Reports you've acted on collect here, so you can look back at what you decided and who decided it.",
+    /* Not "and who decided it". `reports` records a status and nothing about
+       the moderator who set it, and neither queue renders one, so that half
+       promised something the table cannot deliver. Matches the web copy. */
+    body: "Reports you've acted on collect here, so you can look back at what you decided.",
   },
   dismissed: {
     illustration: Shoebox,

@@ -102,7 +102,10 @@ function sharingSentence(typing: boolean): string {
   if (typing) {
     return "It's on, which is how Huddl starts out: classmates can tell when you're composing a message, and you can tell the same about them.";
   }
-  return "It's off. Nobody sees you composing, and you won't see them composing either. Your messages still send and arrive exactly the same.";
+  /* "and notify" matters: the commonest worry about this switch is that it
+     quietly mutes something. It does not. `share_typing` is read by the
+     typing hook and nothing else. Word for word with the native screen. */
+  return "It's off. Nobody sees you composing, and you won't see them composing either. Your messages still send, arrive and notify exactly the same.";
 }
 
 /** What each `?error=` on this page says out loud. */

@@ -1119,7 +1119,7 @@ export default function ProfileScreen() {
             title={isMe ? "No channels yet" : "No channels in common"}
             description={
               isMe
-                ? "Browse the channels and join the conversations you care about."
+                ? "Browse the campus channels and join the conversations you care about."
                 : `No channels in common with ${firstName} yet.`
             }
             actionLabel={isMe ? "Browse channels" : undefined}

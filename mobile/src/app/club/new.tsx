@@ -29,6 +29,15 @@ type ClubCategory =
   | "service"
   | "other";
 
+/* Matching src/features/clubs/actions.ts, which is what actually decides
+   whether a club gets created from the web. This screen said 60 while that
+   said 80, so the same name was accepted in a browser and refused on a phone.
+   The database constrains neither, so the wider one wins: no club that
+   already exists ends up with a name this form would reject. */
+const NAME_MIN = 3;
+const NAME_MAX = 80;
+const DESCRIPTION_MAX = 500;
+
 const CATEGORIES: readonly ClubCategory[] = [
   "academic",
   "professional",
@@ -93,12 +102,12 @@ export default function NewClubScreen() {
     if (!userId || pending) return;
 
     const trimmed = name.trim();
-    if (trimmed.length < 3) {
-      setFormError("Give your club a name of at least 3 characters.");
+    if (trimmed.length < NAME_MIN) {
+      setFormError(`Give your club a name of at least ${NAME_MIN} characters.`);
       return;
     }
-    if (trimmed.length > 60) {
-      setFormError("Club names can be at most 60 characters.");
+    if (trimmed.length > NAME_MAX) {
+      setFormError(`Club names can be at most ${NAME_MAX} characters.`);
       return;
     }
     if (!slug) {
@@ -233,7 +242,7 @@ export default function NewClubScreen() {
               value={name}
               onChangeText={setName}
               placeholder="Astronomy Society"
-              maxLength={60}
+              maxLength={NAME_MAX}
               editable={!pending}
             />
             <AppText variant="caption" muted>
@@ -293,7 +302,7 @@ export default function NewClubScreen() {
             value={description}
             onChangeText={setDescription}
             placeholder="What's your club about? Who should join?"
-            maxLength={500}
+            maxLength={DESCRIPTION_MAX}
             multiline
             editable={!pending}
             style={{ minHeight: 88, textAlignVertical: "top" }}

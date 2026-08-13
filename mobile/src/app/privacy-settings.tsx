@@ -126,9 +126,14 @@ function dmSentence(value: DmPrivacy): string {
  * Pure: it takes the preferences and nothing else, so the copy can be read
  * (and changed) without chasing state around the screen.
  */
+/* Word for word with src/app/(app)/settings/privacy/page.tsx. The two used to
+   disagree on both halves: the on-state here described what turning it off
+   would do rather than what it currently does, and the web off-state left out
+   notifications. `share_typing` is read by exactly one thing, hooks/use-typing.ts,
+   so "notify exactly the same" is a claim the code actually keeps. */
 function sharingSentence(prefs: PrivacyPrefs): string {
   if (prefs.shareTyping) {
-    return "It's on, which is how Huddl starts out. Switching it off changes that one line and nothing else. Your messages still send, arrive and notify exactly the same.";
+    return "It's on, which is how Huddl starts out: classmates can tell when you're composing a message, and you can tell the same about them.";
   }
   return "It's off. Nobody sees you composing, and you won't see them composing either. Your messages still send, arrive and notify exactly the same.";
 }

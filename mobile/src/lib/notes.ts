@@ -198,7 +198,7 @@ export async function getSignedUrl(filePath: string): Promise<string> {
     .from(NOTES_BUCKET)
     .createSignedUrl(filePath, 60);
   if (error || !data?.signedUrl) {
-    throw new NotesError("Couldn't prepare that file. Give it another try.");
+    throw new NotesError("Couldn't prepare that download. Give it another try.");
   }
   return data.signedUrl;
 }

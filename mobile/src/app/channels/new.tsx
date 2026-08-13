@@ -20,9 +20,15 @@ import { useAuth } from "@/providers/auth-provider";
    university, created_by you), and you join your new channel on the way
    through to its room. */
 
+/* These three match the web client's create form and its server action
+   exactly. They used to be 3/40/200 against the web's 3/80/500, so a channel
+   named or described on the web could be longer than this screen would let
+   anyone type, and the two clients refused different input. Nothing in the
+   database constrains either column, so the wider of the two is the safe
+   direction: no channel that already exists becomes uneditable here. */
 const NAME_MIN = 3;
-const NAME_MAX = 40;
-const DESCRIPTION_MAX = 200;
+const NAME_MAX = 80;
+const DESCRIPTION_MAX = 500;
 
 /** "Pickup Soccer!!" -> "pickup-soccer": lowercase, runs of anything
     non-alphanumeric collapsed to single dashes, ends trimmed. */

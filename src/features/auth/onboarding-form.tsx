@@ -123,7 +123,7 @@ export function OnboardingForm({ profile }: { profile: Profile }) {
           value={bio}
           aria-describedby="onboarding-bio-count"
           onChange={(e) => setBio(e.target.value)}
-          placeholder="Clubs, hobbies, what you're studying, anything classmates should know."
+          placeholder="Clubs, hobbies, what you're studying: anything classmates should know."
           className="resize-none"
         />
       </div>

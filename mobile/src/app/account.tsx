@@ -342,7 +342,7 @@ export default function AccountScreen() {
     if (error) {
       // The file is gone; the profile is the half still pointing at it.
       setPhotoError(
-        "Your photo file is deleted, but your profile still points at it. Give Remove another tap."
+        "Your photo is deleted, but your profile still points at it. Give Remove another tap."
       );
       return;
     }
