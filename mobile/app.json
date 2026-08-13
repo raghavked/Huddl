@@ -11,9 +11,83 @@
       "bundleIdentifier": "app.uhearth.mobile",
       "buildNumber": "1",
       "supportsTablet": false,
-      "associatedDomains": ["applinks:uhearth.app"],
+      "associatedDomains": [
+        "applinks:uhearth.app"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyTracking": false,
+        "NSPrivacyTrackingDomains": [],
+        "NSPrivacyCollectedDataTypes": [
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeEmailAddress",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeName",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeUserID",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePhotosorVideos",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          },
+          {
+            "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeOtherUserContent",
+            "NSPrivacyCollectedDataTypeLinked": true,
+            "NSPrivacyCollectedDataTypeTracking": false,
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
+          }
+        ],
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "35F9.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "E174.1"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -29,14 +103,41 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "category": ["BROWSABLE", "DEFAULT"],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
           "data": [
-            { "scheme": "https", "host": "uhearth.app", "pathPrefix": "/channels/" },
-            { "scheme": "https", "host": "uhearth.app", "pathPrefix": "/clubs/" },
-            { "scheme": "https", "host": "uhearth.app", "pathPrefix": "/courses/" },
-            { "scheme": "https", "host": "uhearth.app", "pathPrefix": "/events/" },
-            { "scheme": "https", "host": "uhearth.app", "pathPrefix": "/messages/" },
-            { "scheme": "https", "host": "uhearth.app", "pathPrefix": "/u/" }
+            {
+              "scheme": "https",
+              "host": "uhearth.app",
+              "pathPrefix": "/channels/"
+            },
+            {
+              "scheme": "https",
+              "host": "uhearth.app",
+              "pathPrefix": "/clubs/"
+            },
+            {
+              "scheme": "https",
+              "host": "uhearth.app",
+              "pathPrefix": "/courses/"
+            },
+            {
+              "scheme": "https",
+              "host": "uhearth.app",
+              "pathPrefix": "/events/"
+            },
+            {
+              "scheme": "https",
+              "host": "uhearth.app",
+              "pathPrefix": "/messages/"
+            },
+            {
+              "scheme": "https",
+              "host": "uhearth.app",
+              "pathPrefix": "/u/"
+            }
           ]
         }
       ]

@@ -45,7 +45,7 @@ export const TERMS_OF_SERVICE: LegalDoc = {
     },
     {
       heading: "Copyright, and how to get something taken down",
-      body: "Hearth hosts what students upload, and we take copyright seriously. If you own the rights to something posted here without your permission, tell us and we will act. Email [DMCA AGENT EMAIL] with: your contact details; enough detail to find the material, such as a link or the course and the file name; a statement that you believe in good faith the use is not authorised; a statement, under penalty of perjury, that the information is accurate and you are the owner or authorised to act for them; and your signature, typed is fine. We remove or disable access to material that is properly reported, and we tell the person who posted it. If you think your material was removed by mistake, you can send a counter notice to the same address and we will pass it on. Accounts that infringe repeatedly are terminated. Our designated agent for copyright notices is [DMCA AGENT NAME], [DMCA AGENT ADDRESS], [DMCA AGENT EMAIL].",
+      body: "Hearth hosts what students upload, and we take copyright seriously. If you own the rights to something posted here without your permission, tell us and we will act. Email dmca@uhearth.app with: your contact details; enough detail to find the material, such as a link or the course and the file name; a statement that you believe in good faith the use is not authorised; a statement, under penalty of perjury, that the information is accurate and you are the owner or authorised to act for them; and your signature, typed is fine. We remove or disable access to material that is properly reported, and we tell the person who posted it. If you think your material was removed by mistake, you can send a counter notice to the same address and we will pass it on. Accounts that infringe repeatedly are terminated. Our designated agent for copyright notices is Copyright Agent, uHearth LLC, [ADDRESS], dmca@uhearth.app.",
     },
     {
       heading: "The ground rules",
@@ -85,7 +85,7 @@ export const TERMS_OF_SERVICE: LegalDoc = {
     },
     {
       heading: "Talk to us",
-      body: "Hearth is operated by [LEGAL ENTITY NAME], [ADDRESS]. Questions about these terms, or something that doesn't seem right? Email hello@uhearth.app. A human reads it.",
+      body: "Hearth is operated by uHearth LLC, [ADDRESS]. Questions about these terms, or something that doesn't seem right? Email hello@uhearth.app. A human reads it.",
     },
   ],
 };
@@ -156,7 +156,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "Talk to us",
-      body: "The controller of your data is [LEGAL ENTITY NAME], [ADDRESS]. Questions about your data, or a request we can help with? Email hello@uhearth.app. A human reads it.",
+      body: "The controller of your data is uHearth LLC, [ADDRESS]. Questions about your data, or a request we can help with? Email hello@uhearth.app. A human reads it.",
     },
   ],
 };
