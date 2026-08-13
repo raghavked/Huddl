@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -11,12 +11,39 @@ import {
 /**
  * The client's copy of the badge rules, checked against the database's.
  *
- * `profile_is_complete()` in migration 0047 decides who is verified; this
- * module only explains to a student why they are not. If the two drift, the
- * checklist tells someone they are done while the badge stays off, so the
- * last test here reads the migration off disk and asserts the same fields
- * appear in both.
+ * `profile_is_complete()` decides who is verified; this module only explains
+ * to a student why they are not. If the two drift, the checklist tells
+ * someone they are done while the badge stays off, so the last test here
+ * reads the function off disk and asserts the same fields appear in both.
+ *
+ * It finds the definition by scanning the migrations for the LAST one that
+ * declares the function, rather than naming a file. This test used to point
+ * at 0047 by name, and 0048 then redefined the function to pin its
+ * search_path; a hardcoded path would have gone on checking a superseded
+ * body and passing while the live rules moved underneath it.
  */
+
+/** The body of the newest `profile_is_complete` definition in the migrations. */
+function latestProfileIsCompleteBody(): string {
+  const dir = join(process.cwd(), "supabase", "migrations");
+  const OPEN = "create or replace function public.profile_is_complete";
+  const CLOSE = "comment on function public.profile_is_complete";
+
+  for (const file of readdirSync(dir).sort().reverse()) {
+    const sql = readFileSync(join(dir, file), "utf8");
+    const from = sql.indexOf(OPEN);
+    if (from === -1) continue;
+    const to = sql.indexOf(CLOSE, from);
+    if (to === -1) {
+      throw new Error(
+        `${file} defines profile_is_complete but has no matching ` +
+          `"${CLOSE}" after it, so the body cannot be delimited.`
+      );
+    }
+    return sql.slice(from, to);
+  }
+  throw new Error("No migration defines public.profile_is_complete.");
+}
 
 const COMPLETE = {
   display_name: "Ada Lovelace",
@@ -120,19 +147,7 @@ describe("summariseGaps", () => {
 
 describe("agreement with the database", () => {
   it("checks the same fields profile_is_complete() does", () => {
-    const sql = readFileSync(
-      join(
-        process.cwd(),
-        "supabase",
-        "migrations",
-        "0047_verified_badge_by_email_and_profile.sql"
-      ),
-      "utf8"
-    );
-    const body = sql.slice(
-      sql.indexOf("create or replace function public.profile_is_complete"),
-      sql.indexOf("comment on function public.profile_is_complete")
-    );
+    const body = latestProfileIsCompleteBody();
     // Every field this module can report as missing must be tested there.
     for (const column of ["display_name", "handle", "avatar_url", "major", "grad_year"]) {
       expect(body).toContain(column);
