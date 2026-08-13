@@ -1,5 +1,115 @@
 # Huddl development log
 
+## Round 15: keeping the promises, and saying them plainly
+
+Migrations 0041 to 0048 live. No new surface this round. It went instead on
+the two things a social app is actually judged on: whether the safety
+guarantees hold when someone leans on them, and whether the words on screen
+are true.
+
+### The promises, checked against the database
+
+The round started as a bug hunt and turned into an audit, because several of
+the things students are told about privacy were enforced in the client and
+nowhere else.
+
+- **A block is now a database fact** (0042). `i_blocked()` plus a `dm_messages`
+  SELECT policy drops rows authored by anyone the reader blocked. Deliberately
+  one-way, and deliberately does not refuse the blocked person's INSERT: they
+  are never told. Blocked classmates also stopped appearing on the front door
+  and on the native course roster.
+- **Three privileges row-level security cannot restrain** (0043), revoked from
+  `anon` and `authenticated`: TRUNCATE, REFERENCES and TRIGGER. RLS does not
+  filter TRUNCATE. A policy that carefully limits what a student can DELETE is
+  worth nothing next to a grant that lets them empty the table.
+- **Storage buckets got the limits the clients only pretended to enforce**
+  (0044): sizes, and a raster allow-list that excludes `image/svg+xml`,
+  because an SVG served from a public bucket is a script.
+- **The UPDATE path closed around 0041** (0045). The forwarded-attachment
+  trigger added in 0041 fired on INSERT while a table-wide UPDATE grant sat
+  next to it, so the check could be walked around in two statements instead of
+  one. That is a hole in the previous round's own work.
+- **Coursework caught up with chat photos** (0046). 0039 gated the storage
+  path for chat uploads, and the identical gap in notes was never closed.
+- **The phone badge is gone** (0047). Twilio is out of the codebase entirely.
+  A student earns the verified badge with a confirmed university email and a
+  profile with something in it: a real name that is not just their handle, a
+  photo, a major, a year. `verified_at` sits outside the UPDATE grant, so it
+  cannot be self-awarded, and the client explains which half is missing rather
+  than leaving someone to guess what "verified" wants from them.
+- **Two gaps in 0047, found by the database linter** (0048). A trigger
+  function left executable over REST, and the one function of the four whose
+  `search_path` was not pinned. Neither exploitable alone; both the kind of
+  omission only a tool finds, which is the argument for running the tool.
+
+The web app spent the round catching up to the phone on all of this: the block
+list, `is_public` redaction, reporting that actually files a report, and a
+privacy policy that had been telling students a block stops someone seeing
+their posts, which was never true.
+
+### Saying it plainly
+
+- **Every em dash is gone**: 4,012 of them across 351 files. The character was
+  doing real work, and the work was avoidance. It stood in for the decision
+  between "this is one sentence" and "this is two", and every string in the
+  app got to skip that decision. Each one was replaced by what the sentence
+  wanted: a full stop, a colon, brackets, or nothing. Never a hyphen. The
+  marketing register went with it.
+  - One survives as an escape, in the flashcard paste separator, because
+    students paste `front - back` lines and one of the dashes they use is that
+    one. It is data, not prose.
+  - Applied migrations keep theirs. `supabase/migrations` records what was run
+    against the database, and editing it to tidy comments would trade a real
+    property for a cosmetic one. `no-em-dashes.test.ts` enforces the rule
+    everywhere else and documents the exemption.
+- **"How Huddl works"**, on both clients, from one shared module with a test
+  keeping the copies byte-identical. The welcome tour runs once on first
+  launch, and nothing explained the app to a student in week three who wanted
+  to know who could see their grades. Writing it turned up two claims that
+  would have been false, both corrected: turning off Public profile does not
+  remove you from the people directory, and the directory is searched rather
+  than filtered.
+- **The two clients stopped disagreeing.** A scan of every sentence in both
+  found five that had drifted a word or two apart and two that had drifted
+  into being wrong. Mobile claimed the moderation queue shows "who decided
+  it"; `reports` stores no such thing. The web privacy page omitted "and
+  notify" from the typing-indicator explanation, which is the exact
+  reassurance someone toggling it is looking for.
+  - The validation limits had drifted too. Twenty-eight named constants agree
+    perfectly across both clients; the only two that did not were the two
+    written as bare inline numbers. Channel names capped at 40 on mobile
+    against 80 on the web, descriptions 200 against 500, club names 60 against
+    80. All three converge on the wider value, since nothing in the database
+    constrains them and no existing row should become uneditable.
+  - `copy-parity.test.ts` keeps it that way: sentences at least 95% alike
+    across the clients but not identical fail, with the four genuine idiom
+    pairs listed (a phone is tapped, a browser is clicked).
+
+### A note on how the em dash sweep actually went
+
+The first pass reported 12 of 12 agents clean, and had covered 65% of the
+codebase. The partition script computed each agent's file list by scanning for
+files that currently contained an em dash, so as agents removed them the file
+set shrank and the bins reshuffled under whoever ran the script next. Every
+agent truthfully reported zero remaining for the list it happened to see.
+
+The fix was to freeze the partition to a static file, and to key a module, its
+test and its mobile/web twin into the same bin. The second half was not
+optional: eleven strings could not be touched in the first pass because a test
+in another agent's group asserted them exactly.
+
+Verified at the end of the round: 361 tests, web and native `tsc`, web
+`eslint`, the production Next build and the iOS Hermes bundle all green. Zero
+em dashes outside `supabase/migrations`. 247 of 256 native `Pressable`s carry
+an accessibility label or role, and the nine that do not are deliberate and
+commented: message bubbles that let the screen reader read the message itself,
+and cards marked `accessible={false}` so their inner buttons stay individually
+reachable. `expo lint` does not run and never has, because there is no eslint
+config under `mobile/`.
+
+Left for someone with dashboard access: leaked password protection is off in
+Supabase Auth, and no migration can reach it.
+
 ## Round 14: the board, the term, and the quiet parts
 
 A planned slate of 24 updates, migrations 0032–0036 live, run as five waves of
