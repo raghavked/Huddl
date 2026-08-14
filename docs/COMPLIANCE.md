@@ -101,6 +101,47 @@ list of things to hand to one.
     complete. A Vercel deployment adds a processor that handles IP addresses,
     and the "When we share" section has to grow by one name.
 
+## The no-entity path, examined
+
+Can Hearth launch under its own name with no LLC? Mostly, cheaply, and
+legally, with one hard stop exactly where it matters most. Written down so
+the trade was made knowingly.
+
+- **What works.** A sole proprietor can do business as "Hearth" by filing a
+  Fictitious Business Name statement with the county clerk (roughly $50,
+  fee varies by county), publishing it in an approved local newspaper once
+  a week for four consecutive weeks, and renewing every five years. That
+  allows a bank account under the trade name, contracts signed "doing
+  business as Hearth", and the name on the landing page. The DMCA safe
+  harbour works for individuals too: the agent registration would name the
+  person rather than uHearth LLC. The legal documents would say
+  "[FULL LEGAL NAME], doing business as Hearth" wherever they now say
+  uHearth LLC, a two-line change on request.
+- **What it costs instead.** Almost nothing, which is the honest appeal:
+  about $100 once against the LLC's $920 first year, because California's
+  $800 franchise tax binds LLCs, not sole proprietors.
+- **The hard stop.** Apple. An Individual developer account displays the
+  developer's personal legal name as the seller on every App Store listing,
+  and no fictitious-name filing changes that. Organization enrollment is
+  the only way the listing reads "uHearth LLC", and organizations must be
+  legal entities with a D-U-N-S number. The stated goal, launching under
+  the Hearth name rather than a personal one, fails at the most visible
+  surface the app has.
+- **The unpriced cost.** No liability shield. A moderated user-content
+  platform whose community includes minors, with copyright exposure the
+  safe harbour narrows but does not erase, would be operating against
+  personal assets.
+- **One EU footnote.** A free, non-monetized app can declare non-trader
+  status under the DSA, so an individual's address and phone stay off the
+  EU storefront. The moment the app monetizes, trader status becomes
+  mandatory and an individual account's contact details go public on the
+  listing. An entity absorbs that too.
+- **The sensible hybrid.** A closed TestFlight beta can run on an
+  Individual account while the LLC and D-U-N-S are in flight, since a
+  beta's seller line is visible only to invited testers. Public release
+  waits for the Organization account. This loses nothing except the urge
+  to skip the two-week wait.
+
 ## Decisions taken, so a future reader knows they were deliberate
 
 - **Minimum age 16, not 13 or 18.** Chosen by the operator. It puts the app
