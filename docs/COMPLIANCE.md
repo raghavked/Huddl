@@ -20,19 +20,19 @@ list of things to hand to one.
 | Age floor 13, with the Guidelines admitting under-18 users | 16, asserted in both signup captions as well as the Terms |
 | `notes` bucket took any file under 25 MB | 16 coursework content types (migration 0049), generated from one table both clients are written from |
 | No iOS privacy manifest, an App Store blocker since 2024 | `ios.privacyManifests` in `mobile/app.json`: no tracking, four required-reason APIs declared |
-| Legal entity and DMCA agent unnamed | uHearth LLC and dmca@uhearth.app written into both copies; only the filing-dependent address and state remain |
+| Legal entity and DMCA agent unnamed | "[FULL LEGAL NAME], doing business as Hearth" and dmca@uhearth.app in both copies; name, address, state and county fill in after the FBN filing |
 
 ## Blocking, before anyone outside your campus can sign up
 
-1. **File uHearth LLC and fill in the last three placeholders.** The
-   entity name and the DMCA agent identity (Copyright Agent, uHearth LLC,
-   dmca@uhearth.app) are already written into the documents. `[ADDRESS]`,
-   `[STATE]` and `[COUNTY, STATE]` wait for the approved filing, in both
-   `mobile/src/lib/legal-content.ts` and `src/app/legal/content.ts`, plus
-   the bracketed values in `docs/OPERATING_AGREEMENT.md`. One caution: the
-   documents say "uHearth LLC" before the state has approved that name. If
-   the filing comes back under any other spelling, grep for uHearth LLC and
-   make the documents match the certificate exactly.
+1. **File the Fictitious Business Name statement and fill the last four
+   placeholders.** The operator chose the sole proprietor route, so the
+   documents now name "[FULL LEGAL NAME], doing business as Hearth" as
+   operator, controller and DMCA agent. File the FBN statement with the
+   county clerk (roughly $50, then a four-week newspaper publication,
+   renewed every five years), then fill `[FULL LEGAL NAME]`, `[ADDRESS]`,
+   `[STATE]` and `[COUNTY, STATE]` in both
+   `mobile/src/lib/legal-content.ts` and `src/app/legal/content.ts`. The
+   name must match government ID and the FBN statement exactly.
 2. **Register the DMCA agent** at dmca.copyright.gov. It costs about six
    dollars and has to be renewed every three years. This matters more than
    the policy text: publishing a takedown procedure without a registered
@@ -50,19 +50,18 @@ list of things to hand to one.
 
 ## Before the App Store
 
-5. **Enroll in the Apple Developer Program as uHearth LLC**, in this
-   order, because each step gates the next: form the LLC and get the EIN;
-   request a D-U-N-S number for uHearth LLC (free through Apple's own
-   lookup form; allow one to two weeks; never pay Dun & Bradstreet to
-   expedite); then enroll at developer.apple.com as an Organization, USD 99
-   a year, using an Apple ID with two-factor auth and hello@uhearth.app on
-   the company domain. Enrolling as an Organization rather than an
-   Individual is what makes the App Store seller line read "uHearth LLC"
-   instead of a personal name, and it cannot be swapped casually later.
-   Expect a verification phone call. The iOS privacy manifest that used to
-   be this list item is done: `ios.privacyManifests` in `mobile/app.json`
-   declares no tracking, no tracking domains, and the four required-reason
-   APIs, and Expo folds it into `PrivacyInfo.xcprivacy` at prebuild.
+5. **Enroll in the Apple Developer Program as an Individual**, USD 99 a
+   year at developer.apple.com, with a two-factor Apple ID on
+   hello@uhearth.app. No D-U-N-S number and no entity needed, and approval
+   is usually same-day. The accepted consequence, recorded below under
+   decisions: the App Store seller line shows the personal legal name, not
+   "Hearth", and no fictitious business name filing changes that. If the
+   LLC is ever formed, converting the account to an Organization is an
+   Apple support process, not a button. The iOS privacy manifest that used
+   to be this list item is done: `ios.privacyManifests` in
+   `mobile/app.json` declares no tracking, no tracking domains, and the
+   four required-reason APIs, and Expo folds it into
+   `PrivacyInfo.xcprivacy` at prebuild.
 6. **App Store Connect**, none of which lives in this repo: the privacy
    nutrition label, an age rating consistent with a 16+ social app carrying
    user content, the privacy policy URL, and a support URL.
@@ -144,6 +143,14 @@ the trade was made knowingly.
 
 ## Decisions taken, so a future reader knows they were deliberate
 
+- **Sole proprietor at launch, not uHearth LLC.** Chosen by the operator
+  in August 2026 after the analysis below. The documents name the person
+  doing business as Hearth, the DMCA agent registers as an individual, and
+  Apple enrollment is Individual, which puts the personal legal name on
+  the App Store seller line. The operating agreement is parked, and the
+  entity question reopens at real scale, when the app monetizes (the DSA
+  trader rules would then publish an individual's contact details in the
+  EU storefront), or on the first legal threat, whichever comes first.
 - **Minimum age 16, not 13 or 18.** Chosen by the operator. It puts the app
   above the GDPR digital-consent age in nearly every member state and out of
   most of the state minor-social-media regimes. It does not remove under-18

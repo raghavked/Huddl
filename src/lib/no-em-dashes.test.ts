@@ -22,7 +22,7 @@ import { describe, expect, it } from "vitest";
 const REPO = process.cwd();
 
 /** Where the rule applies. */
-const ROOTS = ["src", "mobile/src", "docs"];
+const ROOTS = ["src", "mobile", "docs"];
 
 /** Never walk into these, at any depth. */
 const SKIP_DIRS = new Set([
@@ -30,6 +30,7 @@ const SKIP_DIRS = new Set([
   ".next",
   ".expo",
   "dist",
+  "dist-web",
   "build",
   "ios",
   "android",
@@ -57,8 +58,10 @@ describe("no em dashes", () => {
   it("in any source, doc or copy file", () => {
     const offenders: string[] = [];
 
-    for (const root of ROOTS) {
-      for (const file of walk(join(REPO, root))) {
+    const files = ROOTS.flatMap((root) => walk(join(REPO, root)));
+    files.push(join(REPO, "README.md"));
+    {
+      for (const file of files) {
         // This test necessarily contains the character it is looking for.
         if (file.endsWith("no-em-dashes.test.ts")) continue;
 

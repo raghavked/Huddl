@@ -1,8 +1,8 @@
-# Hearth — native app
+# Hearth · the native app
 
 The Expo (React Native) client for Hearth, sharing the Supabase backend
 with the web PWA at the repo root. Hearth design system, five-tab shell,
-realtime everything — built with Expo SDK 57, expo-router, and strict
+realtime everything, built with Expo SDK 57, expo-router, and strict
 TypeScript.
 
 ## Run it
@@ -16,7 +16,7 @@ npm start              # Metro, for a device that already has a dev build
 
 `npm run typecheck` type-checks; `npm run bundle:ios` builds the full
 Hermes bundle and verifies the whole app compiles without a native
-toolchain — that one runs anywhere, including Linux and CI.
+toolchain. That one runs anywhere, including Linux and CI.
 
 **Expo Go will not run this app.** Hearth uses native modules that are
 not in the Go client (`@expo/ui`, `expo-glass-effect`, `expo-dev-client`)
@@ -28,7 +28,7 @@ This is the fastest loop: build once, then every save reloads on the
 phone in about a second.
 
 **You need a Mac.** An iOS binary can only be produced by Xcode, so this
-section does not work from Linux or Windows — that is Apple's rule, not
+section does not work from Linux or Windows. That is Apple's rule, not
 Expo's. On those machines use `eas build --profile development --platform
 ios` instead, which builds in the cloud and gives you a QR to install
 from.
@@ -46,8 +46,23 @@ from.
    The phone restarts. (iOS 16+; the toggle only appears once a Mac with
    Xcode has been connected.)
 5. In Xcode → Settings → Accounts, add your Apple ID. A free account is
-   enough — apps signed with one expire after 7 days, which is fine for
+   enough. Apps signed with one expire after 7 days, which is fine for
    development.
+
+**On a free Apple ID, one more thing.** A free account's Personal Team
+cannot sign two entitlements this app carries: deep links into
+uhearth.app, and push notifications. Without help the build dies at
+signing. `HEARTH_PERSONAL_TEAM=1` (read by `app.config.js`) strips
+exactly those two for the build you are making:
+
+```bash
+HEARTH_PERSONAL_TEAM=1 npm run prebuild
+HEARTH_PERSONAL_TEAM=1 npm run device
+```
+
+On such a build, campus links open in Safari and push stays silent;
+everything else is the real app. With a paid membership, skip the flag
+and both features work.
 
 **Every time**
 
@@ -59,7 +74,7 @@ npm run device          # builds, installs over the cable, starts Metro
 
 `npm run device` runs `expo run:ios --device`. On first run it generates
 the native `ios/` project, installs pods, builds, and installs to the
-phone — allow ten to fifteen minutes. After that it is under a minute,
+phone. Allow ten to fifteen minutes. After that it is under a minute,
 and you usually do not need it at all: leave the app installed and just
 run `npm start`, then open Hearth on the phone.
 
@@ -80,12 +95,12 @@ xcrun devicectl device console --device <udid>   # Xcode 15+
 
 **Testing what only works on a real device**
 
-- **Push notifications** — a simulator never receives them. Sign in,
+- **Push notifications**: a simulator never receives them. Sign in,
   accept the permission prompt, and confirm a row lands in `push_tokens`.
   Note that quiet hours and the two-minute coalesce window mean a second
   notification is *deliberately* deferred to the digest; see
   `docs/OPERATIONS.md` §3a before reporting a missing push as a bug.
-- **The camera** — the simulator has no camera, so photo capture in chat
+- **The camera**: the simulator has no camera, so photo capture in chat
   and the avatar picker can only be tested here.
 - **Haptics**, and how the ember reads under real daylight.
 
@@ -94,13 +109,14 @@ xcrun devicectl device console --device <udid>   # Xcode 15+
 | Symptom | Fix |
 | --- | --- |
 | `Signing for "Hearth" requires a development team` | Open `ios/Hearth.xcworkspace`, target Hearth → Signing & Capabilities → pick your team, then re-run |
+| Provisioning profile "doesn't include the associated-domains (or aps-environment) entitlement" | You are signing with a free Personal Team: rebuild with the `HEARTH_PERSONAL_TEAM=1` flow above |
 | `Unable to boot device` / device not listed | Unlock the phone, re-Trust, confirm Developer Mode is on |
 | Build fails right after a dependency change | `npm run prebuild` to regenerate `ios/` from `app.json`, then `npm run device` |
-| App installs but shows a white screen | Metro is not reachable — same Wi-Fi, or `npx expo start --dev-client --tunnel` |
+| App installs but shows a white screen | Metro is not reachable: same Wi-Fi, or `npx expo start --dev-client --tunnel` |
 | `.env` changes do nothing | `EXPO_PUBLIC_*` is inlined at bundle time; restart Metro with `npx expo start --clear` |
 
 The `ios/` and `android/` folders are generated and git-ignored on
-purpose — `app.json` is the source of truth, and `npm run prebuild`
+purpose. `app.json` is the source of truth, and `npm run prebuild`
 rebuilds them from it. Never hand-edit them expecting the change to last.
 
 **Release build on the phone**, to check performance honestly (Hermes
@@ -112,19 +128,19 @@ npm run device:release
 
 ## Run in the iOS simulator
 
-No cable, no signing, no paid Apple account — the fastest way to click
+No cable, no signing, no paid Apple account: the fastest way to click
 through the whole app. **Still a Mac**, because the binary is compiled by
 Xcode either way.
 
 > **Apply migrations 0039 and 0040 to whatever Supabase project the app
-> points at, before you run it.** This is not optional housekeeping — the
+> points at, before you run it.** This is not optional housekeeping: the
 > app reads two columns those migrations add, so against an un-migrated
 > database it does not degrade, it breaks:
 >
 > - `focus_sessions.is_private` is in `FOCUS_SELECT`, so **the whole focus
 >   feature fails**, including the strip on the home tab.
 > - `profiles.dm_privacy` is in the privacy screen's query, so **the privacy
->   screen fails** — including the typing switch that used to work.
+>   screen fails**, including the typing switch that used to work.
 >
 > 0039 also carries the fix that makes quiet hours saveable for the first
 > time, and closes a chat-photo read leak. Use a dev or branch project for
@@ -145,7 +161,7 @@ open Xcode's device menu first, or pass it through: `npx expo run:ios
 optimised Hermes build, for an honest look at performance.
 
 **Run `npm run preflight` first, every time.** It is the platform-independent
-half of a simulator run — `tsc` plus the iOS bundle — so it turns a red screen
+half of a simulator run (`tsc` plus the iOS bundle), so it turns a red screen
 you'd otherwise hit two minutes into an Xcode build into a one-line failure
 here. It runs anywhere, including CI, and exits non-zero on the first problem.
 
@@ -186,11 +202,11 @@ configured (`app.json` + `eas.json`; brand assets in `assets/images/`
 are generated from the Bricolage wordmark). From here:
 
 1. `npm install -g eas-cli && eas login` (free Expo account)
-2. `eas init` — links the project and writes the EAS projectId into
+2. `eas init`: links the project and writes the EAS projectId into
    app.json (this also activates production push delivery)
-3. `eas build --platform ios --profile production` — cloud build, needs
+3. `eas build --platform ios --profile production`: cloud build, needs
    your Apple Developer account ($99/yr) when prompted
-4. `eas submit --platform ios` — uploads to App Store Connect /
+4. `eas submit --platform ios`: uploads to App Store Connect /
    TestFlight
 5. Same flow with `--platform android` for Google Play
 

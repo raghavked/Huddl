@@ -1,6 +1,12 @@
 # Operating Agreement of uHearth LLC
 
-> **Status: template, drafted by a machine, not yet reviewed by a lawyer.**
+> **Status: parked. The operator chose the sole proprietor route for
+> launch (August 2026), so no LLC exists and nothing signs this yet. It
+> stays in the repo because the analysis in COMPLIANCE.md recommends
+> revisiting the entity question at real scale, and this document is ready
+> the day uHearth LLC is formed.**
+>
+> **Template, drafted by a machine, not yet reviewed by a lawyer.**
 > A single-member operating agreement in plain language. States including
 > California require one to exist; none of them file it. Fill the bracketed
 > values after the Articles of Organization are approved, print it, sign it,
