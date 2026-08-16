@@ -26,9 +26,13 @@ import {
   buttonClasses,
   cardClasses,
 } from "@/components/ui";
-import { ReportPersonButton } from "@/features/people/profile-actions";
+import {
+  FriendButton,
+  ReportPersonButton,
+} from "@/features/people/profile-actions";
 import { BlockPersonButton } from "@/features/settings/blocked-list";
 import { getCurrentUser } from "@/lib/auth";
+import { fetchFriendState, presenceLabel, type FriendState } from "@/lib/friends";
 import { roomGlyph, roomTitle } from "@/lib/room-identity";
 import { createClient } from "@/lib/supabase/server";
 import type { Channel, Course, Profile, University } from "@/lib/types";
@@ -125,6 +129,23 @@ export default async function ProfilePage({
     iBlocked = blockRow !== null;
   }
 
+  /* Where the two of you stand, read here so the friend button paints its
+     real state on the first frame. A failed read quietly falls back to
+     "none" rather than taking the whole page down with it: the button is a
+     side dish here, and sendRequest answers an already-existing edge with
+     warm copy of its own. */
+  let friendState: FriendState = "none";
+  if (!isMe) {
+    try {
+      friendState = await fetchFriendState(user.userId, profile.id, {
+        client: supabase,
+        userId: user.userId,
+      });
+    } catch {
+      friendState = "none";
+    }
+  }
+
   /* A block shuts the DM door both ways: `create_dm_thread` refuses across
      one, so offering Message here would be offering a dead end. Unblock sits
      beside the badge instead, for whenever they want the door back. */
@@ -145,6 +166,27 @@ export default async function ProfilePage({
   const visibleName = profile.is_public
     ? profile.display_name
     : `@${profile.handle}`;
+
+  /* First on the action row: asking is the warmest thing this page offers.
+     While you've blocked them the database refuses new edges, so a bare
+     "Add friend" would be a dead end and stays off the page; an edge that
+     already exists still shows its true state. */
+  const friendButton =
+    isMe || (iBlocked && friendState === "none") ? null : (
+      <FriendButton
+        personId={profile.id}
+        name={visibleName}
+        initialState={friendState}
+      />
+    );
+
+  /* The quiet presence line, through presenceLabel and nothing else: one of
+     three phrases or no line at all, never a raw timestamp. The server
+     erases last_seen_at when sharing goes off, and the toggle is checked
+     again here so a stale row can't leak what its owner switched off. */
+  const presence = profile.share_last_seen
+    ? presenceLabel(profile.last_seen_at, new Date())
+    : null;
 
   /* Reporting and blocking are different acts and stay separately reachable:
      one asks us to look at someone, the other is what a student does for
@@ -200,6 +242,7 @@ export default async function ProfilePage({
               all: a private profile is often the only page you have on
               someone who has started bothering you. */}
           <div className="flex flex-col items-center gap-3">
+            {friendButton}
             {messageButton}
             {reportButton}
             {blockButton}
@@ -298,6 +341,15 @@ export default async function ProfilePage({
             <p className="mt-1 text-sm text-muted">
               @{profile.handle} · {universityName}
             </p>
+            {presence ? (
+              <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-success">
+                <span
+                  className="size-2 shrink-0 rounded-full bg-success"
+                  aria-hidden
+                />
+                {presence}
+              </p>
+            ) : null}
             {profile.major || profile.grad_year ? (
               <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
                 {profile.major ? (
@@ -344,6 +396,7 @@ export default async function ProfilePage({
                 </Link>
               ) : (
                 <>
+                  {friendButton}
                   {messageButton}
                   {reportButton}
                   {blockButton}

@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Search,
   Settings,
+  UserRound,
   Users,
   UsersRound,
   type LucideIcon,
@@ -43,6 +44,7 @@ const GOTO_PAGES: GotoPage[] = [
   { label: "Clubs", href: "/clubs", icon: UsersRound },
   { label: "Events", href: "/events", icon: CalendarDays },
   { label: "People", href: "/people", icon: Users },
+  { label: "Friends", href: "/friends", icon: UserRound },
   { label: "Notifications", href: "/notifications", icon: Bell },
   { label: "Settings", href: "/settings", icon: Settings },
 ];

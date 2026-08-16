@@ -244,7 +244,13 @@ export type ModerationReport = {
   reason: string;
   /** ISO timestamp it was filed. The queue is newest-first. */
   created_at: string;
-  /** Who filed it, or null if they've since deleted their account. */
+  /**
+   * Who filed it, or null when nobody did: since 0051 Hearth files a report
+   * itself when a message trips the slur auto-flag, and those rows have no
+   * reporter at all. (A deleted reporter never gets here: `reporter_id` is
+   * `on delete cascade`, so their reports leave with them.) Render the null
+   * through {@link reporterLine}, never as a gap.
+   */
   reporter: ReportPerson | null;
   /** The reported student, or null. Message reports set this too. */
   reported: ReportedProfile | null;
@@ -801,6 +807,35 @@ export function summarize(report: ModerationReport): string {
     default:
       return "Something that's since been deleted";
   }
+}
+
+/**
+ * Who filed a report, as the line under the row's title says it: "Reported
+ * by Maya Chen", or "Hearth flagged this automatically" for a row the slur
+ * auto-flag inserted (0051). A missing reporter is the whole signature of an
+ * automatic flag: nobody pressed the button, so there is nobody to name, and
+ * a deleted reporter can never look the same because `reporter_id` is
+ * `on delete cascade` and takes the report with it.
+ *
+ * The one hedge: a caller holding a raw row (this module's queue rows carry
+ * only the embed, but `types.ts` rows keep the column) might have a
+ * `reporter_id` and no person beside it. That report was filed by someone,
+ * we just can't name them, so they stay "Someone on campus" rather than
+ * being mistaken for Hearth.
+ *
+ * Pure.
+ */
+export function reporterLine(
+  report: Pick<ModerationReport, "reporter"> & { reporter_id?: string | null }
+): string {
+  if (report.reporter !== null) {
+    return `Reported by ${report.reporter.display_name}`;
+  }
+  const rawId = report.reporter_id;
+  if (typeof rawId === "string" && rawId.length > 0) {
+    return "Reported by Someone on campus";
+  }
+  return "Hearth flagged this automatically";
 }
 
 /**

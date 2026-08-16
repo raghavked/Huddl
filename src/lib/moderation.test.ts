@@ -3,7 +3,9 @@ import {
   categoryLabel,
   isReportCategory,
   REPORT_CATEGORIES,
+  reporterLine,
   type ReportCategory,
+  type ReportPerson,
 } from "./moderation";
 
 /**
@@ -84,6 +86,46 @@ describe("isReportCategory", () => {
     for (const value of [null, undefined, 7, {}, [], true]) {
       expect(isReportCategory(value)).toBe(false);
     }
+  });
+});
+
+describe("reporterLine", () => {
+  const maya: ReportPerson = {
+    id: "person-1",
+    handle: "maya",
+    display_name: "Maya Chen",
+    avatar_url: null,
+  };
+
+  it("names the reporter when there is one", () => {
+    expect(reporterLine({ reporter: maya })).toBe("Reported by Maya Chen");
+  });
+
+  it("credits Hearth when nobody filed it", () => {
+    // The slur auto-flag (0051) inserts with `reporter_id null`, and that's
+    // the only way a report arrives with no reporter: a deleted reporter's
+    // rows leave with them (`on delete cascade`), so this null is never a
+    // person we lost track of.
+    expect(reporterLine({ reporter: null })).toBe(
+      "Hearth flagged this automatically"
+    );
+    expect(reporterLine({ reporter: null, reporter_id: null })).toBe(
+      "Hearth flagged this automatically"
+    );
+  });
+
+  it("never mistakes an unnamed person for Hearth", () => {
+    // A caller holding a raw row can have a `reporter_id` with no person
+    // beside it. Someone filed that one; we just can't name them.
+    expect(reporterLine({ reporter: null, reporter_id: "person-2" })).toBe(
+      "Reported by Someone on campus"
+    );
+  });
+
+  it("prefers the person over the raw id when both are present", () => {
+    expect(reporterLine({ reporter: maya, reporter_id: maya.id })).toBe(
+      "Reported by Maya Chen"
+    );
   });
 });
 

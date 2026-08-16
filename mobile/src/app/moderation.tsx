@@ -346,6 +346,22 @@ function subjectRoute(report: ModerationReport): Href | null {
 }
 
 /**
+ * Who filed a report, as the line under the row's title says it: "Reported
+ * by Maya Chen", or "Hearth flagged this automatically" for a row the slur
+ * auto-flag inserted (0051). A missing reporter is the whole signature of an
+ * automatic flag: nobody pressed the button, so there is nobody to name, and
+ * a deleted reporter can never look the same because `reporter_id` is
+ * `on delete cascade` and takes the report with it. Word-identical with
+ * `reporterLine` in the web client's `@/lib/moderation`.
+ */
+function reporterLine(report: ModerationReport): string {
+  if (report.reporter !== null) {
+    return `Reported by ${report.reporter.display_name}`;
+  }
+  return "Hearth flagged this automatically";
+}
+
+/**
  * One report, whole: what kind of thing was flagged, who flagged it and when,
  * why in their own words, the words themselves, and the two ways out.
  *
@@ -385,9 +401,12 @@ function ReportRow({
   }, [settling, reduceMotion, settle]);
 
   const route = subjectRoute(report);
-  const reporter = report.reporter?.display_name ?? "Someone on campus";
   const title = summarize(report);
   const actions = triageActions(report.status);
+  /* No reporter means Hearth filed it (the 0051 slur auto-flag), and that's
+     worth a quiet mark of its own: a moderator reads an automatic flag with
+     different eyes to a classmate's complaint. */
+  const auto = report.reporter === null;
 
   return (
     <Animated.View
@@ -424,8 +443,18 @@ function ReportRow({
           })}
         >
           {/* The reporter's own pick, in their words. Brand, never danger:
-              a category is what this is about, not a verdict on it. */}
-          <Chip label={categoryLabel(report.category)} tone="brand" />
+              a category is what this is about, not a verdict on it. The muted
+              "Auto" beside it marks a row Hearth filed itself. */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.snug,
+            }}
+          >
+            <Chip label={categoryLabel(report.category)} tone="brand" />
+            {auto ? <Chip label="Auto" tone="neutral" /> : null}
+          </View>
 
           {/* `summarize` folds a board post's whole title into this line, and
               a title can run long. The full one is quoted in the well below,
@@ -435,7 +464,7 @@ function ReportRow({
           </AppText>
 
           <AppText variant="caption" muted numberOfLines={1}>
-            Reported by {reporter} · {filedAgo(report, now)}
+            {reporterLine(report)} · {filedAgo(report, now)}
           </AppText>
 
           {/* The reporter's own words, in full. This is the substance of the

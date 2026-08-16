@@ -440,28 +440,62 @@ export default function PeopleScreen() {
         paddingHorizontal: space.gutter,
       }}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Back"
-        onPress={goBack}
-        hitSlop={8}
-        style={({ pressed }) => ({
-          width: 44,
-          height: 44,
-          marginLeft: -10,
+      {/* Back + the one header action, on the same 44px line. */}
+      <View
+        style={{
+          flexDirection: "row",
           alignItems: "center",
-          justifyContent: "center",
-          opacity: pressed ? 0.6 : 1,
-        })}
+          justifyContent: "space-between",
+        }}
       >
-        <Feather
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          name="chevron-left"
-          size={26}
-          color={theme.foreground}
-        />
-      </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          onPress={goBack}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            marginLeft: -10,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Feather
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            name="chevron-left"
+            size={26}
+            color={theme.foreground}
+          />
+        </Pressable>
+        {/* The directory is where friendships start, so the way to the ones
+            you already have sits right here. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Friends"
+          accessibilityHint="Opens your friends and requests"
+          onPress={() => router.push("/friends")}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            marginRight: -10,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Feather
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            name="user-check"
+            size={20}
+            color={theme.foreground}
+          />
+        </Pressable>
+      </View>
 
       <AppText
         variant="display"

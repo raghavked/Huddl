@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { createClient } from "@/lib/supabase/client";
+import { presenceLabel } from "@/lib/friends";
 import {
   REPORT_CATEGORIES,
   categoryLabel,
@@ -504,6 +505,31 @@ export function DmRoom({
   const online = usePresence(`dm:${threadId}`, userId);
   const otherOnline = other !== null && online.has(other.id);
 
+  // The quiet "Active now" line under their name, 1:1 only. The server
+  // erases `last_seen_at` the moment they stop sharing, but the toggle is
+  // still checked here so a stale row can never leak a timestamp its owner
+  // switched off. Read once on mount: presence is ambience, not a ticker.
+  const [otherLastSeen, setOtherLastSeen] = useState<string | null>(null);
+  useEffect(() => {
+    if (!other) return;
+    const supabase = createClient();
+    void supabase
+      .from("profiles")
+      .select("last_seen_at, share_last_seen")
+      .eq("id", other.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const row = data as {
+          last_seen_at: string | null;
+          share_last_seen: boolean;
+        } | null;
+        setOtherLastSeen(
+          row && row.share_last_seen === true ? row.last_seen_at : null
+        );
+      });
+  }, [other]);
+  const otherPresence = presenceLabel(otherLastSeen, new Date());
+
   // Reporting a message in this thread. All of it lives up here rather than
   // in the bubble: only one panel should ever be open, and a report in flight
   // has to outlive the re-render an incoming message causes underneath it.
@@ -834,6 +860,7 @@ export function DmRoom({
               </span>
               <span className="block truncate text-xs text-muted">
                 @{other.handle}
+                {otherPresence ? ` · ${otherPresence}` : null}
               </span>
             </span>
           </Link>

@@ -16,6 +16,16 @@ import { radius, space } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { blockUser, unblockUser } from "@/lib/blocks";
+import {
+  edgeState,
+  fetchFriendEdge,
+  FriendsError,
+  presenceLabel,
+  removeEdge,
+  sendRequest,
+  acceptRequest,
+  type FriendState,
+} from "@/lib/friends";
 import { warmDmError } from "@/lib/group-dm";
 import { roomGlyph, roomTitle, type RoomKind } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
@@ -37,6 +47,9 @@ type ProfileRow = {
   looking_for: string | null;
   verified_at: string | null;
   is_public: boolean;
+  /** Null unless they're sharing; render through presenceLabel(), never raw. */
+  last_seen_at: string | null;
+  share_last_seen: boolean;
   university: { short_name: string } | null;
 };
 
@@ -71,7 +84,7 @@ type MemberChannelRow = { channel: SharedChannel | null };
 type Status = "loading" | "error" | "notFound" | "ready";
 
 const OPEN_PROFILE_SELECT =
-  "id, handle, display_name, avatar_url, bio, major, grad_year, interests, looking_for, verified_at, is_public, university:universities(short_name)";
+  "id, handle, display_name, avatar_url, bio, major, grad_year, interests, looking_for, verified_at, is_public, last_seen_at, share_last_seen, university:universities(short_name)";
 
 /** Handle and avatar, and not one column more. */
 const LIMITED_PROFILE_SELECT = "id, handle, avatar_url";
@@ -224,6 +237,13 @@ export default function ProfileScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [unblocking, setUnblocking] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  /* Where you and this person stand. Null while the edge check is still out
+     (or when it failed), and nothing renders on null: a friend button that
+     appears wrong and then corrects itself is worse than one that arrives a
+     beat late. */
+  const [friendState, setFriendState] = useState<FriendState | null>(null);
+  const [friendBusy, setFriendBusy] = useState(false);
+  const [friendError, setFriendError] = useState<string | null>(null);
 
   const { blocked, refresh: refreshBlocked } = useBlockedIds();
   const isBlocked = profile ? blocked.has(profile.id) : false;
@@ -238,6 +258,21 @@ export default function ProfileScreen() {
       setStatus("notFound");
       return;
     }
+    /* The friend edge rides along with every load (and every pull-down).
+       A failed check leaves the state null and the button off the screen;
+       the refresh is the retry. */
+    const loadEdge = async (otherId: string) => {
+      if (otherId === userId) {
+        setFriendState(null);
+        return;
+      }
+      try {
+        const edge = await fetchFriendEdge(otherId);
+        setFriendState(edgeState(edge, userId));
+      } catch {
+        setFriendState(null);
+      }
+    };
     /* handle is citext in the database, so .eq() is already case-insensitive.
        The `or` runs in the database on purpose: a private classmate's bio,
        major, year, interests and looking-for line are never asked for, so
@@ -283,14 +318,22 @@ export default function ProfileScreen() {
         looking_for: null,
         verified_at: null,
         is_public: false,
+        /* The limited select never asks for presence, and a private card
+           shouldn't whisper it either. */
+        last_seen_at: null,
+        share_last_seen: false,
         university: null,
       });
       setSharedCourses([]);
       setSharedChannels([]);
+      /* Asking is still on the table behind a private card, so the edge
+         check runs here too. */
+      await loadEdge(quiet.id);
       setStatus("ready");
       return;
     }
     setProfile(row);
+    await loadEdge(row.id);
 
     // Shared courses fall out of RLS (classmate enrollments are only visible
     // for courses I'm enrolled in), but we still intersect with my own rows
@@ -470,6 +513,86 @@ export default function ProfileScreen() {
       setUnblocking(false);
     }
   }, [userId, profile, unblocking, refreshBlocked]);
+
+  /* ------------------------- friend actions -------------------------- */
+
+  /* Every move is optimistic: the button flips first, the row follows, and
+     a throw flips it back with the error's own sentence underneath. The
+     data layer's writes are built for exactly this. */
+  const runFriendMove = useCallback(
+    async (
+      next: FriendState,
+      move: (otherId: string) => Promise<void>
+    ) => {
+      if (!profile || friendBusy) return;
+      const before = friendState;
+      setFriendError(null);
+      setFriendBusy(true);
+      setFriendState(next);
+      try {
+        await move(profile.id);
+      } catch (err) {
+        setFriendState(before);
+        setFriendError(
+          err instanceof FriendsError
+            ? err.message
+            : "That didn't go through. Give it another go in a moment."
+        );
+      } finally {
+        setFriendBusy(false);
+      }
+    },
+    [profile, friendBusy, friendState]
+  );
+
+  const handleAddFriend = useCallback(
+    () => runFriendMove("outgoing", sendRequest),
+    [runFriendMove]
+  );
+
+  const handleAccept = useCallback(
+    () => runFriendMove("friends", acceptRequest),
+    [runFriendMove]
+  );
+
+  const handleIgnore = useCallback(
+    () => runFriendMove("none", removeEdge),
+    [runFriendMove]
+  );
+
+  /* Cancelling and unfriending both delete the edge, but both get a beat of
+     confirmation: one tap took a while to earn, the other is a relationship. */
+  const confirmCancelRequest = useCallback(() => {
+    if (!profile) return;
+    Alert.alert(
+      "Cancel your request?",
+      `${visibleName} won't be told. The ask just quietly goes away.`,
+      [
+        { text: "Never mind", style: "cancel" },
+        {
+          text: "Cancel request",
+          style: "destructive",
+          onPress: () => void runFriendMove("none", removeEdge),
+        },
+      ]
+    );
+  }, [profile, visibleName, runFriendMove]);
+
+  const confirmRemoveFriend = useCallback(() => {
+    if (!profile) return;
+    Alert.alert(
+      `Remove ${visibleName} as a friend?`,
+      "They won't be told, and either of you can ask again later.",
+      [
+        { text: "Never mind", style: "cancel" },
+        {
+          text: "Remove friend",
+          style: "destructive",
+          onPress: () => void runFriendMove("none", removeEdge),
+        },
+      ]
+    );
+  }, [profile, visibleName, runFriendMove]);
 
   const backChevron = (
     <Pressable
@@ -704,10 +827,94 @@ export default function ProfileScreen() {
   const sharedClubs = sharedChannels.filter((c) => c.kind === "club");
   const sharedRooms = sharedChannels.filter((c) => c.kind !== "club");
 
+  /* The friend button leads the actions: it's the relationship, and the
+     Message button below it is just one thing you can do with one. Null
+     state (own profile, or a check that didn't land) draws nothing. */
+  const friendButtons =
+    friendState === null ? null : (
+      <View style={{ gap: space.cosy }}>
+        {friendState === "none" ? (
+          <Button
+            label="Add friend"
+            pending={friendBusy}
+            accessibilityLabel={
+              visibleName ? `Add ${visibleName} as a friend` : "Add friend"
+            }
+            accessibilityState={{ busy: friendBusy, disabled: friendBusy }}
+            onPress={() => void handleAddFriend()}
+            icon={<Feather name="user-plus" size={16} color={theme.brandFg} />}
+          />
+        ) : friendState === "outgoing" ? (
+          <Button
+            label="Request sent"
+            variant="secondary"
+            pending={friendBusy}
+            accessibilityLabel="Request sent. Opens the option to cancel it"
+            accessibilityState={{ busy: friendBusy, disabled: friendBusy }}
+            onPress={confirmCancelRequest}
+            icon={<Feather name="clock" size={16} color={theme.muted} />}
+          />
+        ) : friendState === "incoming" ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.cosy,
+            }}
+          >
+            <Button
+              label="Accept request"
+              pending={friendBusy}
+              accessibilityLabel={
+                visibleName
+                  ? `Accept ${visibleName}'s friend request`
+                  : "Accept request"
+              }
+              accessibilityState={{ busy: friendBusy, disabled: friendBusy }}
+              onPress={() => void handleAccept()}
+              style={{ flex: 1 }}
+              icon={
+                <Feather name="user-check" size={16} color={theme.brandFg} />
+              }
+            />
+            {/* The quieter answer. Nothing is sent and nobody is told. */}
+            <Button
+              label="Ignore"
+              variant="ghost"
+              disabled={friendBusy}
+              accessibilityLabel="Ignore this friend request"
+              accessibilityState={{ disabled: friendBusy }}
+              onPress={() => void handleIgnore()}
+            />
+          </View>
+        ) : (
+          <Button
+            label="Friends"
+            variant="secondary"
+            pending={friendBusy}
+            accessibilityLabel="Friends. Opens the option to remove them"
+            accessibilityState={{ busy: friendBusy, disabled: friendBusy }}
+            onPress={confirmRemoveFriend}
+            icon={<Feather name="check" size={16} color={theme.accent} />}
+          />
+        )}
+        {friendError ? (
+          <AppText
+            variant="caption"
+            accessibilityLiveRegion="polite"
+            style={{ color: theme.danger, textAlign: "center" }}
+          >
+            {friendError}
+          </AppText>
+        ) : null}
+      </View>
+    );
+
   /* No `alignItems` on purpose: this hugs inside the centered private card
      and stretches to full width under the hero, where it's the main move. */
   const messageButton = (
     <View style={{ gap: space.cosy }}>
+      {friendButtons}
       <Button
         label="Message"
         pending={messaging}
@@ -871,6 +1078,43 @@ export default function ProfileScreen() {
                 @{profile.handle}
                 {universityName ? ` · ${universityName}` : ""}
               </AppText>
+              {/* Presence, rounded to a phrase. `last_seen_at` is null
+                  unless they're sharing, so the label going quiet IS the
+                  privacy working. Never on your own hero: you know. */}
+              {!isMe && profile.share_last_seen
+                ? (() => {
+                    const activeLine = presenceLabel(
+                      profile.last_seen_at,
+                      new Date()
+                    );
+                    return activeLine ? (
+                      <View
+                        accessible
+                        accessibilityLabel={activeLine}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: space.snug,
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: radius.full,
+                            backgroundColor: theme.success,
+                          }}
+                        />
+                        <AppText
+                          variant="caption"
+                          style={{ color: theme.success }}
+                        >
+                          {activeLine}
+                        </AppText>
+                      </View>
+                    ) : null;
+                  })()
+                : null}
               {profile.verified_at || (isMe && !profile.is_public) ? (
                 <View
                   style={{

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  Activity,
   Bell,
   CircleAlert,
   PencilLine,
@@ -73,16 +74,22 @@ export const metadata: Metadata = {
 
 /** The column on `profiles`, and the exact sentence that goes under it. */
 type SharingToggle = {
-  column: "share_typing";
+  column: "share_typing" | "share_last_seen";
   icon: LucideIcon;
   label: string;
-  /** States the reciprocity in one sentence. Both halves, every time. */
+  /** States what turning it off does in one sentence. Both halves, every time. */
   caption: string;
 };
 
-/* One entry, and a list anyway: a second honest signal would slot in here
-   without touching the markup. Read receipts were the other one; see above
-   for why they left and what has to be true before they come back. */
+/* Two honest signals now. Read receipts were nearly a third; see above for
+   why they left and what has to be true before they come back.
+
+   The presence switch is the stronger promise of the two: `last_seen_at` is
+   written only by the throttled `touch_last_seen()` RPC, which goes silent
+   the moment sharing is off, and turning it off ERASES the stored timestamp
+   server-side rather than merely hiding it. The caption says so, because
+   "we stop showing it" and "we stop keeping it" are different promises and
+   this switch makes the better one. */
 const TOGGLES: readonly SharingToggle[] = [
   {
     column: "share_typing",
@@ -90,6 +97,13 @@ const TOGGLES: readonly SharingToggle[] = [
     label: "Typing indicators",
     caption:
       "Turn this off and nobody sees you composing a message. You stop seeing them, too.",
+  },
+  {
+    column: "share_last_seen",
+    icon: Activity,
+    label: "Share when you're active",
+    caption:
+      "Classmates see \"Active now\" under your name while this is on. Turn it off and Hearth erases what it kept, right away.",
   },
 ];
 
@@ -119,14 +133,13 @@ const ERRORS: Record<string, string> = {
  * only ever writes an explicit boolean. There is no "unset" to fall back to
  * and nothing to clean up when someone turns a signal back on.
  *
- * The allow-list is a single name today and stays an allow-list: `column`
- * arrives from a form field and goes straight into an update, so it is never
- * trusted, only recognised.
+ * The allow-list stays an allow-list: `column` arrives from a form field and
+ * goes straight into an update, so it is never trusted, only recognised.
  */
 async function setSharing(formData: FormData) {
   "use server";
   const column = formData.get("column");
-  if (column !== "share_typing") {
+  if (column !== "share_typing" && column !== "share_last_seen") {
     redirect("/settings/privacy");
   }
   const next = formData.get("next") === "on";
@@ -205,7 +218,7 @@ export default async function PrivacySettingsPage({
   const [sharingRes, uploadsRes] = await Promise.all([
     supabase
       .from("profiles")
-      .select("share_typing")
+      .select("share_typing, share_last_seen")
       .eq("id", user.userId)
       .maybeSingle(),
     supabase
@@ -221,6 +234,7 @@ export default async function PrivacySettingsPage({
   const sharingRow = (sharingRes.data ?? {}) as Record<string, unknown>;
   const shares: Record<SharingToggle["column"], boolean> = {
     share_typing: sharingRow["share_typing"] !== false,
+    share_last_seen: sharingRow["share_last_seen"] !== false,
   };
 
   const uploads = (uploadsRes.data ?? []) as ScheduleUpload[];

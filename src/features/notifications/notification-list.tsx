@@ -18,6 +18,7 @@ import {
   MessageCircle,
   Reply,
   ShieldCheck,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
@@ -42,6 +43,7 @@ const KIND_META: Record<NotificationKind, { icon: LucideIcon; label: string }> =
     mention: { icon: AtSign, label: "Mention" },
     thanks: { icon: Heart, label: "Thanks" },
     club_post: { icon: Megaphone, label: "Club post" },
+    friend: { icon: UserPlus, label: "Friend" },
   };
 
 /**

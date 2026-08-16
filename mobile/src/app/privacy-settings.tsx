@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Pressable,
@@ -25,12 +25,14 @@ import {
   type PrivacyPrefs,
 } from "@/hooks/use-privacy-prefs";
 import { useTheme } from "@/hooks/use-theme";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/providers/auth-provider";
 
-/* Privacy: the two controls a student can actually reach, and a plain
+/* Privacy: the three controls a student can actually reach, and a plain
    account of what campus can and can't see about them.
 
-   This screen is meant to reassure, not to administrate. A switch, a picker,
-   one sentence each saying what the current setting means, and then prose:
+   This screen is meant to reassure, not to administrate. Two switches, a
+   picker, one sentence each saying what the current setting means, then prose:
    the things classmates can see, the things nobody can, and the two places a
    student would go next. No counters, no percentages, no dashboard.
 
@@ -68,6 +70,15 @@ const TOGGLES: PrivacyToggle[] = [
       "Turn this off and nobody sees you composing a message. You stop seeing them, too.",
   },
 ];
+
+/* The presence switch writes `profiles.share_last_seen`, a column
+   `use-privacy-prefs` doesn't carry (the erase-on-off behaviour is the
+   server's, not a cached preference), so it's its own row under the same
+   card rather than a second TOGGLES entry. Word for word with the web
+   privacy page. */
+const PRESENCE_LABEL = "Share when you're active";
+const PRESENCE_CAPTION =
+  'Classmates see "Active now" under your name while this is on. Turn it off and Hearth erases what it kept, right away.';
 
 /* ----------------------------- the picker ---------------------------- */
 
@@ -401,10 +412,61 @@ function LinkRow({
 export default function PrivacySettingsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { session } = useAuth();
+  const userId = session?.user.id ?? null;
   const { prefs, loading, error, saveError, setPref, refresh } =
     usePrivacyPrefs();
 
   const [refreshing, setRefreshing] = useState(false);
+
+  /* Presence sharing, straight off the profile row. Null while the read is
+     still out; the switch renders a skeleton rather than a guess. */
+  const [sharePresence, setSharePresence] = useState<boolean | null>(null);
+  const [presenceLoadFailed, setPresenceLoadFailed] = useState(false);
+  const [presenceSaveError, setPresenceSaveError] = useState<string | null>(
+    null
+  );
+
+  const loadPresence = useCallback(async () => {
+    if (!userId) return;
+    const { data, error: queryError } = await supabase
+      .from("profiles")
+      .select("share_last_seen")
+      .eq("id", userId)
+      .maybeSingle();
+    if (queryError || !data) {
+      setPresenceLoadFailed(true);
+      return;
+    }
+    setPresenceLoadFailed(false);
+    setSharePresence(
+      (data as { share_last_seen: boolean }).share_last_seen === true
+    );
+  }, [userId]);
+
+  useEffect(() => {
+    void loadPresence();
+  }, [loadPresence]);
+
+  /* Optimistic, like the other switch: flip first, write, flip back with a
+     line under the card if the write bounced. Turning it off is the erase:
+     the server clears last_seen_at the moment the column goes false. */
+  const setPresenceSharing = useCallback(
+    async (next: boolean) => {
+      if (!userId) return;
+      setPresenceSaveError(null);
+      setSharePresence(next);
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ share_last_seen: next })
+        .eq("id", userId);
+      if (updateError) {
+        setSharePresence(!next);
+        setPresenceSaveError("That didn't save just now. Give it another tap.");
+      }
+    },
+    [userId]
+  );
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -415,8 +477,10 @@ export default function PrivacySettingsScreen() {
      to make this screen ask the row again. */
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    void refresh().finally(() => setRefreshing(false));
-  }, [refresh]);
+    void Promise.all([refresh(), loadPresence()]).finally(() =>
+      setRefreshing(false)
+    );
+  }, [refresh, loadPresence]);
 
   return (
     <View
@@ -448,7 +512,7 @@ export default function PrivacySettingsScreen() {
         Privacy
       </AppText>
       <AppText variant="caption" muted style={{ marginTop: space.tight, marginBottom: space.cosy }}>
-        Two things you can set, and a straight account of everything else.
+        Three things you can set, and a straight account of everything else.
       </AppText>
 
       <ScrollView
@@ -499,6 +563,20 @@ export default function PrivacySettingsScreen() {
                       }
                     />
                   ))}
+              {/* Presence rides in the same card but off its own column;
+                  see PRESENCE_LABEL above for why it isn't a TOGGLES entry. */}
+              {loading || (sharePresence === null && !presenceLoadFailed) ? (
+                <RowSkeleton first={false} trailing="switch" />
+              ) : sharePresence === null ? null : (
+                <SwitchRow
+                  icon="activity"
+                  label={PRESENCE_LABEL}
+                  caption={PRESENCE_CAPTION}
+                  first={false}
+                  value={sharePresence}
+                  onValueChange={(next) => void setPresenceSharing(next)}
+                />
+              )}
             </Card>
 
             {loading ? null : (
@@ -513,6 +591,25 @@ export default function PrivacySettingsScreen() {
                 style={{ color: theme.danger, marginTop: space.snug }}
               >
                 {saveError.message}
+              </AppText>
+            ) : null}
+            {presenceLoadFailed && sharePresence === null ? (
+              <AppText
+                variant="caption"
+                accessibilityLiveRegion="polite"
+                style={{ color: theme.danger, marginTop: space.snug }}
+              >
+                We couldn't load your activity sharing setting. Pull down to
+                try again.
+              </AppText>
+            ) : null}
+            {presenceSaveError ? (
+              <AppText
+                variant="caption"
+                accessibilityLiveRegion="polite"
+                style={{ color: theme.danger, marginTop: space.snug }}
+              >
+                {presenceSaveError}
               </AppText>
             ) : null}
 

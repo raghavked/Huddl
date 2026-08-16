@@ -45,6 +45,18 @@ export interface Profile {
   // One line about what you're after: a lab partner, people to run with, a
   // sublet. Up to 140 characters, or null.
   looking_for: string | null;
+  /**
+   * When this student was last active, or null. Written ONLY by the
+   * `touch_last_seen()` RPC (no arguments, throttled server-side, silent
+   * while sharing is off), and erased server-side the moment
+   * `share_last_seen` goes off, so a timestamp here is always one they chose
+   * to share. Render it through presenceLabel() from @/lib/friends, never as
+   * a raw time.
+   */
+  last_seen_at: string | null;
+  // Whether classmates may see the "Active now" line under this student's
+  // name. Defaults to true; turning it off erases last_seen_at right away.
+  share_last_seen: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -318,7 +330,8 @@ export type NotificationKind =
   | "course_calendar"
   | "mention"
   | "thanks"
-  | "club_post";
+  | "club_post"
+  | "friend";
 
 export interface AppNotification {
   id: string;
@@ -377,6 +390,20 @@ export interface Report {
   reason: string;
   status: ReportStatus;
   created_at: string;
+}
+
+// One friend edge, whoever asked first. The pair (requester_id, addressee_id)
+// is the primary key; there is never a mirror row for the other direction.
+// Starts 'pending', becomes 'accepted' only when the addressee says so
+// (responded_at is stamped by a trigger, never by a client). Cancel, decline
+// and unfriend are all the same delete, by either end. Blocked pairs cannot
+// create edges, and the 'friend' notification arrives from a DB trigger.
+export interface Friendship {
+  requester_id: string;
+  addressee_id: string;
+  status: "pending" | "accepted";
+  created_at: string;
+  responded_at: string | null;
 }
 
 // Common joined shapes used across features.

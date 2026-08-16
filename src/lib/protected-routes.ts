@@ -22,6 +22,7 @@ export const PROTECTED_PREFIXES = [
   "/clubs",
   "/courses",
   "/board",
+  "/friends",
   "/saved",
   "/focus",
   "/plan",

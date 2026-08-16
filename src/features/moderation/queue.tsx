@@ -26,6 +26,7 @@ import {
   fetchReportedContent,
   filedAgo,
   moveCount,
+  reporterLine,
   reportSubject,
   setStatus,
   statusLabel,
@@ -360,8 +361,11 @@ function ReportCard({
 }) {
   const href = subjectHref(report);
   const title = summarize(report);
-  const reporter = report.reporter?.display_name ?? "Someone on campus";
   const actions = triageActions(report.status);
+  /* No reporter means Hearth filed it (the 0051 slur auto-flag), and that's
+     worth a quiet mark of its own: a moderator reads an automatic flag with
+     different eyes to a classmate's complaint. */
+  const auto = report.reporter === null;
 
   return (
     <li
@@ -376,10 +380,12 @@ function ReportCard({
     >
       <div className="flex flex-col gap-2.5 p-4">
         {/* The reporter's own pick, in their words. Brand, never danger: a
-            category is what this is about, not a verdict on it. */}
-        <Badge tone="brand" className="self-start">
-          {categoryLabel(report.category)}
-        </Badge>
+            category is what this is about, not a verdict on it. The muted
+            "Auto" beside it marks a row Hearth filed itself. */}
+        <div className="flex flex-wrap items-center gap-2 self-start">
+          <Badge tone="brand">{categoryLabel(report.category)}</Badge>
+          {auto ? <Badge tone="neutral">Auto</Badge> : null}
+        </div>
 
         {href ? (
           <Link
@@ -397,7 +403,7 @@ function ReportCard({
         )}
 
         <p className="text-xs text-muted">
-          Reported by {reporter} · {filedAgo(report, now)}
+          {reporterLine(report)} · {filedAgo(report, now)}
         </p>
 
         {/* The reporter's own words, in full. This is the substance of the

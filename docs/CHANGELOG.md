@@ -1,5 +1,83 @@
 # Hearth development log
 
+## Round 17: friends, status, the smoke alarm, and the fleet
+
+Migrations 0050 to 0057 live. Two features the schema had always talked
+around, one safety system, and then a simulated student body was let loose
+on the whole app under real row-level security to prove every feature works
+between users, not just for one.
+
+### Friends and status
+
+- **Friendships** (0050, 0052): one edge per pair, asked by one side and
+  answered by the other. Declining is deleting, with no tombstone, so being
+  turned down is indistinguishable from being quietly ignored. Same campus
+  only. A request across a block is absorbed silently by a definer trigger,
+  because a refused insert would be a tell and blocks are never told.
+  Notifications ride the new `friend` kind. Both clients grew the same
+  controls, word for word: the profile button (Add friend / Request sent /
+  Accept request / Friends), and a Friends screen with Requests, Sent and
+  Friends sections.
+- **Status** (0050): `profiles.last_seen_at`, written only by
+  `touch_last_seen()` (throttled, server-clocked, never client-supplied),
+  rendered as "Active now" / "Active recently" / "Active today", never a raw
+  timestamp. The "Share when you're active" toggle does not hide the fact,
+  it erases it: flipping it off nulls the column in the same statement and
+  the touch function goes silent while it is off.
+
+### Slurs flag themselves
+
+The report system waited for a student to press the button, which is right
+for everything except the one category with no innocent reading. Now (0051)
+a lexicon of slurs, in a deny-all table the API can neither read nor
+enumerate, is checked by trigger on every communication surface: channel
+messages, DMs, board posts, club announcements, and profile text. A hit
+files an ordinary report with no reporter: moderators see "Hearth flagged
+this automatically" in the same queue, students never see it, the rate
+limiter never counts it. Nothing is blocked or hidden; the message sends
+and a human is summoned. Swearing is deliberately not in the lexicon and
+trips nothing, ever. Matching folds the disguises people actually type
+(digit swaps, symbol swaps, censoring asterisks, plurals) and leaves
+"conspicuous", "Nigeria" and "coonhound" alone.
+
+### What the fleet found
+
+Twelve simulated students signed up through the real trigger on an isolated
+simulation campus and ran 117 checks over every feature as authenticated
+users under RLS: profiles, presence, friends, blocks mid-conversation, DMs
+and group threads, rate limits, rooms, reactions, pins, polls, courses,
+grades privacy, notes, decks, buddies, clubs, events, the board, reports,
+the auto-flag, triage, focus, notifications, export, search, and account
+deletion. Everything they touched was purged afterwards; the database ends
+the round exactly as it began, plus the lexicon. Four real defects
+surfaced and were fixed on the spot:
+
+- **Friend requests were impossible** (0052): 0050's insert policy called
+  `is_blocked_either()`, which 0037 had made uncallable by the API role.
+  The fleet's very first request found it.
+- **Account deletion had been broken in production** (0054): Supabase's
+  storage guard now refuses direct SQL deletes, so `delete_own_account()`
+  raised instead of deleting. It opts in through the sanctioned
+  transaction-local setting now. This one predates the round entirely.
+- **Moderators could not see automatic flags** (0055, 0056): the queue's
+  campus scoping ran through the reporter's profile, and an automatic flag
+  has no reporter. Both the policies and `reported_content()` now anchor a
+  null-reporter row to the flagged author's campus.
+- **Plural slurs slipped past** (0051, amended before shipping):
+  "trannies" sailed by "tranny(s|es)?". The matcher now takes y/ies
+  endings, and "chinky" earned its own lexicon entry.
+
+## Round 16: rooms that look like ours, and twelve hearths
+
+No schema this round; it went on identity. Rooms stopped dressing like
+Discord: the `#` and channel furniture gave way to a room identity system
+(glyphs by kind, typed names over slugs, warm monograms), word-identical
+across both clients and pinned by a parity test. And Look and feel grew
+twelve colour schemes: Ember plus eleven re-litings of it, generated from
+one recipe (`scripts/schemes.py`) that proves the same WCAG pairs in both
+appearances for every scheme, from Aggie blue-and-gold to hot pink Peony,
+with the loud ones loud and Slate deliberately quiet.
+
 ## Round 15: keeping the promises, and saying them plainly
 
 Migrations 0041 to 0048 live. No new surface this round. It went instead on

@@ -52,6 +52,8 @@ const KIND_ICONS: Partial<Record<string, keyof typeof Feather.glyphMap>> = {
   // Feather has no megaphone; volume-2 reads as an announcement here.
   club_post: "volume-2",
   thanks: "heart",
+  // A friend request or an accepted one; its link walks to /u/<handle>.
+  friend: "user-plus",
   system: "bell",
 };
 

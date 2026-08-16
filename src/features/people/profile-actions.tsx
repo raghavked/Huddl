@@ -1,15 +1,216 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Flag, Loader2 } from "lucide-react";
+import {
+  Check,
+  Clock,
+  Flag,
+  Loader2,
+  UserRoundCheck,
+  UserRoundPlus,
+  UserRoundX,
+} from "lucide-react";
 import { Button } from "@/components/ui";
 import { reportProfile } from "@/features/moderation/actions";
+import {
+  FriendsError,
+  acceptRequest,
+  removeEdge,
+  sendRequest,
+  type FriendState,
+} from "@/lib/friends";
 import {
   REPORT_CATEGORIES,
   categoryLabel,
   type ReportCategory,
 } from "@/lib/moderation";
 import { cn } from "@/lib/utils";
+
+/**
+ * The friend button, first on the profile's action row.
+ *
+ * One control wearing the four states of {@link FriendState}: "Add friend"
+ * (none), "Request sent" (outgoing, tapping offers Cancel request), "Accept
+ * request" with a quieter "Ignore" (incoming), and "Friends" (accepted,
+ * tapping offers Remove friend). Every write is optimistic: the button flips
+ * first and flips back with an inline error if the server disagrees, which
+ * `sendRequest` and friends were written to make safe.
+ *
+ * Like the block button below, it renders bare flex children so the caller's
+ * wrapping row owns the layout: the disclosure panel is `w-full` and drops
+ * onto its own line rather than shoving the other buttons around.
+ *
+ * @param name What to call them out loud. A private profile withholds the
+ *   display name, so the caller passes the handle instead.
+ */
+export function FriendButton({
+  personId,
+  name,
+  initialState,
+}: {
+  personId: string;
+  name: string;
+  initialState: FriendState;
+}) {
+  const panelId = useId();
+  const [state, setState] = useState<FriendState>(initialState);
+  // The disclosure under "Request sent" and "Friends", where the quieter
+  // second thought (cancel, unfriend) lives behind one more deliberate tap.
+  const [asking, setAsking] = useState(false);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  /** Flip first, write second, flip back with the warm copy if it fails. */
+  async function transition(next: FriendState, write: () => Promise<void>) {
+    if (working) return;
+    const previous = state;
+    setError(null);
+    setWorking(true);
+    setAsking(false);
+    setState(next);
+    try {
+      await write();
+    } catch (err) {
+      setState(previous);
+      setError(
+        err instanceof FriendsError
+          ? err.message
+          : "That didn't go through. Give it another go in a moment."
+      );
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  /* Full-width so it lands on its own line in the caller's wrapping row,
+     the same way the block confirmation does. */
+  const notice = error ? (
+    <p
+      role="alert"
+      className="w-full text-sm font-medium text-danger text-pretty"
+    >
+      {error}
+    </p>
+  ) : null;
+
+  const spinner = <Loader2 className="size-4 animate-spin" aria-hidden />;
+
+  if (state === "none") {
+    return (
+      <>
+        <Button
+          disabled={working}
+          aria-label={`Add ${name} as a friend`}
+          onClick={() =>
+            void transition("outgoing", () => sendRequest(personId))
+          }
+        >
+          {working ? spinner : <UserRoundPlus className="size-4" aria-hidden />}
+          Add friend
+        </Button>
+        {notice}
+      </>
+    );
+  }
+
+  if (state === "incoming") {
+    return (
+      <>
+        <Button
+          disabled={working}
+          aria-label={`Accept the friend request from ${name}`}
+          onClick={() =>
+            void transition("friends", () => acceptRequest(personId))
+          }
+        >
+          {working ? spinner : <Check className="size-4" aria-hidden />}
+          Accept request
+        </Button>
+        {/* Ignoring is the same quiet delete as cancelling: their edge simply
+            stops existing, and nobody is told which word you used. */}
+        <Button
+          variant="ghost"
+          disabled={working}
+          aria-label={`Ignore the friend request from ${name}`}
+          onClick={() => void transition("none", () => removeEdge(personId))}
+        >
+          Ignore
+        </Button>
+        {notice}
+      </>
+    );
+  }
+
+  const accepted = state === "friends";
+  return (
+    <>
+      <Button
+        variant="secondary"
+        disabled={working}
+        aria-expanded={asking}
+        aria-controls={asking ? panelId : undefined}
+        aria-label={
+          accepted
+            ? `Friends with ${name}`
+            : `Friend request sent to ${name}`
+        }
+        onClick={() => {
+          setError(null);
+          setAsking((open) => !open);
+        }}
+      >
+        {working ? (
+          spinner
+        ) : accepted ? (
+          <UserRoundCheck className="size-4" aria-hidden />
+        ) : (
+          <Clock className="size-4" aria-hidden />
+        )}
+        {accepted ? "Friends" : "Request sent"}
+      </Button>
+
+      {asking ? (
+        <div
+          id={panelId}
+          role="group"
+          aria-label={accepted ? `Friends with ${name}` : `Request sent to ${name}`}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setAsking(false);
+          }}
+          className="w-full max-w-sm animate-scale-in rounded-card border border-border bg-surface p-4 text-left shadow-soft"
+        >
+          <p className="text-sm text-muted text-pretty">
+            {accepted
+              ? `You and ${name} are friends. Removing them is quiet: they aren't told, and you can always ask again.`
+              : `You've asked ${name} and they haven't answered yet. Cancelling quietly takes the ask back.`}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button
+              variant="danger-ghost"
+              size="sm"
+              disabled={working}
+              onClick={() =>
+                void transition("none", () => removeEdge(personId))
+              }
+            >
+              <UserRoundX className="size-4" aria-hidden />
+              {accepted ? "Remove friend" : "Cancel request"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={working}
+              onClick={() => setAsking(false)}
+            >
+              Never mind
+            </Button>
+          </div>
+        </div>
+      ) : null}
+      {notice}
+    </>
+  );
+}
 
 /** What `reports.reason` will take: 1–500 characters, per its check constraint. */
 const REASON_MAX = 500;

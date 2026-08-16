@@ -442,6 +442,13 @@ export default function SettingsScreen() {
             first
             onPress={() => router.push("/people")}
           />
+          {/* Right under the directory, because that's where friends come
+              from: find your people there, keep them here. */}
+          <SettingsLink
+            icon="user-check"
+            label="Friends"
+            onPress={() => router.push("/friends")}
+          />
           <SettingsLink
             icon="bookmark"
             label="Saved messages"

@@ -46,6 +46,7 @@ import {
   type QueuedMessage,
 } from "@/lib/drafts";
 import { forwardLabelFor, type ForwardSource } from "@/lib/forwarding";
+import { presenceLabel } from "@/lib/friends";
 import {
   fetchThread,
   fetchThreadPeople,
@@ -203,6 +204,10 @@ export default function DmRoomScreen() {
   const [thread, setThread] = useState<GroupThreadRow | null>(null);
   const [people, setPeople] = useState<ThreadPerson[]>([]);
   const [other, setOther] = useState<ProfileLite | null>(null);
+  /* When the other person was last active, or null: null while they aren't
+     sharing, and always null on a group. Rendered through presenceLabel(),
+     so the header says "Active now" or nothing, never a timestamp. */
+  const [otherSeen, setOtherSeen] = useState<string | null>(null);
   // Newest first. The FlatList is inverted so index 0 sits at the bottom.
   const [messages, setMessages] = useState<DmMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -268,6 +273,38 @@ export default function DmRoomScreen() {
     if (router.canGoBack()) router.back();
     else router.replace("/(tabs)/messages");
   }, []);
+
+  /* Presence rides on its own read, off the critical path: the header can
+     say the name long before it knows whether to whisper "Active now", and
+     a failure here is simply a header with no whisper. `last_seen_at` is
+     already null server-side while they aren't sharing; the explicit check
+     keeps a stale column from leaking through anyway. */
+  const otherId = other?.id ?? null;
+  useEffect(() => {
+    if (!otherId) {
+      setOtherSeen(null);
+      return;
+    }
+    let live = true;
+    void supabase
+      .from("profiles")
+      .select("last_seen_at, share_last_seen")
+      .eq("id", otherId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!live) return;
+        const row = data as {
+          last_seen_at: string | null;
+          share_last_seen: boolean;
+        } | null;
+        setOtherSeen(
+          row && row.share_last_seen === true ? row.last_seen_at : null
+        );
+      });
+    return () => {
+      live = false;
+    };
+  }, [otherId]);
 
   /** The display names behind any forwarded_author_id on this page. One
       batched query, and only for ids we haven't already resolved. */
@@ -1300,9 +1337,17 @@ export default function DmRoomScreen() {
               <AppText variant="title" numberOfLines={1}>
                 {other.display_name}
               </AppText>
-              <AppText variant="caption" muted numberOfLines={1}>
-                @{other.handle}
-              </AppText>
+              {/* The line under the name: their handle, and the presence
+                  phrase beside it while they're sharing one. */}
+              {(() => {
+                const activeLine = presenceLabel(otherSeen, new Date());
+                return (
+                  <AppText variant="caption" muted numberOfLines={1}>
+                    @{other.handle}
+                    {activeLine ? ` · ${activeLine}` : ""}
+                  </AppText>
+                );
+              })()}
             </View>
             <Feather name="chevron-right" size={18} color={theme.muted} />
           </Pressable>

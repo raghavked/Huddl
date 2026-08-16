@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -10,6 +11,7 @@ import {
   Pin,
   UsersRound,
 } from "lucide-react";
+import { touchPresence } from "@/lib/friends";
 import { cn } from "@/lib/utils";
 
 /* Six primary destinations, so the dock's pills run tighter than they did at
@@ -24,9 +26,33 @@ const TABS = [
   { href: "/board", label: "Board", icon: Pin },
 ] as const;
 
+/** How often the open tab re-announces itself, matching "Active now"'s
+    five-minute window so an idle-but-open Hearth stays "Active now". */
+const HEARTBEAT_MS = 5 * 60 * 1000;
+
 /** Floating frosted tab dock, mobile only. */
 export function MobileDock({ unreadDms = 0 }: { unreadDms?: number }) {
   const pathname = usePathname();
+
+  /* The presence heartbeat lives here because the dock is the one client
+     component mounted on every signed-in page: once on mount, again when
+     the tab comes back into view, and on an interval while it stays open.
+     touchPresence() throttles itself, never throws, and stays silent while
+     sharing is off, so there is nothing to render and nothing to catch. */
+  useEffect(() => {
+    void touchPresence();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void touchPresence();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    const interval = window.setInterval(() => {
+      void touchPresence();
+    }, HEARTBEAT_MS);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.clearInterval(interval);
+    };
+  }, []);
 
   return (
     <nav
