@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -11,7 +11,8 @@ import {
   Pin,
   UsersRound,
 } from "lucide-react";
-import { touchPresence } from "@/lib/friends";
+import { resetPresenceThrottle, touchPresence } from "@/lib/friends";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 /* Six primary destinations, so the dock's pills run tighter than they did at
@@ -33,6 +34,34 @@ const HEARTBEAT_MS = 5 * 60 * 1000;
 /** Floating frosted tab dock, mobile only. */
 export function MobileDock({ unreadDms = 0 }: { unreadDms?: number }) {
   const pathname = usePathname();
+
+  /* Who the heartbeat is beating for. The dock isn't handed the user, so it
+     reads the session itself and keeps listening: sign out and back in on
+     the same tab and the id here changes with it. */
+  const [heartbeatUserId, setHeartbeatUserId] = useState<string | null>(null);
+  useEffect(() => {
+    const supabase = createClient();
+    void supabase.auth.getSession().then(({ data }) => {
+      setHeartbeatUserId(data.session?.user.id ?? null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setHeartbeatUserId(session?.user.id ?? null);
+      }
+    );
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  /* touchPresence's quiet period is module state, and module state outlives
+     a sign-out. Without this reset, whoever signs in next on the same tab
+     inherits the previous student's throttle and their first touch is
+     silently skipped, so keyed on the user: a new id starts a fresh clock
+     and announces itself right away. */
+  useEffect(() => {
+    if (heartbeatUserId === null) return;
+    resetPresenceThrottle();
+    void touchPresence();
+  }, [heartbeatUserId]);
 
   /* The presence heartbeat lives here because the dock is the one client
      component mounted on every signed-in page: once on mount, again when

@@ -114,8 +114,10 @@ function Well({ children }: { children: ReactNode }) {
 }
 
 /**
- * A reported message the queue query couldn't carry: a room this moderator
- * isn't in, or a direct message, which no moderator is ever a participant of.
+ * Reported words the queue query couldn't carry: a message in a room this
+ * moderator isn't in, a direct message, which no moderator is ever a
+ * participant of, or a club announcement, whose table never opens up for the
+ * queue.
  *
  * Deliberately behind a tap rather than loaded with the list. These are
  * private words, and the difference between "a screen that can show you a
@@ -125,9 +127,12 @@ function Well({ children }: { children: ReactNode }) {
 function HiddenMessage({
   report,
   note,
+  announcement,
 }: {
   report: ModerationReport;
   note: string;
+  /** True when the hidden words are a club announcement, not a message. */
+  announcement: boolean;
 }) {
   const theme = useTheme();
   const [content, setContent] = useState<ReportedContent | null>(null);
@@ -155,10 +160,15 @@ function HiddenMessage({
   }, [report.id, loading]);
 
   if (content) {
+    const kind = content.kind;
     return (
       <View style={{ gap: space.snug }}>
         <AppText variant="label" muted>
-          {content.kind === "direct" ? "The direct message" : "What they said"}
+          {kind === "announcement"
+            ? "The announcement"
+            : kind === "direct"
+              ? "The direct message"
+              : "What they said"}
         </AppText>
         <Well>
           <AppText>{content.content}</AppText>
@@ -189,13 +199,15 @@ function HiddenMessage({
         />
         <AppText variant="caption" muted style={{ flex: 1 }}>
           {empty
-            ? "That message has been deleted outright. The report is all that's left."
+            ? announcement
+              ? "That announcement has been deleted outright. The report is all that's left."
+              : "That message has been deleted outright. The report is all that's left."
             : note}
         </AppText>
       </View>
       {empty ? null : (
         <Button
-          label="Read the message"
+          label={announcement ? "Read the announcement" : "Read the message"}
           variant="secondary"
           size="sm"
           pending={loading}
@@ -223,13 +235,20 @@ function Subject({ report }: { report: ModerationReport }) {
   const subject = reportSubject(report);
 
   if (subject.kind === "gone") {
-    /* A message we can't embed isn't necessarily a message we can't read.
-       `messages` is channel-member-only and `dm_messages` is participant-only,
-       so a moderator triaging a room they never joined (or any DM at all)
+    /* Words we can't embed aren't necessarily words we can't read.
+       `messages` is channel-member-only, `dm_messages` is participant-only,
+       and a club announcement (0060) never embeds at all, so a moderator
        used to be judging words they couldn't see. `reported_content()` is the
        one narrow way through, so offer it rather than the shrug. */
-    if (subject.was === "message") {
-      return <HiddenMessage report={report} note={subject.note} />;
+    const was = subject.was;
+    if (was === "message" || was === "announcement") {
+      return (
+        <HiddenMessage
+          report={report}
+          note={subject.note}
+          announcement={was === "announcement"}
+        />
+      );
     }
     return (
       <View

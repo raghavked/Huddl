@@ -1338,9 +1338,13 @@ export default function DmRoomScreen() {
                 {other.display_name}
               </AppText>
               {/* The line under the name: their handle, and the presence
-                  phrase beside it while they're sharing one. */}
+                  phrase beside it while they're sharing one. Never while
+                  you've blocked them: a conversation you've closed the
+                  door on shouldn't whisper "Active now" through it. */}
               {(() => {
-                const activeLine = presenceLabel(otherSeen, new Date());
+                const activeLine = otherBlocked
+                  ? null
+                  : presenceLabel(otherSeen, new Date());
                 return (
                   <AppText variant="caption" muted numberOfLines={1}>
                     @{other.handle}

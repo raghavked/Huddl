@@ -505,6 +505,18 @@ export async function removeEdge(
 let lastTouchMs = 0;
 
 /**
+ * Forget the last touch, so the next {@link touchPresence} really goes out.
+ *
+ * Module state outlives a sign-out: without this, whoever signs in next on
+ * the same tab inherits the previous student's quiet period and their first
+ * touch is silently skipped. Call it wherever the heartbeat notices the
+ * user has changed.
+ */
+export function resetPresenceThrottle(): void {
+  lastTouchMs = 0;
+}
+
+/**
  * Tell the server you're here. Fire and forget from anywhere a student is
  * plainly active (opening the app, sending a message): the server throttles,
  * stays silent while sharing is off, and this wrapper adds a client-side

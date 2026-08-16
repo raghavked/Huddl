@@ -15,6 +15,7 @@ import {
 import {
   FriendsError,
   acceptRequest,
+  listFriendships,
   presenceLabel,
   removeEdge,
   splitFriendships,
@@ -71,11 +72,19 @@ export function FriendsList({
   // Pure helpers take `now` as an argument; a render is a fine moment.
   const now = new Date();
 
-  /** Flip the list first, write second, flip back with warm copy on failure. */
+  /** Flip the list first, write second, flip back with warm copy on failure.
+   *
+   * When `refetchOnFail` is set, failure re-fetches the list instead of
+   * restoring the snapshot. Accepting needs that: a request can be cancelled
+   * (or quietly withdrawn across a block) while it's on screen, and putting
+   * the old row back would resurrect an edge the server no longer has, with
+   * every retry looping into the same wall. If even the refetch fails, the
+   * snapshot is still warmer than an empty screen. */
   async function run(
     item: FriendListItem,
     next: (prev: FriendEdgeRow[]) => FriendEdgeRow[],
-    write: () => Promise<void>
+    write: () => Promise<void>,
+    refetchOnFail = false
   ) {
     if (busyKey) return;
     setError(null);
@@ -85,7 +94,15 @@ export function FriendsList({
     try {
       await write();
     } catch (err) {
-      setRows(previous);
+      if (refetchOnFail) {
+        try {
+          setRows(await listFriendships());
+        } catch {
+          setRows(previous);
+        }
+      } else {
+        setRows(previous);
+      }
       setError(
         err instanceof FriendsError
           ? err.message
@@ -109,7 +126,8 @@ export function FriendsList({
               }
             : row
         ),
-      () => acceptRequest(item.person.id)
+      () => acceptRequest(item.person.id),
+      true
     );
   }
 
@@ -191,13 +209,17 @@ export function FriendsList({
           <SectionHeader title="Requests" />
           {sectionCard(
             sections.requests.map((item) => {
+              /* `busy` marks the row whose spinner is turning. Every button
+                 in the list rests while ANY write is in flight, because
+                 run() would swallow their clicks anyway; a button that looks
+                 alive but does nothing is worse than one that plainly waits. */
               const busy = busyKey === edgeKey(item);
               return (
                 <li key={edgeKey(item)} className={rowClass}>
                   {personCell(item, false)}
                   <Button
                     size="sm"
-                    disabled={busy}
+                    disabled={busyKey !== null}
                     aria-label={`Accept the friend request from ${item.person.display_name}`}
                     onClick={() => handleAccept(item)}
                   >
@@ -211,7 +233,7 @@ export function FriendsList({
                   <Button
                     variant="ghost"
                     size="sm"
-                    disabled={busy}
+                    disabled={busyKey !== null}
                     aria-label={`Ignore the friend request from ${item.person.display_name}`}
                     onClick={() => handleDrop(item)}
                   >
@@ -236,7 +258,7 @@ export function FriendsList({
                   <Button
                     variant="secondary"
                     size="sm"
-                    disabled={busy}
+                    disabled={busyKey !== null}
                     aria-label={`Cancel your friend request to ${item.person.display_name}`}
                     onClick={() => handleDrop(item)}
                   >
@@ -282,7 +304,7 @@ export function FriendsList({
                   <Button
                     variant="secondary"
                     size="sm"
-                    disabled={busy}
+                    disabled={busyKey !== null}
                     aria-label={`Remove ${item.person.display_name} from your friends`}
                     onClick={() => handleRemoveFriend(item)}
                   >

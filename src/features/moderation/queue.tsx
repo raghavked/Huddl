@@ -117,8 +117,10 @@ function byline(
 }
 
 /**
- * A reported message the queue query couldn't carry: a channel this moderator
- * isn't in, or a direct message, which no moderator is ever a participant of.
+ * Reported words the queue query couldn't carry: a message in a channel this
+ * moderator isn't in, a direct message, which no moderator is ever a
+ * participant of, or a club announcement, whose table never opens up for the
+ * queue.
  *
  * Deliberately behind a click rather than loaded with the list. These are
  * private words, and the difference between "a page that can show you a
@@ -128,10 +130,13 @@ function byline(
 function HiddenMessage({
   report,
   note,
+  announcement,
   now,
 }: {
   report: ModerationReport;
   note: string;
+  /** True when the hidden words are a club announcement, not a message. */
+  announcement: boolean;
   /** The page's one moment, so "sent" and "filed" are measured from it. */
   now: Date;
 }) {
@@ -182,9 +187,11 @@ function HiddenMessage({
         {content ? (
           <>
             <WellLabel>
-              {content.kind === "direct"
-                ? "The direct message"
-                : "What they said"}
+              {content.kind === "announcement"
+                ? "The announcement"
+                : content.kind === "direct"
+                  ? "The direct message"
+                  : "What they said"}
             </WellLabel>
             <Well>
               <p className="text-xs text-muted">
@@ -204,7 +211,9 @@ function HiddenMessage({
           <p className="flex items-start gap-2 text-xs text-muted">
             <EyeOff className="mt-0.5 size-3.5 shrink-0" aria-hidden />
             {empty
-              ? "That message has been deleted outright. The report is all that's left."
+              ? announcement
+                ? "That announcement has been deleted outright. The report is all that's left."
+                : "That message has been deleted outright. The report is all that's left."
               : note}
           </p>
         )}
@@ -222,7 +231,7 @@ function HiddenMessage({
           {loading ? (
             <Loader2 className="size-3.5 animate-spin" aria-hidden />
           ) : null}
-          Read the message
+          {announcement ? "Read the announcement" : "Read the message"}
         </Button>
       )}
 
@@ -246,13 +255,20 @@ function Subject({ report, now }: { report: ModerationReport; now: Date }) {
   const subject = reportSubject(report);
 
   if (subject.kind === "gone") {
-    /* A message we can't embed isn't necessarily a message we can't read.
-       `messages` is channel-member-only and `dm_messages` is participant-only,
-       so a moderator triaging a channel they never joined, or any DM at all,
+    /* Words we can't embed aren't necessarily words we can't read.
+       `messages` is channel-member-only, `dm_messages` is participant-only,
+       and a club announcement (0060) never embeds at all, so a moderator
        used to be judging words they couldn't see. `reported_content()` is the
        one narrow way through, so offer it rather than the shrug. */
-    if (subject.was === "message") {
-      return <HiddenMessage report={report} note={subject.note} now={now} />;
+    if (subject.was === "message" || subject.was === "announcement") {
+      return (
+        <HiddenMessage
+          report={report}
+          note={subject.note}
+          announcement={subject.was === "announcement"}
+          now={now}
+        />
+      );
     }
     return (
       <p className="flex items-start gap-2 text-xs text-muted">

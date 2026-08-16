@@ -49,6 +49,7 @@ type PushKind =
   | "mention"
   | "thread_reply"
   | "thanks"
+  | "friend"
   | "course_calendar"
   | "event"
   | "club_post"
@@ -92,6 +93,12 @@ const PUSH_KINDS: {
     icon: "heart",
     label: "Thanks on your notes",
     caption: "When a classmate says thanks for notes you uploaded.",
+  },
+  {
+    kind: "friend",
+    icon: "user-plus",
+    label: "Friend requests",
+    caption: "When someone asks to be friends, and when they say yes.",
   },
   {
     kind: "course_calendar",

@@ -26,13 +26,14 @@ import {
   buttonClasses,
   cardClasses,
 } from "@/components/ui";
+import { PresenceLine } from "@/features/people/presence-line";
 import {
   FriendButton,
   ReportPersonButton,
 } from "@/features/people/profile-actions";
 import { BlockPersonButton } from "@/features/settings/blocked-list";
 import { getCurrentUser } from "@/lib/auth";
-import { fetchFriendState, presenceLabel, type FriendState } from "@/lib/friends";
+import { fetchFriendState, type FriendState } from "@/lib/friends";
 import { roomGlyph, roomTitle } from "@/lib/room-identity";
 import { createClient } from "@/lib/supabase/server";
 import type { Channel, Course, Profile, University } from "@/lib/types";
@@ -175,18 +176,24 @@ export default async function ProfilePage({
     isMe || (iBlocked && friendState === "none") ? null : (
       <FriendButton
         personId={profile.id}
+        viewerId={user.userId}
         name={visibleName}
         initialState={friendState}
       />
     );
 
-  /* The quiet presence line, through presenceLabel and nothing else: one of
-     three phrases or no line at all, never a raw timestamp. The server
-     erases last_seen_at when sharing goes off, and the toggle is checked
-     again here so a stale row can't leak what its owner switched off. */
-  const presence = profile.share_last_seen
-    ? presenceLabel(profile.last_seen_at, new Date())
-    : null;
+  /* The quiet presence line, a client component because "Active today" means
+     the VIEWER's calendar day and only their browser knows their midnight.
+     Withheld once you've blocked someone: you asked for quiet from them, and
+     that includes their comings and goings. The other direction stays as it
+     is, because a profile that hid its presence only from the person who was
+     blocked would be a tell. */
+  const presenceLine = iBlocked ? null : (
+    <PresenceLine
+      lastSeenAt={profile.last_seen_at}
+      shareLastSeen={profile.share_last_seen}
+    />
+  );
 
   /* Reporting and blocking are different acts and stay separately reachable:
      one asks us to look at someone, the other is what a student does for
@@ -341,15 +348,7 @@ export default async function ProfilePage({
             <p className="mt-1 text-sm text-muted">
               @{profile.handle} · {universityName}
             </p>
-            {presence ? (
-              <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-success">
-                <span
-                  className="size-2 shrink-0 rounded-full bg-success"
-                  aria-hidden
-                />
-                {presence}
-              </p>
-            ) : null}
+            {presenceLine}
             {profile.major || profile.grad_year ? (
               <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
                 {profile.major ? (

@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -39,10 +39,11 @@ import { useAuth } from "@/providers/auth-provider";
    nothing is a question the screen can't answer.
 
    Every action here is optimistic. The row moves (or goes) first, the write
-   follows, and a throw puts the sections back exactly as they were with the
-   error's own sentence at the top of the list. The data layer's writes are
-   built for that, and `removeEdge` covers cancel, ignore and remove alike:
-   the database makes no distinction, so neither do we. */
+   follows, and a throw asks the server for the truth again rather than
+   putting back a snapshot that may already be stale, with the error's own
+   sentence at the top of the list. The data layer's writes are built for
+   that, and `removeEdge` covers cancel, ignore and remove alike: the
+   database makes no distinction, so neither do we. */
 
 /** Empty sections, for the beat before the first load lands. */
 const NO_SECTIONS: FriendSections = { requests: [], sent: [], friends: [] };
@@ -117,8 +118,12 @@ export default function FriendsScreen() {
   /* One inline line for a write that bounced; the sections are already back
      the way they were when it shows. */
   const [actionError, setActionError] = useState<string | null>(null);
-  /* The person mid-write, so their buttons can't be tapped twice. */
+  /* The person mid-write, so their buttons can't be tapped twice. The ref
+     carries the same value for the callbacks: an Alert can sit open across
+     several renders, and the state a callback closed over is only as fresh
+     as the render that created it. */
   const [busyId, setBusyId] = useState<string | null>(null);
+  const busyRef = useRef<string | null>(null);
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -151,34 +156,51 @@ export default function FriendsScreen() {
   }, [load]);
 
   /**
-   * Run one optimistic move: swap the sections to `next`, try the write,
-   * and put everything back if it throws. `otherId` keys the busy state.
+   * Run one optimistic move: apply `apply` to whatever the sections are RIGHT
+   * NOW (a refresh may have landed since the tap), try the write, and refetch
+   * if it throws. `otherId` keys the busy state.
+   *
+   * Everything in here reads and writes through functional updates and the
+   * busy ref on purpose: confirmRemove's Alert callback fires long after the
+   * render that built it, and a closed-over snapshot from back then would
+   * quietly overwrite anything that arrived in between.
    */
   const runMove = useCallback(
     async (
       otherId: string,
-      next: FriendSections,
+      apply: (prev: FriendSections) => FriendSections,
       move: (otherId: string) => Promise<void>
     ) => {
-      if (sections === null || busyId !== null) return;
-      const before = sections;
+      if (!userId || busyRef.current !== null) return;
+      busyRef.current = otherId;
       setActionError(null);
       setBusyId(otherId);
-      setSections(next);
+      setSections((prev) => (prev === null ? prev : apply(prev)));
       try {
         await move(otherId);
       } catch (err) {
-        setSections(before);
         setActionError(
           err instanceof FriendsError
             ? err.message
             : "That didn't go through. Give it another go in a moment."
         );
+        /* Re-derive rather than restore: the pre-tap snapshot may already be
+           stale, and an accept can fail precisely because the edge is gone
+           (they cancelled, or a block quietly withdrew it). The server knows
+           where things stand; ask it. */
+        try {
+          const rows = await listFriendships();
+          setSections(splitFriendships(rows, userId));
+        } catch {
+          // The refetch bounced too. The error line above already invites
+          // another go, and a pull-down refresh tells the rest.
+        }
       } finally {
+        busyRef.current = null;
         setBusyId(null);
       }
     },
-    [sections, busyId]
+    [userId]
   );
 
   /** Everything except this person's edge, out of one section. */
@@ -187,7 +209,6 @@ export default function FriendsScreen() {
 
   const handleAccept = useCallback(
     (item: FriendListItem) => {
-      if (sections === null) return;
       const accepted: FriendListItem = {
         ...item,
         edge: {
@@ -200,44 +221,44 @@ export default function FriendsScreen() {
       };
       void runMove(
         item.person.id,
-        {
-          ...sections,
-          requests: without(sections.requests, item.person.id),
-          friends: [accepted, ...sections.friends],
-        },
+        (prev) => ({
+          ...prev,
+          requests: without(prev.requests, item.person.id),
+          friends: [accepted, ...prev.friends],
+        }),
         acceptRequest
       );
     },
-    [sections, runMove]
+    [runMove]
   );
 
   const handleIgnore = useCallback(
     (item: FriendListItem) => {
-      if (sections === null) return;
       void runMove(
         item.person.id,
-        { ...sections, requests: without(sections.requests, item.person.id) },
+        (prev) => ({
+          ...prev,
+          requests: without(prev.requests, item.person.id),
+        }),
         removeEdge
       );
     },
-    [sections, runMove]
+    [runMove]
   );
 
   const handleCancel = useCallback(
     (item: FriendListItem) => {
-      if (sections === null) return;
       void runMove(
         item.person.id,
-        { ...sections, sent: without(sections.sent, item.person.id) },
+        (prev) => ({ ...prev, sent: without(prev.sent, item.person.id) }),
         removeEdge
       );
     },
-    [sections, runMove]
+    [runMove]
   );
 
   const confirmRemove = useCallback(
     (item: FriendListItem) => {
-      if (sections === null) return;
       Alert.alert(
         `Remove ${item.person.display_name} as a friend?`,
         "They won't be told, and either of you can ask again later.",
@@ -249,17 +270,17 @@ export default function FriendsScreen() {
             onPress: () =>
               void runMove(
                 item.person.id,
-                {
-                  ...sections,
-                  friends: without(sections.friends, item.person.id),
-                },
+                (prev) => ({
+                  ...prev,
+                  friends: without(prev.friends, item.person.id),
+                }),
                 removeEdge
               ),
           },
         ]
       );
     },
-    [sections, runMove]
+    [runMove]
   );
 
   const openProfile = useCallback((item: FriendListItem) => {
@@ -300,6 +321,7 @@ export default function FriendsScreen() {
           label="Accept request"
           size="sm"
           pending={busyId === item.person.id}
+          disabled={busyId !== null}
           accessibilityLabel={`Accept ${item.person.display_name}'s friend request`}
           accessibilityState={{
             busy: busyId === item.person.id,
@@ -354,6 +376,7 @@ export default function FriendsScreen() {
         variant="secondary"
         size="sm"
         pending={busyId === item.person.id}
+        disabled={busyId !== null}
         accessibilityLabel={`Cancel your friend request to ${item.person.display_name}`}
         accessibilityState={{
           busy: busyId === item.person.id,

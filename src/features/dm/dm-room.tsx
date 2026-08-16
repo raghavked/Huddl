@@ -503,7 +503,9 @@ export function DmRoom({
     name: selfName ?? "Someone",
   });
   const online = usePresence(`dm:${threadId}`, userId);
-  const otherOnline = other !== null && online.has(other.id);
+  // No green dot for someone you've blocked: you asked for quiet from them,
+  // and that includes whether they're around right now.
+  const otherOnline = other !== null && !otherBlocked && online.has(other.id);
 
   // The quiet "Active now" line under their name, 1:1 only. The server
   // erases `last_seen_at` the moment they stop sharing, but the toggle is
@@ -528,7 +530,11 @@ export function DmRoom({
         );
       });
   }, [other]);
-  const otherPresence = presenceLabel(otherLastSeen, new Date());
+  // The same quiet applies to the "Active now" line while a block stands.
+  // Only this direction: someone you did NOT block still reads as usual.
+  const otherPresence = otherBlocked
+    ? null
+    : presenceLabel(otherLastSeen, new Date());
 
   // Reporting a message in this thread. All of it lives up here rather than
   // in the bubble: only one panel should ever be open, and a report in flight

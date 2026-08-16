@@ -42,6 +42,9 @@ import { createClient } from "@/lib/supabase/client";
  *     readable only to the two people in the thread and a moderator is never
  *     one of them, so `dm_message_id` arrives on its own and the words come
  *     from {@link fetchReportedContent}, one report at a time.
+ *   · A reported club announcement (0060) works the same way: its table's
+ *     RLS doesn't open up for the queue, so `club_announcement_id` arrives
+ *     on its own and the words come from {@link fetchReportedContent} too.
  *
  * So every screen has to be able to say "this isn't here" instead of drawing a
  * blank card. {@link reportSubject} decides which of those cases a report is
@@ -270,6 +273,14 @@ export type ModerationReport = {
    * is the only path to those words and is scoped to this one report.
    */
   dm_message_id: string | null;
+  /**
+   * Raw `reports.club_announcement_id` (migration 0060), set by the slur
+   * auto-flag when a club announcement trips it. Like a DM there is
+   * deliberately NO embed beside it: the announcements table's RLS doesn't
+   * open up for the queue, so the title and body come from
+   * {@link fetchReportedContent}, scoped to this one report.
+   */
+  club_announcement_id: string | null;
   /** Raw `reports.reported_user_id`. */
   reported_user_id: string | null;
 };
@@ -290,7 +301,7 @@ export type ReportSubject =
   | {
       kind: "gone";
       /** What it used to point at, as far as the columns still say. */
-      was: "message" | "post" | "profile" | "unknown";
+      was: "message" | "announcement" | "post" | "profile" | "unknown";
       /** A finished sentence for the reader. Never a code, never blank. */
       note: string;
     };
@@ -305,7 +316,7 @@ export const QUEUE_LIMIT = 100;
 
 /** Columns every queue query selects. Keep selects consistent. */
 export const REPORT_SELECT =
-  "id, status, category, reason, created_at, message_id, dm_message_id, board_post_id, reported_user_id, " +
+  "id, status, category, reason, created_at, message_id, dm_message_id, club_announcement_id, board_post_id, reported_user_id, " +
   // Two foreign keys point at `profiles`, so both embeds need naming.
   "reporter:profiles!reports_reporter_id_fkey(id, handle, display_name, avatar_url), " +
   "reported:profiles!reports_reported_user_id_fkey(id, handle, display_name, avatar_url, bio), " +
@@ -476,6 +487,7 @@ function toReport(raw: unknown): ModerationReport | null {
     message_id: text(record["message_id"]),
     board_post_id: text(record["board_post_id"]),
     dm_message_id: text(record["dm_message_id"]),
+    club_announcement_id: text(record["club_announcement_id"]),
     reported_user_id: text(record["reported_user_id"]),
   };
 }
@@ -697,15 +709,17 @@ export function triageActions(
 /**
  * What a report is about, and whether it's still there to look at.
  *
- * Precedence is message → direct message → board post → profile, which matches
- * how reports are filed: a message report also records its author (so the
- * report keeps a subject after the message goes), and the message is the more
- * specific of the two. A report whose subject columns have all nulled out still
- * resolves to `gone`, with a sentence saying so.
+ * Precedence is message → direct message → club announcement → board post →
+ * profile, which matches how reports are filed: a message report also records
+ * its author (so the report keeps a subject after the message goes), and the
+ * message is the more specific of the two. A report whose subject columns have
+ * all nulled out still resolves to `gone`, with a sentence saying so.
  *
  * A reported DM always resolves to `gone` with `was: "message"`, because there
  * is no embed to resolve it to. Its words come from
- * {@link fetchReportedContent} and only when a moderator asks for them.
+ * {@link fetchReportedContent} and only when a moderator asks for them. A
+ * reported club announcement (0060) resolves to `gone` with
+ * `was: "announcement"` for exactly the same reason.
  *
  * Pure.
  */
@@ -725,6 +739,13 @@ export function reportSubject(report: ModerationReport): ReportSubject {
       kind: "gone",
       was: "message",
       note: "A direct message, so the words aren't loaded with the queue.",
+    };
+  }
+  if (report.club_announcement_id !== null) {
+    return {
+      kind: "gone",
+      was: "announcement",
+      note: "A club announcement, so the words aren't loaded with the queue.",
     };
   }
   if (report.post !== null) return { kind: "post", post: report.post };
@@ -800,6 +821,8 @@ export function summarize(report: ModerationReport): string {
   switch (subject.was) {
     case "message":
       return who !== null ? `A message from ${firstName(who)}` : "A message";
+    case "announcement":
+      return "A club announcement";
     case "post":
       return "A board post";
     case "profile":
@@ -911,8 +934,12 @@ export function moveCount(
 
 /** What {@link fetchReportedContent} hands back. */
 export type ReportedContent = {
-  /** Which surface it was said on: a room, or a one-to-one thread. */
-  kind: "channel" | "direct";
+  /**
+   * Which surface it was said on: a room, a one-to-one thread, or a club
+   * announcement. For an announcement, `content` is the title and the body
+   * with a newline between them.
+   */
+  kind: "channel" | "direct" | "announcement";
   /** The words. Never truncated on the way through here. */
   content: string;
   /** Who said them, or null if the row no longer names an author. */
@@ -934,7 +961,9 @@ export type ReportedContent = {
  * Both correct, and both meaning a moderator was being asked to judge words
  * they could not read. Migration 0038 added `reported_content()`, a
  * security-definer function that returns the text of the ONE message a given
- * report names, for a moderator on that report's own campus.
+ * report names, for a moderator on that report's own campus. Since 0060 it
+ * answers for a flagged club announcement too, with `kind: "announcement"`
+ * and the title and body together as the content.
  *
  * It is deliberately not part of {@link REPORT_SELECT}. One call per opened
  * report, never one per row: a queue screen should not be pulling a hundred
@@ -972,7 +1001,7 @@ export async function fetchReportedContent(
   if (content === null) return null;
   const kind = text(record["kind"]);
   return {
-    kind: kind === "direct" ? "direct" : "channel",
+    kind: kind === "direct" || kind === "announcement" ? kind : "channel",
     content,
     author_id: text(record["author_id"]),
     created_at: text(record["created_at"]),

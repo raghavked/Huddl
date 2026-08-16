@@ -517,14 +517,18 @@ export default function ProfileScreen() {
   /* ------------------------- friend actions -------------------------- */
 
   /* Every move is optimistic: the button flips first, the row follows, and
-     a throw flips it back with the error's own sentence underneath. The
-     data layer's writes are built for exactly this. */
+     a throw asks the server where things actually stand, with the error's
+     own sentence underneath. Restoring the pre-tap state would be simpler,
+     but it can lie: an accept fails precisely when the request is gone
+     (cancelled from another device, or quietly withdrawn across a block),
+     and putting "Accept request" back re-offers an edge that no longer
+     exists. The data layer's writes are built for exactly this. */
   const runFriendMove = useCallback(
     async (
       next: FriendState,
       move: (otherId: string) => Promise<void>
     ) => {
-      if (!profile || friendBusy) return;
+      if (!profile || !userId || friendBusy) return;
       const before = friendState;
       setFriendError(null);
       setFriendBusy(true);
@@ -532,17 +536,23 @@ export default function ProfileScreen() {
       try {
         await move(profile.id);
       } catch (err) {
-        setFriendState(before);
         setFriendError(
           err instanceof FriendsError
             ? err.message
             : "That didn't go through. Give it another go in a moment."
         );
+        try {
+          const edge = await fetchFriendEdge(profile.id);
+          setFriendState(edgeState(edge, userId));
+        } catch {
+          // The re-check bounced too; fall back to where the button was.
+          setFriendState(before);
+        }
       } finally {
         setFriendBusy(false);
       }
     },
-    [profile, friendBusy, friendState]
+    [profile, userId, friendBusy, friendState]
   );
 
   const handleAddFriend = useCallback(
@@ -1080,8 +1090,10 @@ export default function ProfileScreen() {
               </AppText>
               {/* Presence, rounded to a phrase. `last_seen_at` is null
                   unless they're sharing, so the label going quiet IS the
-                  privacy working. Never on your own hero: you know. */}
-              {!isMe && profile.share_last_seen
+                  privacy working. Never on your own hero: you know. And
+                  never on someone you've blocked: a profile wearing the
+                  Blocked chip shouldn't also whisper "Active now". */}
+              {!isMe && !isBlocked && profile.share_last_seen
                 ? (() => {
                     const activeLine = presenceLabel(
                       profile.last_seen_at,

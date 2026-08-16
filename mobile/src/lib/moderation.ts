@@ -197,6 +197,14 @@ export type ModerationReport = {
    * is the only path to those words and is scoped to this one report.
    */
   dm_message_id: string | null;
+  /**
+   * Raw `reports.club_announcement_id` (migration 0060), set by the slur
+   * auto-flag when a club announcement trips it. Like a DM there is
+   * deliberately NO embed beside it: the announcements table's RLS doesn't
+   * open up for the queue, so the words come from
+   * {@link fetchReportedContent}, one report at a time.
+   */
+  club_announcement_id: string | null;
   /** Raw `reports.reported_user_id`. */
   reported_user_id: string | null;
 };
@@ -217,7 +225,7 @@ export type ReportSubject =
   | {
       kind: "gone";
       /** What it used to point at, as far as the columns still say. */
-      was: "message" | "post" | "profile" | "unknown";
+      was: "message" | "announcement" | "post" | "profile" | "unknown";
       /** A finished sentence for the reader. Never a code, never blank. */
       note: string;
     };
@@ -232,7 +240,7 @@ export const QUEUE_LIMIT = 100;
 
 /** Columns every queue query selects. Keep selects consistent. */
 export const REPORT_SELECT =
-  "id, status, category, reason, created_at, message_id, dm_message_id, board_post_id, reported_user_id, " +
+  "id, status, category, reason, created_at, message_id, dm_message_id, club_announcement_id, board_post_id, reported_user_id, " +
   // Two foreign keys point at `profiles`, so both embeds need naming.
   "reporter:profiles!reports_reporter_id_fkey(id, handle, display_name, avatar_url), " +
   "reported:profiles!reports_reported_user_id_fkey(id, handle, display_name, avatar_url, bio), " +
@@ -385,6 +393,7 @@ function toReport(raw: unknown): ModerationReport | null {
     message_id: text(record["message_id"]),
     board_post_id: text(record["board_post_id"]),
     dm_message_id: text(record["dm_message_id"]),
+    club_announcement_id: text(record["club_announcement_id"]),
     reported_user_id: text(record["reported_user_id"]),
   };
 }
@@ -608,6 +617,13 @@ export function reportSubject(report: ModerationReport): ReportSubject {
       note: "A direct message, so the words aren't loaded with the queue.",
     };
   }
+  if (report.club_announcement_id !== null) {
+    return {
+      kind: "gone",
+      was: "announcement",
+      note: "A club announcement, so the words aren't loaded with the queue.",
+    };
+  }
   if (report.post !== null) return { kind: "post", post: report.post };
   if (report.board_post_id !== null) {
     return {
@@ -681,6 +697,8 @@ export function summarize(report: ModerationReport): string {
   switch (subject.was) {
     case "message":
       return who !== null ? `A message from ${firstName(who)}` : "A message";
+    case "announcement":
+      return "A club announcement";
     case "post":
       return "A board post";
     case "profile":
@@ -787,7 +805,7 @@ export async function fetchReportedContent(
   if (content === null) return null;
   const kind = text(record["kind"]);
   return {
-    kind: kind === "direct" ? "direct" : "channel",
+    kind: kind === "direct" || kind === "announcement" ? kind : "channel",
     content,
     author_id: text(record["author_id"]),
     created_at: text(record["created_at"]),
@@ -797,8 +815,10 @@ export async function fetchReportedContent(
 
 /** What {@link fetchReportedContent} hands back. */
 export type ReportedContent = {
-  /** Which surface it was said on: a room, or a one-to-one thread. */
-  kind: "channel" | "direct";
+  /** Which surface it was said on: a room, a one-to-one thread, or a club
+   * announcement. For an announcement, `content` is the title and the body
+   * with a newline between them. */
+  kind: "channel" | "direct" | "announcement";
   /** The words. Never truncated on the way through here. */
   content: string;
   /** Who said them, or null if the row no longer names an author. */

@@ -4,6 +4,10 @@ import {
   isReportCategory,
   REPORT_CATEGORIES,
   reporterLine,
+  reportSubject,
+  subjectHref,
+  summarize,
+  type ModerationReport,
   type ReportCategory,
   type ReportPerson,
 } from "./moderation";
@@ -126,6 +130,67 @@ describe("reporterLine", () => {
     expect(reporterLine({ reporter: maya, reporter_id: maya.id })).toBe(
       "Reported by Maya Chen"
     );
+  });
+});
+
+describe("a flagged club announcement", () => {
+  /* The slur auto-flag on club announcements (0060) files rows like this
+     one: `club_announcement_id` and `reported_user_id` set, no reporter,
+     and nothing embedded, because the announcement's words aren't readable
+     through RLS from the queue. They come from `fetchReportedContent`,
+     one report at a time. */
+  const report: ModerationReport = {
+    id: "report-1",
+    status: "open",
+    category: "hate",
+    reason: "This announcement matched the slur list.",
+    created_at: "2026-08-01T12:00:00.000Z",
+    reporter: null,
+    reported: null,
+    message: null,
+    post: null,
+    message_id: null,
+    board_post_id: null,
+    dm_message_id: null,
+    club_announcement_id: "announcement-1",
+    reported_user_id: "person-1",
+  };
+
+  it("resolves to gone, with the words behind a deliberate ask", () => {
+    expect(reportSubject(report)).toEqual({
+      kind: "gone",
+      was: "announcement",
+      note: "A club announcement, so the words aren't loaded with the queue.",
+    });
+  });
+
+  it("titles the row after the thing, never the accusation", () => {
+    expect(summarize(report)).toBe("A club announcement");
+  });
+
+  it("stays behind a DM in precedence", () => {
+    // A row carrying both columns is about the more private thing first.
+    const both: ModerationReport = { ...report, dm_message_id: "dm-1" };
+    expect(reportSubject(both)).toMatchObject({
+      kind: "gone",
+      was: "message",
+    });
+  });
+
+  it("still leads somewhere when the reported student is readable", () => {
+    const withPerson: ModerationReport = {
+      ...report,
+      reported: {
+        id: "person-1",
+        handle: "maya",
+        display_name: "Maya Chen",
+        avatar_url: null,
+        bio: null,
+      },
+    };
+    expect(subjectHref(withPerson)).toBe("/u/maya");
+    // With nothing readable at all, the row is honestly inert.
+    expect(subjectHref(report)).toBeNull();
   });
 });
 

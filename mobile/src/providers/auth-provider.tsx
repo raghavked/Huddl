@@ -2,12 +2,13 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { AppState } from "react-native";
 import type { Session } from "@supabase/supabase-js";
-import { touchPresence } from "@/lib/friends";
+import { resetPresenceThrottle, touchPresence } from "@/lib/friends";
 import { supabase } from "@/lib/supabase";
 
 /** How often the heartbeat repeats while the app stays in the foreground. */
@@ -45,8 +46,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
      errors, nothing for a screen to react to. Keyed on the user id rather
      than the session object, so a token refresh doesn't tear it down. */
   const userId = state.session?.user.id ?? null;
+  /* Who the throttle last belonged to. touchPresence keeps its quiet period
+     in module state, which outlives a sign-out in the same JS session, so a
+     DIFFERENT account signing in gets it cleared first: their opening touch
+     should land, not inherit the last person's cooldown. The same account
+     signing straight back in keeps it, which is what the throttle is for. */
+  const presenceUserRef = useRef<string | null>(null);
   useEffect(() => {
     if (!userId) return;
+    if (
+      presenceUserRef.current !== null &&
+      presenceUserRef.current !== userId
+    ) {
+      resetPresenceThrottle();
+    }
+    presenceUserRef.current = userId;
     void touchPresence();
     const sub = AppState.addEventListener("change", (next) => {
       if (next === "active") void touchPresence();

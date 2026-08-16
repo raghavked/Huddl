@@ -1,5 +1,53 @@
 # Hearth development log
 
+## Round 18: the adversarial pass over round 17
+
+Migrations 0059 and 0060 live. An eight-agent adversarial review (four
+hunting lenses, four verifiers ordered to refute) went over the friends,
+status and flagging code, every finding traced end to end before it
+counted. Seventeen were confirmed. The theme: round 17 built the features
+correctly one user at a time, and several seams between users, and
+between features and blocks, were not yet honest.
+
+### Blocks and friendships, redesigned (0059)
+
+0052's absorb-on-insert was itself the tell it tried to prevent: a
+blocked ask "succeeded", then reverted to "Add friend" on the next load,
+instantly and deterministically, which no human decline reproduces. The
+new shape follows 0042's rule all the way down: only the blocker's view
+changes. The row stores (the asker keeps an honest "Request sent"
+forever, exactly like being ignored); the blocker's select policy hides
+any edge with a person they blocked, so their Requests tab and Friends
+list arrive pre-filtered; the request notification is skipped for
+blocked pairs and throttled to one per pair per day for everyone;
+cancelling settles the invitation as read rather than deleting it (a
+deleted row would re-arm the throttle, so ask/cancel loops could buzz
+forever); and an accept across a block quietly withdraws the request,
+minting nothing and telling no one. Presence also stopped ignoring
+blocks: no surface shows the viewer a blocked person's "Active now".
+
+### The flag's memory (0060)
+
+A dismissed auto-flag used to suppress every future flag on the same
+subject forever; the dedup now counts only open flags, so settling one
+re-arms the alarm for the next edit. And flagged club announcements
+finally point at themselves: reports grew `club_announcement_id`, the
+moderation queue names them, and `reported_content()` hands triage the
+words like it does for a DM.
+
+### Client truthfulness
+
+Optimistic state machines learned to re-derive the truth on failure
+instead of restoring a snapshot the server no longer agrees with; every
+action button now disables while any write is in flight instead of
+silently swallowing taps; the mobile remove-friend dialog stopped
+clobbering fresh data with its render-time closure; the presence
+heartbeat's throttle resets when the signed-in user changes; the web
+profile page's presence line moved into a client component so "Active
+today" uses the viewer's midnight, not the server's; and Friend requests
+gained the push toggle the settings screens promise every buzzing kind
+has.
+
 ## Round 17: friends, status, the smoke alarm, and the fleet
 
 Migrations 0050 to 0057 live. Two features the schema had always talked

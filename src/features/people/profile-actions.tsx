@@ -15,6 +15,7 @@ import { reportProfile } from "@/features/moderation/actions";
 import {
   FriendsError,
   acceptRequest,
+  fetchFriendState,
   removeEdge,
   sendRequest,
   type FriendState,
@@ -40,15 +41,19 @@ import { cn } from "@/lib/utils";
  * wrapping row owns the layout: the disclosure panel is `w-full` and drops
  * onto its own line rather than shoving the other buttons around.
  *
+ * @param viewerId The signed-in student's own `profiles.id`, for re-asking
+ *   the server where the two of you stand after a failed accept.
  * @param name What to call them out loud. A private profile withholds the
  *   display name, so the caller passes the handle instead.
  */
 export function FriendButton({
   personId,
+  viewerId,
   name,
   initialState,
 }: {
   personId: string;
+  viewerId: string;
   name: string;
   initialState: FriendState;
 }) {
@@ -60,8 +65,19 @@ export function FriendButton({
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /** Flip first, write second, flip back with the warm copy if it fails. */
-  async function transition(next: FriendState, write: () => Promise<void>) {
+  /** Flip first, write second, flip back with the warm copy if it fails.
+   *
+   * When `refetchOnFail` is set, failure asks the server where you really
+   * stand instead of restoring the snapshot. Accepting needs that: the
+   * request can be cancelled (or quietly withdrawn across a block) while
+   * this page is open, and flipping back to "Accept request" would offer a
+   * button whose every retry hits the same wall. If even the re-ask fails,
+   * the snapshot still beats a blank. */
+  async function transition(
+    next: FriendState,
+    write: () => Promise<void>,
+    refetchOnFail = false
+  ) {
     if (working) return;
     const previous = state;
     setError(null);
@@ -71,7 +87,15 @@ export function FriendButton({
     try {
       await write();
     } catch (err) {
-      setState(previous);
+      if (refetchOnFail) {
+        try {
+          setState(await fetchFriendState(viewerId, personId));
+        } catch {
+          setState(previous);
+        }
+      } else {
+        setState(previous);
+      }
       setError(
         err instanceof FriendsError
           ? err.message
@@ -120,7 +144,7 @@ export function FriendButton({
           disabled={working}
           aria-label={`Accept the friend request from ${name}`}
           onClick={() =>
-            void transition("friends", () => acceptRequest(personId))
+            void transition("friends", () => acceptRequest(personId), true)
           }
         >
           {working ? spinner : <Check className="size-4" aria-hidden />}

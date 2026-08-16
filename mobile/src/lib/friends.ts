@@ -461,6 +461,17 @@ export async function removeEdge(otherId: string): Promise<void> {
 let lastTouchMs = 0;
 
 /**
+ * Forget the quiet period. Module state outlives a sign-out in the same JS
+ * session, so without this a new account's very first {@link touchPresence}
+ * would be swallowed by the previous account's throttle and their "Active
+ * now" would arrive a minute late. Call it when the signed-in user changes;
+ * the auth provider does.
+ */
+export function resetPresenceThrottle(): void {
+  lastTouchMs = 0;
+}
+
+/**
  * Tell the server you're here. Fire and forget from anywhere a student is
  * plainly active (opening the app, sending a message): the server throttles,
  * stays silent while sharing is off, and this wrapper adds a client-side

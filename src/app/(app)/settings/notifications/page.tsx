@@ -13,6 +13,7 @@ import {
   Moon,
   Sunrise,
   Sunset,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -41,6 +42,7 @@ type PushKind =
   | "mention"
   | "thread_reply"
   | "thanks"
+  | "friend"
   | "course_calendar"
   | "event"
   | "club_post"
@@ -75,6 +77,12 @@ const PUSH_KINDS: {
     icon: Heart,
     label: "Thanks on your notes",
     caption: "When a classmate says thanks for notes you uploaded.",
+  },
+  {
+    kind: "friend",
+    icon: UserPlus,
+    label: "Friend requests",
+    caption: "When someone asks to be friends, and when they say yes.",
   },
   {
     kind: "course_calendar",
