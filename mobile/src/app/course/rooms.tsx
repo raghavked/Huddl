@@ -11,9 +11,11 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { RoomTile } from "@/components/room-tile";
 import { AppText, Button, Card, Field } from "@/components/ui";
 import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { roomTitle } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -23,6 +25,7 @@ type FeatherName = ComponentProps<typeof Feather>["name"];
 type RoomRow = {
   id: string;
   name: string;
+  slug: string;
   is_main: boolean;
 };
 
@@ -130,7 +133,7 @@ export default function CourseRoomsScreen() {
     const [roomsRes, mineRes] = await Promise.all([
       supabase
         .from("channels")
-        .select("id, name, is_main")
+        .select("id, name, slug, is_main")
         .eq("course_id", id)
         .order("is_main", { ascending: false })
         .order("name", { ascending: true }),
@@ -376,7 +379,9 @@ export default function CourseRoomsScreen() {
         renderItem={({ item, index }) => {
           const isJoined = joined.has(item.id);
           const joining = joiningId === item.id;
-          const title = item.is_main ? "Course chat" : item.name;
+          const title = item.is_main
+            ? "Course chat"
+            : roomTitle(item.name, item.slug);
           const row = (
             <Card
               padded={false}
@@ -390,22 +395,12 @@ export default function CourseRoomsScreen() {
                 minHeight: 60,
               }}
             >
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: radius.control,
-                  backgroundColor: theme.brandSoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Feather
-                  name={item.is_main ? "home" : "message-square"}
-                  size={18}
-                  color={theme.brand}
-                />
-              </View>
+              <RoomTile
+                kind="course"
+                name={item.name}
+                slug={item.slug}
+                size={32}
+              />
               <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
                 <AppText variant="bodySemi" numberOfLines={1}>
                   {title}

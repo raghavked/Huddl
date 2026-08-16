@@ -5,18 +5,14 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import {
   Check,
-  GraduationCap,
-  Hash,
   Loader2,
-  Megaphone,
   Plus,
   Search,
   SearchX,
   Users,
-  UsersRound,
-  type LucideIcon,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { RoomTile } from "@/components/room-tile";
 import {
   Badge,
   Button,
@@ -25,6 +21,7 @@ import {
   cardClasses,
 } from "@/components/ui";
 import { joinChannel } from "@/features/discover/actions";
+import { roomKindLabel, roomTitle } from "@/lib/room-identity";
 import { cn } from "@/lib/utils";
 import type { ChannelKind } from "@/lib/types";
 
@@ -38,7 +35,7 @@ export function JoinButton({
   className,
 }: {
   channelId: string;
-  /** Accessible name, e.g. "#dorm-life", so screen readers hear "Join #dorm-life". */
+  /** Accessible name, e.g. "Dorm life", so screen readers hear "Join Dorm life". */
   channelName: string;
   className?: string;
 }) {
@@ -117,24 +114,28 @@ export interface BrowseChannel {
   joined: boolean;
 }
 
-const GROUPS: { kind: ChannelKind; label: string; icon: LucideIcon }[] = [
-  { kind: "campus", label: "Campus", icon: Megaphone },
-  { kind: "course", label: "Courses", icon: GraduationCap },
-  { kind: "topic", label: "Topics", icon: Hash },
-  { kind: "club", label: "Clubs", icon: UsersRound },
+const GROUPS: { kind: ChannelKind; label: string }[] = [
+  { kind: "campus", label: "Campus" },
+  { kind: "course", label: "Courses" },
+  { kind: "topic", label: "Topics" },
+  { kind: "club", label: "Clubs" },
 ];
 
 function channelTitle(channel: BrowseChannel): string {
-  if (channel.kind === "course") return channel.courseCode ?? channel.name;
-  if (channel.kind === "club") return channel.name;
-  return `#${channel.slug}`;
+  if (channel.kind === "course") {
+    return channel.courseCode ?? roomTitle(channel.name, channel.slug);
+  }
+  return roomTitle(channel.name, channel.slug);
 }
 
-function channelSubtitle(channel: BrowseChannel): string | null {
+function channelSubtitle(channel: BrowseChannel): string {
   if (channel.kind === "course") {
-    return channel.courseTitle ?? channel.description;
+    const caption = channel.courseTitle ?? channel.description;
+    if (caption) return caption;
+  } else if (channel.description) {
+    return channel.description;
   }
-  return channel.description;
+  return roomKindLabel(channel.kind);
 }
 
 function matches(channel: BrowseChannel, query: string): boolean {
@@ -225,20 +226,20 @@ export function ChannelBrowser({ channels }: { channels: BrowseChannel[] }) {
       {filtered.length === 0 ? (
         <EmptyState
           icon={SearchX}
-          title="No channels match"
+          title="No rooms match"
           description={
             query.trim()
               ? `Nothing matches "${query.trim()}". Try a different search, or start the channel yourself.`
-              : "There are no channels here yet."
+              : "There are no rooms here yet."
           }
           action={
             <Link href="/channels/new" className={buttonClasses({ size: "sm" })}>
-              Start a channel
+              Start a room
             </Link>
           }
         />
       ) : (
-        GROUPS.map(({ kind, label, icon: Icon }) => {
+        GROUPS.map(({ kind, label }) => {
           const group = byKind.get(kind);
           if (!group || group.length === 0) return null;
           return (
@@ -255,9 +256,12 @@ export function ChannelBrowser({ channels }: { channels: BrowseChannel[] }) {
                         className: "flex items-center gap-3 px-4 py-3",
                       })}
                     >
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
-                        <Icon className="size-5" aria-hidden />
-                      </span>
+                      <RoomTile
+                        kind={channel.kind}
+                        name={channel.name}
+                        slug={channel.slug}
+                        size="sm"
+                      />
                       <Link
                         href={`/channels/${channel.id}`}
                         className="min-w-0 flex-1 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
@@ -265,11 +269,9 @@ export function ChannelBrowser({ channels }: { channels: BrowseChannel[] }) {
                         <span className="block truncate text-sm font-semibold">
                           {channelTitle(channel)}
                         </span>
-                        {subtitle ? (
-                          <span className="block truncate text-xs text-muted">
-                            {subtitle}
-                          </span>
-                        ) : null}
+                        <span className="block truncate text-xs text-muted">
+                          {subtitle}
+                        </span>
                         {channel.memberCount !== null ? (
                           <Badge tone="neutral" className="mt-1.5">
                             <Users className="size-3" aria-hidden />

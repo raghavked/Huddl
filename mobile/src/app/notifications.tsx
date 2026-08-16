@@ -47,9 +47,9 @@ const KIND_ICONS: Partial<Record<string, keyof typeof Feather.glyphMap>> = {
   dm: "message-circle",
   thread_reply: "corner-down-right",
   event: "calendar",
-  channel: "hash",
+  channel: "grid",
   course_calendar: "book-open",
-  // Feather has no megaphone; volume-2 is this app's, on campus channels too.
+  // Feather has no megaphone; volume-2 reads as an announcement here.
   club_post: "volume-2",
   thanks: "heart",
   system: "bell",

@@ -51,7 +51,7 @@ describe("help content", () => {
     expect(tabs).toBeDefined();
     expect(tabs?.items.map((i) => i.term)).toEqual([
       "Home",
-      "Channels",
+      "Rooms",
       "Messages",
       "Clubs",
       "Events",

@@ -7,7 +7,7 @@ import { useAuth } from "@/providers/auth-provider";
 
 const TAB_ICONS = {
   home: "home",
-  channels: "hash",
+  channels: "grid",
   messages: "message-circle",
   clubs: "users",
   events: "calendar",
@@ -51,7 +51,7 @@ export default function TabsLayout() {
       })}
     >
       <Tabs.Screen name="home" options={{ title: "Home" }} />
-      <Tabs.Screen name="channels" options={{ title: "Channels" }} />
+      <Tabs.Screen name="channels" options={{ title: "Rooms" }} />
       <Tabs.Screen name="messages" options={{ title: "Messages" }} />
       <Tabs.Screen name="clubs" options={{ title: "Clubs" }} />
       <Tabs.Screen name="events" options={{ title: "Events" }} />

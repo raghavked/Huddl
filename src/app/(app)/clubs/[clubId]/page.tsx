@@ -33,6 +33,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { formatEventTime } from "@/lib/utils";
 import type { CampusEvent, Channel, Club } from "@/lib/types";
+import { roomTitle } from "@/lib/room-identity";
 
 export async function generateMetadata({
   params,
@@ -191,7 +192,7 @@ export default async function ClubPage({
         {!isMember && channel ? (
           <p className="mt-3 text-xs text-muted">
             Join to get into{" "}
-            <span className="font-mono text-foreground">#{channel.slug}</span>{" "}
+            <span className="font-semibold text-foreground">{roomTitle(null, channel.slug)}</span>{" "}
             and meet the members.
           </p>
         ) : null}

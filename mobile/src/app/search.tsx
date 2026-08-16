@@ -18,6 +18,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
 import { Lantern } from "@/components/illustrations";
+import { RoomTile } from "@/components/room-tile";
 import { AppText, Button, Card, Chip, Field, SectionLabel } from "@/components/ui";
 import { radius, space } from "@/constants/theme";
 import { useBlockedIds } from "@/hooks/use-blocked";
@@ -30,10 +31,11 @@ import {
   withRecent,
   withoutRecent,
 } from "@/lib/recent-searches";
+import { roomKindLabel, roomTitle, type RoomKind } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
-/* One warm search box for the whole campus: people, channels, courses,
+/* One warm search box for the whole campus: people, rooms, courses,
    clubs, and upcoming events, queried in parallel and shown in sections.
 
    Two things matter beyond the box itself. A filter rail narrows the fan-out
@@ -81,8 +83,8 @@ const SOURCES: readonly Source[] = [
   {
     key: "channels",
     label: "Channels",
-    icon: "hash",
-    empty: "No channels match that. Yet.",
+    icon: "message-circle",
+    empty: "No rooms match that. Yet.",
   },
   {
     key: "courses",
@@ -116,13 +118,11 @@ type PersonRow = {
   grad_year: number | null;
 };
 
-type ChannelKind = "campus" | "course" | "topic" | "club";
-
 type ChannelRow = {
   id: string;
   name: string;
   slug: string;
-  kind: ChannelKind;
+  kind: RoomKind;
   course_id: string | null;
 };
 
@@ -133,8 +133,11 @@ type EventRow = { id: string; title: string; starts_at: string };
 /** One rendered result row, whatever campus corner it came from. */
 type Hit = {
   key: string;
-  icon: FeatherName;
+  /** The fallback glyph tile, for rows that are neither a person nor a room. */
+  icon?: FeatherName;
   avatar: { url: string | null; name: string } | null;
+  /** Set for channel rows: the room wears its identity tile, not a glyph. */
+  room: { kind: RoomKind; name: string | null; slug: string } | null;
   title: string;
   caption: string | null;
   locked: boolean;
@@ -168,18 +171,6 @@ function orIlike(columns: string[], raw: string): string {
 }
 
 /* ------------------------------- formatting ------------------------------- */
-
-const CHANNEL_KIND_LABEL: Record<ChannelKind, string> = {
-  campus: "Campus channel",
-  course: "Course chat",
-  topic: "Topic channel",
-  club: "Club channel",
-};
-
-function channelTitle(channel: ChannelRow): string {
-  if (channel.kind === "course" || channel.kind === "club") return channel.name;
-  return `#${channel.slug}`;
-}
 
 /** "sports" -> "Sports" for the club caption. */
 function capitalize(value: string): string {
@@ -400,6 +391,13 @@ function HitRow({ hit, index }: { hit: Hit; index: number }) {
       >
         {hit.avatar ? (
           <Avatar url={hit.avatar.url} name={hit.avatar.name} size={40} />
+        ) : hit.room ? (
+          <RoomTile
+            kind={hit.room.kind}
+            name={hit.room.name}
+            slug={hit.room.slug}
+            size={32}
+          />
         ) : (
           <View
             style={{
@@ -411,7 +409,7 @@ function HitRow({ hit, index }: { hit: Hit; index: number }) {
               justifyContent: "center",
             }}
           >
-            <Feather name={hit.icon} size={18} color={theme.brand} />
+            <Feather name={hit.icon ?? "search"} size={18} color={theme.brand} />
           </View>
         )}
         <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
@@ -582,6 +580,7 @@ export default function SearchScreen() {
           return {
             key: `person-${p.id}`,
             icon: "user",
+            room: null,
             avatar: {
               url: p.avatar_url,
               name: open ? p.display_name : p.handle,
@@ -601,10 +600,10 @@ export default function SearchScreen() {
       ).map(
         (c): Hit => ({
           key: `channel-${c.id}`,
-          icon: "hash",
           avatar: null,
-          title: channelTitle(c),
-          caption: CHANNEL_KIND_LABEL[c.kind] ?? null,
+          room: { kind: c.kind, name: c.name, slug: c.slug },
+          title: roomTitle(c.name, c.slug),
+          caption: roomKindLabel(c.kind),
           locked: false,
           href: `/channel/${c.id}`,
         })
@@ -614,6 +613,7 @@ export default function SearchScreen() {
           key: `course-${c.id}`,
           icon: "book-open",
           avatar: null,
+          room: null,
           title: c.code,
           caption: c.title,
           locked: false,
@@ -625,6 +625,7 @@ export default function SearchScreen() {
           key: `club-${c.id}`,
           icon: "users",
           avatar: null,
+          room: null,
           title: c.name,
           caption: capitalize(c.category),
           locked: false,
@@ -636,6 +637,7 @@ export default function SearchScreen() {
           key: `event-${e.id}`,
           icon: "calendar",
           avatar: null,
+          room: null,
           title: e.title,
           caption: formatWhen(e.starts_at),
           locked: false,
@@ -839,7 +841,7 @@ export default function SearchScreen() {
           <CenteredState
             icon="search"
             title="Find your people and places"
-            message="Search your campus: people, channels, courses, clubs, events"
+            message="Search your campus: people, rooms, courses, clubs, events"
             art={
               <Lantern size={96} color={theme.muted} softColor={theme.surface2} />
             }
@@ -876,7 +878,7 @@ export default function SearchScreen() {
                 Find your people and places
               </AppText>
               <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
-                Search your campus: people, channels, courses, clubs, events
+                Search your campus: people, rooms, courses, clubs, events
               </AppText>
             </View>
 

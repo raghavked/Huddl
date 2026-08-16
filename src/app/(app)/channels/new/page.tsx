@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Hash, ShieldCheck, UsersRound } from "lucide-react";
+import { AtSign, ShieldCheck, UsersRound } from "lucide-react";
 import { Card, PageHeader, cardClasses } from "@/components/ui";
 import { CreateChannelForm } from "@/features/discover/create-channel-form";
 import { getCurrentUser } from "@/lib/auth";
@@ -17,8 +17,8 @@ const PERKS = [
     text: "You're the moderator from day one",
   },
   {
-    icon: Hash,
-    text: "It gets a #handle that's yours: first come, first served",
+    icon: AtSign,
+    text: "It gets a handle that's yours: first come, first served",
   },
 ] as const;
 
@@ -29,7 +29,7 @@ export default async function NewChannelPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        title="Start a topic channel"
+        title="Start a topic room"
         description={`Dorm gossip, intramural soccer, late-night ramen runs. If it's a thing at ${user.university.short_name}, it deserves a channel.`}
         backHref="/channels"
         backLabel="All channels"

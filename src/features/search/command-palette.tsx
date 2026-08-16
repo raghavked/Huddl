@@ -6,8 +6,8 @@ import {
   Bell,
   CalendarDays,
   GraduationCap,
-  Hash,
   Home,
+  LayoutGrid,
   MessageCircle,
   Search,
   Settings,
@@ -16,7 +16,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
+import { RoomTile } from "@/components/room-tile";
 import { controlClasses } from "@/components/ui";
+import { roomKindLabel, roomTitle } from "@/lib/room-identity";
 import { cn } from "@/lib/utils";
 import {
   usePaletteData,
@@ -35,7 +37,7 @@ type GotoPage = { label: string; href: string; icon: LucideIcon };
 /* Same destinations and icons as the sidebar, flattened for quick jumps. */
 const GOTO_PAGES: GotoPage[] = [
   { label: "Home", href: "/home", icon: Home },
-  { label: "Channels", href: "/channels", icon: Hash },
+  { label: "Channels", href: "/channels", icon: LayoutGrid },
   { label: "Messages", href: "/messages", icon: MessageCircle },
   { label: "Courses", href: "/courses", icon: GraduationCap },
   { label: "Clubs", href: "/clubs", icon: UsersRound },
@@ -146,7 +148,7 @@ export function CommandPalette() {
       )
     );
     push(
-      "Your channels",
+      "Your rooms",
       channelHits.map(
         (channel): PaletteItem => ({
           type: "channel",
@@ -320,27 +322,26 @@ export function CommandPalette() {
                         </>
                       ) : item.type === "channel" ? (
                         <>
-                          <Hash
-                            className={cn(
-                              "size-4 shrink-0",
-                              active ? "text-brand" : "text-muted"
-                            )}
-                            aria-hidden
+                          <RoomTile
+                            kind={item.channel.kind}
+                            name={item.channel.name}
+                            slug={item.channel.slug}
+                            size="sm"
                           />
                           <span className="truncate">
-                            #{item.channel.slug}
+                            {roomTitle(item.channel.name, item.channel.slug)}
                           </span>
-                          {item.channel.kind === "course" &&
-                          item.channel.courseCode ? (
-                            <span
-                              className={cn(
-                                "ml-auto shrink-0 text-xs font-normal",
-                                active ? "text-brand-ink/70" : "text-muted"
-                              )}
-                            >
-                              {item.channel.courseCode}
-                            </span>
-                          ) : null}
+                          <span
+                            className={cn(
+                              "ml-auto shrink-0 text-xs font-normal",
+                              active ? "text-brand-ink/70" : "text-muted"
+                            )}
+                          >
+                            {item.channel.kind === "course" &&
+                            item.channel.courseCode
+                              ? item.channel.courseCode
+                              : roomKindLabel(item.channel.kind)}
+                          </span>
                         </>
                       ) : (
                         <>

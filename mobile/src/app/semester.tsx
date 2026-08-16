@@ -19,6 +19,7 @@ import {
   type CourseTintColors,
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { roomGlyph } from "@/lib/room-identity";
 import {
   GRADE_POINT_MAX,
   SemesterError,
@@ -53,6 +54,16 @@ import {
  * A pushed screen. `router.push("/semester")` is the whole entry point, and
  * it takes no params. The courses hub and the home shell own their own tiles.
  */
+
+/**
+ * The course kind's glyph (the book), from the room identity system. The
+ * "add units" button below opens the class, so it wears the same mark the
+ * class's room tile does, not the Discord-flavored hash it used to.
+ */
+const COURSE_GLYPH = roomGlyph(
+  "course",
+  ""
+) as keyof typeof Feather.glyphMap;
 
 /* ------------------------------ formatting ----------------------------- */
 
@@ -648,7 +659,11 @@ export default function SemesterScreen() {
                   variant="soft"
                   size="sm"
                   icon={
-                    <Feather name="hash" size={14} color={theme.brandInk} />
+                    <Feather
+                      name={COURSE_GLYPH}
+                      size={14}
+                      color={theme.brandInk}
+                    />
                   }
                   accessibilityHint="Opens the class, where anyone enrolled can set its units"
                   onPress={() => openCourse(unitsFix)}

@@ -111,7 +111,7 @@ checklist.
 5. Flashcards mid-flip ("Decks your whole class builds")
 6. Focus: timer running, studying-now list ("Nobody studies alone")
 7. Grades: categories + what-if ("Private. Only you see this.")
-8. Channel chat with a poll + photo ("Chat that carries the class")
+8. Class chat with a poll + photo ("Chat that carries the class")
 9. Campus board: a rides list before break ("Ask your campus")
 10. Semester overview: the term on one screen ("How the quarter's going")
 

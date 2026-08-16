@@ -262,7 +262,7 @@ function Subject({ report }: { report: ModerationReport }) {
         <Well>
           {message.channel ? (
             <AppText variant="caption" muted>
-              #{message.channel.slug}
+              {message.channel.name}
             </AppText>
           ) : null}
           <AppText>{message.content}</AppText>

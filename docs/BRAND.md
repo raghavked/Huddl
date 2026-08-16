@@ -48,7 +48,7 @@ notes anyway. Specifically:
 
 ### Five real strings from the app (and why they work)
 
-1. **"Campus-wide chat, say hi!"** (*#general channel description*). Four
+1. **"Campus-wide chat, say hi!"** (*General room description*). Four
    words, one action. Warm without trying hard.
 2. **"Be the first. Add a course and its chat channel opens up for everyone
    in it."** (*empty course list*). Turns emptiness into agency. The reader is
@@ -56,7 +56,7 @@ notes anyway. Specifically:
 3. **"DM classmates to trade notes, plan study sessions, or just say hi."**
    (*empty DM inbox*). Three concrete, low-stakes reasons to send a first
    message.
-4. **"Textbooks, rides, sublets, help"** (*#asks-and-offers description*). Four
+4. **"Textbooks, rides, sublets, help"** (*Asks and offers room description*). Four
    nouns, zero fluff. This is "concrete over clever" in its purest form.
 5. **"You've never stored an image with Hearth. If you had, its full audit trail
    would live here: every access logged, every log a notification."**
@@ -69,8 +69,8 @@ notes anyway. Specifically:
 - Contractions always ("you'll", "don't"). Second person ("your channels").
 - Commas and periods over semicolons. One exclamation point per screen, max,
   and only where a human would actually use one.
-- Course codes are proper nouns: "ECON 101A", channel slugs lowercase:
-  `#econ-101a`.
+- Course codes are proper nouns: "ECON 101A". Room names are plain words
+  ("Asks and offers"), never hash-prefixed slugs.
 - Never say "users". Say students, classmates, or you.
 
 ---

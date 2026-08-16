@@ -1,4 +1,5 @@
 import { threadDisplay, type ThreadPerson } from "@/lib/group-dm";
+import { roomTitle, type RoomKind } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 
 /* Forwarding a message: the data layer.
@@ -9,7 +10,7 @@ import { supabase } from "@/lib/supabase";
  * pair of columns for that:
  *
  *   forwarded_author_id  the person who ACTUALLY wrote it (`profiles.id`)
- *   forwarded_from       a human label for the room it left ("#mat-21a")
+ *   forwarded_from       a human label for the room it left ("MAT 21A")
  *
  * They are denormalized on purpose, because a channel message can land in a
  * DM and a DM can land in a channel, and no single foreign key describes both.
@@ -37,8 +38,12 @@ export type ForwardTarget =
       kind: "channel";
       /** `channels.id`. */
       id: string;
-      /** The channel's name as students see it: "MAT 21A", "Study group". */
+      /** The channel's raw `channels.name`. Render it through `roomTitle`. */
       name: string;
+      /** The channel's `channels.slug`, for the room tile and `roomTitle`. */
+      slug: string;
+      /** What kind of place this room is, straight off `channels.kind`. */
+      roomKind: RoomKind;
       /**
        * The course this channel belongs to ("MAT 21A"), or null for a campus
        * or topic channel. Use it as the row's second line so two rooms named
@@ -89,7 +94,7 @@ export type ForwardSource = {
    */
   authorId: string | null;
   /**
-   * Where it came from, from {@link forwardLabelFor}: "#mat-21a", "a direct
+   * Where it came from, from {@link forwardLabelFor}: "MAT 21A", "a direct
    * message". Lands in `forwarded_from`.
    */
   fromLabel: string;
@@ -179,6 +184,13 @@ function text(raw: unknown): string | null {
   return typeof raw === "string" && raw.length > 0 ? raw : null;
 }
 
+/** Narrow `channels.kind`; anything unrecognised reads as a topic room. */
+function toRoomKind(raw: unknown): RoomKind {
+  return raw === "campus" || raw === "course" || raw === "club"
+    ? raw
+    : "topic";
+}
+
 /** Narrow an embedded `profiles` row into the shape `threadDisplay` reads. */
 function toPerson(raw: unknown): ThreadPerson | null {
   const record = embedded(raw);
@@ -215,8 +227,9 @@ async function requireUserId(): Promise<string> {
  * The label that goes into `forwarded_from`, so every surface that forwards
  * agrees on the wording:
  *
- * - a channel → `#` plus its name slugified, so "MAT 21A" becomes "#mat-21a",
- *   matching how the database slugs a course room in `create_course_room`
+ * - a channel → its display name through `roomTitle`, so "MAT 21A" stays
+ *   "MAT 21A" and a slug-named room like "asks-and-offers" reads as
+ *   "Asks and offers", never as a "#" tag
  * - a direct message → the flat string "a direct message"
  *
  * A DM never names the person or the group, deliberately. The room receiving
@@ -234,29 +247,29 @@ export function forwardLabelFor(
   room: { kind: "channel"; name: string } | { kind: "dm" }
 ): string {
   if (room.kind === "dm") return DM_LABEL;
-  const slug = room.name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  if (slug.length === 0) return UNNAMED_CHANNEL;
-  // Trim to the column's 80 characters, then tidy a hyphen left at the cut.
-  const body = slug.slice(0, FORWARD_FROM_MAX - 1).replace(/-+$/, "");
-  return body.length === 0 ? UNNAMED_CHANNEL : `#${body}`;
+  const typed = room.name.trim();
+  if (typed.length === 0) return UNNAMED_CHANNEL;
+  // roomTitle with the name standing in for the slug: a typed name passes
+  // through as typed, a slug-shaped name turns back into words.
+  const body = roomTitle(typed, typed).slice(0, FORWARD_FROM_MAX).trimEnd();
+  return body.length === 0 ? UNNAMED_CHANNEL : body;
 }
 
 /**
- * What to call a target in a sentence: a channel's name, a conversation's
- * label. One rule, so a picker row, a confirmation, and an error can't call
- * the same place three different things.
+ * What to call a target in a sentence: a channel's display name through
+ * `roomTitle`, a conversation's label. One rule, so a picker row, a
+ * confirmation, and an error can't call the same place three different
+ * things.
  *
  * Pure.
  */
 export function targetName(target: ForwardTarget): string {
-  return target.kind === "channel" ? target.name : target.label;
+  return target.kind === "channel"
+    ? roomTitle(target.name, target.slug)
+    : target.label;
 }
 
-/** "Maya", "Maya and #mat-21a", "Maya and 3 others". Never a bare list. */
+/** "Maya", "Maya and MAT 21A", "Maya and 3 others". Never a bare list. */
 function joinNames(names: readonly string[]): string {
   const [first, second] = names;
   if (!first) return "nowhere";
@@ -315,7 +328,7 @@ export function summarizeForward(
 
 /** My channels, with the course code where the channel has one. */
 const CHANNEL_TARGET_SELECT =
-  "channel_id, last_read_at, channel:channels(id, name, course:courses(code))";
+  "channel_id, last_read_at, channel:channels(id, name, slug, kind, course:courses(code))";
 
 /**
  * Every participant row of every thread I'm in: mine for the read time,
@@ -362,6 +375,8 @@ async function fetchChannelTargets(userId: string): Promise<RankedTarget[]> {
         kind: "channel",
         id,
         name,
+        slug: text(channel["slug"]) ?? "",
+        roomKind: toRoomKind(channel["kind"]),
         courseCode: course ? text(course["code"]) : null,
       },
       activityAt: moment(record["last_read_at"]),

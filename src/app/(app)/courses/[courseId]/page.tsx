@@ -11,7 +11,6 @@ import {
   CircleAlert,
   DoorOpen,
   FilePlus2,
-  Hash,
   History,
   Layers,
   ListChecks,
@@ -334,7 +333,7 @@ export default async function CoursePage({
               href={`/channels/${channel.id}`}
               className={buttonClasses({ size: "sm", className: "gap-1.5" })}
             >
-              <Hash className="size-4" aria-hidden />
+              <BookOpen className="size-4" aria-hidden />
               Course chat
             </Link>
           ) : undefined

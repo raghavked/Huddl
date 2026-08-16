@@ -12,6 +12,7 @@ import {
   Textarea,
 } from "@/components/ui";
 import { createTopicChannel } from "@/features/discover/actions";
+import { roomTitle } from "@/lib/room-identity";
 
 /**
  * Client-side mirror of the server action's slugifier. The preview under the
@@ -50,7 +51,7 @@ export function CreateChannelForm({
 
     const trimmed = name.trim();
     if (trimmed.length < 3) {
-      setError("Give your channel a name of at least 3 characters.");
+      setError("Give your room a name of at least 3 characters.");
       return;
     }
     if (!slug) {
@@ -76,12 +77,12 @@ export function CreateChannelForm({
   return (
     <form
       onSubmit={handleSubmit}
-      aria-label="Start a topic channel"
+      aria-label="Start a topic room"
       className="flex flex-col gap-5"
       noValidate
     >
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="channel-name">Channel name</Label>
+        <Label htmlFor="channel-name">Room name</Label>
         <Input
           id="channel-name"
           type="text"
@@ -95,7 +96,7 @@ export function CreateChannelForm({
         <Hint id="channel-slug-preview">
           Appears as{" "}
           <span className="font-mono text-foreground">
-            #{slug || "your-channel"}
+            {slug ? roomTitle(null, slug) : "Your room"}
           </span>{" "}
           to everyone at {universityName}.
         </Hint>
@@ -111,7 +112,7 @@ export function CreateChannelForm({
           maxLength={500}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="What's this channel for? Who should join the conversation?"
+          placeholder="What's this room for? Who should join the conversation?"
         />
       </div>
 
@@ -124,7 +125,7 @@ export function CreateChannelForm({
             Creating…
           </>
         ) : (
-          "Create channel"
+          "Create room"
         )}
       </Button>
     </form>

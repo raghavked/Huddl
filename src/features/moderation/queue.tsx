@@ -268,7 +268,7 @@ function Subject({ report, now }: { report: ModerationReport; now: Date }) {
         <WellLabel>What they said</WellLabel>
         <Well>
           {message.channel ? (
-            <p className="text-xs text-muted">#{message.channel.slug}</p>
+            <p className="text-xs text-muted">{message.channel.name}</p>
           ) : null}
           <p className="text-sm break-words whitespace-pre-wrap">
             {message.content}

@@ -16,6 +16,7 @@ import { fonts, space } from "@/constants/theme";
 import { MentionText } from "@/features/mentions";
 import { useTheme } from "@/hooks/use-theme";
 import { tapLight } from "@/lib/haptics";
+import { roomTitle } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -38,7 +39,7 @@ const BODY_TEXT = {
 } as const;
 
 const CHANNEL_SELECT =
-  "created_at, message_id, message:messages(id, content, attachment_path, created_at, deleted_at, channel_id, author:profiles(display_name), channel:channels(name))";
+  "created_at, message_id, message:messages(id, content, attachment_path, created_at, deleted_at, channel_id, author:profiles(display_name), channel:channels(name, slug))";
 
 const DM_SELECT =
   "created_at, dm_message_id, message:dm_messages(id, content, attachment_path, created_at, deleted_at, thread_id, author:profiles(display_name))";
@@ -57,7 +58,7 @@ type SavedItem = {
   /** When the message itself was sent, which is what the caption shows. */
   sentAt: string;
   authorName: string;
-  /** "#study-hall" for a room, "DM" for a direct message. */
+  /** "Study hall" for a room, "DM" for a direct message. */
   context: string;
   content: string;
   /** A caption-less photo send: the body is a placeholder, not real text. */
@@ -100,7 +101,10 @@ function flatten(row: unknown, kind: SavedItem["kind"]): SavedItem | null {
   if (messageId === null || sentAt === null || roomId === null) return null;
 
   const content = asString(message["content"]) ?? "";
-  const channelName = asString(embedded(message["channel"])?.["name"]);
+  const channel = embedded(message["channel"]);
+  const channelContext = channel
+    ? roomTitle(asString(channel["name"]), asString(channel["slug"]) ?? "")
+    : "a room";
 
   return {
     key: `${kind === "channel" ? "c" : "d"}:${messageId}`,
@@ -111,7 +115,7 @@ function flatten(row: unknown, kind: SavedItem["kind"]): SavedItem | null {
     sentAt,
     authorName:
       asString(embedded(message["author"])?.["display_name"]) ?? "A classmate",
-    context: kind === "channel" ? `#${channelName ?? "a room"}` : "DM",
+    context: kind === "channel" ? channelContext : "DM",
     content,
     attachmentOnly:
       asString(message["attachment_path"]) !== null && content === "Photo",

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Compass, Hash, Plus } from "lucide-react";
+import { Compass, LayoutGrid, Plus } from "lucide-react";
 import { PageHeader, Segmented, buttonClasses } from "@/components/ui";
 import {
   ChannelBrowser,
@@ -11,7 +11,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import type { Channel, Course } from "@/lib/types";
 
-export const metadata: Metadata = { title: "Browse channels" };
+export const metadata: Metadata = { title: "Browse rooms" };
 
 type ChannelRow = Channel & {
   course: Pick<Course, "id" | "code" | "title"> | null;
@@ -70,7 +70,7 @@ export default async function BrowseChannelsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        title="Browse channels"
+        title="Browse rooms"
         description={`Everything happening at ${user.university.short_name}.`}
         action={
           <Link
@@ -86,7 +86,7 @@ export default async function BrowseChannelsPage() {
       <div className="mt-6 animate-fade-up">
         <Segmented
           items={[
-            { href: "/channels", label: "Yours", icon: Hash },
+            { href: "/channels", label: "Yours", icon: LayoutGrid },
             { href: "/channels/browse", label: "Browse", icon: Compass },
           ]}
         />

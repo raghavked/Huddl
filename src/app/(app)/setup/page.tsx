@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Hash, ListChecks, Sparkles, Users } from "lucide-react";
+import { ArrowRight, BookOpen, ListChecks, Sparkles, Users } from "lucide-react";
 import { PageHeader, buttonClasses, cardClasses } from "@/components/ui";
 
 export const metadata: Metadata = {
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 const POINTS = [
   {
-    icon: Hash,
+    icon: BookOpen,
     text: "Every course gets its own chat. Add a class and you're in it with your classmates.",
   },
   {

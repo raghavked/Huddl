@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
-  Hash,
   Home,
+  LayoutGrid,
   MessageCircle,
   Pin,
   UsersRound,
@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
    so the squeeze costs nothing to reach. */
 const TABS = [
   { href: "/home", label: "Home", icon: Home },
-  { href: "/channels", label: "Channels", icon: Hash },
+  { href: "/channels", label: "Rooms", icon: LayoutGrid },
   { href: "/messages", label: "Messages", icon: MessageCircle },
   { href: "/clubs", label: "Clubs", icon: UsersRound },
   { href: "/events", label: "Events", icon: CalendarDays },

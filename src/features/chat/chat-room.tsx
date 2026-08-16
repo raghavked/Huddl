@@ -13,13 +13,13 @@ import { useFormStatus } from "react-dom";
 import {
   AlertCircle,
   BarChart3,
-  Hash,
   ImagePlus,
   Loader2,
   SendHorizontal,
   X,
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
+import { RoomTile } from "@/components/room-tile";
 import { Badge, Button } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
@@ -48,6 +48,7 @@ import {
   type MentionCandidate,
 } from "@/features/chat/mentions";
 import { MessageItem, useReactions } from "@/features/chat/message-item";
+import { roomTitle } from "@/lib/room-identity";
 import { PinnedBar } from "@/features/chat/pinned-bar";
 import { ThreadPanel } from "@/features/chat/thread-panel";
 import { PollComposer } from "@/features/polls/poll-composer";
@@ -88,6 +89,9 @@ export function ChatRoom({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const threadId = searchParams.get("thread");
+
+  // The room's spoken name: never the slug, never hash-prefixed.
+  const title = roomTitle(channel.name, channel.slug);
 
   const [messages, setMessages] = useState<MessageWithAuthor[]>(initialMessages);
   const [replyCounts, setReplyCounts] = useState<Record<string, number>>({});
@@ -632,16 +636,19 @@ export function ChatRoom({
         ref={listRef}
         onScroll={handleScroll}
         role="log"
-        aria-label={`Messages in ${channel.name}`}
+        aria-label={`Messages in ${title}`}
         className="flex-1 overflow-y-auto pb-2 pt-4"
       >
         {visibleMessages.length < PAGE_SIZE ? (
           <div className="px-2 pb-2">
-            <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-brand">
-              <Hash className="size-6" aria-hidden />
-            </span>
+            <RoomTile
+              kind={channel.kind}
+              name={channel.name}
+              slug={channel.slug}
+              size="md"
+            />
             <p className="mt-2 font-bold tracking-tight">
-              Welcome to #{channel.slug}
+              Welcome to {title}
             </p>
             <p className="text-sm text-muted">
               {visibleMessages.length === 0
@@ -796,7 +803,7 @@ export function ChatRoom({
             <BarChart3 className="size-4.5" aria-hidden />
           </button>
           <label htmlFor="chat-composer" className="sr-only">
-            Message #{channel.slug}
+            Message {title}
           </label>
           <textarea
             id="chat-composer"
@@ -845,7 +852,7 @@ export function ChatRoom({
               }
             }}
             rows={1}
-            placeholder={`Message #${channel.slug}`}
+            placeholder={`Message ${title}`}
             className="max-h-40 flex-1 resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted"
           />
           <button
@@ -899,7 +906,7 @@ export function JoinChannelButton() {
   return (
     <Button type="submit" disabled={pending}>
       {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-      {pending ? "Joining…" : "Join channel"}
+      {pending ? "Joining…" : "Join room"}
     </Button>
   );
 }

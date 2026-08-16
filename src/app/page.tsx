@@ -7,15 +7,16 @@ import {
   CalendarDays,
   Check,
   Clock,
+  Coffee,
   FileText,
   GraduationCap,
-  Hash,
   ListChecks,
   MailCheck,
   MapPin,
   MessagesSquare,
   Plus,
   Send,
+  Tag,
   Users,
 } from "lucide-react";
 import { LogoMark, Wordmark } from "@/components/logo";
@@ -342,7 +343,7 @@ export default function LandingPage() {
             <FeatureCard
               icon={MessagesSquare}
               title="Your whole campus, on speaking terms"
-              body="Trade notes over DMs, find your people in #study-buddies, pass on a textbook in #asks-and-offers. Every campus starts with places to talk, and students open new channels from there."
+              body="Trade notes over DMs, find your people in Study buddies, pass on a textbook in Asks and offers. Every campus starts with places to talk, and students open new channels from there."
               points={[
                 "1:1 messages with read state and real-time delivery",
                 "Campus channels every student is part of from day one",
@@ -623,10 +624,10 @@ function ChatVignette() {
   return (
     <VignetteFrame>
       <div className="flex items-center gap-2.5 border-b border-border/70 pb-3">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
-          <Hash className="size-4" />
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+          <BookOpen className="size-4" />
         </span>
-        <span className="text-sm font-bold">econ-101a</span>
+        <span className="text-sm font-bold">ECON 101A</span>
         <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">
           <Users className="size-3" />
           18 classmates in
@@ -656,7 +657,7 @@ function ChatVignette() {
           </div>
         </div>
         <div className="flex items-center gap-2 rounded-full border border-border/70 bg-surface-2 px-3.5 py-2 shadow-soft">
-          <span className="flex-1 text-xs text-muted">Message #econ-101a…</span>
+          <span className="flex-1 text-xs text-muted">Message ECON 101A…</span>
           <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand text-brand-fg">
             <Send className="size-3" />
           </span>
@@ -729,7 +730,7 @@ function EventVignette() {
         </span>
         <div className="min-w-0">
           <p className="truncate text-sm font-bold">PHYS 9B midterm review</p>
-          <p className="text-[11px] text-muted">Hosted by study-buddies</p>
+          <p className="text-[11px] text-muted">Hosted by Study buddies</p>
         </div>
       </div>
       <div className="mt-3 flex flex-col gap-1.5 text-xs text-muted">
@@ -767,17 +768,17 @@ function EventVignette() {
 function SyncVignette() {
   const rows = [
     {
-      slug: "econ-101a",
+      code: "ECON 101A",
       tag: "Added by you",
       tagClass: "bg-brand-soft text-brand-ink",
     },
     {
-      slug: "phys-9b",
+      code: "PHYS 9B",
       tag: "From the catalog",
       tagClass: "bg-success/10 text-success",
     },
     {
-      slug: "cs-61b",
+      code: "CS 61B",
       tag: "You're the first",
       tagClass: "bg-surface-2 text-muted",
     },
@@ -786,12 +787,12 @@ function SyncVignette() {
     <div className="flex flex-col gap-1.5">
       {rows.map((row) => (
         <div
-          key={row.slug}
+          key={row.code}
           className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-background px-3 py-2"
         >
           <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold">
-            <Hash className="size-3.5 shrink-0 text-brand" />
-            <span className="truncate">{row.slug}</span>
+            <BookOpen className="size-3.5 shrink-0 text-brand" />
+            <span className="truncate">{row.code}</span>
           </span>
           <span
             className={cn(
@@ -874,16 +875,21 @@ function CampusVignette() {
   return (
     <div className="rounded-xl border border-border/60 bg-background p-3">
       <div className="flex flex-wrap gap-1.5">
-        {["general", "study-buddies", "asks-and-offers"].map((slug, i) => (
+        {/* The seeded campus rooms wear their purpose glyphs, never the hash. */}
+        {[
+          { title: "General", icon: Coffee },
+          { title: "Study buddies", icon: Users },
+          { title: "Asks and offers", icon: Tag },
+        ].map((room, i) => (
           <span
-            key={slug}
+            key={room.title}
             className={cn(
               "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold",
               i === 1 ? "bg-brand-soft text-brand-ink" : "bg-surface-2 text-muted"
             )}
           >
-            <Hash className="size-3" />
-            {slug}
+            <room.icon className="size-3" />
+            {room.title}
           </span>
         ))}
       </div>

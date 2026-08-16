@@ -5,14 +5,12 @@ import {
   ChevronRight,
   Compass,
   GraduationCap,
-  Hash,
-  Megaphone,
+  LayoutGrid,
   Plus,
-  UsersRound,
-  type LucideIcon,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { DiscoverScene } from "@/components/illustrations";
+import { RoomTile } from "@/components/room-tile";
 import {
   PageHeader,
   SectionHeader,
@@ -21,33 +19,38 @@ import {
   cardClasses,
 } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
+import { roomKindLabel, roomTitle } from "@/lib/room-identity";
 import { createClient } from "@/lib/supabase/server";
 import type { Channel, ChannelKind, Course } from "@/lib/types";
 
-export const metadata: Metadata = { title: "Channels" };
+export const metadata: Metadata = { title: "Rooms" };
 
 type ChannelRow = Channel & {
   course: Pick<Course, "id" | "code" | "title"> | null;
 };
 
-const GROUPS: { kind: ChannelKind; label: string; icon: LucideIcon }[] = [
-  { kind: "campus", label: "Campus", icon: Megaphone },
-  { kind: "course", label: "Courses", icon: GraduationCap },
-  { kind: "topic", label: "Topics", icon: Hash },
-  { kind: "club", label: "Clubs", icon: UsersRound },
+const GROUPS: { kind: ChannelKind; label: string }[] = [
+  { kind: "campus", label: "Campus" },
+  { kind: "course", label: "Courses" },
+  { kind: "topic", label: "Topics" },
+  { kind: "club", label: "Clubs" },
 ];
 
 function channelTitle(channel: ChannelRow): string {
-  if (channel.kind === "course") return channel.course?.code ?? channel.name;
-  if (channel.kind === "club") return channel.name;
-  return `#${channel.slug}`;
+  if (channel.kind === "course") {
+    return channel.course?.code ?? roomTitle(channel.name, channel.slug);
+  }
+  return roomTitle(channel.name, channel.slug);
 }
 
-function channelSubtitle(channel: ChannelRow): string | null {
+function channelSubtitle(channel: ChannelRow): string {
   if (channel.kind === "course") {
-    return channel.course?.title ?? channel.description;
+    const caption = channel.course?.title ?? channel.description;
+    if (caption) return caption;
+  } else if (channel.description) {
+    return channel.description;
   }
-  return channel.description;
+  return roomKindLabel(channel.kind);
 }
 
 export default async function ChannelsPage() {
@@ -75,7 +78,7 @@ export default async function ChannelsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
       <PageHeader
-        title="Your channels"
+        title="Your rooms"
         description="Every conversation you're in: campus, courses, topics, clubs."
         action={
           channels.length === 0 ? undefined : (
@@ -93,7 +96,7 @@ export default async function ChannelsPage() {
       <div className="mt-6 animate-fade-up">
         <Segmented
           items={[
-            { href: "/channels", label: "Yours", icon: Hash },
+            { href: "/channels", label: "Yours", icon: LayoutGrid },
             { href: "/channels/browse", label: "Browse", icon: Compass },
           ]}
         />
@@ -103,8 +106,8 @@ export default async function ChannelsPage() {
         <div className="mt-6 rounded-card border border-dashed border-border">
           <EmptyState
             illustration={<DiscoverScene />}
-            icon={Hash}
-            title="No channels yet"
+            icon={LayoutGrid}
+            title="No rooms yet"
             description="Add your courses and you'll land in a channel for each class. Campus channels come free with your profile."
             action={
               <div className="flex flex-col items-center gap-3 sm:flex-row">
@@ -123,7 +126,7 @@ export default async function ChannelsPage() {
         </div>
       ) : (
         <>
-          {GROUPS.map(({ kind, label, icon: Icon }) => {
+          {GROUPS.map(({ kind, label }) => {
             const group = byKind.get(kind);
             if (!group || group.length === 0) return null;
             return (
@@ -142,18 +145,19 @@ export default async function ChannelsPage() {
                             className: "flex items-center gap-3 px-4 py-3",
                           })}
                         >
-                          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
-                            <Icon className="size-5" aria-hidden />
-                          </span>
+                          <RoomTile
+                            kind={channel.kind}
+                            name={channel.name}
+                            slug={channel.slug}
+                            size="sm"
+                          />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold">
                               {channelTitle(channel)}
                             </span>
-                            {subtitle ? (
-                              <span className="block truncate text-xs text-muted">
-                                {subtitle}
-                              </span>
-                            ) : null}
+                            <span className="block truncate text-xs text-muted">
+                              {subtitle}
+                            </span>
                           </span>
                           <ChevronRight
                             className="size-4 shrink-0 text-muted"

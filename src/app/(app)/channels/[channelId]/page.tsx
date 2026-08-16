@@ -2,20 +2,14 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import {
-  GraduationCap,
-  Hash,
-  Lock,
-  Megaphone,
-  Users,
-  UsersRound,
-  type LucideIcon,
-} from "lucide-react";
+import { GraduationCap, Lock, Users, UsersRound } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { RoomTile } from "@/components/room-tile";
 import { Badge, Card, buttonClasses } from "@/components/ui";
 import { ChatRoom, JoinChannelButton } from "@/features/chat/chat-room";
 import { MessageSearch } from "@/features/chat/message-search";
 import { getCurrentUser } from "@/lib/auth";
+import { roomTitle, roomKindLabel } from "@/lib/room-identity";
 import { createClient } from "@/lib/supabase/server";
 import type {
   Channel,
@@ -26,13 +20,6 @@ import type {
 
 type ChannelRow = Channel & {
   course: Pick<Course, "id" | "code" | "title"> | null;
-};
-
-const KIND_ICONS: Record<Channel["kind"], LucideIcon> = {
-  campus: Megaphone,
-  course: GraduationCap,
-  topic: Hash,
-  club: UsersRound,
 };
 
 export default async function ChannelPage({
@@ -59,7 +46,7 @@ export default async function ChannelPage({
       <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
         <EmptyState
           icon={Lock}
-          title="Channel not available"
+          title="Room not available"
           description="This channel doesn't exist, or it belongs to another campus."
           action={
             <Link href="/channels" className={buttonClasses({ size: "sm" })}>
@@ -98,15 +85,17 @@ export default async function ChannelPage({
         revalidatePath(`/channels/${channelId}`);
       }
 
-      const KindIcon = KIND_ICONS[channel.kind];
       return (
         <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
           <Card padding="lg" className="animate-fade-up text-center">
-            <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-brand-soft text-brand">
-              <KindIcon className="size-6" aria-hidden />
-            </span>
+            <RoomTile
+              kind={channel.kind}
+              name={channel.name}
+              slug={channel.slug}
+              size="md"
+            />
             <h1 className="mt-3 text-lg font-bold tracking-tight">
-              #{channel.slug}
+              {roomTitle(channel.name, channel.slug)}
             </h1>
             {channel.description ? (
               <p className="mx-auto mt-1 max-w-sm text-sm text-muted text-pretty">
@@ -114,7 +103,7 @@ export default async function ChannelPage({
               </p>
             ) : null}
             <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-muted">
-              {channel.kind === "campus" ? "Campus channel" : "Topic channel"} ·
+              {roomKindLabel(channel.kind)} ·
               open to everyone at your school
             </p>
             <form action={joinChannel} className="mt-5">
@@ -174,17 +163,18 @@ export default async function ChannelPage({
     (messageRows ?? []) as unknown as MessageWithAuthor[]
   ).reverse();
 
-  const KindIcon = KIND_ICONS[channel.kind];
-
   return (
     <div className="mx-auto flex h-[calc(100dvh-8.5rem)] max-w-3xl flex-col px-4">
       <header className="relative flex shrink-0 items-center gap-3 border-b border-border py-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
-          <KindIcon className="size-5" aria-hidden />
-        </span>
+        <RoomTile
+          kind={channel.kind}
+          name={channel.name}
+          slug={channel.slug}
+          size="md"
+        />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-base font-bold tracking-tight">
-            {channel.kind === "course" ? channel.name : `#${channel.slug}`}
+            {roomTitle(channel.name, channel.slug)}
           </h1>
           {channel.course_id ? (
             <Link

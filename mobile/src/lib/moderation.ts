@@ -3,6 +3,7 @@ import {
   categoryInfo,
   type BoardCategory,
 } from "@/lib/board";
+import { roomTitle } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 
 /* The moderation queue: the data layer.
@@ -124,9 +125,9 @@ export type ReportedProfile = ReportPerson & {
 export type ReportedChannel = {
   /** `channels.id`. Push `/channel/<id>` with it. */
   id: string;
-  /** The channel's name, e.g. "MAT 21A discussion". */
+  /** The room's display name through `roomTitle`, e.g. "MAT 21A discussion". */
   name: string;
-  /** The slug students actually say out loud, e.g. `mat-21a`. */
+  /** The room's slug, e.g. `mat-21a`. An id for links, never copy. */
   slug: string;
 };
 
@@ -317,7 +318,7 @@ function toChannel(raw: unknown): ReportedChannel | null {
   const id = text(record["id"]);
   const slug = text(record["slug"]);
   if (id === null || slug === null) return null;
-  return { id, name: text(record["name"]) ?? `#${slug}`, slug };
+  return { id, name: roomTitle(text(record["name"]), slug), slug };
 }
 
 /**
@@ -642,7 +643,7 @@ function firstName(person: ReportPerson): string {
 }
 
 /**
- * One line saying what got reported: "A message in #mat-21a", "Maya's
+ * One line saying what got reported: "A message in MAT 21A", "Maya's
  * profile", "A board post: couch, free".
  *
  * This is the row's title, so it names the *thing*, never the accusation. The
@@ -660,7 +661,7 @@ export function summarize(report: ModerationReport): string {
   switch (subject.kind) {
     case "message": {
       const channel = subject.message.channel;
-      if (channel !== null) return `A message in #${channel.slug}`;
+      if (channel !== null) return `A message in ${channel.name}`;
       return who !== null ? `A message from ${firstName(who)}` : "A message";
     }
     case "post": {

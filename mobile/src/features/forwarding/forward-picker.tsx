@@ -9,9 +9,11 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { RoomTile } from "@/components/room-tile";
 import { AppText, Button, Card, Field } from "@/components/ui";
 import { palettes, radius } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { roomKindLabel } from "@/lib/room-identity";
 import {
   fetchForwardTargets,
   ForwardError,
@@ -317,35 +319,38 @@ export function ForwardPicker({
                   backgroundColor: pressed ? theme.surface2 : "transparent",
                 })}
               >
-                <View
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: radius.control,
-                    backgroundColor: theme.brandSoft,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Feather
-                    name={
-                      target.kind === "channel"
-                        ? "hash"
-                        : target.isGroup
-                          ? "users"
-                          : "user"
-                    }
-                    size={15}
-                    color={theme.brand}
+                {target.kind === "channel" ? (
+                  <RoomTile
+                    kind={target.roomKind}
+                    name={target.name}
+                    slug={target.slug}
+                    size={32}
                   />
-                </View>
+                ) : (
+                  <View
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: radius.control,
+                      backgroundColor: theme.brandSoft,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Feather
+                      name={target.isGroup ? "users" : "user"}
+                      size={15}
+                      color={theme.brand}
+                    />
+                  </View>
+                )}
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <AppText variant="bodySemi" numberOfLines={1}>
                     {targetName(target)}
                   </AppText>
-                  {target.kind === "channel" && target.courseCode ? (
+                  {target.kind === "channel" ? (
                     <AppText variant="caption" muted numberOfLines={1}>
-                      {target.courseCode}
+                      {target.courseCode ?? roomKindLabel(target.roomKind)}
                     </AppText>
                   ) : null}
                 </View>

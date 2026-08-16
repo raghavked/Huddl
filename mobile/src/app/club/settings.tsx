@@ -25,6 +25,7 @@ import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { type ClubRole } from "@/lib/club-announcements";
 import { tapSuccess } from "@/lib/haptics";
+import { roomTitle } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -135,7 +136,10 @@ export default function ClubSettingsScreen() {
   const [club, setClub] = useState<ClubRow | null>(null);
   const [role, setRole] = useState<ClubRole | null>(null);
   const [memberCount, setMemberCount] = useState(0);
-  const [channelSlug, setChannelSlug] = useState<string | null>(null);
+  const [channel, setChannel] = useState<{
+    name: string | null;
+    slug: string;
+  } | null>(null);
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState<ClubCategory>("other");
@@ -178,7 +182,7 @@ export default function ClubSettingsScreen() {
           .eq("club_id", id),
         supabase
           .from("channels")
-          .select("slug")
+          .select("name, slug")
           .eq("club_id", id)
           .maybeSingle(),
       ]);
@@ -210,8 +214,11 @@ export default function ClubSettingsScreen() {
       setDescription(loaded.description ?? "");
       setRole(toRole((roleRes.data as { role?: unknown } | null)?.role));
       setMemberCount(countRes.count ?? 0);
-      setChannelSlug(
-        (channelRes.data as unknown as { slug: string } | null)?.slug ?? null
+      setChannel(
+        (channelRes.data as unknown as {
+          name: string | null;
+          slug: string;
+        } | null) ?? null
       );
       setStatus("ready");
     } catch {
@@ -539,8 +546,8 @@ export default function ClubSettingsScreen() {
           editable={!busy}
         />
         <AppText variant="caption" muted>
-          {channelSlug
-            ? `The club chat keeps its name: #${channelSlug} stays where it is.`
+          {channel
+            ? `The club chat keeps its name: ${roomTitle(channel.name, channel.slug)} stays where it is.`
             : "Renaming the club doesn't rename its chat channel."}
         </AppText>
       </View>

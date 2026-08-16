@@ -39,6 +39,7 @@ import {
   type ClubAnnouncement,
   type ClubRole,
 } from "@/lib/club-announcements";
+import { roomTitle } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -284,9 +285,11 @@ export default function ClubHomeScreen() {
   const [status, setStatus] = useState<Status>("loading");
   const [club, setClub] = useState<ClubRow | null>(null);
   const [roster, setRoster] = useState<MemberRow[]>([]);
-  const [channel, setChannel] = useState<{ id: string; slug: string } | null>(
-    null
-  );
+  const [channel, setChannel] = useState<{
+    id: string;
+    name: string | null;
+    slug: string;
+  } | null>(null);
   const [events, setEvents] = useState<ClubEventRow[]>([]);
   const [myProfile, setMyProfile] = useState<MemberProfile | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -328,7 +331,7 @@ export default function ClubHomeScreen() {
             .eq("club_id", clubId),
           supabase
             .from("channels")
-            .select("id, slug")
+            .select("id, name, slug")
             .eq("club_id", clubId)
             .maybeSingle(),
           supabase
@@ -359,8 +362,11 @@ export default function ClubHomeScreen() {
       setClub(clubRow);
       setRoster(sortRoster((membersRes.data ?? []) as unknown as MemberRow[]));
       setChannel(
-        (channelRes.data as unknown as { id: string; slug: string } | null) ??
-          null
+        (channelRes.data as unknown as {
+          id: string;
+          name: string | null;
+          slug: string;
+        } | null) ?? null
       );
       // Events are a bonus, so a hiccup there shouldn't block the club.
       setEvents((eventsRes.data ?? []) as unknown as ClubEventRow[]);
@@ -835,7 +841,8 @@ export default function ClubHomeScreen() {
                   ) : null}
                   {channel ? (
                     <AppText variant="caption" muted>
-                      Join to get into #{channel.slug} and meet the members.
+                      Join to get into {roomTitle(channel.name, channel.slug)}{" "}
+                      and meet the members.
                     </AppText>
                   ) : null}
                 </View>

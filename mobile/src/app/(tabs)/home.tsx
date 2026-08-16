@@ -22,6 +22,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FocusStrip } from "@/components/focus-strip";
 import { Mug, type IllustrationProps } from "@/components/illustrations";
+import { RoomTile } from "@/components/room-tile";
 import {
   AppText,
   Button,
@@ -34,6 +35,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useUnreadNotifications } from "@/hooks/use-unread";
 import { fetchBlockedIds } from "@/lib/blocks";
 import { categoryInfo, fetchBoard, type BoardPost } from "@/lib/board";
+import { roomTitle } from "@/lib/room-identity";
 import { buildPlan, toPlanKind, type PlanItem } from "@/lib/study-plan";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -448,18 +450,12 @@ function CampusRow({
           minHeight: 64,
         }}
       >
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: radius.control,
-            backgroundColor: theme.brandSoft,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Feather name="volume-2" size={18} color={theme.brand} />
-        </View>
+        <RoomTile
+          kind={channel.kind}
+          name={channel.name}
+          slug={channel.slug}
+          size={32}
+        />
         <View style={{ flex: 1, gap: space.hair }}>
           <View
             style={{
@@ -482,7 +478,7 @@ function CampusRow({
                 numberOfLines={1}
                 style={{ flexShrink: 1 }}
               >
-                #{channel.slug}
+                {roomTitle(channel.name, channel.slug)}
               </AppText>
               {unread ? (
                 <View
@@ -1129,10 +1125,10 @@ export default function HomeScreen() {
       out.push({
         type: "empty",
         key: "empty-campus",
-        icon: "volume-2",
+        icon: "coffee",
         illustration: Mug,
-        title: "No campus channels yet",
-        body: "Campus channels usually come free with your profile. They'll show up here soon.",
+        title: "No campus rooms yet",
+        body: "Campus rooms usually come free with your profile. They'll show up here soon.",
       });
     } else {
       for (const channel of data.campusChannels) {

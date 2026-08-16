@@ -1,12 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { useFocusEffect, useRouter } from "expo-router";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ComponentProps,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   AppState,
@@ -17,14 +11,14 @@ import {
   type AccessibilityActionEvent,
 } from "react-native";
 import { Doorway } from "@/components/illustrations";
+import { RoomTile } from "@/components/room-tile";
 import { Screen } from "@/components/screen";
 import { AppText, Button, Card, Sheet } from "@/components/ui";
 import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { roomTitle } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
-
-type FeatherName = ComponentProps<typeof Feather>["name"];
 
 type ChannelKind = "campus" | "course" | "topic" | "club";
 
@@ -61,21 +55,23 @@ type Row =
 type Section = {
   kind: ChannelKind;
   title: string;
-  icon: FeatherName;
   data: Row[];
 };
 
-const GROUPS: { kind: ChannelKind; title: string; icon: FeatherName }[] = [
-  { kind: "campus", title: "Campus", icon: "volume-2" },
-  { kind: "course", title: "Courses", icon: "book-open" },
-  { kind: "club", title: "Clubs", icon: "users" },
-  { kind: "topic", title: "Topics", icon: "hash" },
+/* Each row wears its own RoomTile now, so the sections carry words alone
+   instead of repeating a glyph beside every group label. */
+const GROUPS: { kind: ChannelKind; title: string }[] = [
+  { kind: "campus", title: "Campus" },
+  { kind: "course", title: "Courses" },
+  { kind: "club", title: "Clubs" },
+  { kind: "topic", title: "Topics" },
 ];
 
 function channelTitle(channel: ChannelRow): string {
-  if (channel.kind === "course") return channel.course?.code ?? channel.name;
-  if (channel.kind === "club") return channel.name;
-  return `#${channel.slug}`;
+  if (channel.kind === "course") {
+    return channel.course?.code ?? roomTitle(channel.name, channel.slug);
+  }
+  return roomTitle(channel.name, channel.slug);
 }
 
 function channelSubtitle(channel: ChannelRow): string | null {
@@ -379,7 +375,7 @@ export default function ChannelsScreen() {
     >
       <Sheet.Row
         icon={menuMuted ? "volume-2" : "volume-x"}
-        label={menuMuted ? "Turn notifications back on" : "Mute this channel"}
+        label={menuMuted ? "Turn notifications back on" : "Mute this room"}
         onPress={() => void toggleMuted()}
       />
       <AppText variant="caption" muted style={{ marginTop: space.tight }}>
@@ -392,7 +388,7 @@ export default function ChannelsScreen() {
 
   return (
     <Screen
-      title="Channels"
+      title="Rooms"
       scroll={false}
       action={
         <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -412,7 +408,7 @@ export default function ChannelsScreen() {
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Browse channels"
+            accessibilityLabel="Browse rooms"
             onPress={() => router.push("/channels/browse")}
             style={({ pressed }) => ({
               width: 44,
@@ -517,7 +513,7 @@ export default function ChannelsScreen() {
                 />
               </View>
               <AppText variant="title" accessibilityRole="header">
-                No channels yet
+                No rooms yet
               </AppText>
               <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
                 Add your courses and you'll land in a channel for each class.
@@ -531,20 +527,10 @@ export default function ChannelsScreen() {
               accessibilityRole="header"
               accessibilityLabel={section.title}
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: space.snug,
                 marginTop: space.gutter,
                 marginBottom: space.cosy,
               }}
             >
-              <Feather
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-                name={section.icon}
-                size={13}
-                color={theme.muted}
-              />
               <AppText variant="label" muted>
                 {section.title}
               </AppText>
@@ -692,25 +678,12 @@ export default function ChannelsScreen() {
                     minHeight: 60,
                   }}
                 >
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: radius.control,
-                      backgroundColor: theme.brandSoft,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Feather
-                      name={
-                        GROUPS.find((g) => g.kind === channel.kind)?.icon ??
-                        "hash"
-                      }
-                      size={18}
-                      color={theme.brand}
-                    />
-                  </View>
+                  <RoomTile
+                    kind={channel.kind}
+                    name={channel.name}
+                    slug={channel.slug}
+                    size={32}
+                  />
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <View
                       style={{

@@ -6,12 +6,12 @@ import {
   ChevronRight,
   Compass,
   GraduationCap,
-  Hash,
   ListChecks,
   Megaphone,
   Plus,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { RoomTile } from "@/components/room-tile";
 import {
   PageHeader,
   SectionHeader,
@@ -23,6 +23,7 @@ import { JoinButton } from "@/features/discover/join-button";
 import { TodayStrip } from "@/features/home/today-strip";
 import type { PlanItemRow } from "@/features/study/plan-section";
 import { getCurrentUser } from "@/lib/auth";
+import { roomTitle } from "@/lib/room-identity";
 import { buildPlan, toPlanKind, type PlanItem } from "@/lib/study-plan";
 import { createClient } from "@/lib/supabase/server";
 import { formatEventTime, formatMessageTime } from "@/lib/utils";
@@ -304,14 +305,14 @@ export default async function HomePage() {
           <div className="mt-3 rounded-card border border-dashed border-border">
             <EmptyState
               icon={Megaphone}
-              title="No campus channels yet"
-              description="Campus channels usually come free with your profile."
+              title="No campus rooms yet"
+              description="Campus rooms usually come free with your profile."
               action={
                 <Link
                   href="/channels/browse"
                   className={buttonClasses({ variant: "secondary", size: "sm" })}
                 >
-                  Browse channels
+                  Browse rooms
                 </Link>
               }
             />
@@ -333,13 +334,16 @@ export default async function HomePage() {
                       className: "flex items-center gap-3 px-4 py-3",
                     })}
                   >
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
-                      <Megaphone className="size-5" aria-hidden />
-                    </span>
+                    <RoomTile
+                      kind={channel.kind}
+                      name={channel.name}
+                      slug={channel.slug}
+                      size="sm"
+                    />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline justify-between gap-2">
                         <span className="truncate text-sm font-semibold">
-                          #{channel.slug}
+                          {roomTitle(channel.name, channel.slug)}
                         </span>
                         {preview ? (
                           <span className="shrink-0 text-xs text-muted">
@@ -486,7 +490,7 @@ export default async function HomePage() {
           <div className="mt-3 rounded-card border border-dashed border-border">
             <EmptyState
               className="py-10"
-              icon={Hash}
+              icon={Compass}
               title="You're in on everything"
               description="Nothing new to discover right now. Maybe it's time to start the next big channel."
             />
@@ -501,15 +505,18 @@ export default async function HomePage() {
                   className: "flex items-center gap-3 px-4 py-3",
                 })}
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
-                  <Hash className="size-5" aria-hidden />
-                </span>
+                <RoomTile
+                  kind={channel.kind}
+                  name={channel.name}
+                  slug={channel.slug}
+                  size="sm"
+                />
                 <Link
                   href={`/channels/${channel.id}`}
                   className="min-w-0 flex-1 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 >
                   <span className="block truncate text-sm font-semibold">
-                    #{channel.slug}
+                    {roomTitle(channel.name, channel.slug)}
                   </span>
                   {channel.description ? (
                     <span className="line-clamp-2 text-xs text-muted">
@@ -519,7 +526,7 @@ export default async function HomePage() {
                 </Link>
                 <JoinButton
                   channelId={channel.id}
-                  channelName={`#${channel.slug}`}
+                  channelName={roomTitle(channel.name, channel.slug)}
                 />
               </li>
             ))}

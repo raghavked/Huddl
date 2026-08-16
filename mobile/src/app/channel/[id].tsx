@@ -12,7 +12,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ComponentProps,
   type ReactNode,
 } from "react";
 import {
@@ -32,6 +31,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
+import { RoomTile } from "@/components/room-tile";
 import { AppText, Button, Card, Sheet } from "@/components/ui";
 import { fonts, palettes, radius, space } from "@/constants/theme";
 import { AvailabilityBubble, AvailabilityComposer } from "@/features/availability";
@@ -64,10 +64,9 @@ import {
 import { forwardLabelFor, type ForwardSource } from "@/lib/forwarding";
 import { tapLight, tapSuccess } from "@/lib/haptics";
 import { setMessagePinned } from "@/lib/pins";
+import { roomTitle } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
-
-type FeatherName = ComponentProps<typeof Feather>["name"];
 
 type ChannelKind = "campus" | "course" | "topic" | "club";
 
@@ -192,17 +191,11 @@ function groupReactions(
   return [...map.entries()];
 }
 
-const KIND_ICONS: Record<ChannelKind, FeatherName> = {
-  campus: "volume-2",
-  course: "book-open",
-  topic: "hash",
-  club: "users",
-};
-
 function channelTitle(channel: ChannelRow): string {
-  if (channel.kind === "course") return channel.course?.code ?? channel.name;
-  if (channel.kind === "club") return channel.name;
-  return `#${channel.slug}`;
+  if (channel.kind === "course") {
+    return channel.course?.code ?? roomTitle(channel.name, channel.slug);
+  }
+  return roomTitle(channel.name, channel.slug);
 }
 
 function channelSubtitle(channel: ChannelRow): string | null {
@@ -2092,7 +2085,7 @@ export default function ChannelRoomScreen() {
               >
                 <Feather name="lock" size={22} color={theme.brand} />
               </View>
-              <AppText variant="title">Channel not available</AppText>
+              <AppText variant="title">Room not available</AppText>
               <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
                 This channel doesn't exist, or it belongs to another campus.
               </AppText>
@@ -2105,22 +2098,12 @@ export default function ChannelRoomScreen() {
             </>
           ) : kind === "campus" || kind === "topic" ? (
             <>
-              <View
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 16,
-                  backgroundColor: theme.brandSoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Feather
-                  name={kind ? KIND_ICONS[kind] : "hash"}
-                  size={22}
-                  color={theme.brand}
-                />
-              </View>
+              <RoomTile
+                kind={kind}
+                name={channel?.name ?? null}
+                slug={channel?.slug ?? ""}
+                size={52}
+              />
               <AppText variant="title">{title}</AppText>
               {channel?.description ? (
                 <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>
@@ -2136,7 +2119,7 @@ export default function ChannelRoomScreen() {
                 to everyone at your school.
               </AppText>
               <Button
-                label="Join channel"
+                label="Join room"
                 pending={joining}
                 onPress={() => void handleJoin()}
               />
@@ -2148,22 +2131,12 @@ export default function ChannelRoomScreen() {
             </>
           ) : (
             <>
-              <View
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 16,
-                  backgroundColor: theme.brandSoft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Feather
-                  name={kind ? KIND_ICONS[kind] : "hash"}
-                  size={22}
-                  color={theme.brand}
-                />
-              </View>
+              <RoomTile
+                kind={kind === "course" ? "course" : "club"}
+                name={channel?.name ?? null}
+                slug={channel?.slug ?? ""}
+                size={52}
+              />
               <AppText variant="title">
                 {kind === "course"
                   ? "This is a course channel"
@@ -2223,18 +2196,12 @@ export default function ChannelRoomScreen() {
         }}
       >
         <BackChevron onPress={goBack} />
-        <View
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: radius.control,
-            backgroundColor: theme.brandSoft,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Feather name={KIND_ICONS[channel.kind]} size={18} color={theme.brand} />
-        </View>
+        <RoomTile
+          kind={channel.kind}
+          name={channel.name}
+          slug={channel.slug}
+          size={40}
+        />
         {courseId ? (
           <Pressable
             accessibilityRole="link"

@@ -50,9 +50,9 @@ export const HELP_SECTIONS: HelpSection[] = [
           "What is due, who is around and what is on, pulled together for today.",
       },
       {
-        term: "Channels",
+        term: "Rooms",
         detail:
-          "Rooms. One per class you are taking, plus the campus-wide ones and any your classmates start.",
+          "One per class you are taking, plus the campus-wide ones and any your classmates start.",
       },
       {
         term: "Messages",
@@ -78,7 +78,7 @@ export const HELP_SECTIONS: HelpSection[] = [
       {
         term: "The class chat",
         detail:
-          "A channel with the rest of your section in it, created the moment you add the course.",
+          "A room with the rest of your section in it, created the moment you add the course.",
       },
       {
         term: "A shared calendar",
@@ -109,7 +109,7 @@ export const HELP_SECTIONS: HelpSection[] = [
       {
         term: "Search",
         detail:
-          "One box for people, channels, courses and events. It is on Home.",
+          "One box for people, rooms, courses and events. It is on Home.",
       },
       {
         term: "The people directory",

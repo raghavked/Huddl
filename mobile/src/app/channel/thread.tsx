@@ -57,6 +57,7 @@ import {
   type QueuedMessage,
 } from "@/lib/drafts";
 import { forwardLabelFor, type ForwardSource } from "@/lib/forwarding";
+import { roomTitle } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -133,9 +134,8 @@ function channelNameFrom(raw: unknown): string | null {
   const code =
     course && typeof course["code"] === "string" ? course["code"] : "";
   if (kind === "course" && code) return code;
-  if (kind === "club" && name) return name;
-  if (slug) return slug;
-  return name.length > 0 ? name : null;
+  if (!name && !slug) return null;
+  return roomTitle(name, slug);
 }
 
 /** The message-body text style. MentionText needs it spelled out. */

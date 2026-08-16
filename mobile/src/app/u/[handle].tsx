@@ -17,6 +17,7 @@ import { useBlockedIds } from "@/hooks/use-blocked";
 import { useTheme } from "@/hooks/use-theme";
 import { blockUser, unblockUser } from "@/lib/blocks";
 import { warmDmError } from "@/lib/group-dm";
+import { roomGlyph, roomTitle, type RoomKind } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -50,9 +51,19 @@ type SharedCourse = { id: string; code: string; title: string };
 type SharedChannel = {
   id: string;
   name: string;
+  slug: string;
   kind: string;
   club_id: string | null;
 };
+
+/**
+ * The identity system's kind for a shared channel pill. Course chats never
+ * reach this list and clubs are split off before it renders, so what's left
+ * is a campus room or a student-made topic.
+ */
+function sharedRoomKind(kind: string): RoomKind {
+  return kind === "campus" ? "campus" : "topic";
+}
 
 type EnrollmentCourseRow = { course: SharedCourse | null };
 type MemberChannelRow = { channel: SharedChannel | null };
@@ -294,7 +305,7 @@ export default function ProfileScreen() {
         supabase.from("enrollments").select("course_id").eq("user_id", userId),
         supabase
           .from("channel_members")
-          .select("channel:channels(id, name, kind, club_id)")
+          .select("channel:channels(id, name, slug, kind, club_id)")
           .eq("user_id", row.id),
         supabase
           .from("channel_members")
@@ -1105,39 +1116,49 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Channels in common: campus-wide rooms and student-made topics. */}
+        {/* Rooms in common: campus-wide rooms and student-made topics. */}
         <AppText
           variant="title"
           accessibilityRole="header"
           style={{ marginTop: space.chapter, marginBottom: space.room }}
         >
-          {isMe ? "Your channels" : "Channels in common"}
+          {isMe ? "Your rooms" : "Rooms in common"}
         </AppText>
         {sharedRooms.length === 0 ? (
           <EmptySection
-            icon="hash"
-            title={isMe ? "No channels yet" : "No channels in common"}
+            icon="message-square"
+            title={isMe ? "No rooms yet" : "No channels in common"}
             description={
               isMe
-                ? "Browse the campus channels and join the conversations you care about."
+                ? "Browse the campus rooms and join the conversations you care about."
                 : `No channels in common with ${firstName} yet.`
             }
-            actionLabel={isMe ? "Browse channels" : undefined}
+            actionLabel={isMe ? "Browse rooms" : undefined}
             onAction={isMe ? () => router.push("/(tabs)/channels") : undefined}
           />
         ) : (
           <View
             style={{ flexDirection: "row", flexWrap: "wrap", gap: space.cosy }}
           >
-            {sharedRooms.map((channel) => (
-              <LinkPill
-                key={channel.id}
-                icon="hash"
-                label={channel.name}
-                tint="accent"
-                onPress={() => router.push(`/channel/${channel.id}`)}
-              />
-            ))}
+            {/* A pill is too cramped for the RoomTile itself, so each room
+                wears its kind's glyph instead: a campus room its purpose
+                mark, a topic room none at all, the same way an interest is
+                only a word. Never the hash. */}
+            {sharedRooms.map((channel) => {
+              const glyph = roomGlyph(
+                sharedRoomKind(channel.kind),
+                channel.slug
+              );
+              return (
+                <LinkPill
+                  key={channel.id}
+                  icon={glyph ? (glyph as FeatherName) : undefined}
+                  label={roomTitle(channel.name, channel.slug)}
+                  tint="accent"
+                  onPress={() => router.push(`/channel/${channel.id}`)}
+                />
+              );
+            })}
           </View>
         )}
       </ScrollView>

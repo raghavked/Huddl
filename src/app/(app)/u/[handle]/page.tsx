@@ -4,13 +4,19 @@ import { notFound, redirect } from "next/navigation";
 import {
   BadgeCheck,
   BookOpen,
+  Calendar,
   ChevronLeft,
+  Coffee,
   Compass,
   GraduationCap,
-  Hash,
   Lock,
+  MapPin,
   MessageCircle,
+  MessageSquare,
   Pencil,
+  Tag,
+  Users,
+  type LucideIcon,
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
@@ -23,6 +29,7 @@ import {
 import { ReportPersonButton } from "@/features/people/profile-actions";
 import { BlockPersonButton } from "@/features/settings/blocked-list";
 import { getCurrentUser } from "@/lib/auth";
+import { roomGlyph, roomTitle } from "@/lib/room-identity";
 import { createClient } from "@/lib/supabase/server";
 import type { Channel, Course, Profile, University } from "@/lib/types";
 
@@ -31,7 +38,18 @@ type ProfileRow = Profile & {
 };
 
 type SharedCourse = Pick<Course, "id" | "code" | "title">;
-type SharedChannel = Pick<Channel, "id" | "name" | "kind">;
+type SharedChannel = Pick<Channel, "id" | "name" | "slug" | "kind">;
+
+/* A pill is too cramped for the RoomTile itself, so each shared room wears
+   its kind's glyph instead. roomGlyph speaks Feather; this map is the whole
+   translation to lucide for the campus purpose marks. Never the hash. */
+const ROOM_PILL_GLYPHS: Record<string, LucideIcon> = {
+  coffee: Coffee,
+  users: Users,
+  calendar: Calendar,
+  tag: Tag,
+  "map-pin": MapPin,
+};
 
 type EnrollmentCourseRow = { course: SharedCourse | null };
 type MemberChannelRow = { channel: SharedChannel | null };
@@ -200,7 +218,7 @@ export default async function ProfilePage({
       supabase.from("enrollments").select("course_id").eq("user_id", user.userId),
       supabase
         .from("channel_members")
-        .select("channel:channels(id, name, kind)")
+        .select("channel:channels(id, name, slug, kind)")
         .eq("user_id", profile.id),
       supabase
         .from("channel_members")
@@ -452,13 +470,13 @@ export default async function ProfilePage({
           <div className="mt-3 rounded-card border border-dashed border-border">
             <EmptyState
               className="py-10"
-              icon={Hash}
+              icon={MessageSquare}
               title={
-                isMe ? "No campus channels yet" : "No channels in common"
+                isMe ? "No campus rooms yet" : "No channels in common"
               }
               description={
                 isMe
-                  ? "Browse the campus channels and join the conversations you care about."
+                  ? "Browse the campus rooms and join the conversations you care about."
                   : `No campus channels in common with ${firstName} yet.`
               }
               action={
@@ -470,7 +488,7 @@ export default async function ProfilePage({
                       size: "sm",
                     })}
                   >
-                    Browse channels
+                    Browse rooms
                   </Link>
                 ) : undefined
               }
@@ -478,17 +496,23 @@ export default async function ProfilePage({
           </div>
         ) : (
           <ul className="mt-3 flex flex-wrap gap-2">
-            {sharedChannels.map((channel) => (
-              <li key={channel.id}>
-                <Link
-                  href={`/channels/${channel.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1.5 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-brand-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                >
-                  <Hash className="size-3.5" aria-hidden />
-                  {channel.name}
-                </Link>
-              </li>
-            ))}
+            {sharedChannels.map((channel) => {
+              const glyph = roomGlyph(channel.kind, channel.slug);
+              const Glyph = glyph ? ROOM_PILL_GLYPHS[glyph] : null;
+              return (
+                <li key={channel.id}>
+                  <Link
+                    href={`/channels/${channel.id}`}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1.5 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-brand-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  >
+                    {Glyph ? (
+                      <Glyph className="size-3.5" aria-hidden />
+                    ) : null}
+                    {roomTitle(channel.name, channel.slug)}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

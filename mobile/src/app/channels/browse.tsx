@@ -10,9 +10,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Pennant } from "@/components/illustrations";
+import { RoomTile } from "@/components/room-tile";
 import { AppText, Button, Card, EmptyState } from "@/components/ui";
-import { radius, space } from "@/constants/theme";
+import { space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { roomKindLabel, roomTitle } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -114,7 +116,7 @@ export default function BrowseChannelsScreen() {
         .eq("user_id", userId),
     ]);
     if (channelsRes.error || mineRes.error) {
-      setError("We couldn't load the channel directory. Pull down to try again.");
+      setError("We couldn't load the room directory. Pull down to try again.");
       return;
     }
     setError(null);
@@ -150,7 +152,7 @@ export default function BrowseChannelsScreen() {
       setJoiningId(null);
       // 23505 means we're already in, so treat it as a win and head on through.
       if (insertError && insertError.code !== "23505") {
-        setJoinError("Couldn't join that channel just now. Give it another try.");
+        setJoinError("Couldn't join that room just now. Give it another try.");
         return;
       }
       setJoined((prev) => new Set(prev).add(channel.id));
@@ -200,7 +202,7 @@ export default function BrowseChannelsScreen() {
           <Feather name="chevron-left" size={26} color={theme.foreground} />
         </Pressable>
         <Button
-          label="Start a channel"
+          label="Start a room"
           variant="soft"
           size="sm"
           icon={<Feather name="plus" size={14} color={theme.brandInk} />}
@@ -235,7 +237,7 @@ export default function BrowseChannelsScreen() {
       <CenteredState
         icon="wifi-off"
         title="Something hiccuped"
-        message="We couldn't load the channel directory. Check your connection and give it another go."
+        message="We couldn't load the room directory. Check your connection and give it another go."
       >
         <Button
           label="Try again"
@@ -270,7 +272,7 @@ export default function BrowseChannelsScreen() {
       }
       ListHeaderComponent={
         <View style={{ gap: space.tight, marginBottom: space.card }}>
-          <AppText variant="display">Browse channels</AppText>
+          <AppText variant="display">Browse rooms</AppText>
           <AppText variant="caption" muted>
             Every campus and topic channel at your school. Join the ones that
             feel like home.
@@ -297,7 +299,7 @@ export default function BrowseChannelsScreen() {
               title="You're in every channel here"
               body="That's the whole directory for now. Start one for anything your campus is missing: a class you're taking, a team you follow."
               action={{
-                label: "Start a channel",
+                label: "Start a room",
                 onPress: () => router.push("/channels/new"),
               }}
               style={{ marginTop: space.cosy }}
@@ -311,7 +313,7 @@ export default function BrowseChannelsScreen() {
           title="Nothing to browse yet"
           body="Your campus doesn't have any channels yet. You could be the first."
           action={{
-            label: "Start a channel",
+            label: "Start a room",
             onPress: () => router.push("/channels/new"),
           }}
         />
@@ -319,10 +321,8 @@ export default function BrowseChannelsScreen() {
       renderItem={({ item, index }) => {
         const isJoined = joined.has(item.id);
         const joining = joiningId === item.id;
-        const title = `#${item.slug}`;
-        const caption =
-          item.description ??
-          (item.kind === "campus" ? "Campus channel" : "Topic channel");
+        const title = roomTitle(item.name, item.slug);
+        const caption = item.description ?? roomKindLabel(item.kind);
         const row = (
           <Card
             padded={false}
@@ -336,22 +336,12 @@ export default function BrowseChannelsScreen() {
               minHeight: 60,
             }}
           >
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: radius.control,
-                backgroundColor: theme.brandSoft,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Feather
-                name={item.kind === "campus" ? "volume-2" : "hash"}
-                size={18}
-                color={theme.brand}
-              />
-            </View>
+            <RoomTile
+              kind={item.kind}
+              name={item.name}
+              slug={item.slug}
+              size={32}
+            />
             <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
               <AppText variant="bodySemi" numberOfLines={1}>
                 {title}

@@ -64,10 +64,10 @@ export async function createTopicChannel(fields: {
   const slug = slugify(name);
 
   if (name.length < 3) {
-    return { error: "Channel names need at least 3 characters." };
+    return { error: "Room names need at least 3 characters." };
   }
   if (name.length > 80) {
-    return { error: "Channel names can be at most 80 characters." };
+    return { error: "Room names can be at most 80 characters." };
   }
   if (!slug) {
     return { error: "The name needs at least one letter or number." };
@@ -96,7 +96,7 @@ export async function createTopicChannel(fields: {
   if (insertError || !channel) {
     if (insertError?.code === "23505") {
       return {
-        error: `#${slug} is already taken at ${user.university.short_name}. Try a more specific name.`,
+        error: `That room name is already taken at ${user.university.short_name}. Try a more specific one.`,
       };
     }
     return { error: "Couldn't create the channel. Please try again." };

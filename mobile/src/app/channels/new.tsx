@@ -12,10 +12,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Field } from "@/components/ui";
 import { space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { roomTitle } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
-/* Start a topic channel: name it, say what it's for, and you're in.
+/* Start a topic room: name it, say what it's for, and you're in.
    The insert matches the RLS shape exactly (kind 'topic', your own
    university, created_by you), and you join your new channel on the way
    through to its room. */
@@ -68,7 +69,7 @@ export default function NewChannelScreen() {
     if (!userId || creating) return;
     const channelName = name.trim();
     if (channelName.length < NAME_MIN || channelName.length > NAME_MAX) {
-      setNameError(`Channel names run ${NAME_MIN}–${NAME_MAX} characters.`);
+      setNameError(`Room names run ${NAME_MIN}–${NAME_MAX} characters.`);
       return;
     }
     const baseSlug = slugify(channelName);
@@ -90,7 +91,7 @@ export default function NewChannelScreen() {
         ?.university_id;
       if (meError || !universityId) {
         setFormError(
-          "We couldn't start that channel just now. Give it another try."
+          "We couldn't start that room just now. Give it another try."
         );
         return;
       }
@@ -122,8 +123,8 @@ export default function NewChannelScreen() {
       if (insertError || !channelId) {
         setFormError(
           insertError?.code === "23505"
-            ? "A channel with that name already exists. Find it in the directory, or pick another name."
-            : "We couldn't start that channel just now. Give it another try."
+            ? "A room with that name already exists. Find it in the directory, or pick another name."
+            : "We couldn't start that room just now. Give it another try."
         );
         return;
       }
@@ -134,7 +135,7 @@ export default function NewChannelScreen() {
         .insert({ channel_id: channelId, user_id: userId });
       if (joinError && joinError.code !== "23505") {
         setFormError(
-          "The channel is up, but we couldn't drop you in. Join it from the directory."
+          "The room is up, but we couldn't drop you in. Join it from the directory."
         );
         return;
       }
@@ -182,7 +183,7 @@ export default function NewChannelScreen() {
         </Pressable>
 
         <AppText variant="display" style={{ marginTop: space.hair }}>
-          Start a channel
+          Start a room
         </AppText>
         <AppText
           variant="caption"
@@ -196,7 +197,7 @@ export default function NewChannelScreen() {
         <Card style={{ gap: space.card }}>
           <View style={{ gap: space.snug }}>
             <Field
-              label="Channel name"
+              label="Room name"
               value={name}
               onChangeText={(text) => {
                 setName(text);
@@ -211,7 +212,7 @@ export default function NewChannelScreen() {
             />
             {slug && !nameError ? (
               <AppText variant="caption" muted>
-                It'll live at #{slug}
+                It'll appear as {roomTitle(trimmedName, slug)}
               </AppText>
             ) : null}
           </View>
@@ -237,7 +238,7 @@ export default function NewChannelScreen() {
           ) : null}
 
           <Button
-            label="Start channel"
+            label="Start room"
             pending={creating}
             disabled={creating || trimmedName.length < NAME_MIN}
             icon={<Feather name="plus" size={16} color={theme.brandFg} />}

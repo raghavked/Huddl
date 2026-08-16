@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/ui";
 import { SavedList, type SavedItem } from "@/features/saved/saved-list";
 import { getCurrentUser } from "@/lib/auth";
+import { roomTitle } from "@/lib/room-identity";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -28,7 +29,7 @@ type BookmarkRow = {
     created_at: string;
     deleted_at: string | null;
     author: { display_name: string; avatar_url: string | null } | null;
-    channel: { slug: string } | null;
+    channel: { name: string | null; slug: string } | null;
   } | null;
   dm_message: {
     id: string;
@@ -43,7 +44,7 @@ type BookmarkRow = {
 const BOOKMARK_SELECT =
   "created_at, message_id, dm_message_id, " +
   "message:messages(id, channel_id, content, created_at, deleted_at, " +
-  "author:profiles(display_name, avatar_url), channel:channels(slug)), " +
+  "author:profiles(display_name, avatar_url), channel:channels(name, slug)), " +
   "dm_message:dm_messages(id, thread_id, content, created_at, deleted_at, " +
   "author:profiles(display_name, avatar_url))";
 
@@ -68,7 +69,7 @@ export default async function SavedPage() {
     .map((row): SavedItem | null => {
       const channelMessage = row.message;
       if (channelMessage && !channelMessage.deleted_at) {
-        const slug = channelMessage.channel?.slug;
+        const channel = channelMessage.channel;
         return {
           kind: "channel",
           messageId: channelMessage.id,
@@ -76,7 +77,7 @@ export default async function SavedPage() {
           authorName: channelMessage.author?.display_name ?? "A classmate",
           authorAvatar: channelMessage.author?.avatar_url ?? null,
           content: channelMessage.content,
-          context: slug ? `#${slug}` : "#channel",
+          context: channel ? roomTitle(channel.name, channel.slug) : "a room",
           href: `/channels/${channelMessage.channel_id}`,
         };
       }
