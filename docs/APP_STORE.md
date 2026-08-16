@@ -10,7 +10,7 @@ checklist.
 - **Subtitle** (30 chars): Your campus, gathered.
 - **Category**: Social Networking (secondary: Education)
 - **Keywords** (100 chars):
-  `college,campus,classes,study,flashcards,notes,grades,focus,student,clubs,rideshare,gpa,uc davis`
+  `college,campus,classes,study,flashcards,notes,grades,focus,student,clubs,rideshare,friends`
 
 **Description**:
 
@@ -47,17 +47,21 @@ checklist.
 > Chat is built for classmates: photos, polls, @mentions, pinned
 > messages, threads, and reactions, with typing indicators and read
 > state. DMs for the people you know, group DMs for the people you're
-> working with. Clubs get their own space: chat, roster, events, and
+> working with. Add your people as friends and see at a glance who's
+> around: a quiet "Active now" under a name, with an off switch that
+> erases the trail the moment you flip it. Clubs get their own space:
+> chat, roster, events, and
 > announcements from the officers. Study sessions and meetups take RSVPs
 > and nudge everyone about an hour out.
 >
-> It's made to be lived in: a warm light theme, a candle-lit dark one,
-> your own text size, quiet hours so nothing buzzes at 2am, and no ads
-> anywhere.
+> It's made to be lived in: twelve colour schemes from warm Ember to hot
+> pink Peony, each with a light and a candle-lit dark half, your own text
+> size, quiet hours so nothing buzzes at 2am, and no ads anywhere.
 >
 > Every account is verified with a university email, so your campus is a
 > real, closed community. Blocking, reporting, and a 24-hour moderation
-> promise are built in. Read receipts and typing indicators are yours to
+> promise are built in, and slurs are flagged to campus moderators
+> automatically, the moment they're posted, on every surface. Read receipts and typing indicators are yours to
 > switch off. When you do, you stop seeing other people's too. You can
 > export everything Hearth holds that's yours in one tap, and delete your
 > account and everything in it anytime, right from Settings.
@@ -76,16 +80,26 @@ checklist.
   "Unrestricted Web Access: No", "Gambling: No"; the UGC questions are
   satisfied by in-app report + block + 24h moderation (App Review
   Guideline 1.2). Expected rating: **12+**.
-- **Sign-in for review**: provide the demo account
-  `alex.rivera@ucdavis.edu` / `hearth-demo-2026` in App Review notes, with
-  the note that any-campus email signup is restricted to supported
-  universities by design.
+- **Sign-in for review**: signup is restricted to supported university
+  email domains by design, so reviewers cannot create their own account.
+  Provide the review sandbox in App Review notes:
+  `reviewer@demo.uhearth.app` / `HearthReview-2026!`. That account lives on
+  "Hearth Demo Campus (App Review)", an isolated demo university no real
+  student can join (its email domain resolves nowhere public), so nothing
+  the reviewer does touches a real campus. The account carries the
+  moderator badge so the review can open Settings > Reports and see the
+  moderation queue working end to end. The demo campus is already seeded
+  in production: four default rooms and a two-course catalog, everything
+  else intentionally empty so the reviewer sees honest first-run states.
 - **Account deletion** (Guideline 5.1.1(v)): Settings → Delete account.
 - **Data export** (Guideline 5.1.1(v) companion): Settings → Privacy → Your
   data. Returns the caller's own rows as one JSON document; self-only by
   construction, since every subquery in the function filters on `auth.uid()`.
-- **Moderation is staffed**: reports from the in-app flow
-  land in a queue that campus moderators triage inside the app (open /
+- **Moderation is staffed AND automatic**: reports from the in-app flow
+  land in a queue that campus moderators triage inside the app, and a
+  server-side filter files a report automatically the moment a slur is
+  posted anywhere (messages, DMs, board posts, announcements, profiles),
+  with no way for a client to bypass it (open /
   reviewed / dismissed, with the reported content shown in place). The
   moderator flag is a service-role write and is excluded from the
   column-scoped update grant students hold, so no account can promote itself.
@@ -102,7 +116,18 @@ checklist.
 - **"Studying now" is campus-scoped**: a focus session shows only to other
   verified students at the same university, and only while it's running.
 
-## Screenshot plan (6.7" + 6.1", both themes)
+## Screenshots
+
+A full 6.7" set (1290x2796, App Store Connect's required size) ships in
+the repo at `mobile/store/screenshots/`, ten screens, shot from the real
+app rendered offline against fixture data (no real student appears in
+any frame): home, course home, study plan, flashcards (dark), focus
+(dark), class chat, campus board, grades, friends, calendar. Upload them
+in that order; the same set satisfies the 6.9" slot (Connect scales) or
+can be re-shot at 1320x2868 with the same harness if pixel-exact 6.9"
+art is preferred.
+
+## Original screenshot plan (kept for reshoots)
 
 1. Home: today strip + plan card ("Your campus, gathered")
 2. Course home: the six-doorway grid ("Every class is a home")
