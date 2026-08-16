@@ -1,10 +1,12 @@
-import { palettes, type Palette } from "@/constants/theme";
-import { useResolvedScheme } from "@/providers/display-provider";
+import { hearthPalettes, type Palette } from "@/constants/theme";
+import { useDisplay } from "@/providers/display-provider";
 
 /**
- * The active hearth palette. Follows the student's display preference, which
- * itself follows the system appearance when set to "system".
+ * The active palette: the student's chosen hearth, in the appearance in
+ * effect right now. Both preferences live in the display provider, so a
+ * change to either repaints everything that calls this.
  */
 export function useTheme(): Palette {
-  return useResolvedScheme() === "dark" ? palettes.dark : palettes.light;
+  const { hearth, resolvedScheme } = useDisplay();
+  return hearthPalettes[hearth][resolvedScheme];
 }

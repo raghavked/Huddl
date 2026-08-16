@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Hearth",
     short_name: "Hearth",
     description:
-      "The all-in-one platform for college students: course chat, study sessions, notes, meetups, voice rooms and DMs.",
+      "The all-in-one platform for college students: course chat, study sessions, notes, meetups and DMs.",
     start_url: "/home",
     display: "standalone",
     background_color: "#faf6ee",

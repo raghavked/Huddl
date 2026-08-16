@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Monitor, Moon, Sun } from "lucide-react";
+import { readThemePref, syncThemeColorMeta } from "@/lib/theme-schemes";
 import { cn } from "@/lib/utils";
 
 type ThemePref = "light" | "dark" | "system";
@@ -18,29 +19,10 @@ const OPTIONS: {
   { value: "dark", label: "Dark theme", icon: Moon },
 ];
 
-function readPref(): ThemePref {
-  if (typeof window === "undefined") return "system";
-  const stored = localStorage.getItem("hearth-theme");
-  return stored === "light" || stored === "dark" ? stored : "system";
-}
-
-const THEME_COLORS = { light: "#faf6ee", dark: "#1c1612" } as const;
-
-/* Keep the browser-chrome color in step with a pinned theme; with "system"
-   each meta's own media query takes back over. */
-function syncThemeColorMeta(pref: ThemePref) {
-  document
-    .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
-    .forEach((meta) => {
-      if (pref === "system") {
-        meta.content = meta.media.includes("dark")
-          ? THEME_COLORS.dark
-          : THEME_COLORS.light;
-      } else {
-        meta.content = THEME_COLORS[pref];
-      }
-    });
-}
+/* The storage read, and the browser-chrome sync that has to know the colour
+   scheme as well as the theme, both live in @/lib/theme-schemes now: two
+   preferences, one meta tag, one owner. */
+const readPref = readThemePref;
 
 function applyPref(pref: ThemePref) {
   if (pref === "system") {
@@ -50,7 +32,7 @@ function applyPref(pref: ThemePref) {
     document.documentElement.dataset.theme = pref;
     localStorage.setItem("hearth-theme", pref);
   }
-  syncThemeColorMeta(pref);
+  syncThemeColorMeta();
 }
 
 /** Three-way light / system / dark switch, persisted in localStorage. */
@@ -60,7 +42,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   useEffect(() => {
     const stored = readPref();
     setPref(stored);
-    syncThemeColorMeta(stored);
+    syncThemeColorMeta();
   }, []);
 
   return (
@@ -111,7 +93,7 @@ export function ThemeToggleCompact({ className }: { className?: string }) {
   useEffect(() => {
     const stored = readPref();
     setPref(stored);
-    syncThemeColorMeta(stored);
+    syncThemeColorMeta();
   }, []);
 
   const current = OPTIONS.find((o) => o.value === pref) ?? OPTIONS[1];

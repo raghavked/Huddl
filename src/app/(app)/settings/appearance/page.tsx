@@ -4,11 +4,19 @@ import { useEffect, useState } from "react";
 import { RotateCcw, Type } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button, Card, PageHeader, SectionHeader } from "@/components/ui";
+import {
+  applyScheme,
+  readScheme,
+  SCHEME_DEFAULT,
+  SCHEMES,
+  type HearthId,
+  type SchemePreview,
+} from "@/lib/theme-schemes";
 import { cn } from "@/lib/utils";
 
-/* Appearance: the theme and the type size, kept on this device.
+/* Appearance: the theme, the colours, and the type size, kept on this device.
  *
- * Two preferences, two mechanisms, and they deliberately stay separate:
+ * Three preferences, three mechanisms, and they deliberately stay separate:
  *
  *   THEME is already solved. `@/components/theme-toggle` owns the
  *   "hearth-theme" key, stamps `data-theme` on the document root, and keeps
@@ -16,6 +24,13 @@ import { cn } from "@/lib/utils";
  *   replays it before first paint so nobody sees a flash of cream. This page
  *   reuses that control rather than growing a second one that could drift out
  *   of sync with it.
+ *
+ *   THE COLOUR SCHEME works the same way one attribute over:
+ *   `@/lib/theme-schemes` owns the "hearth-scheme" key and `data-scheme`,
+ *   the boot script replays it, and the scheme blocks at the bottom of
+ *   globals.css do the actual painting. A hearth is a sibling of the theme,
+ *   not a theme: every scheme has a light and a dark half and the two
+ *   choices compose.
  *
  *   TYPE SIZE is this page's own. The scale is stored under
  *   "hearth-text-size" and applied by stamping `--hearth-text-scale` and a
@@ -103,16 +118,83 @@ function nameForScale(scale: number): string {
   return STEPS.find((step) => sameScale(step.scale, scale))?.name ?? "Custom";
 }
 
+/* --------------------------------- colours -------------------------------- */
+
+/**
+ * The appearance actually in effect, so the scheme cards can preview in it:
+ * choosing dark first shows eight dark hearths rather than eight light ones
+ * you would have to imagine inverted. Watches both inputs that can change
+ * it: the device preference, and the theme toggle two cards up (via the
+ * `data-theme` attribute it stamps).
+ */
+function useResolvedScheme(): "light" | "dark" {
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const compute = () => {
+      const pinned = document.documentElement.dataset.theme;
+      setDark(pinned === "dark" || (pinned !== "light" && media.matches));
+    };
+    compute();
+    media.addEventListener("change", compute);
+    const observer = new MutationObserver(compute);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => {
+      media.removeEventListener("change", compute);
+      observer.disconnect();
+    };
+  }, []);
+  return dark ? "dark" : "light";
+}
+
+/**
+ * The same miniature screen the native picker draws: that hearth's page,
+ * brand dot, a line of ink and a line of muted, painted in literal hexes
+ * because a card previews a scheme that is not the one currently applied.
+ */
+function SchemePane({ preview }: { preview: SchemePreview }) {
+  return (
+    <span
+      aria-hidden
+      className="flex h-12 overflow-hidden rounded-xl border border-border"
+    >
+      <span
+        className="flex flex-1 flex-col justify-end gap-[3px] px-[7px] pb-2"
+        style={{ backgroundColor: preview.background }}
+      >
+        <span
+          className="mb-[3px] size-[11px] rounded-full"
+          style={{ backgroundColor: preview.brand }}
+        />
+        <span
+          className="h-[5px] w-[82%] rounded-full"
+          style={{ backgroundColor: preview.foreground }}
+        />
+        <span
+          className="h-1 w-[52%] rounded-full"
+          style={{ backgroundColor: preview.muted }}
+        />
+      </span>
+    </span>
+  );
+}
+
 /* --------------------------------- page ---------------------------------- */
 
 export default function AppearanceSettingsPage() {
-  // Render the neutral default on the server, then sync after mount.
+  // Render the neutral defaults on the server, then sync after mount.
   const [scale, setScale] = useState(SCALE_DEFAULT);
+  const [scheme, setScheme] = useState<HearthId>(SCHEME_DEFAULT);
+  const resolved = useResolvedScheme();
 
   useEffect(() => {
     const stored = readScale();
     setScale(stored);
     applyScale(stored);
+    setScheme(readScheme());
   }, []);
 
   function chooseScale(next: number) {
@@ -121,7 +203,14 @@ export default function AppearanceSettingsPage() {
     applyScale(safe);
   }
 
+  function chooseScheme(next: HearthId) {
+    setScheme(next);
+    applyScheme(next);
+  }
+
   const isDefault = sameScale(scale, SCALE_DEFAULT);
+  const currentScheme =
+    SCHEMES.find((option) => option.id === scheme) ?? SCHEMES[0];
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 md:py-10">
@@ -129,7 +218,7 @@ export default function AppearanceSettingsPage() {
         backHref="/settings"
         backLabel="Settings"
         title="Appearance"
-        description="How Hearth looks on this device: the theme and the size of the type."
+        description="How Hearth looks on this device: the theme, the colours, and the size of the type."
       />
 
       <section aria-label="Theme" className="mt-8">
@@ -147,6 +236,52 @@ export default function AppearanceSettingsPage() {
             <ThemeToggle className="shrink-0" />
           </div>
         </Card>
+      </section>
+
+      <section aria-label="Colours" className="mt-8">
+        <SectionHeader title="Colours" />
+
+        <div
+          role="radiogroup"
+          aria-label="Colours"
+          className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4"
+        >
+          {SCHEMES.map((option) => {
+            const selected = scheme === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                aria-label={`${option.label} colours, ${option.hint}`}
+                onClick={() => chooseScheme(option.id)}
+                /* Same idiom as the native picker: the ring lives outside the
+                   card, so selecting never nudges layout. */
+                className={cn(
+                  "rounded-[23px] border-2 p-[3px] text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                  selected ? "border-brand" : "border-transparent"
+                )}
+              >
+                <span className="flex flex-col gap-1.5 rounded-card border border-border bg-surface p-1.5 shadow-soft">
+                  <SchemePane preview={option.preview[resolved]} />
+                  <span
+                    className={cn(
+                      "block truncate text-center text-xs font-semibold",
+                      selected ? "text-brand-ink" : "text-muted"
+                    )}
+                  >
+                    {option.label}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <p aria-live="polite" className="mt-3 px-1 text-xs text-muted">
+          {`${currentScheme.label}: ${currentScheme.hint}. Every hearth has a light and a dark half, and red still means red in all of them.`}
+        </p>
       </section>
 
       <section aria-label="Text size" className="mt-8">
@@ -223,7 +358,7 @@ export default function AppearanceSettingsPage() {
       </section>
 
       <p className="mt-8 px-1 text-xs leading-relaxed text-muted text-pretty">
-        Both settings are saved in this browser, on this device. Signing in
+        Everything here is saved in this browser, on this device. Signing in
         somewhere else starts fresh.
       </p>
     </div>

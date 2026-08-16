@@ -27,7 +27,7 @@ const monoFont = JetBrains_Mono({
 
 const siteUrl = process.env.SITE_URL ?? "https://uhearth.app";
 const description =
-  "Hearth is one app for college life: a chat for every class you add, study sessions, note sharing, meetups, voice rooms and DMs. Verified with your university email.";
+  "Hearth is one app for college life: a chat for every class you add, study sessions, note sharing, meetups and DMs. Verified with your university email.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -67,10 +67,11 @@ export const viewport: Viewport = {
 /* Applies a stored theme override before first paint so there's no flash.
    No stored value (or "system") leaves the media query in charge. */
 // Replayed before first paint so the saved appearance never flashes: the
-// theme choice, then the text scale (every size in the app is a rem, so one
-// root font-size carries the whole ladder). Both are per-device settings.
-// See /settings/appearance.
-const themeInit = `try{var t=localStorage.getItem("hearth-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}try{var s=parseFloat(localStorage.getItem("hearth-text-size"));if(s>=0.9&&s<=1.4&&s!==1){document.documentElement.style.setProperty("--hearth-text-scale",String(s));document.documentElement.style.fontSize=Math.round(s*100)+"%"}}catch(e){}`;
+// theme choice, the colour scheme (the id list must match SCHEMES in
+// @/lib/theme-schemes; ember is the base tokens and stamps nothing), then
+// the text scale (every size in the app is a rem, so one root font-size
+// carries the whole ladder). All per-device settings. See /settings/appearance.
+const themeInit = `try{var t=localStorage.getItem("hearth-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}try{var c=localStorage.getItem("hearth-scheme");if(["aggie","rose","fern","tide","dusk","honey","slate"].indexOf(c)>=0)document.documentElement.dataset.scheme=c}catch(e){}try{var s=parseFloat(localStorage.getItem("hearth-text-size"));if(s>=0.9&&s<=1.4&&s!==1){document.documentElement.style.setProperty("--hearth-text-scale",String(s));document.documentElement.style.fontSize=Math.round(s*100)+"%"}}catch(e){}`;
 
 export default function RootLayout({
   children,

@@ -10,18 +10,27 @@ import {
   type ReactNode,
 } from "react";
 import { useColorScheme } from "react-native";
+import {
+  HEARTH_DEFAULT,
+  isHearthId,
+  type HearthId,
+} from "@/constants/theme";
 import { setHapticsEnabled } from "@/lib/haptics";
 
 /**
- * Display preferences: appearance, type size, and whether the phone taps
- * back.
+ * Display preferences: appearance, colour scheme, type size, and whether the
+ * phone taps back.
  *
- * One provider, mounted at the very top of the tree, owns all three. Everything
+ * One provider, mounted at the very top of the tree, owns them all. Everything
  * that paints reads the resolved answer from here rather than asking the
  * device directly, so an explicit light/dark choice actually sticks instead
  * of being overruled by the phone's setting.
  *
- * All three live in AsyncStorage and are read once on mount. `ready` is
+ * The hearth (which of the eight colour schemes to paint in) is a sibling of
+ * the light/dark mode, not a mode itself: every hearth has a light and a dark
+ * half, and the two choices compose. `useTheme()` is where they meet.
+ *
+ * All of these live in AsyncStorage and are read once on mount. `ready` is
  * false until that read finishes; the root layout holds the splash screen up
  * until then so a student who picked the candle-lit dark never gets a flash
  * of cream on launch.
@@ -44,6 +53,9 @@ export type DisplayState = {
   /** What the student chose. "system" defers to the device. */
   mode: DisplayMode;
   setMode: (mode: DisplayMode) => void;
+  /** Which of the eight colour schemes this phone paints in. */
+  hearth: HearthId;
+  setHearth: (hearth: HearthId) => void;
   /** Type size multiplier, always inside [TEXT_SCALE_MIN, TEXT_SCALE_MAX]. */
   textScale: number;
   setTextScale: (scale: number) => void;
@@ -88,6 +100,7 @@ export const HAPTICS_DEFAULT = true;
 /* -------------------------------- storage -------------------------------- */
 
 const MODE_KEY = "hearth.display.mode";
+const HEARTH_KEY = "hearth.display.hearth";
 const SCALE_KEY = "hearth.display.textScale";
 const HAPTICS_KEY = "hearth.display.haptics";
 
@@ -95,6 +108,12 @@ function parseMode(raw: string | null): DisplayMode {
   return raw === "light" || raw === "dark" || raw === "system"
     ? raw
     : "system";
+}
+
+/* A missing key, a scheme from a build that no longer ships it, anything
+   unrecognised: all land back on Ember rather than crashing the paint. */
+function parseHearth(raw: string | null): HearthId {
+  return isHearthId(raw) ? raw : HEARTH_DEFAULT;
 }
 
 function parseTextScale(raw: string | null): number {
@@ -122,6 +141,7 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
   const systemScheme = useColorScheme() === "dark" ? "dark" : "light";
 
   const [mode, setModeState] = useState<DisplayMode>("system");
+  const [hearth, setHearthState] = useState<HearthId>(HEARTH_DEFAULT);
   const [textScale, setTextScaleState] = useState<number>(TEXT_SCALE_DEFAULT);
   const [haptics, setHapticsState] = useState<boolean>(HAPTICS_DEFAULT);
   const [ready, setReady] = useState(false);
@@ -132,10 +152,11 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let alive = true;
-    void AsyncStorage.getMany([MODE_KEY, SCALE_KEY, HAPTICS_KEY])
+    void AsyncStorage.getMany([MODE_KEY, HEARTH_KEY, SCALE_KEY, HAPTICS_KEY])
       .then((stored) => {
         if (!alive || touched.current) return;
         setModeState(parseMode(stored[MODE_KEY] ?? null));
+        setHearthState(parseHearth(stored[HEARTH_KEY] ?? null));
         setTextScaleState(parseTextScale(stored[SCALE_KEY] ?? null));
         const wantsHaptics = parseHaptics(stored[HAPTICS_KEY] ?? null);
         setHapticsState(wantsHaptics);
@@ -159,6 +180,14 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
     touched.current = true;
     setModeState(next);
     void AsyncStorage.setItem(MODE_KEY, next).catch(() => {
+      // The choice still applies for this run; it just won't survive a relaunch.
+    });
+  }, []);
+
+  const setHearth = useCallback((next: HearthId) => {
+    touched.current = true;
+    setHearthState(next);
+    void AsyncStorage.setItem(HEARTH_KEY, next).catch(() => {
       // The choice still applies for this run; it just won't survive a relaunch.
     });
   }, []);
@@ -189,6 +218,8 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
     () => ({
       mode,
       setMode,
+      hearth,
+      setHearth,
       textScale,
       setTextScale,
       haptics,
@@ -199,6 +230,8 @@ export function DisplayProvider({ children }: { children: ReactNode }) {
     [
       mode,
       setMode,
+      hearth,
+      setHearth,
       textScale,
       setTextScale,
       haptics,
@@ -229,13 +262,15 @@ export function useDisplay(): DisplayState {
     const dropped = () => {
       if (isDev()) {
         console.warn(
-          "[display] setMode/setTextScale/setHaptics called outside <DisplayProvider>. The change was dropped."
+          "[display] a display setter was called outside <DisplayProvider>. The change was dropped."
         );
       }
     };
     return {
       mode: "system",
       setMode: dropped,
+      hearth: HEARTH_DEFAULT,
+      setHearth: dropped,
       textScale: TEXT_SCALE_DEFAULT,
       setTextScale: dropped,
       haptics: HAPTICS_DEFAULT,

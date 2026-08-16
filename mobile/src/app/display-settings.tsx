@@ -20,10 +20,12 @@ import {
   useReducedMotion,
 } from "@/components/ui";
 import {
+  HEARTHS,
+  hearthPalettes,
   motion,
-  palettes,
   radius,
   space,
+  type HearthId,
   type Palette,
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -35,15 +37,16 @@ import {
   type DisplayMode,
 } from "@/providers/display-provider";
 
-/* Look and feel: appearance, type size, and the tick you feel, all three of
-   them local to this phone. Everything here applies on the tap. There is
+/* Look and feel: appearance, colours, type size, and the tick you feel, all
+   of them local to this phone. Everything here applies on the tap. There is
    nothing to save, no server round trip, and so no loading or error state to
    render. The only read that can fail is the provider's one pass at
    AsyncStorage on launch, which answers failure with the defaults behind the
-   splash screen, so by the time this screen can be reached the three
-   preferences are known and `ready` is long since true. The whole screen is
+   splash screen, so by the time this screen can be reached the preferences
+   are known and `ready` is long since true. The whole screen is
    its own preview: choose dark and the page you are standing on goes dark
-   under your finger, switch the tick on and it ticks.
+   under your finger, pick Tide and it turns to sea glass, switch the tick on
+   and it ticks.
 
    Haptics belong here rather than under Notifications: that screen is about
    what Hearth sends you, this one is about how it comes across in your hand,
@@ -108,9 +111,13 @@ function PalettePane({ palette }: { palette: Palette }) {
   );
 }
 
-/** Light and dark get one pane; "system" gets both, split down the middle. */
+/** Light and dark get one pane; "system" gets both, split down the middle.
+    Both panes are painted in the chosen hearth, so the appearance cards keep
+    previewing the truth after the colours below have moved. */
 function ModePreview({ mode }: { mode: DisplayMode }) {
   const theme = useTheme();
+  const { hearth } = useDisplay();
+  const panes = hearthPalettes[hearth];
   return (
     <View
       // Pure decoration; the card's own label is what a screen reader needs.
@@ -125,8 +132,8 @@ function ModePreview({ mode }: { mode: DisplayMode }) {
         overflow: "hidden",
       }}
     >
-      {mode !== "dark" ? <PalettePane palette={palettes.light} /> : null}
-      {mode !== "light" ? <PalettePane palette={palettes.dark} /> : null}
+      {mode !== "dark" ? <PalettePane palette={panes.light} /> : null}
+      {mode !== "light" ? <PalettePane palette={panes.dark} /> : null}
     </View>
   );
 }
@@ -213,6 +220,75 @@ function ModeCard({
         >
           <Feather name="check" size={12} color={theme.brandFg} />
         </Animated.View>
+      </Card>
+    </Pressable>
+  );
+}
+
+/* -------------------------------- colours -------------------------------- */
+
+/**
+ * One hearth in the picker: the same miniature screen the appearance cards
+ * draw, painted in that hearth's palette for the appearance in effect, so
+ * choosing dark first shows you eight dark hearths rather than eight light
+ * ones you would have to imagine inverted.
+ */
+function HearthCard({
+  option,
+  selected,
+  onPress,
+}: {
+  option: (typeof HEARTHS)[number];
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const { resolvedScheme } = useDisplay();
+  const palette = hearthPalettes[option.id][resolvedScheme];
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityLabel={`${option.label} colours, ${option.hint}`}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        // Four to a row, and the ring lives outside the card, same as the
+        // appearance cards: selecting never nudges layout.
+        flexBasis: "22%",
+        flexGrow: 1,
+        padding: 3,
+        borderRadius: radius.card + 3,
+        borderWidth: 2,
+        borderColor: selected ? theme.brand : "transparent",
+        opacity: pressed ? 0.8 : 1,
+      })}
+    >
+      <Card padded={false} style={{ padding: space.snug, gap: space.snug }}>
+        <View
+          // Pure decoration; the pressable's own label carries the words.
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{
+            height: 48,
+            flexDirection: "row",
+            borderRadius: radius.control,
+            borderWidth: 1,
+            borderColor: theme.border,
+            overflow: "hidden",
+          }}
+        >
+          <PalettePane palette={palette} />
+        </View>
+        <AppText
+          variant="label"
+          numberOfLines={1}
+          style={{
+            textAlign: "center",
+            color: selected ? theme.brandInk : theme.muted,
+          }}
+        >
+          {option.label}
+        </AppText>
       </Card>
     </Pressable>
   );
@@ -399,8 +475,16 @@ function HapticsRow({
 export default function DisplaySettingsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { mode, setMode, textScale, setTextScale, haptics, setHaptics } =
-    useDisplay();
+  const {
+    mode,
+    setMode,
+    hearth,
+    setHearth,
+    textScale,
+    setTextScale,
+    haptics,
+    setHaptics,
+  } = useDisplay();
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -414,6 +498,15 @@ export default function DisplaySettingsScreen() {
       setMode(next);
     },
     [mode, setMode]
+  );
+
+  const chooseHearth = useCallback(
+    (next: HearthId) => {
+      if (next === hearth) return;
+      tapLight();
+      setHearth(next);
+    },
+    [hearth, setHearth]
   );
 
   const chooseScale = useCallback(
@@ -440,6 +533,8 @@ export default function DisplaySettingsScreen() {
   );
 
   const isDefaultScale = sameScale(textScale, TEXT_SCALE_DEFAULT);
+  const currentHearth =
+    HEARTHS.find((option) => option.id === hearth) ?? HEARTHS[0];
 
   return (
     <View
@@ -481,8 +576,8 @@ export default function DisplaySettingsScreen() {
         Look and feel
       </AppText>
       <AppText variant="caption" muted style={{ marginTop: space.tight }}>
-        Set the appearance, the type size, and whether Hearth taps back. All
-        three take hold the moment you tap.
+        Set the appearance, the colours, the type size, and whether Hearth
+        taps back. Everything takes hold the moment you tap.
       </AppText>
 
       <ScrollView
@@ -510,6 +605,36 @@ export default function DisplaySettingsScreen() {
         <AppText variant="caption" muted style={{ marginTop: space.room }}>
           System flips whenever your phone does. Light is the warm cream one;
           dark is the candle-lit one, made for a late library table.
+        </AppText>
+
+        <SectionLabel text="Colours" />
+
+        <View
+          accessibilityRole="radiogroup"
+          accessibilityLabel="Colours"
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: space.cosy,
+          }}
+        >
+          {HEARTHS.map((option) => (
+            <HearthCard
+              key={option.id}
+              option={option}
+              selected={hearth === option.id}
+              onPress={() => chooseHearth(option.id)}
+            />
+          ))}
+        </View>
+
+        <AppText
+          variant="caption"
+          muted
+          style={{ marginTop: space.room }}
+          accessibilityLiveRegion="polite"
+        >
+          {`${currentHearth.label}: ${currentHearth.hint}. Every hearth has a light and a dark half, and red still means red in all of them.`}
         </AppText>
 
         <SectionLabel text="Text size" />
@@ -610,7 +735,7 @@ export default function DisplaySettingsScreen() {
             muted
             style={{ textAlign: "center", maxWidth: 300 }}
           >
-            All three stay on this phone. They change how Hearth looks and
+            All of it stays on this phone. It changes how Hearth looks and
             feels to you, nothing else: not your profile, not your classes,
             not a thing anyone else sees.
           </AppText>
