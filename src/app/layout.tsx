@@ -71,7 +71,7 @@ export const viewport: Viewport = {
 // @/lib/theme-schemes; ember is the base tokens and stamps nothing), then
 // the text scale (every size in the app is a rem, so one root font-size
 // carries the whole ladder). All per-device settings. See /settings/appearance.
-const themeInit = `try{var t=localStorage.getItem("hearth-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}try{var c=localStorage.getItem("hearth-scheme");if(["aggie","rose","fern","tide","dusk","honey","slate"].indexOf(c)>=0)document.documentElement.dataset.scheme=c}catch(e){}try{var s=parseFloat(localStorage.getItem("hearth-text-size"));if(s>=0.9&&s<=1.4&&s!==1){document.documentElement.style.setProperty("--hearth-text-scale",String(s));document.documentElement.style.fontSize=Math.round(s*100)+"%"}}catch(e){}`;
+const themeInit = `try{var t=localStorage.getItem("hearth-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}try{var c=localStorage.getItem("hearth-scheme");if(["rose","peony","honey","gold","fern","tide","aggie","cobalt","slate","dusk","grape"].indexOf(c)>=0)document.documentElement.dataset.scheme=c}catch(e){}try{var s=parseFloat(localStorage.getItem("hearth-text-size"));if(s>=0.9&&s<=1.4&&s!==1){document.documentElement.style.setProperty("--hearth-text-scale",String(s));document.documentElement.style.fontSize=Math.round(s*100)+"%"}}catch(e){}`;
 
 export default function RootLayout({
   children,

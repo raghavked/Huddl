@@ -4,10 +4,10 @@ import { describe, expect, it } from "vitest";
 import { SCHEMES } from "./theme-schemes";
 
 /**
- * The eight hearths exist in three generated places: the native palettes in
+ * The hearths exist in three generated places: the native palettes in
  * mobile/src/constants/theme.ts (the source of truth), the CSS custom
  * property blocks at the bottom of src/app/globals.css, and the preview
- * hexes in ./theme-schemes.ts. All three come out of scratchpad/schemes.py,
+ * hexes in ./theme-schemes.ts. All three come out of scripts/schemes.py,
  * and every seam between them is a place a hand edit could quietly desaturate
  * one client. So this file pins:
  *

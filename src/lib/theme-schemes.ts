@@ -1,9 +1,9 @@
-/* The eight hearths, web side.
+/* The hearths, web side.
  *
  * The full palettes live in two generated places: `src/app/globals.css` holds
  * them as CSS custom properties keyed by `[data-scheme]`, and the native app
  * carries the same values in `mobile/src/constants/theme.ts`. Both come out
- * of `scratchpad/schemes.py`, which derives every scheme from Ember (same
+ * of `scripts/schemes.py`, which derives every scheme from Ember (same
  * OKLCH lightness curve, same chroma relationships, different hue families)
  * and proves the same WCAG pairs Ember passes in both appearances. A test
  * keeps all three files agreeing, so do not hand-edit a hex in any of them:
@@ -22,13 +22,17 @@
 
 export type HearthId =
   | "ember"
-  | "aggie"
   | "rose"
+  | "peony"
+  | "honey"
+  | "gold"
   | "fern"
   | "tide"
+  | "aggie"
+  | "cobalt"
+  | "slate"
   | "dusk"
-  | "honey"
-  | "slate";
+  | "grape";
 
 export const SCHEME_KEY = "hearth-scheme";
 
@@ -64,48 +68,21 @@ export const SCHEMES: {
     },
   },
   {
-    id: "aggie",
-    label: "Aggie",
-    hint: "blue and gold, go Ags",
-    preview: {
-      light: { background: "#f4f7f9", foreground: "#202427", muted: "#5c6065", brand: "#4470c4", accent: "#775b15" },
-      dark: { background: "#161819", foreground: "#e9ecf0", muted: "#a0a6ac", brand: "#6393ed", accent: "#bf9530" },
-    },
-  },
-  {
     id: "rose",
     label: "Rose",
     hint: "soft pink with red embers",
     preview: {
-      light: { background: "#fdf4f4", foreground: "#2c201f", muted: "#6d5b5a", brand: "#b64b53", accent: "#864a61" },
-      dark: { background: "#1c1615", foreground: "#f5e9e8", muted: "#b79e9d", brand: "#e26f76", accent: "#d57b9e" },
+      light: { background: "#fdf4f3", foreground: "#2c1f1f", muted: "#6e5a5a", brand: "#be414e", accent: "#8a4762" },
+      dark: { background: "#1c1515", foreground: "#f5e9e8", muted: "#b89e9d", brand: "#ec6670", accent: "#da779e" },
     },
   },
   {
-    id: "fern",
-    label: "Fern",
-    hint: "greens out of the arboretum",
+    id: "peony",
+    label: "Peony",
+    hint: "hot pink in full bloom",
     preview: {
-      light: { background: "#f5f7f4", foreground: "#22241f", muted: "#5d615a", brand: "#3b854f", accent: "#636423" },
-      dark: { background: "#171815", foreground: "#eaede8", muted: "#a2a79d", brand: "#59a36b", accent: "#a0a242" },
-    },
-  },
-  {
-    id: "tide",
-    label: "Tide",
-    hint: "sea glass and deep teal",
-    preview: {
-      light: { background: "#f3f7f8", foreground: "#1e2426", muted: "#596263", brand: "#008796", accent: "#1c6f5d" },
-      dark: { background: "#151819", foreground: "#e8edee", muted: "#9ca8aa", brand: "#00a2b2", accent: "#3bb297" },
-    },
-  },
-  {
-    id: "dusk",
-    label: "Dusk",
-    hint: "violet, just after sunset",
-    preview: {
-      light: { background: "#f7f6f9", foreground: "#242227", muted: "#615e66", brand: "#885da7", accent: "#5b598a" },
-      dark: { background: "#18171a", foreground: "#edebf0", muted: "#a6a3ae", brand: "#af81d0", accent: "#9592db" },
+      light: { background: "#fbf4f7", foreground: "#292023", muted: "#695c60", brand: "#c02f83", accent: "#714f8a" },
+      dark: { background: "#1b1618", foreground: "#f2e9ec", muted: "#b1a0a6", brand: "#ed57a9", accent: "#b582da" },
     },
   },
   {
@@ -113,8 +90,53 @@ export const SCHEMES: {
     label: "Honey",
     hint: "amber and toasted gold",
     preview: {
-      light: { background: "#fbf6ef", foreground: "#292218", muted: "#685e50", brand: "#9f6500", accent: "#85513a" },
-      dark: { background: "#1a1712", foreground: "#f2ebe2", muted: "#b1a390", brand: "#c58814", accent: "#d28663" },
+      light: { background: "#fbf6ef", foreground: "#292218", muted: "#685e50", brand: "#a66100", accent: "#884f34" },
+      dark: { background: "#1a1712", foreground: "#f2ebe2", muted: "#b1a390", brand: "#cc8400", accent: "#d8825b" },
+    },
+  },
+  {
+    id: "gold",
+    label: "Gold",
+    hint: "bold gold with blue trim",
+    preview: {
+      light: { background: "#f9f6f0", foreground: "#27231a", muted: "#655f52", brand: "#9c6900", accent: "#435f93" },
+      dark: { background: "#191713", foreground: "#efece4", muted: "#aca493", brand: "#be8b00", accent: "#719be8" },
+    },
+  },
+  {
+    id: "fern",
+    label: "Fern",
+    hint: "greens out of the arboretum",
+    preview: {
+      light: { background: "#f5f7f3", foreground: "#21241f", muted: "#5d6159", brand: "#138a41", accent: "#636418" },
+      dark: { background: "#161815", foreground: "#eaede8", muted: "#a1a79c", brand: "#3aa85d", accent: "#a1a234" },
+    },
+  },
+  {
+    id: "tide",
+    label: "Tide",
+    hint: "sea glass and deep teal",
+    preview: {
+      light: { background: "#f3f7f8", foreground: "#1e2526", muted: "#586264", brand: "#008b9f", accent: "#00725d" },
+      dark: { background: "#151819", foreground: "#e7edef", muted: "#9ba8aa", brand: "#00a3b9", accent: "#00b697" },
+    },
+  },
+  {
+    id: "aggie",
+    label: "Aggie",
+    hint: "blue and gold, go Ags",
+    preview: {
+      light: { background: "#f4f7fa", foreground: "#202428", muted: "#5b6067", brand: "#396dd3", accent: "#7b5a00" },
+      dark: { background: "#16181a", foreground: "#e9ecf1", muted: "#9ea6af", brand: "#5891fc", accent: "#c39300" },
+    },
+  },
+  {
+    id: "cobalt",
+    label: "Cobalt",
+    hint: "electric blue and cyan",
+    preview: {
+      light: { background: "#f4f7fb", foreground: "#202329", muted: "#5b6069", brand: "#4264e7", accent: "#007178" },
+      dark: { background: "#16171b", foreground: "#e9ecf2", muted: "#9ea6b1", brand: "#618bff", accent: "#00b5bf" },
     },
   },
   {
@@ -124,6 +146,24 @@ export const SCHEMES: {
     preview: {
       light: { background: "#f5f7f8", foreground: "#212426", muted: "#5c6063", brand: "#46799c", accent: "#346878" },
       dark: { background: "#161819", foreground: "#eaecee", muted: "#a0a6aa", brand: "#659bbe", accent: "#5ba8bf" },
+    },
+  },
+  {
+    id: "dusk",
+    label: "Dusk",
+    hint: "violet, just after sunset",
+    preview: {
+      light: { background: "#f7f6fa", foreground: "#242228", muted: "#615e67", brand: "#8c58af", accent: "#5b588f" },
+      dark: { background: "#18171a", foreground: "#edebf1", muted: "#a6a3af", brand: "#b37cda", accent: "#9490e2" },
+    },
+  },
+  {
+    id: "grape",
+    label: "Grape",
+    hint: "loud purple, berry bright",
+    preview: {
+      light: { background: "#f8f5fa", foreground: "#252228", muted: "#625d67", brand: "#a43dba", accent: "#8b4568" },
+      dark: { background: "#18171a", foreground: "#eeebf0", muted: "#a9a2ae", brand: "#ce63e6", accent: "#db74a8" },
     },
   },
 ];
