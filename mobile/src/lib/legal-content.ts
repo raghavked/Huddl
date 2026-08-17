@@ -183,8 +183,12 @@ export const COMMUNITY_GUIDELINES: LegalDoc = {
       body: "Attacking people for who they are has no place here: race, ethnicity, religion, gender, sexual orientation, disability, or anything else about their identity. Not in channels, not in DMs, not as a joke.",
     },
     {
+      heading: "No threats, ever",
+      body: "Never threaten anyone with violence or wish harm on them. A threat reads the same whether or not you meant it, so we treat every one the same way: the content comes down, the account goes with it, and if we believe someone is in real danger we contact campus or local authorities.",
+    },
+    {
       heading: "Be yourself",
-      body: "Use your own name or a handle your classmates know you by. Don't impersonate other students, professors, clubs, or Hearth itself, and stick to one account.",
+      body: "Use your own name or a handle your classmates know you by. Don't impersonate other students, professors, clubs, or Hearth itself, and stick to one account. If an account of yours was banned, coming back on a fresh one is not a fresh start; evading a ban just closes the new account too.",
     },
     {
       heading: "No spam or scams",
@@ -196,7 +200,7 @@ export const COMMUNITY_GUIDELINES: LegalDoc = {
     },
     {
       heading: "Take care of each other",
-      body: "If someone talks about hurting themselves, take it seriously. Report it with the self-harm category so we see it quickly, and encourage them toward campus counseling or the 988 Suicide & Crisis Lifeline, which you can call or text at 988, any time. Raising a concern never gets anyone in trouble.",
+      body: "If someone talks about hurting themselves, take it seriously. Report it with the self-harm category so we see it quickly, and encourage them toward campus counseling or the 988 Suicide & Crisis Lifeline, which you can call or text at 988, any time. Raising a concern never gets anyone in trouble. The same care applies to content: posts that glorify, encourage, or make light of suicide, self-injury, or eating disorders come down.",
     },
     {
       heading: "Keep your work honest",
@@ -208,7 +212,7 @@ export const COMMUNITY_GUIDELINES: LegalDoc = {
     },
     {
       heading: "What happens when rules break",
-      body: "Every report is read by a person. We aim to get to all of them within a day, and safety reports go to the front of the queue. Depending on what we find, we remove content, warn people, or suspend or ban accounts, and serious things like hate, threats, or sexualizing minors mean an immediate ban. We'd rather teach than punish, but we'll always protect the community first.",
+      body: "Some enforcement is automatic: slurs are flagged the moment they're posted and land in the review queue on their own (swearing never trips that filter; slurs always do). Beyond that, every report is read by a person. We aim to get to all of them within a day, and safety reports go to the front of the queue. Depending on what we find, we remove content, warn people, or suspend or ban accounts, and serious things like hate, threats, or sexualizing minors mean an immediate ban. Reporting is protected in both directions: filing false reports to pile onto a classmate is itself a violation. We'd rather teach than punish, but we'll always protect the community first.",
     },
     {
       heading: "Report it",

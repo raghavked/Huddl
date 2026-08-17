@@ -130,6 +130,42 @@ YikYak lesson).
   with `profiles.is_moderator`. Open / reviewed / dismissed with counts, the
   reported content rendered in place, and one tap through to the message, the
   profile, or the board post.
+- **Automatic slur flagging.** A database trigger normalizes every message,
+  DM, board post, and club announcement against the deny-list lexicon the
+  moment it is written and files an automatic report (category `hate`,
+  reporter NULL) into the same queue humans triage. Swearing never trips the
+  filter; slurs always do, including plural, spaced, and digit-swapped
+  disguises.
+
+### The enforcement ladder
+
+Modeled on Yik Yak's published Community Guardrails
+(yikyak.notion.site/Community-Guardrails), adapted for a network where every
+account is a verified student rather than an anonymous herd. Their mechanics
+lean on community downvotes; ours lean on identity, automatic flagging, and
+a reviewed queue. What we kept from their model: a short public rulebook in
+plain language, community reporting as the primary sensor, fast human
+review, an explicit one-strike tier, and self-harm handled as care first.
+
+| Tier | What lands here | Action |
+| --- | --- | --- |
+| One strike | Threats of violence, targeted hate or slurs at a person, sexualizing a minor, doxxing with intent | Content removed, account banned at the auth level, same day. Minors-related material is also reported to NCMEC. Credible danger goes to campus or local authorities. |
+| Suspend | Repeat harassment after a warning, ban evasion with a fresh account, organized cheating, bad-faith mass reporting | Account disabled; return only after a direct conversation. |
+| Warn + remove | First-offense pile-ons, spam bursts, reposting removed content, sexual content | Content removed, a written warning naming the guideline it broke. |
+| Educate | Everything ambiguous or first-time-minor | A message from a moderator; nothing on the record. |
+
+Working agreements for whoever holds the queue:
+
+- **Review SLA:** every report inside 24 hours; safety categories
+  (self-harm, threats, hate) reviewed first, before anything else.
+- **Self-harm reports are welfare checks, not enforcement.** Reach out with
+  campus counseling and the 988 lifeline; content that glorifies or
+  trivializes self-harm comes down, and the reporter is never named.
+- **False reports are a violation**, not noise: piling reports on a
+  classmate lands the reporters in the queue themselves.
+- **Nothing is destroyed.** Removals are soft deletes and reports keep their
+  subject after deletion, so appeals and audits can always see what
+  actually happened.
 
 ### Promoting a moderator
 
