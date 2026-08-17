@@ -14,6 +14,14 @@ import { fonts, radius, space } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/hooks/use-theme";
 
+/* Same landing as signup.tsx: the emailed link confirms at Supabase and
+   lands on the website's /confirmed page, which sends the student back
+   here. A plain page on purpose; see the comment in signup.tsx. */
+const WEB_ORIGIN = (
+  process.env.EXPO_PUBLIC_WEB_URL ?? "https://uhearth.app"
+).replace(/\/+$/, "");
+const CONFIRMED_URL = `${WEB_ORIGIN}/confirmed`;
+
 const RESEND_COOLDOWN_S = 30;
 
 export default function LoginScreen() {
@@ -123,11 +131,10 @@ export default function LoginScreen() {
     if (!address || resending || cooldown > 0) return;
     setResending(true);
     setFormError(null);
-    // No emailRedirectTo on native, exactly as in signup.tsx: the link opens
-    // the web app's /auth/confirm, and the student comes back here to log in.
     const { error: resendError } = await supabase.auth.resend({
       type: "signup",
       email: address,
+      options: { emailRedirectTo: CONFIRMED_URL },
     });
     setResending(false);
     if (resendError) {

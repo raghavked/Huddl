@@ -108,13 +108,21 @@ mailboxes, DNS, and the legal-name blanks.
   notes. Recruit 10-30 UC Davis students; the per-campus playbook in
   `docs/OPERATIONS.md` section 2 starts at "T-minus 2 weeks" and this is
   that moment.
-- [R] **Web + privacy URL**: deploy the web app (repo root is a standard
-  Next.js app; Vercel's GitHub import works as-is) with env vars
-  `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from the
-  Supabase dashboard, then point `uhearth.app` DNS at it. The App Store
-  listing requires the privacy policy URL
-  (`https://uhearth.app/legal/privacy`) to resolve. Also add
-  `https://uhearth.app` to Supabase Auth redirect URLs.
+- [R] **Web + privacy URL**: DONE for the deploy itself. The site is
+  live on Vercel (project `uhearth`, linked to the GitHub repo, so every
+  push to `main` redeploys): `https://uhearth-raghav14.vercel.app`, with
+  the Supabase env carried by `vercel.json`. Still yours to do: point
+  `uhearth.app` DNS at the Vercel project (Vercel dashboard > uhearth >
+  Domains), because the App Store listing requires
+  `https://uhearth.app/legal/privacy` to resolve.
+- [R] **Supabase Auth URLs** (dashboard > Authentication > URL
+  Configuration, 5 minutes): set Site URL to `https://uhearth.app` and
+  add BOTH `https://uhearth.app/**` and
+  `https://uhearth-raghav14.vercel.app/**` to Redirect URLs. This is
+  what lets the confirmation email land on `/confirmed` (the page that
+  tells app signups to head back to the app); until it is set, links
+  fall back to the site's front door and confirmation still works, just
+  without the friendly landing.
 - [R] **App Store Connect listing**: paste everything from
   `docs/APP_STORE.md` (name, subtitle, description, keywords, promo
   text, URLs), upload `mobile/store/screenshots/` in numeric order,

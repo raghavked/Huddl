@@ -14,6 +14,19 @@ import { fonts, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 
+/* Where the confirmation email's link lands. The website's /confirmed page
+   tells the student to come back here and log in. It must be a plain page,
+   not the web app's /auth/confirm route: this app uses the implicit flow, so
+   the link's session rides in a URL fragment that no server route ever sees
+   (the long version of this story lives in forgot-password.tsx). Supabase
+   only honours the redirect once the URL is on the Auth allowlist; until
+   then it falls back to the Site URL, which is the same website's front
+   door, so nothing breaks in the meantime. */
+const WEB_ORIGIN = (
+  process.env.EXPO_PUBLIC_WEB_URL ?? "https://uhearth.app"
+).replace(/\/+$/, "");
+const CONFIRMED_URL = `${WEB_ORIGIN}/confirmed`;
+
 /** Minimal local row shape. The web app's types live outside this tsconfig. */
 type University = {
   id: string;
@@ -99,11 +112,11 @@ export default function SignupScreen() {
 
     setPending(true);
     const { data, error: signUpError } = await supabase.auth.signUp({
-      // No emailRedirectTo on native: Supabase's confirmation link opens the
-      // web app's /auth/confirm page, which is exactly what we want: the
-      // student confirms there, then comes back here to log in.
       email: email.trim(),
       password,
+      // The emailed link confirms at Supabase, then lands on the website's
+      // /confirmed page, which points the student back here to log in.
+      options: { emailRedirectTo: CONFIRMED_URL },
     });
 
     if (signUpError) {
