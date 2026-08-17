@@ -1,5 +1,33 @@
 # Hearth development log
 
+## Round 20: a thousand students at once
+
+No code changed this round, which was the finding. A thousand simulated
+students were created on an isolated campus through the real signup
+trigger (about 250 signups a second, memberships and all) and then run
+concurrently through everything at once, in parallel database sessions
+with deliberate collisions: two hundred people posting, mentioning and
+threading in the campus rooms; four hundred enrolling across fifty
+courses with both waves aimed at the same catalog rows simultaneously;
+mirrored friend requests fired from both ends of fifty pairs at the same
+moment; the same DM threads created from both sides at once; a three-way
+syllabus war; clubs, events, RSVPs, the board, notes, decks, cards,
+grades, polls, focus sessions, a presence storm; and an abuse wave of
+twenty disguised slurs answered by thirty reports and blocks.
+
+The database held everything. Zero duplicate courses from the enrollment
+race, zero duplicate friendship pairs (all fifty mirrored requests
+correctly refused by the pair index), zero duplicate DM threads, twenty
+slur messages to exactly twenty automatic flags, and the syllabus winner
+always the version the enrolled classmates actually see, including a
+live flip to a rival version when three real classmates endorsed it.
+RLS held at scale too: non-classmates could not even see the imports
+they tried to endorse. Hot reads under load: room page 3ms, calendar
+4ms, moderation queue 5ms, the full thousand-row directory 17ms.
+
+Every trace was purged afterwards; the database ends the round holding
+exactly two accounts, the owner and the App Review sandbox.
+
 ## Round 19: the class agrees on a syllabus, notes become decks, launch blanks filled
 
 Migrations 0061 and 0062 live.
