@@ -9,12 +9,14 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
  * default for hosted Supabase auth). Either path signs the student in (sets the
  * session cookies); where they land afterwards is the interesting part.
  *
- * A brand-new account goes to onboarding, which is the whole point of the link.
- * A student coming back through a password-reset email is not new, and dropping
- * them into onboarding would ask a second-year to pick their major again, so
- * the reset email sends `?next=/reset-password` and we honour it. `type=recovery`
- * is the same signal from the OTP flow, where the link carries no `next` of its
- * own, and it lands in the same place.
+ * A brand-new account goes to /confirmed, which tells an app signup to head
+ * back to the app and hands a web signup (now holding fresh session cookies)
+ * the door into onboarding; the link cannot tell those two journeys apart, so
+ * the landing page speaks to both. A student coming back through a
+ * password-reset email is not new, and dropping them into signup's ending
+ * would be nonsense, so the reset email sends `?next=/reset-password` and we
+ * honour it. `type=recovery` is the same signal from the OTP flow, where the
+ * link carries no `next` of its own, and it lands in the same place.
  *
  * `next` is a path on this origin or it is nothing: the validation here is a
  * copy of `auth/callback/route.ts`, deliberately, because an open redirect on
@@ -66,6 +68,6 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.redirect(
-    new URL(next ?? (isRecovery ? "/reset-password" : "/onboarding"), url.origin)
+    new URL(next ?? (isRecovery ? "/reset-password" : "/confirmed"), url.origin)
   );
 }
