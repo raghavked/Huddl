@@ -15,6 +15,7 @@ type DeckQueryRow = {
   course_id: string;
   created_by: string | null;
   title: string;
+  source_note_id: string | null;
   creator: { display_name: string } | null;
   course: { code: string } | null;
 };
@@ -25,7 +26,7 @@ const getDeck = cache(async (deckId: string): Promise<DeckQueryRow | null> => {
   const { data } = await supabase
     .from("decks")
     .select(
-      "id, course_id, created_by, title, creator:profiles(display_name), course:courses(code)"
+      "id, course_id, created_by, title, source_note_id, creator:profiles(display_name), course:courses(code)"
     )
     .eq("id", deckId)
     .maybeSingle();
@@ -49,10 +50,16 @@ export async function generateMetadata({
  */
 export default async function DeckPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ deckId: string }>;
+  searchParams: Promise<{ paste?: string }>;
 }) {
-  const [{ deckId }, user] = await Promise.all([params, getCurrentUser()]);
+  const [{ deckId }, { paste }, user] = await Promise.all([
+    params,
+    searchParams,
+    getCurrentUser(),
+  ]);
   if (!user) redirect("/login");
 
   const deck = await getDeck(deckId);
@@ -81,6 +88,19 @@ export default async function DeckPage({
     reviews = (reviewRows ?? []) as DeckReviewRow[];
   }
 
+  // The note this deck was struck from (migration 0061), when there is one.
+  // A deleted note (source_note_id set, row gone) leaves the title null and
+  // the credit line simply doesn't render.
+  let sourceNoteTitle: string | null = null;
+  if (deck.source_note_id) {
+    const { data: noteRow } = await supabase
+      .from("notes")
+      .select("title")
+      .eq("id", deck.source_note_id)
+      .maybeSingle();
+    sourceNoteTitle = (noteRow as { title: string } | null)?.title ?? null;
+  }
+
   const info: DeckInfo = {
     id: deck.id,
     course_id: deck.course_id,
@@ -88,6 +108,8 @@ export default async function DeckPage({
     title: deck.title,
     creator_name: deck.creator?.display_name ?? null,
     course_code: deck.course?.code ?? null,
+    source_note_id: deck.source_note_id,
+    source_note_title: sourceNoteTitle,
   };
 
   return (
@@ -97,6 +119,7 @@ export default async function DeckPage({
         userId={user.userId}
         initialCards={cards}
         initialReviews={reviews}
+        openPaste={paste === "1"}
       />
     </div>
   );

@@ -50,6 +50,7 @@ type PushKind =
   | "thread_reply"
   | "thanks"
   | "friend"
+  | "schedule_privacy"
   | "course_calendar"
   | "event"
   | "club_post"
@@ -99,6 +100,12 @@ const PUSH_KINDS: {
     icon: "user-plus",
     label: "Friend requests",
     caption: "When someone asks to be friends, and when they say yes.",
+  },
+  {
+    kind: "schedule_privacy",
+    icon: "shield",
+    label: "Privacy notices",
+    caption: "When something you stored is accessed, and other notes about your data.",
   },
   {
     kind: "course_calendar",

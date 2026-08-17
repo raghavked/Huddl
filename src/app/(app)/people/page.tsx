@@ -60,15 +60,25 @@ export default async function PeoplePage({
   const interest = trimmed.length > 0 ? trimmed : null;
 
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("profiles")
-    .select(
-      "id, handle, display_name, avatar_url, major, grad_year, is_public, interests"
-    )
-    .eq("university_id", user.profile.university_id)
-    .order("display_name", { ascending: true });
+  const [{ data }, { data: blockRows }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select(
+        "id, handle, display_name, avatar_url, major, grad_year, is_public, interests"
+      )
+      .eq("university_id", user.profile.university_id)
+      .order("display_name", { ascending: true }),
+    // People you blocked stay off your directory, the same way the native
+    // list works. Their profile page still answers directly, on purpose.
+    supabase.from("blocks").select("blocked_id").eq("blocker_id", user.userId),
+  ]);
 
-  const rows = (data ?? []) as DirectoryRow[];
+  const blocked = new Set(
+    (blockRows ?? []).map((row) => (row as { blocked_id: string }).blocked_id)
+  );
+  const rows = ((data ?? []) as DirectoryRow[]).filter(
+    (p) => !blocked.has(p.id)
+  );
   const matching =
     interest === null
       ? rows

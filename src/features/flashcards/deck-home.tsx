@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Check,
   ChevronLeft,
@@ -56,6 +57,14 @@ export type DeckInfo = {
   title: string;
   creator_name: string | null;
   course_code: string | null;
+  /** The note this deck was struck from (migration 0061), if any. */
+  source_note_id: string | null;
+  /**
+   * That note's title, fetched server-side. Null when there is no source
+   * note, and also when the note has since been deleted (source_note_id set
+   * but the row gone): the credit line simply doesn't render.
+   */
+  source_note_title: string | null;
 };
 
 type ReviewsMap = Map<string, { streak: number; dueAt: Date }>;
@@ -193,11 +202,14 @@ export function DeckHome({
   userId,
   initialCards,
   initialReviews,
+  openPaste = false,
 }: {
   deck: DeckInfo;
   userId: string;
   initialCards: DeckCardRow[];
   initialReviews: DeckReviewRow[];
+  /** Arriving from "Turn into flashcards": the paste composer starts open. */
+  openPaste?: boolean;
 }) {
   const [cards, setCards] = useState<DeckCardRow[]>(initialCards);
   const [reviews, setReviews] = useState<ReviewsMap>(
@@ -222,8 +234,11 @@ export function DeckHome({
   const [sessionError, setSessionError] = useState<string | null>(null);
 
   // The card forms: one card at a time, or a whole pasted stack. Both stay
-  // tucked behind their buttons until needed.
-  const [composer, setComposer] = useState<Composer>("none");
+  // tucked behind their buttons until needed, unless the visitor arrived
+  // through "Turn into flashcards", in which case the paste field is waiting.
+  const [composer, setComposer] = useState<Composer>(
+    openPaste ? "paste" : "none"
+  );
   const [front, setFront] = useState("");
   const [back, setBack] = useState("");
   const [adding, setAdding] = useState(false);
@@ -667,11 +682,24 @@ export function DeckHome({
         }`}
       />
 
-      <div className="mt-4 flex items-center">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-muted">
           <UserRound className="size-3" aria-hidden />
           Started by {creatorName}
         </span>
+        {/* The note this deck came from, linking back to the course's shared
+            notes. A deleted note renders nothing: no credit for a ghost. */}
+        {deck.source_note_id && deck.source_note_title ? (
+          <Link
+            href={`/courses/${deck.course_id}`}
+            className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <FileText className="size-3 shrink-0" aria-hidden />
+            <span className="truncate">
+              From the notes: {deck.source_note_title}
+            </span>
+          </Link>
+        ) : null}
       </div>
 
       <div className="mt-6">

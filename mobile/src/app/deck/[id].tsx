@@ -30,6 +30,8 @@ type DeckRow = {
   course_id: string;
   created_by: string | null;
   title: string;
+  /** The note this deck was struck from (migration 0061), if any. */
+  source_note_id: string | null;
   creator: { display_name: string } | null;
   course: { code: string } | null;
 };
@@ -130,19 +132,23 @@ export default function DeckHomeScreen() {
   const insets = useSafeAreaInsets();
   const { session, ready } = useAuth();
   const userId = session?.user.id ?? null;
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, paste } = useLocalSearchParams<{ id: string; paste?: string }>();
   const deckId = id ?? "";
 
   const [status, setStatus] = useState<Status>("loading");
   const [deck, setDeck] = useState<DeckRow | null>(null);
+  /* The source note's title, when the deck has one. Null covers "no source
+     note" and "the note has since been deleted" alike: nothing renders. */
+  const [sourceNoteTitle, setSourceNoteTitle] = useState<string | null>(null);
   const [cards, setCards] = useState<CardRow[]>([]);
   const [reviews, setReviews] = useState<Map<string, { dueAt: Date }>>(new Map());
   const [refreshing, setRefreshing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   // The composer: closed, the single add-card form, or the paste-cards field.
+  // Arriving through "Turn into flashcards" opens the paste field straight away.
   const [composer, setComposer] = useState<"closed" | "single" | "paste">(
-    "closed"
+    paste === "1" ? "paste" : "closed"
   );
   const [front, setFront] = useState("");
   const [back, setBack] = useState("");
@@ -182,7 +188,7 @@ export default function DeckHomeScreen() {
       supabase
         .from("decks")
         .select(
-          "id, course_id, created_by, title, creator:profiles(display_name), course:courses(code)"
+          "id, course_id, created_by, title, source_note_id, creator:profiles(display_name), course:courses(code)"
         )
         .eq("id", deckId)
         .maybeSingle(),
@@ -225,7 +231,22 @@ export default function DeckHomeScreen() {
         reviewMap.set(row.card_id, { dueAt: new Date(row.due_at) });
       }
     }
+    /* The note this deck was struck from, when there is one. Best-effort: a
+       deleted note (source_note_id set, row gone) or a hiccup on this probe
+       leaves the title null, and the credit line simply doesn't render. */
+    let noteTitle: string | null = null;
+    if (deckRow.source_note_id) {
+      const noteRes = await supabase
+        .from("notes")
+        .select("title")
+        .eq("id", deckRow.source_note_id)
+        .maybeSingle();
+      if (!noteRes.error && noteRes.data) {
+        noteTitle = (noteRes.data as { title: string }).title;
+      }
+    }
     setDeck(deckRow);
+    setSourceNoteTitle(noteTitle);
     setCards(cardRows);
     setReviews(reviewMap);
     setStatus("ready");
@@ -785,6 +806,51 @@ export default function DeckHomeScreen() {
                   </AppText>
                 </View>
               </View>
+              {/* The note this deck came from, linking back to the course's
+                  shared notes. A deleted note renders nothing. */}
+              {deck.source_note_id && sourceNoteTitle ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`From the notes: ${sourceNoteTitle}. Open the shared notes`}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/course/notes",
+                      params: deck.course
+                        ? {
+                            courseId: deck.course_id,
+                            courseCode: deck.course.code,
+                          }
+                        : { courseId: deck.course_id },
+                    })
+                  }
+                  style={({ pressed }) => ({
+                    alignSelf: "flex-start",
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: space.snug,
+                      paddingHorizontal: space.room,
+                      paddingVertical: space.tight,
+                      borderRadius: radius.full,
+                      backgroundColor: theme.surface2,
+                    }}
+                  >
+                    <Feather name="file-text" size={11} color={theme.muted} />
+                    <AppText
+                      variant="label"
+                      muted
+                      numberOfLines={1}
+                      style={{ fontSize: 11, lineHeight: 14 }}
+                    >
+                      From the notes: {sourceNoteTitle}
+                    </AppText>
+                  </View>
+                </Pressable>
+              ) : null}
             </View>
 
             {/* A deck with cards in it is always studyable. The schedule is

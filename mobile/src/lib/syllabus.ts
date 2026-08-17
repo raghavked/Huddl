@@ -1,7 +1,17 @@
-/* Syllabus parsing: pure, dependency-free, and entirely on-device.
-   A pasted syllabus never leaves the phone: we scan it line by line with
+/* Syllabus parsing and consensus.
+
+   PARSING is pure, dependency-free, and entirely on-device. A pasted
+   syllabus never leaves the phone: we scan it line by line with
    deterministic heuristics, and only the dates the student confirms are
-   written to the shared class calendar. No network, no React, no AI. */
+   written to the shared class calendar. No network, no React, no AI in
+   any of the parse helpers.
+
+   CONSENSUS is the one part of this module that talks to Supabase, and it
+   lives in the clearly-marked I/O section at the bottom of the file: which
+   syllabus versions a course has, who confirms which one, and the winning
+   import the calendar's own read policy already honours. */
+
+import { supabase } from "@/lib/supabase";
 
 export type CalendarKind =
   | "assignment"
@@ -275,7 +285,9 @@ export function parseSyllabus(
 }
 
 /** Map confirmed items to course_calendar_items insert rows (source
-    'syllabus'). Callers add `created_by`. See CalendarInsertRow. */
+    'syllabus'). Callers add `created_by` and, since migration 0061, the
+    `import_id` of the syllabus_imports row the paste belongs to. See
+    CalendarInsertRow. */
 export function toCalendarRows(
   items: ParsedItem[],
   courseId: string
@@ -287,4 +299,346 @@ export function toCalendarRows(
     due_at: item.dueAt.toISOString(),
     source: "syllabus" as const,
   }));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CONSENSUS: THE I/O SECTION. Everything above this line is pure parsing
+   and never touches the network. Everything below talks to Supabase, in
+   the same shape as `@/lib/reminders`: queries, narrowing, and failures
+   that arrive as a {@link SyllabusError} whose message is warm, specific,
+   and safe to drop straight into an inline error.
+
+   The database (migration 0061) carries the whole mechanism:
+
+   · `course_calendar_items.import_id` remembers which import a date came
+     from; hand-added dates carry null and always show.
+   · THE CALENDAR'S OWN READ POLICY already filters imported items to the
+     winning import: most endorsements, earliest import as the tiebreak.
+     Clients never pick the winner themselves; every existing calendar,
+     plan, and home query is already correct. {@link winningImportId} only
+     exists so a screen can point its endorse control at the version the
+     class is currently seeing.
+   · `syllabus_endorsements` is keyed `(import_id, user_id)`: one voice per
+     classmate per version. Importing endorses your own version via a
+     trigger, so a fresh paste starts with its author's confirmation.
+   · An importer can DELETE their own `syllabus_imports` row, and the
+     cascade takes its items with it, along with anything classmates
+     checked off or set reminders on. That is what "withdraw" means, and
+     why {@link withdrawImport}'s confirm copy says so out loud.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ══════════════════════════ consensus shapes ════════════════════════ */
+
+/** The importer behind one version, just enough to say whose paste it is. */
+export type SyllabusImporter = {
+  /** Their handle, without the leading `@`. */
+  handle: string;
+  /** Their display name, falling back to their handle if it's blank. */
+  display_name: string;
+};
+
+/** One syllabus version a course has, with the class's read on it. */
+export type SyllabusImport = {
+  /** `syllabus_imports.id`. What endorse and withdraw take. */
+  id: string;
+  /** The course this version belongs to. */
+  course_id: string;
+  /** `profiles.id` of the importer. Compare against your own uid to know
+      whether "Withdraw my import" is yours to offer. */
+  user_id: string;
+  /** How many dates the paste produced. */
+  item_count: number;
+  /** ISO timestamp of the paste. Earliest wins ties. */
+  created_at: string;
+  /** How many classmates say this matches their syllabus, importer included. */
+  endorsement_count: number;
+  /** Whether the signed-in student is one of them. */
+  endorsed_by_me: boolean;
+  /** Who pasted it, or null when their profile isn't readable. */
+  importer: SyllabusImporter | null;
+};
+
+/* ══════════════════════════ consensus failures ══════════════════════ */
+
+/**
+ * A consensus failure with a message written for a person, not a log. Show
+ * `err.message` directly in your inline error. It never leaks SQL, ids, or
+ * PostgREST codes.
+ */
+export class SyllabusError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SyllabusError";
+  }
+}
+
+/** What an RLS refusal actually means here: not enrolled in the course. */
+const ENROLL_FIRST =
+  "Add this class to your courses first, then you can weigh in on its syllabus.";
+
+const LOAD_FAILED =
+  "We couldn't check the syllabus versions. Give it another go.";
+
+const ENDORSE_FAILED = "That didn't save. Give it another tap.";
+
+const UNENDORSE_FAILED =
+  "We couldn't take that back just now. Give it another tap.";
+
+const WITHDRAW_FAILED =
+  "We couldn't withdraw that import. Give it another try.";
+
+/** PostgREST's code for "row-level security policy said no". */
+const RLS_DENIED = "42501";
+
+/** PostgREST's code for a unique-key collision. */
+const DUPLICATE_KEY = "23505";
+
+/** Read a PostgREST error's `code` without trusting the client's typing. */
+function errorCode(raw: unknown): string {
+  if (typeof raw !== "object" || raw === null) return "";
+  const code = (raw as { code?: unknown }).code;
+  return typeof code === "string" ? code : "";
+}
+
+/**
+ * True when a failure is the enrolment guard rather than a real fault. Also
+ * matches on the message, because a refusal that surfaces through a trigger
+ * or a definer function doesn't always carry the code.
+ */
+function isEnrollmentRefusal(raw: unknown): boolean {
+  if (errorCode(raw) === RLS_DENIED) return true;
+  const message =
+    typeof raw === "object" && raw !== null
+      ? String((raw as { message?: unknown }).message ?? "")
+      : "";
+  return message.toLowerCase().includes("row-level security");
+}
+
+/* ══════════════════════════ consensus narrowing ═════════════════════ */
+
+/** A trimmed string, or null when it's missing, blank, or the wrong type. */
+function optionalText(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+/**
+ * An embedded relation comes back as an object OR a one-element array
+ * depending on how PostgREST resolves it, so unwrap both to a plain record.
+ * Same defence as `@/lib/reminders` and `@/lib/friends`.
+ */
+function embedded(raw: unknown): Record<string, unknown> | null {
+  const value: unknown = Array.isArray(raw) ? raw[0] : raw;
+  if (typeof value !== "object" || value === null) return null;
+  return value as Record<string, unknown>;
+}
+
+/** Columns every imports read selects, embeds included. Keep it consistent. */
+const IMPORT_SELECT =
+  "id, course_id, user_id, item_count, created_at, " +
+  "importer:profiles!syllabus_imports_user_id_fkey(handle, display_name), " +
+  "endorsements:syllabus_endorsements(user_id)";
+
+/**
+ * Narrow one `syllabus_imports` row (with its embeds) into a
+ * {@link SyllabusImport}. Returns null when the row is missing an id, its
+ * course, its importer's uid, or a timestamp: a version we can't describe is
+ * worse than one the screen quietly skips.
+ */
+function toSyllabusImport(raw: unknown, myUserId: string): SyllabusImport | null {
+  const record = embedded(raw);
+  if (!record) return null;
+
+  const id = optionalText(record["id"]);
+  const courseId = optionalText(record["course_id"]);
+  const userId = optionalText(record["user_id"]);
+  const createdAt = optionalText(record["created_at"]);
+  if (id === null || courseId === null || userId === null || createdAt === null) {
+    return null;
+  }
+
+  // `item_count` is an integer, but PostgREST has handed numerics back as
+  // strings before, so a numeric string is accepted rather than thrown away.
+  const rawCount = record["item_count"];
+  const count = typeof rawCount === "string" ? Number(rawCount) : rawCount;
+
+  const importerRecord = embedded(record["importer"]);
+  const handle = importerRecord ? optionalText(importerRecord["handle"]) : null;
+  const displayName = importerRecord
+    ? optionalText(importerRecord["display_name"])
+    : null;
+
+  const rawEndorsements = record["endorsements"];
+  const endorsements = Array.isArray(rawEndorsements) ? rawEndorsements : [];
+  let endorsementCount = 0;
+  let endorsedByMe = false;
+  for (const row of endorsements) {
+    const endorser = embedded(row);
+    const endorserId = endorser ? optionalText(endorser["user_id"]) : null;
+    if (endorserId === null) continue;
+    endorsementCount += 1;
+    if (endorserId === myUserId) endorsedByMe = true;
+  }
+
+  return {
+    id,
+    course_id: courseId,
+    user_id: userId,
+    item_count:
+      typeof count === "number" && Number.isFinite(count) ? Math.trunc(count) : 0,
+    created_at: createdAt,
+    endorsement_count: endorsementCount,
+    endorsed_by_me: endorsedByMe,
+    importer:
+      handle === null ? null : { handle, display_name: displayName ?? handle },
+  };
+}
+
+/* ══════════════════════════════ auth ════════════════════════════════ */
+
+/**
+ * The caller's `profiles.id`, read from the stored session (no network hop,
+ * since supabase-js refreshes the token itself when it's stale).
+ *
+ * @throws {SyllabusError} When nobody's signed in.
+ */
+async function requireUserId(): Promise<string> {
+  const { data, error } = await supabase.auth.getSession();
+  const id = data.session?.user.id;
+  if (error || typeof id !== "string" || id.length === 0) {
+    throw new SyllabusError("Sign in again to weigh in on the syllabus.");
+  }
+  return id;
+}
+
+/* ══════════════════════════════ reads ═══════════════════════════════ */
+
+/**
+ * Every syllabus version a course has, oldest paste first, each carrying its
+ * endorsement count, whether the signed-in student endorsed it, and who
+ * imported it.
+ *
+ * One query for a whole screen: the imports, their endorsements, and the
+ * importer profiles all arrive in a single select. An empty array means the
+ * course has no imports at all, which is also the answer a brand-new course
+ * gives, so callers can key "does this class already have a syllabus
+ * calendar?" off `length > 0`.
+ *
+ * The ORDER here is import order, NOT the class's preference. Which version
+ * the calendar shows is the read policy's call; ask {@link winningImportId}
+ * when you need to point at it.
+ *
+ * @param courseId `courses.id` to list versions for.
+ * @throws {SyllabusError} With copy that's ready to render.
+ */
+export async function listSyllabusImports(
+  courseId: string
+): Promise<SyllabusImport[]> {
+  const userId = await requireUserId();
+
+  const { data, error } = await supabase
+    .from("syllabus_imports")
+    .select(IMPORT_SELECT)
+    .eq("course_id", courseId)
+    .order("created_at", { ascending: true });
+  if (error) throw new SyllabusError(LOAD_FAILED);
+
+  const imports: SyllabusImport[] = [];
+  for (const row of Array.isArray(data) ? data : []) {
+    const version = toSyllabusImport(row, userId);
+    if (version) imports.push(version);
+  }
+  return imports;
+}
+
+/**
+ * The import the class calendar is currently showing, via the
+ * `winning_syllabus_import` RPC: most endorsements, earliest paste as the
+ * tiebreak. Null when the course has no imports.
+ *
+ * This is the same function the read policy calls, so the answer can never
+ * disagree with the items on screen.
+ *
+ * @param courseId `courses.id` to ask about.
+ * @throws {SyllabusError} With copy that's ready to render.
+ */
+export async function winningImportId(courseId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("winning_syllabus_import", {
+    p_course_id: courseId,
+  });
+  if (error) throw new SyllabusError(LOAD_FAILED);
+  return typeof data === "string" && data.length > 0 ? data : null;
+}
+
+/* ══════════════════════════════ writes ══════════════════════════════ */
+
+/**
+ * Say one version matches your copy of the syllabus.
+ *
+ * The primary key is `(import_id, user_id)`, so saying it twice is harmless:
+ * a duplicate lands as a quiet success, because the intent ("this one's
+ * right") already holds. Endorsements move the winner, so refetch the
+ * calendar after this lands: the class's version may just have flipped.
+ *
+ * @param importId `syllabus_imports.id` to confirm. You must be enrolled in
+ *   its course, or you get the enrolment nudge back.
+ * @throws {SyllabusError} With copy that's ready to render.
+ */
+export async function endorseImport(importId: string): Promise<void> {
+  const userId = await requireUserId();
+
+  const { error } = await supabase
+    .from("syllabus_endorsements")
+    .insert({ import_id: importId, user_id: userId });
+  if (error) {
+    if (errorCode(error) === DUPLICATE_KEY) return; // already said so
+    if (isEnrollmentRefusal(error)) throw new SyllabusError(ENROLL_FIRST);
+    throw new SyllabusError(ENDORSE_FAILED);
+  }
+}
+
+/**
+ * Take your endorsement back off one version.
+ *
+ * Taking back an endorsement that isn't there quietly succeeds: the intent
+ * already holds, and a second tap on a stale screen shouldn't produce an
+ * error. Scoped to `user_id` explicitly as well as by RLS; never rely on a
+ * policy alone to scope a "mine" write.
+ *
+ * @param importId `syllabus_imports.id` to stop confirming.
+ * @throws {SyllabusError} With copy that's ready to render.
+ */
+export async function unendorseImport(importId: string): Promise<void> {
+  const userId = await requireUserId();
+
+  const { error } = await supabase
+    .from("syllabus_endorsements")
+    .delete()
+    .eq("import_id", importId)
+    .eq("user_id", userId);
+  if (error) throw new SyllabusError(UNENDORSE_FAILED);
+}
+
+/**
+ * Withdraw your own import. The cascade takes its calendar items with it,
+ * along with anything classmates checked off or set reminders on, so the
+ * screen offering this MUST confirm first with exactly that warning.
+ *
+ * Only the importer can do this (the delete policy is
+ * `user_id = auth.uid()`), and the write filters on `user_id` explicitly as
+ * well, so a stale id can only ever remove your own row.
+ *
+ * @param importId Your own `syllabus_imports.id`.
+ * @throws {SyllabusError} With copy that's ready to render.
+ */
+export async function withdrawImport(importId: string): Promise<void> {
+  const userId = await requireUserId();
+
+  const { error } = await supabase
+    .from("syllabus_imports")
+    .delete()
+    .eq("id", importId)
+    .eq("user_id", userId);
+  if (error) throw new SyllabusError(WITHDRAW_FAILED);
 }

@@ -41,7 +41,18 @@ import {
   type LeadChoice,
   type Reminder,
 } from "@/lib/reminders";
-import { CALENDAR_KINDS, kindLabel, type CalendarKind } from "@/lib/syllabus";
+import {
+  CALENDAR_KINDS,
+  SyllabusError,
+  endorseImport,
+  kindLabel,
+  listSyllabusImports,
+  unendorseImport,
+  winningImportId,
+  withdrawImport,
+  type CalendarKind,
+  type SyllabusImport,
+} from "@/lib/syllabus";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -211,6 +222,14 @@ export default function ClassCalendarScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Which syllabus versions this course has and which one the calendar is
+  // showing. Empty means no imports, and also stands in when the check
+  // hiccups: a consensus outage is not a calendar outage, so the month
+  // still draws and the controls simply stay away.
+  const [imports, setImports] = useState<SyllabusImport[]>([]);
+  const [winnerId, setWinnerId] = useState<string | null>(null);
+  const [consensusPending, setConsensusPending] = useState(false);
+
   // Your own reminders, keyed by item. Absent from the map IS "no reminder".
   const [reminders, setReminders] = useState<Map<string, Reminder>>(new Map());
   const [remindersError, setRemindersError] = useState<string | null>(null);
@@ -245,6 +264,16 @@ export default function ClassCalendarScreen() {
       setStatus("error");
       return;
     }
+    // The syllabus versions ride beside the items rather than after them.
+    // The read policy already filters items to the winning import; this
+    // pair only exists so the endorse control can point at that version.
+    const consensusInFlight = Promise.all([
+      listSyllabusImports(courseId),
+      winningImportId(courseId),
+    ]).then(
+      ([list, winner]) => ({ list, winner }),
+      () => null
+    );
     const { data, error } = await supabase
       .from("course_calendar_items")
       .select(ITEM_SELECT)
@@ -289,6 +318,11 @@ export default function ClassCalendarScreen() {
       setChecked(new Set());
       setReminders(new Map());
       setRemindersError(null);
+    }
+    const consensus = await consensusInFlight;
+    if (consensus) {
+      setImports(consensus.list);
+      setWinnerId(consensus.winner);
     }
     setStatus("ready");
   }, [userId, courseId]);
@@ -487,6 +521,90 @@ export default function ClassCalendarScreen() {
     },
     [userId, deleteItem]
   );
+
+  /* ----------------------- syllabus consensus ------------------------ */
+
+  // The version the class calendar is currently showing. The RPC is the
+  // same function the read policy calls, so this can't disagree with the
+  // items on screen; the earliest import stands in if the id ever goes
+  // missing, since earliest is the database's own tiebreak.
+  const winningImport = useMemo(() => {
+    if (imports.length === 0) return null;
+    return imports.find((row) => row.id === winnerId) ?? imports[0] ?? null;
+  }, [imports, winnerId]);
+
+  // The viewer's own import, if they pasted one: what "Withdraw" removes.
+  const myImport = useMemo(
+    () => imports.find((row) => row.user_id === userId) ?? null,
+    [imports, userId]
+  );
+
+  /** Say a version matches your syllabus, or take that back. Any listed
+      version can be endorsed, not just the one currently showing, or the
+      vote would only ever re-elect the incumbent. Endorsements decide the
+      winner, so the whole calendar refetches after: the class's version
+      may just have flipped. */
+  const toggleEndorse = useCallback(
+    async (target: SyllabusImport) => {
+      if (consensusPending) return;
+      setConsensusPending(true);
+      setActionError(null);
+      tapLight();
+      try {
+        if (target.endorsed_by_me) {
+          await unendorseImport(target.id);
+        } else {
+          await endorseImport(target.id);
+        }
+        await load();
+      } catch (err) {
+        setActionError(
+          err instanceof SyllabusError
+            ? err.message
+            : "That didn't save. Give it another tap."
+        );
+      } finally {
+        setConsensusPending(false);
+      }
+    },
+    [consensusPending, load]
+  );
+
+  const withdrawMine = useCallback(async () => {
+    if (!myImport || consensusPending) return;
+    setConsensusPending(true);
+    setActionError(null);
+    try {
+      await withdrawImport(myImport.id);
+      // Withdrawing can hand the calendar to another version, so refetch
+      // rather than guessing which rows just went with it.
+      await load();
+    } catch (err) {
+      setActionError(
+        err instanceof SyllabusError
+          ? err.message
+          : "We couldn't withdraw that import. Give it another try."
+      );
+    } finally {
+      setConsensusPending(false);
+    }
+  }, [myImport, consensusPending, load]);
+
+  const confirmWithdraw = useCallback(() => {
+    if (!myImport) return;
+    Alert.alert(
+      "Withdraw my import?",
+      "Its dates come off the class calendar, along with anything classmates checked off or set reminders on.",
+      [
+        { text: "Keep it", style: "cancel" },
+        {
+          text: "Withdraw",
+          style: "destructive",
+          onPress: () => void withdrawMine(),
+        },
+      ]
+    );
+  }, [myImport, withdrawMine]);
 
   /* --------------------------- add a date ---------------------------- */
 
@@ -909,8 +1027,108 @@ export default function ClassCalendarScreen() {
     />
   );
 
+  /* ---------------------- the consensus header ------------------------ */
+
+  // One import: just the quiet toggle, since there's nothing to choose
+  // between. Two or more: the banner says plainly how the calendar picks,
+  // and the importer gets their way out.
+  const endorseChipFor = (target: SyllabusImport) => (
+    <Chip
+      label={
+        target.endorsed_by_me
+          ? "Matches your syllabus"
+          : "This matches my syllabus"
+      }
+      icon="check"
+      size="md"
+      selected={target.endorsed_by_me}
+      accessibilityLabel={
+        target.endorsed_by_me
+          ? "Matches your syllabus. Tap to take it back"
+          : "This matches my syllabus"
+      }
+      onPress={() => void toggleEndorse(target)}
+    />
+  );
+
+  const endorseChip = winningImport ? endorseChipFor(winningImport) : null;
+
+  const consensusHeader =
+    winningImport === null ? null : imports.length >= 2 ? (
+      <Card style={{ gap: space.close, marginBottom: space.card }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-start",
+            gap: space.cosy,
+          }}
+        >
+          <Feather
+            name="layers"
+            size={15}
+            color={theme.muted}
+            style={{ marginTop: 1 }}
+          />
+          <AppText variant="caption" muted style={{ flex: 1 }}>
+            {imports.length} syllabus versions were imported. Hearth shows
+            the one most classmates confirm.
+          </AppText>
+        </View>
+        {imports.map((version) => (
+          <View
+            key={version.id}
+            style={{ gap: space.snug }}
+            accessibilityLabel={`Version from ${
+              version.importer?.display_name ?? "a classmate"
+            }, ${version.endorsement_count} confirm${
+              version.id === winningImport?.id ? ", showing now" : ""
+            }`}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.cosy,
+              }}
+            >
+              <AppText variant="caption" muted style={{ flex: 1 }}>
+                {`${version.importer?.display_name ?? "A classmate"}'s version · ${
+                  version.endorsement_count
+                } confirm`}
+              </AppText>
+              {version.id === winningImport?.id ? (
+                <Chip label="Showing" size="sm" tone="brand" />
+              ) : null}
+            </View>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: space.cosy,
+              }}
+            >
+              {endorseChipFor(version)}
+              {version.user_id === userId ? (
+                <Chip
+                  label="Withdraw my import"
+                  icon="corner-up-left"
+                  size="md"
+                  onPress={confirmWithdraw}
+                />
+              ) : null}
+            </View>
+          </View>
+        ))}
+      </Card>
+    ) : (
+      <View style={{ flexDirection: "row", marginBottom: space.card }}>
+        {endorseChip}
+      </View>
+    );
+
   const listHeader = (
     <View>
+      {consensusHeader}
       {addForm}
       {actionError ? (
         <AppText

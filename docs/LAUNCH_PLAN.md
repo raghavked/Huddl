@@ -39,11 +39,10 @@ mailboxes, DNS, and the legal-name blanks.
   because everything else queues behind it. (Individual shows your legal
   name on the store page; the sole-proprietor decision is recorded in
   `docs/COMPLIANCE.md`.)
-- [R] **Fill the legal blanks.** Grep for `[FULL LEGAL NAME]` and
-  `[ADDRESS]` in `mobile/src/lib/legal-content.ts` (3 spots) and the
-  word-identical mirror `src/app/legal/content.ts`, plus `[STATE]` and
-  `[COUNTY, STATE]` for governing law. The parity test will fail if the
-  two files drift, which is the point.
+- ~~Fill the legal blanks~~ **DONE 2026-08-16**: the legal documents now
+  name Raghav Kedia, doing business as Hearth, 625 Cantrill Dr, Apt 345,
+  Davis, CA 95618, governed by California law with venue in Yolo County.
+  Both files, parity-verified.
 - [R] **Mailboxes**: `hello@uhearth.app` and `dmca@uhearth.app` must
   receive mail (both are printed in the legal docs). Any forwarder works.
 - [R] **Supabase production settings** (dashboard, 15 minutes):
@@ -138,7 +137,7 @@ Everything below blocks SUBMISSION (not development), and every one is
 [R]:
 
 1. Apple Developer enrollment approved
-2. Legal name/address blanks filled in both legal-content files
+2. ~~Legal name/address blanks filled~~ DONE 2026-08-16
 3. `hello@` and `dmca@` mailboxes receiving
 4. Privacy policy URL live (web deployed + DNS)
 5. EAS build submitted to App Store Connect

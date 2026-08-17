@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Check,
   CircleAlert,
+  Layers,
   Loader2,
   Search,
   X,
@@ -29,6 +30,7 @@ import {
   type CalendarKind,
   type ParsedItem,
 } from "@/lib/syllabus";
+import { IMPORT_ANYWAY_NOTE, listSyllabusImports } from "@/lib/syllabus-consensus";
 import { cn } from "@/lib/utils";
 
 /* A parsed row the student can still shape before it ships to the class. */
@@ -63,8 +65,26 @@ export function SyllabusImport({
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [doneCount, setDoneCount] = useState<number | null>(null);
+  const [hasExistingImport, setHasExistingImport] = useState(false);
 
   const calendarHref = `/courses/${courseId}/calendar`;
+
+  /* Whether a classmate got here first. Worth a heads-up before pasting, and
+     nothing worth blocking on: if the check fails, the import still works and
+     the calendar sorts out which version the class sees. */
+  useEffect(() => {
+    let cancelled = false;
+    listSyllabusImports(courseId)
+      .then((imports) => {
+        if (!cancelled) setHasExistingImport(imports.length > 0);
+      })
+      .catch(() => {
+        /* Quietly show no note rather than an error about a nicety. */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId]);
 
   // Warm confirmation lingers a beat, then the calendar is one step away.
   useEffect(() => {
@@ -128,7 +148,30 @@ export function SyllabusImport({
     }
     setAdding(true);
     setAddError(null);
-    // RLS wants created_by to be the caller, so stamp it onto each row.
+    const supabase = createClient();
+    /* The import row comes first, because every date it produces carries its
+       id: that's how the calendar knows which version a date belongs to, and
+       how withdrawing an import can take its dates with it. */
+    const { data: importRow, error: importError } = await supabase
+      .from("syllabus_imports")
+      .insert({
+        course_id: courseId,
+        user_id: userId,
+        item_count: rows.length,
+      })
+      .select("id")
+      .single();
+    const importId =
+      importRow === null ? null : (importRow as { id: string }).id;
+    if (importError || importId === null) {
+      setAdding(false);
+      setAddError(
+        "We couldn't start that import. Check you're still in this course and give it another try."
+      );
+      return;
+    }
+    // RLS wants created_by to be the caller, so stamp it onto each row,
+    // along with the import every row belongs to.
     const inserts = toCalendarRows(
       rows.map((row) => ({
         kind: row.kind,
@@ -137,24 +180,20 @@ export function SyllabusImport({
         confidence: row.confidence,
       })),
       courseId
-    ).map((row) => ({ ...row, created_by: userId }));
-    const supabase = createClient();
+    ).map((row) => ({ ...row, created_by: userId, import_id: importId }));
     const { error } = await supabase
       .from("course_calendar_items")
       .insert(inserts);
     if (error) {
+      /* Take the import row back out so a failed paste never stands as an
+         empty version of the syllabus. The cascade has nothing to sweep. */
+      await supabase.from("syllabus_imports").delete().eq("id", importId);
       setAdding(false);
       setAddError(
         "We couldn't add those dates. Check you're still in this course and give it another try."
       );
       return;
     }
-    // The audit row is a nice-to-have; a hiccup here shouldn't undo success.
-    await supabase.from("syllabus_imports").insert({
-      course_id: courseId,
-      user_id: userId,
-      item_count: inserts.length,
-    });
     setAdding(false);
     setDoneCount(inserts.length);
   }
@@ -194,6 +233,13 @@ export function SyllabusImport({
 
   return (
     <div>
+      {hasExistingImport ? (
+        <p className="mb-4 flex items-start gap-2 rounded-card border border-brand/40 bg-brand-soft px-3 py-2.5 text-sm text-brand-ink">
+          <Layers className="mt-0.5 size-4 shrink-0" aria-hidden />
+          {IMPORT_ANYWAY_NOTE}
+        </p>
+      ) : null}
+
       <Label htmlFor="syllabus-text">
         Paste your syllabus (the schedule section works best)
       </Label>

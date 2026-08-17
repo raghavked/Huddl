@@ -16,6 +16,7 @@ import { useTheme } from "@/hooks/use-theme";
 import {
   CALENDAR_KINDS,
   kindLabel,
+  listSyllabusImports,
   parseSyllabus,
   toCalendarRows,
   type CalendarKind,
@@ -110,6 +111,25 @@ export default function SyllabusImportScreen() {
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [doneCount, setDoneCount] = useState<number | null>(null);
+  // Whether a classmate already pasted a syllabus here. Worth saying before
+  // the paste, never worth blocking it: endorsements sort out which version
+  // the class sees.
+  const [hasExistingImport, setHasExistingImport] = useState(false);
+
+  useEffect(() => {
+    if (!courseId) return;
+    let cancelled = false;
+    listSyllabusImports(courseId)
+      .then((imports) => {
+        if (!cancelled) setHasExistingImport(imports.length > 0);
+      })
+      .catch(() => {
+        // The note is a courtesy; a hiccup here shouldn't touch the paste.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId]);
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -180,7 +200,29 @@ export default function SyllabusImportScreen() {
     }
     setAdding(true);
     setAddError(null);
-    // RLS wants created_by to be the caller, so stamp it onto each row.
+    // The import row goes in FIRST so its id can stamp every date: that is
+    // how the calendar knows which version each item belongs to, and the
+    // self-endorse trigger counts the paste as your own confirmation.
+    const { data: importRow, error: importError } = await supabase
+      .from("syllabus_imports")
+      .insert({
+        course_id: courseId,
+        user_id: userId,
+        item_count: rows.length,
+      })
+      .select("id")
+      .single();
+    const importId =
+      importRow && typeof importRow.id === "string" ? importRow.id : null;
+    if (importError || importId === null) {
+      setAdding(false);
+      setAddError(
+        "We couldn't add those dates. Check you're still in this course and give it another try."
+      );
+      return;
+    }
+    // RLS wants created_by to be the caller, so stamp it onto each row,
+    // along with the import the row belongs to.
     const inserts = toCalendarRows(
       rows.map((row) => ({
         kind: row.kind,
@@ -189,23 +231,20 @@ export default function SyllabusImportScreen() {
         confidence: row.confidence,
       })),
       courseId
-    ).map((row) => ({ ...row, created_by: userId }));
+    ).map((row) => ({ ...row, created_by: userId, import_id: importId }));
     const { error } = await supabase
       .from("course_calendar_items")
       .insert(inserts);
     if (error) {
+      // No dates means no import: take the bookkeeping row back out so an
+      // empty version can never sit on the class's ballot.
+      await supabase.from("syllabus_imports").delete().eq("id", importId);
       setAdding(false);
       setAddError(
         "We couldn't add those dates. Check you're still in this course and give it another try."
       );
       return;
     }
-    // The audit row is a nice-to-have; a hiccup here shouldn't undo success.
-    await supabase.from("syllabus_imports").insert({
-      course_id: courseId,
-      user_id: userId,
-      item_count: inserts.length,
-    });
     setAdding(false);
     setDoneCount(inserts.length);
   }, [userId, courseId, rows]);
@@ -314,6 +353,29 @@ export default function SyllabusImportScreen() {
             {courseCode ? `${courseCode} · parsed` : "Parsed"} right here on
             your phone. The syllabus itself never leaves it.
           </AppText>
+
+          {hasExistingImport ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: space.cosy,
+                marginTop: space.close,
+              }}
+            >
+              <Feather
+                name="info"
+                size={14}
+                color={theme.muted}
+                style={{ marginTop: 1 }}
+              />
+              <AppText variant="caption" muted style={{ flex: 1 }}>
+                This class already has a syllabus calendar. Import yours
+                anyway and Hearth shows whichever version more classmates
+                confirm.
+              </AppText>
+            </View>
+          ) : null}
 
           <View style={{ marginTop: space.card }}>
             <Field

@@ -19,6 +19,11 @@ import {
   type Reminder,
 } from "@/lib/reminders";
 import { createClient } from "@/lib/supabase/server";
+import {
+  listSyllabusImports,
+  winningImportId,
+  type SyllabusImportSummary,
+} from "@/lib/syllabus-consensus";
 import type { Course } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Class calendar" };
@@ -68,6 +73,24 @@ export default async function ClassCalendarPage({
   if (!enrollment) redirect(`/courses/${course.id}`);
 
   const items = (itemRows ?? []) as CalendarItemRow[];
+
+  /* The syllabus versions this class has, and which one the calendar is
+     showing. The items above are already filtered to the winner by the read
+     policy; this pair only lets the section say so out loud, endorse, and
+     withdraw. A hiccup here shouldn't take the calendar down with it. */
+  let imports: SyllabusImportSummary[] = [];
+  let winnerId: string | null = null;
+  try {
+    [imports, winnerId] = await Promise.all([
+      listSyllabusImports(course.id, {
+        client: supabase,
+        userId: user.userId,
+      }),
+      winningImportId(course.id, { client: supabase }),
+    ]);
+  } catch {
+    /* The versions panel simply doesn't render this visit. */
+  }
 
   // Your own check-offs: private, one query, keyed by item.
   let checkedIds: string[] = [];
@@ -192,6 +215,8 @@ export default async function ClassCalendarPage({
           userId={user.userId}
           initialItems={items}
           initialCheckedIds={checkedIds}
+          initialImports={imports}
+          initialWinnerId={winnerId}
         />
       </div>
     </div>

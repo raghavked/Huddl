@@ -422,8 +422,16 @@ export default function CourseNotesScreen() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // The uploader's own menu, and the inline tag editor it opens.
+  // The long-press menu on a note (flashcards for anyone; tags and removal
+  // for the uploader), and the inline tag editor it opens.
   const [menuNote, setMenuNote] = useState<NoteRow | null>(null);
+  /* Held while the sheet slides away, so the uploader-only rows don't blink
+     out of it mid-dismissal. Same trick as the deck screen's card menu. */
+  const lastMenuNote = useRef<NoteRow | null>(null);
+  if (menuNote !== null) lastMenuNote.current = menuNote;
+  const menuNoteShown = menuNote ?? lastMenuNote.current;
+  // Which note is on its way to a deck, so a double-tap can't mint two.
+  const [deckingId, setDeckingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTags, setEditTags] = useState<string[]>([]);
   const [savingTags, setSavingTags] = useState(false);
@@ -696,7 +704,68 @@ export default function CourseNotesScreen() {
     closeUploadForm,
   ]);
 
-  /* --------------------------- the uploader's menu ------------------------ */
+  /* ------------------------- notes into flashcards ------------------------ */
+
+  /**
+   * One deck per note: open the deck this note already seeded, or start it.
+   * Either way the deck opens with the paste composer waiting, ready for the
+   * note's lines.
+   */
+  const handleTurnIntoFlashcards = useCallback(
+    async (note: NoteRow) => {
+      if (!userId || deckingId) return;
+      setNoteError(null);
+      setDeckingId(note.id);
+      try {
+        const { data: existing, error: findError } = await supabase
+          .from("decks")
+          .select("id")
+          .eq("source_note_id", note.id)
+          .limit(1)
+          .maybeSingle();
+        if (findError) throw findError;
+        if (existing) {
+          router.push({
+            pathname: "/deck/[id]",
+            params: { id: (existing as { id: string }).id, paste: "1" },
+          });
+          return;
+        }
+        const { data: created, error: insertError } = await supabase
+          .from("decks")
+          .insert({
+            course_id: id,
+            created_by: userId,
+            // Deck titles run 1-120 characters; note titles already fit, but
+            // the trim keeps this honest if that ever loosens.
+            title: note.title.trim().slice(0, 120),
+            source_note_id: note.id,
+          })
+          .select("id")
+          .single();
+        if (insertError || !created) {
+          throw insertError ?? new Error("No deck returned");
+        }
+        router.push({
+          pathname: "/deck/[id]",
+          params: { id: (created as { id: string }).id, paste: "1" },
+        });
+      } catch (err) {
+        setNoteError({
+          id: note.id,
+          message:
+            err instanceof Error && err.message.includes("row-level security")
+              ? "Decks are for classmates. Add this course to your classes first."
+              : "Couldn't turn that note into flashcards just now. Give it another try.",
+        });
+      } finally {
+        setDeckingId(null);
+      }
+    },
+    [userId, deckingId, id, router]
+  );
+
+  /* ------------------------- the long-press menu -------------------------- */
 
   const startEditTags = useCallback((note: NoteRow) => {
     setNoteError(null);
@@ -921,7 +990,7 @@ export default function CourseNotesScreen() {
           : "Put up by your classmates."}{" "}
         Tap one to download it.
         {enrolled === true
-          ? " Long-press your own to retag it or take it down."
+          ? " Long-press one to turn it into flashcards; your own can also be retagged or taken down."
           : ""}
       </AppText>
 
@@ -1167,12 +1236,12 @@ export default function CourseNotesScreen() {
           accessibilityRole="button"
           accessibilityLabel={`Open ${note.title}, shared by ${uploaderName}`}
           accessibilityHint={
-            mine ? "Long press for tags and removal" : undefined
+            mine
+              ? "Long press for flashcards, tags and removal"
+              : "Long press to turn it into flashcards"
           }
           onPress={() => void handleOpenNote(note)}
-          onLongPress={() => {
-            if (mine) setMenuNote(note);
-          }}
+          onLongPress={() => setMenuNote(note)}
           disabled={opening}
           style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
         >
@@ -1399,27 +1468,40 @@ export default function CourseNotesScreen() {
       <Sheet
         visible={menuNote !== null}
         onClose={() => setMenuNote(null)}
-        title={menuNote?.title ?? "Your note"}
+        title={menuNoteShown?.title ?? "This note"}
       >
         <Sheet.Row
-          icon="tag"
-          label="Edit tags"
+          icon="layers"
+          label="Turn into flashcards"
           onPress={() => {
             const note = menuNote;
             setMenuNote(null);
-            if (note) startEditTags(note);
+            if (note) void handleTurnIntoFlashcards(note);
           }}
         />
-        <Sheet.Row
-          icon="trash-2"
-          label="Remove note"
-          danger
-          onPress={() => {
-            const note = menuNote;
-            setMenuNote(null);
-            if (note) handleRemove(note);
-          }}
-        />
+        {menuNoteShown?.uploader_id === userId ? (
+          <>
+            <Sheet.Row
+              icon="tag"
+              label="Edit tags"
+              onPress={() => {
+                const note = menuNote;
+                setMenuNote(null);
+                if (note) startEditTags(note);
+              }}
+            />
+            <Sheet.Row
+              icon="trash-2"
+              label="Remove note"
+              danger
+              onPress={() => {
+                const note = menuNote;
+                setMenuNote(null);
+                if (note) handleRemove(note);
+              }}
+            />
+          </>
+        ) : null}
       </Sheet>
     </KeyboardAvoidingView>
   );

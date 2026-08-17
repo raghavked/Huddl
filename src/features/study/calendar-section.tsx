@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Check,
   CircleAlert,
+  Layers,
   Loader2,
   Plus,
   Trash2,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import {
+  Badge,
   Button,
   Card,
   Input,
@@ -29,6 +31,20 @@ import {
 } from "@/features/study/kind-chip";
 import { createClient } from "@/lib/supabase/client";
 import { CALENDAR_KINDS, kindLabel, type CalendarKind } from "@/lib/syllabus";
+import {
+  ENDORSE_LABEL,
+  ENDORSED_LABEL,
+  SyllabusConsensusError,
+  WITHDRAW_CONFIRM_BODY,
+  WITHDRAW_LABEL,
+  endorseImport,
+  listSyllabusImports,
+  unendorseImport,
+  versionsBanner,
+  winningImportId,
+  withdrawImport,
+  type SyllabusImportSummary,
+} from "@/lib/syllabus-consensus";
 import { cn } from "@/lib/utils";
 
 /** Serializable row shape the calendar page passes down. */
@@ -77,11 +93,15 @@ export function CalendarSection({
   userId,
   initialItems,
   initialCheckedIds,
+  initialImports,
+  initialWinnerId,
 }: {
   courseId: string;
   userId: string;
   initialItems: CalendarItemRow[];
   initialCheckedIds: string[];
+  initialImports: SyllabusImportSummary[];
+  initialWinnerId: string | null;
 }) {
   const [items, setItems] = useState<CalendarItemRow[]>(initialItems);
   const [checked, setChecked] = useState<Set<string>>(
@@ -90,6 +110,16 @@ export function CalendarSection({
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // The syllabus versions and which one the calendar is showing right now.
+  const [imports, setImports] =
+    useState<SyllabusImportSummary[]>(initialImports);
+  const [winnerId, setWinnerId] = useState<string | null>(initialWinnerId);
+  const [endorsingId, setEndorsingId] = useState<string | null>(null);
+  const [withdrawConfirmId, setWithdrawConfirmId] = useState<string | null>(
+    null
+  );
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
 
   // The inline "Add a date" form: no datepicker dependency, just honest text.
   const [formOpen, setFormOpen] = useState(false);
@@ -157,6 +187,89 @@ export function CalendarSection({
       setItems(before);
       setActionError("We couldn't remove that date. Give it another try.");
     }
+  }
+
+  /* ------------------------ syllabus versions ------------------------ */
+
+  /**
+   * Endorsing and withdrawing can flip which version wins, and the read
+   * policy flips the calendar's rows with it, so after either lands the
+   * items, the check-offs, the versions, and the winner all get reread
+   * together. No optimism here: the winner is decided in the database, and
+   * guessing it client-side is how two screens end up disagreeing.
+   */
+  async function refreshConsensus() {
+    const supabase = createClient();
+    const [importList, winner, { data: itemRows, error: itemsError }] =
+      await Promise.all([
+        listSyllabusImports(courseId),
+        winningImportId(courseId),
+        supabase
+          .from("course_calendar_items")
+          .select("id, created_by, kind, title, due_at, source")
+          .eq("course_id", courseId)
+          .order("due_at", { ascending: true }),
+      ]);
+    setImports(importList);
+    setWinnerId(winner);
+    if (itemsError || !itemRows) return;
+    const nextItems = itemRows as CalendarItemRow[];
+    setItems(nextItems);
+    /* Check-offs you made on a version that just came back into view are
+       still yours, so reread them for whatever the calendar shows now. */
+    if (nextItems.length === 0) {
+      setChecked(new Set());
+      return;
+    }
+    const { data: checks } = await supabase
+      .from("study_checkoffs")
+      .select("item_id")
+      .eq("user_id", userId)
+      .in(
+        "item_id",
+        nextItems.map((item) => item.id)
+      );
+    if (checks) {
+      setChecked(
+        new Set(((checks ?? []) as { item_id: string }[]).map((c) => c.item_id))
+      );
+    }
+  }
+
+  async function toggleEndorse(imp: SyllabusImportSummary) {
+    if (endorsingId !== null || withdrawingId !== null) return;
+    setActionError(null);
+    setEndorsingId(imp.id);
+    try {
+      if (imp.endorsed_by_me) await unendorseImport(imp.id);
+      else await endorseImport(imp.id);
+      await refreshConsensus();
+    } catch (err) {
+      setActionError(
+        err instanceof SyllabusConsensusError
+          ? err.message
+          : "That didn't save. Give it another go in a moment."
+      );
+    }
+    setEndorsingId(null);
+  }
+
+  async function withdraw(imp: SyllabusImportSummary) {
+    if (withdrawingId !== null) return;
+    setActionError(null);
+    setWithdrawingId(imp.id);
+    try {
+      await withdrawImport(imp.id);
+      await refreshConsensus();
+      setWithdrawConfirmId(null);
+    } catch (err) {
+      setActionError(
+        err instanceof SyllabusConsensusError
+          ? err.message
+          : "That didn't save. Give it another go in a moment."
+      );
+    }
+    setWithdrawingId(null);
   }
 
   /* --------------------------- add a date ---------------------------- */
@@ -239,6 +352,139 @@ export function CalendarSection({
 
   return (
     <div>
+      {imports.length > 0 ? (
+        <section aria-label="Syllabus versions" className="mb-6">
+          {imports.length > 1 ? (
+            <p className="flex items-start gap-2 rounded-card border border-brand/40 bg-brand-soft px-3 py-2.5 text-sm text-brand-ink">
+              <Layers className="mt-0.5 size-4 shrink-0" aria-hidden />
+              {versionsBanner(imports.length)}
+            </p>
+          ) : null}
+
+          <ul
+            className={cn(
+              "flex flex-col gap-2.5",
+              imports.length > 1 && "mt-3"
+            )}
+          >
+            {imports.map((imp) => {
+              const showing = imp.id === winnerId;
+              const name = imp.mine
+                ? "Your import"
+                : imp.importer !== null
+                  ? `${imp.importer.display_name}'s import`
+                  : "A classmate's import";
+              const dateNoun = imp.item_count === 1 ? "date" : "dates";
+              const confirmNoun =
+                imp.endorsement_count === 1
+                  ? "classmate confirms it"
+                  : "classmates confirm it";
+              return (
+                <li
+                  key={imp.id}
+                  className={cardClasses({
+                    padding: "none",
+                    className: "px-4 py-3",
+                  })}
+                >
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <p className="min-w-0 truncate text-sm font-semibold">
+                          {name}
+                        </p>
+                        {showing && imports.length > 1 ? (
+                          <Badge tone="brand">On the calendar</Badge>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 text-xs text-muted">
+                        {imp.item_count} {dateNoun} · {imp.endorsement_count}{" "}
+                        {confirmNoun}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        aria-pressed={imp.endorsed_by_me}
+                        onClick={() => void toggleEndorse(imp)}
+                        disabled={
+                          endorsingId !== null || withdrawingId !== null
+                        }
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                          imp.endorsed_by_me
+                            ? "border-transparent bg-brand-soft text-brand-ink"
+                            : "border-border bg-surface text-muted hover:text-foreground"
+                        )}
+                      >
+                        {endorsingId === imp.id ? (
+                          <Loader2
+                            className="size-3.5 animate-spin"
+                            aria-hidden
+                          />
+                        ) : imp.endorsed_by_me ? (
+                          <Check className="size-3.5" aria-hidden />
+                        ) : null}
+                        {imp.endorsed_by_me ? ENDORSED_LABEL : ENDORSE_LABEL}
+                      </button>
+                      {imp.mine && withdrawConfirmId !== imp.id ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActionError(null);
+                            setWithdrawConfirmId(imp.id);
+                          }}
+                          disabled={withdrawingId !== null}
+                          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:bg-danger/10 hover:text-danger disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger"
+                        >
+                          <Trash2 className="size-3.5" aria-hidden />
+                          {WITHDRAW_LABEL}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                  {imp.mine && withdrawConfirmId === imp.id ? (
+                    <div className="mt-3 rounded-xl border border-danger/30 bg-danger/5 px-3 py-2.5">
+                      <p className="text-sm text-danger">
+                        {WITHDRAW_CONFIRM_BODY}
+                      </p>
+                      <div className="mt-2 flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={withdrawingId === imp.id}
+                          onClick={() => setWithdrawConfirmId(null)}
+                        >
+                          Keep it
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={() => void withdraw(imp)}
+                          disabled={withdrawingId === imp.id}
+                          className={buttonClasses({
+                            variant: "danger",
+                            size: "sm",
+                          })}
+                        >
+                          {withdrawingId === imp.id ? (
+                            <Loader2
+                              className="size-3.5 animate-spin"
+                              aria-hidden
+                            />
+                          ) : null}
+                          {WITHDRAW_LABEL}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
       {formOpen ? (
         <Card className="animate-fade-up">
           <div className="flex items-center justify-between gap-2">

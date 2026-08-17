@@ -1,5 +1,52 @@
 # Hearth development log
 
+## Round 19: the class agrees on a syllabus, notes become decks, launch blanks filled
+
+Migrations 0061 and 0062 live.
+
+### Syllabus consensus (0061)
+
+A second classmate pasting the same syllabus used to double every date on
+the shared calendar. Now every imported item remembers its import,
+classmates endorse the version that matches their copy (importing endorses
+your own automatically), and the calendar's own read policy shows only the
+winning import: most endorsements, earliest as the tiebreak. Enforced in
+the policy, so the course calendar, study plan, month view, home, and the
+reminder crons all agree without changing a query. Both clients grew the
+versions banner, the per-version "This matches my syllabus" toggle, and
+"Withdraw my import" (which takes its dates, checkoffs and reminders with
+it). Import screens now create the bookkeeping row first and stamp every
+item, cleaning up after themselves on failure.
+
+### Notes become flashcards (0061)
+
+"Turn into flashcards" on any course note creates (or reopens) a deck
+credited to it, drops the student into the paste importer, and the deck
+shows "From the notes: ..." linking back. Decks survive their note being
+deleted; the credit line just retires.
+
+### The wiring audit, and its three catches
+
+A read-only auditor traced every social flow end to end on both clients:
+profiles, friending, status, channel messaging, DMs, delete-versus-keep,
+saved messages, events, clubs, groups, notifications. All wired; three
+gaps found and fixed:
+
+- **A mention inside a thread led nowhere** (0062): `notify_mentions`
+  linked to the bare channel, but thread replies never appear in the main
+  list, so the tapped notification landed in a room where the message
+  wasn't. The trigger now writes the `?thread=` link both clients already
+  route, and its body dropped the pre-room-identity `#`.
+- **Privacy notices had no push switch**: `schedule_privacy` pushed with
+  no per-kind off toggle on either settings screen. Both now list
+  "Privacy notices".
+- **The web directory showed people you blocked**; the native one never
+  did. It filters now, the same way.
+
+Also this round: the legal documents stopped saying [FULL LEGAL NAME].
+Hearth is operated by Raghav Kedia, doing business as Hearth, under
+California law, and the launch plan's blocker list shrank by one.
+
 ## Round 18: the adversarial pass over round 17
 
 Migrations 0059 and 0060 live. An eight-agent adversarial review (four

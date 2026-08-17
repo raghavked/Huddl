@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   FileText,
   Heart,
+  Layers,
   Loader2,
   Presentation,
   Tags,
@@ -98,6 +99,7 @@ export function NotesSection({
   const [extraNotes, setExtraNotes] = useState<NoteWithUploader[]>([]);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [deckingId, setDeckingId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -332,6 +334,55 @@ export function NotesSection({
         ? current.filter((existing) => existing !== tag)
         : [...current, tag]
     );
+  }
+
+  /**
+   * One deck per note: open the deck this note already seeded, or start it.
+   * The deck lands with the paste composer open, ready for the note's lines.
+   */
+  async function handleTurnIntoFlashcards(note: NoteWithUploader) {
+    if (deckingId) return;
+    setError(null);
+    setDeckingId(note.id);
+    const supabase = createClient();
+    try {
+      const { data: existing, error: findError } = await supabase
+        .from("decks")
+        .select("id")
+        .eq("source_note_id", note.id)
+        .limit(1)
+        .maybeSingle();
+      if (findError) throw findError;
+      if (existing) {
+        router.push(`/decks/${(existing as { id: string }).id}?paste=1`);
+        return;
+      }
+      const { data: created, error: insertError } = await supabase
+        .from("decks")
+        .insert({
+          course_id: courseId,
+          created_by: currentUser.id,
+          // Deck titles run 1-120 characters; note titles already fit, but
+          // the trim keeps this honest if that ever loosens.
+          title: note.title.trim().slice(0, 120),
+          source_note_id: note.id,
+        })
+        .select("id")
+        .single();
+      if (insertError || !created) {
+        throw insertError ?? new Error("No deck returned");
+      }
+      router.push(`/decks/${(created as { id: string }).id}?paste=1`);
+      // deckingId stays set on purpose: the button holds its spinner while
+      // the navigation happens, instead of flashing back to life.
+    } catch (caught) {
+      setDeckingId(null);
+      setError(
+        caught instanceof Error && caught.message.includes("row-level security")
+          ? "Decks are for classmates. Add this course to your classes first."
+          : "Couldn't turn that note into flashcards just now. Give it another try."
+      );
+    }
   }
 
   async function handleDownload(note: NoteWithUploader) {
@@ -658,6 +709,20 @@ export function NotesSection({
                             ) : null}
                           </button>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => void handleTurnIntoFlashcards(note)}
+                          disabled={deckingId === note.id}
+                          aria-label={`Turn ${note.title} into flashcards`}
+                          title="Turn into flashcards"
+                          className="rounded-full p-2 text-muted transition-colors hover:bg-brand-soft hover:text-brand-ink disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                        >
+                          {deckingId === note.id ? (
+                            <Loader2 className="size-4 animate-spin" aria-hidden />
+                          ) : (
+                            <Layers className="size-4" aria-hidden />
+                          )}
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleDownload(note)}
