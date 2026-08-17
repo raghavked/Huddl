@@ -27,7 +27,7 @@ const monoFont = JetBrains_Mono({
 
 const siteUrl = process.env.SITE_URL ?? "https://uhearth.app";
 const description =
-  "Hearth is one app for college life: a chat for every class you add, study sessions, note sharing, meetups and DMs. Verified with your university email.";
+  "Hearth is UC Davis in one app: a chat for every class you add, study sessions, note sharing, meetups and DMs. Verified with your @ucdavis.edu email.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

@@ -72,7 +72,7 @@ export function SignupForm() {
     if (unsupportedDomain && domain) {
       setIsDomainError(true);
       setError(
-        `Hearth isn't at ${domain} yet. Sign up with an email from a supported school.`
+        `Hearth isn't at ${domain} yet. It's UC Davis only right now, so sign up with your @ucdavis.edu email.`
       );
       return;
     }
@@ -95,8 +95,8 @@ export function SignupForm() {
         setIsDomainError(true);
         setError(
           domain
-            ? `Hearth isn't at ${domain} yet. We're adding new schools all the time, so check back soon.`
-            : "Hearth isn't at your school yet. We're adding new schools all the time, so check back soon."
+            ? `Hearth isn't at ${domain} yet. It's UC Davis only right now.`
+            : "Hearth isn't at your school yet. It's UC Davis only right now."
         );
       } else if (/already registered/i.test(signUpError.message)) {
         setAccountExists(true);

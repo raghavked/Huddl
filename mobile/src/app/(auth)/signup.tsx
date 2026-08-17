@@ -126,8 +126,8 @@ export default function SignupScreen() {
         setIsDomainError(true);
         setError(
           domain
-            ? `Hearth isn't at ${domain} yet. We're adding new schools all the time, so check back soon.`
-            : "Hearth isn't at your school yet. We're adding new schools all the time, so check back soon."
+            ? `Hearth isn't at ${domain} yet. It's UC Davis only right now.`
+            : "Hearth isn't at your school yet. It's UC Davis only right now."
         );
       } else if (/already registered/i.test(signUpError.message)) {
         setAccountExists(true);
