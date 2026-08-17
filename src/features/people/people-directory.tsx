@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Lock, Search, SearchX, UsersRound } from "lucide-react";
 import { Avatar } from "@/components/avatar";
@@ -22,6 +22,19 @@ export interface DirectoryPerson {
   grad_year: number | null;
   is_public: boolean;
 }
+
+/** One server-fetched slice of the directory walk. */
+export interface DirectoryPage {
+  people: DirectoryPerson[];
+  hasMore: boolean;
+}
+
+/* Mirrors the server's page size. Offsets advance in raw rows, so the
+   stride stays fixed even when the block filter runs a page short. */
+const PAGE_SIZE = 60;
+
+/** Long enough to let a word finish, short enough to feel like typing. */
+const SEARCH_DEBOUNCE_MS = 300;
 
 function matches(person: DirectoryPerson, query: string): boolean {
   const q = query.trim().toLowerCase();
@@ -111,22 +124,104 @@ function PersonCard({
   );
 }
 
-/** Searchable card grid for the campus people directory. */
+/**
+ * Searchable card grid for the campus people directory. Given `fetchPage`,
+ * search and paging both go through the server; without it the list arrived
+ * whole (the interest view) and is filtered in the hand as it always was.
+ */
 export function PeopleDirectory({
   people,
   meId,
+  fetchPage,
+  initialHasMore = false,
 }: {
   people: DirectoryPerson[];
   meId: string;
+  fetchPage?: (offset: number, query: string) => Promise<DirectoryPage>;
+  initialHasMore?: boolean;
 }) {
   const [query, setQuery] = useState("");
+  const [applied, setApplied] = useState("");
+  const [items, setItems] = useState(people);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [pending, setPending] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  // Raw-row offset of the next page; a ref because only the fetch handlers
+  // care, and never mid-render.
+  const offsetRef = useRef(PAGE_SIZE);
+  // A reply is only as good as its ticket: typing again outdates whatever
+  // was still in flight.
+  const ticketRef = useRef(0);
+
+  const paged = fetchPage !== undefined;
+
+  useEffect(() => {
+    if (!paged) return;
+    const next = query.trim();
+    if (next === applied) return;
+    const timer = setTimeout(() => setApplied(next), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [paged, query, applied]);
+
+  useEffect(() => {
+    if (!fetchPage) return;
+    const ticket = ++ticketRef.current;
+    if (applied.length === 0) {
+      // The opening page came down with the HTML; clearing the box walks
+      // straight back to it.
+      setItems(people);
+      setHasMore(initialHasMore);
+      offsetRef.current = PAGE_SIZE;
+      setPending(false);
+      return;
+    }
+    setPending(true);
+    void fetchPage(0, applied).then(
+      (page) => {
+        if (ticketRef.current !== ticket) return;
+        setItems(page.people);
+        setHasMore(page.hasMore);
+        offsetRef.current = PAGE_SIZE;
+        setPending(false);
+      },
+      () => {
+        if (ticketRef.current === ticket) setPending(false);
+      }
+    );
+  }, [applied, fetchPage, people, initialHasMore]);
+
+  const showMore = () => {
+    if (!fetchPage || loadingMore || pending || !hasMore) return;
+    const ticket = ++ticketRef.current;
+    const from = offsetRef.current;
+    setLoadingMore(true);
+    void fetchPage(from, applied).then(
+      (page) => {
+        if (ticketRef.current !== ticket) return;
+        setItems((prev) => {
+          // A row that shifted between fetches would otherwise appear twice.
+          const seen = new Set(prev.map((p) => p.id));
+          return [...prev, ...page.people.filter((p) => !seen.has(p.id))];
+        });
+        setHasMore(page.hasMore);
+        offsetRef.current = from + PAGE_SIZE;
+        setLoadingMore(false);
+      },
+      () => {
+        if (ticketRef.current === ticket) setLoadingMore(false);
+      }
+    );
+  };
 
   const filtered = useMemo(
-    () => people.filter((p) => matches(p, query)),
-    [people, query]
+    () => (paged ? items : people.filter((p) => matches(p, query))),
+    [paged, items, people, query]
   );
 
   const searching = query.trim().length > 0;
+  const emptyDirectory = paged
+    ? !searching && filtered.length === 0
+    : people.length === 0;
 
   return (
     <div>
@@ -155,7 +250,7 @@ export function PeopleDirectory({
           : ""}
       </p>
 
-      {people.length === 0 ? (
+      {emptyDirectory ? (
         <EmptyState
           illustration={<GatheringScene />}
           icon={UsersRound}
@@ -174,15 +269,28 @@ export function PeopleDirectory({
           }
         />
       ) : (
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {filtered.map((person) => (
-            <PersonCard
-              key={person.id}
-              person={person}
-              isMe={person.id === meId}
-            />
-          ))}
-        </ul>
+        <>
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {filtered.map((person) => (
+              <PersonCard
+                key={person.id}
+                person={person}
+                isMe={person.id === meId}
+              />
+            ))}
+          </ul>
+          {paged && hasMore ? (
+            <div className="mt-6 flex justify-center">
+              <Button
+                variant="secondary"
+                onClick={showMore}
+                disabled={loadingMore || pending}
+              >
+                Show more people
+              </Button>
+            </div>
+          ) : null}
+        </>
       )}
     </div>
   );

@@ -22,8 +22,7 @@ import { Avatar } from "@/components/avatar";
 import { RoomTile } from "@/components/room-tile";
 import { Badge, Button } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
-import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
-import { useRealtimeUpdates } from "@/lib/hooks/use-realtime-updates";
+import { useMessageStream } from "@/lib/hooks/use-message-stream";
 import { typingLabel, useTyping } from "@/lib/hooks/use-typing";
 import type {
   Channel,
@@ -255,10 +254,8 @@ export function ChatRoom({
     }));
   }, []);
 
-  useRealtimeInserts<MessageRow>(
-    "messages",
-    `channel_id=eq.${channel.id}`,
-    (row) => {
+  useMessageStream<MessageRow>(`room:${channel.id}`, {
+    onInsert: (row) => {
       markRead();
       if (row.parent_id) {
         // Thread replies never join the main list, so just bump the badge.
@@ -280,18 +277,13 @@ export function ChatRoom({
             );
           }
         });
-    }
-  );
-
-  // Others' edits and soft-deletes: patch the matching row in place. Realtime
-  // UPDATE payloads carry only the row's own columns, so we merge just the
-  // mutable fields and keep the joined author. Temp optimistic rows use
-  // `temp-*` ids and never match a real id; idempotent replace-by-id means our
-  // own echoed edits collapse to a no-op.
-  useRealtimeUpdates<MessageRow>(
-    "messages",
-    `channel_id=eq.${channel.id}`,
-    (row) => {
+    },
+    // Others' edits and soft-deletes: patch the matching row in place. The
+    // broadcast record carries only the row's own columns, so we merge just
+    // the mutable fields and keep the joined author. Temp optimistic rows use
+    // `temp-*` ids and never match a real id; idempotent replace-by-id means
+    // our own echoed edits collapse to a no-op.
+    onUpdate: (row) => {
       setMessages((prev) => {
         let changed = false;
         const next = prev.map((m) => {
@@ -323,8 +315,8 @@ export function ChatRoom({
       if (pinnedIdsRef.current.has(row.id) !== isPinnedNow) {
         void refreshPinned();
       }
-    }
-  );
+    },
+  });
 
   // Autosize the composer with its content.
   useEffect(() => {

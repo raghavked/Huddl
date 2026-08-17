@@ -1,8 +1,4 @@
 import Feather from "@expo/vector-icons/Feather";
-import type {
-  RealtimePostgresInsertPayload,
-  RealtimePostgresUpdatePayload,
-} from "@supabase/supabase-js";
 import { Image } from "expo-image";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -57,6 +53,7 @@ import {
   type QueuedMessage,
 } from "@/lib/drafts";
 import { forwardLabelFor, type ForwardSource } from "@/lib/forwarding";
+import { useMessageStream } from "@/lib/message-stream";
 import { roomTitle } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -597,87 +594,55 @@ export default function ThreadScreen() {
     []
   );
 
-  // Live replies: the postgres filter is on the channel (mirrors the room's
-  // subscription shape); parent_id is checked client-side. Own echoes are
-  // skipped: the optimistic path already has them. Updates (edits and soft
+  // Live replies: the topic is the whole room, shared with the room screen
+  // mounted beneath this one, so parent_id is checked client-side. Own echoes
+  // are skipped: the optimistic path already has them. Updates (edits and soft
   // deletes) merge into the parent card or the matching reply.
   const isReady = status === "ready";
-  useEffect(() => {
-    if (!isReady || !channelId || !messageId || !userId) return;
-    const room = supabase
-      .channel(`thread:${messageId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `channel_id=eq.${channelId}`,
-        },
-        (payload: RealtimePostgresInsertPayload<RawMessageRow>) => {
-          const row = payload.new;
-          if (row.parent_id !== messageId) return;
-          if (row.author_id === userId) return;
-          void supabase
-            .from("profiles")
-            .select("id, handle, display_name, avatar_url")
-            .eq("id", row.author_id)
-            .maybeSingle()
-            .then(({ data }) => {
-              appendReply({
-                id: row.id,
-                channel_id: row.channel_id,
-                author_id: row.author_id,
-                parent_id: row.parent_id,
-                content: row.content,
-                attachment_path: row.attachment_path,
-                poll_id: row.poll_id,
-                edited_at: row.edited_at,
-                deleted_at: row.deleted_at,
-                created_at: row.created_at,
-                forwarded_from: row.forwarded_from,
-                forwarded_author_id: row.forwarded_author_id,
-                author: (data as unknown as Author | null) ?? null,
-              });
-              if (row.forwarded_author_id) {
-                void loadForwardedNames([
-                  { forwarded_author_id: row.forwarded_author_id },
-                ]);
-              }
+  useMessageStream<RawMessageRow>(
+    isReady && channelId && messageId && userId ? `room:${channelId}` : null,
+    {
+      onInsert: (row) => {
+        if (row.parent_id !== messageId) return;
+        if (row.author_id === userId) return;
+        void supabase
+          .from("profiles")
+          .select("id, handle, display_name, avatar_url")
+          .eq("id", row.author_id)
+          .maybeSingle()
+          .then(({ data }) => {
+            appendReply({
+              id: row.id,
+              channel_id: row.channel_id,
+              author_id: row.author_id,
+              parent_id: row.parent_id,
+              content: row.content,
+              attachment_path: row.attachment_path,
+              poll_id: row.poll_id,
+              edited_at: row.edited_at,
+              deleted_at: row.deleted_at,
+              created_at: row.created_at,
+              forwarded_from: row.forwarded_from,
+              forwarded_author_id: row.forwarded_author_id,
+              author: (data as unknown as Author | null) ?? null,
             });
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "messages",
-          filter: `channel_id=eq.${channelId}`,
-        },
-        (payload: RealtimePostgresUpdatePayload<RawMessageRow>) => {
-          const row = payload.new;
-          if (row.id !== messageId && row.parent_id !== messageId) return;
-          patchMessage(row.id, {
-            content: row.content,
-            edited_at: row.edited_at,
-            deleted_at: row.deleted_at,
+            if (row.forwarded_author_id) {
+              void loadForwardedNames([
+                { forwarded_author_id: row.forwarded_author_id },
+              ]);
+            }
           });
-        }
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(room);
-    };
-  }, [
-    isReady,
-    channelId,
-    messageId,
-    userId,
-    appendReply,
-    patchMessage,
-    loadForwardedNames,
-  ]);
+      },
+      onUpdate: (row) => {
+        if (row.id !== messageId && row.parent_id !== messageId) return;
+        patchMessage(row.id, {
+          content: row.content,
+          edited_at: row.edited_at,
+          deleted_at: row.deleted_at,
+        });
+      },
+    }
+  );
 
   // Composer @-autocomplete, fed from the channel's member roster.
   const mentions = useMentionSuggestions(isReady ? channelId : null);

@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CornerDownRight, Loader2, SendHorizontal, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
-import { useRealtimeUpdates } from "@/lib/hooks/use-realtime-updates";
+import { useMessageStream } from "@/lib/hooks/use-message-stream";
 import type { Message, MessageWithAuthor, Profile } from "@/lib/types";
 import { useBlockedIds } from "@/features/chat/blocks";
 import { MessageItem, useReactions } from "@/features/chat/message-item";
@@ -132,10 +131,12 @@ export function ThreadPanel({
     pendingScrollRef.current = true;
   }, []);
 
-  useRealtimeInserts<MessageRow>(
-    "messages",
-    `parent_id=eq.${threadId}`,
-    (row) => {
+  // The room's topic carries the whole channel, so the panel keeps only its
+  // own thread: replies whose parent_id is the root, and updates to the root
+  // itself so an edit or delete of the parent reflects while it's open.
+  useMessageStream<MessageRow>(`room:${channelId}`, {
+    onInsert: (row) => {
+      if (row.parent_id !== threadId) return;
       onReplyPosted?.(threadId, row.id);
       if (row.author_id === userId) return; // optimistic path covers our own
       const supabase = createClient();
@@ -147,18 +148,27 @@ export function ThreadPanel({
         .then(({ data }) => {
           if (data) appendReply(data as unknown as MessageWithAuthor);
         });
-    }
-  );
-
-  // Others' edits and soft-deletes on replies: patch the matching reply in
-  // place. UPDATE payloads carry only the row's own columns, so we merge just
-  // the mutable fields and keep the joined author. Temp optimistic replies use
-  // `temp-*` ids and never match a real id; idempotent replace-by-id means our
-  // own echoed edits collapse to a no-op.
-  useRealtimeUpdates<MessageRow>(
-    "messages",
-    `parent_id=eq.${threadId}`,
-    (row) => {
+    },
+    // Others' edits and soft-deletes on replies: patch the matching reply in
+    // place. The broadcast record carries only the row's own columns, so we
+    // merge just the mutable fields and keep the joined author. Temp
+    // optimistic replies use `temp-*` ids and never match a real id;
+    // idempotent replace-by-id means our own echoed edits collapse to a no-op.
+    onUpdate: (row) => {
+      if (row.id === threadId) {
+        setParent((prev) =>
+          prev
+            ? {
+                ...prev,
+                content: row.content,
+                edited_at: row.edited_at,
+                deleted_at: row.deleted_at,
+              }
+            : prev
+        );
+        return;
+      }
+      if (row.parent_id !== threadId) return;
       setReplies((prev) => {
         let changed = false;
         const next = prev.map((m) => {
@@ -180,8 +190,8 @@ export function ThreadPanel({
         });
         return changed ? next : prev;
       });
-    }
-  );
+    },
+  });
 
   // Autosize the composer with its content.
   useEffect(() => {

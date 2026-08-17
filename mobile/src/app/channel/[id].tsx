@@ -1,8 +1,4 @@
 import Feather from "@expo/vector-icons/Feather";
-import type {
-  RealtimePostgresInsertPayload,
-  RealtimePostgresUpdatePayload,
-} from "@supabase/supabase-js";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -63,6 +59,7 @@ import {
 } from "@/lib/drafts";
 import { forwardLabelFor, type ForwardSource } from "@/lib/forwarding";
 import { tapLight, tapSuccess } from "@/lib/haptics";
+import { useMessageStream } from "@/lib/message-stream";
 import { setMessagePinned } from "@/lib/pins";
 import { roomTitle } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
@@ -1125,122 +1122,89 @@ export default function ChannelRoomScreen() {
   // its author hydrated and is prepended. Live updates (edits, soft deletes,
   // pin flips) merge into the matching row in place.
   const isReady = status === "ready";
-  useEffect(() => {
-    if (!isReady || !channelId || !userId) return;
-    const room = supabase
-      .channel(`room:${channelId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `channel_id=eq.${channelId}`,
-        },
-        (payload: RealtimePostgresInsertPayload<RawMessageRow>) => {
-          const row = payload.new;
-          markRead();
-          if (row.parent_id) {
-            // Replies never join the main list; just bump the badge.
-            bumpReplyCount(row.parent_id, row.id, row.author_id);
-            return;
-          }
-          if (row.author_id === userId) return;
-          // A poll announcement is a hint that a poll may have just started,
-          // never a binding. See the availability strip below.
-          if (row.content.startsWith(AVAILABILITY_ANNOUNCE)) {
-            void refreshOpenPolls();
-          }
-          void supabase
-            .from("profiles")
-            .select("id, handle, display_name, avatar_url")
-            .eq("id", row.author_id)
-            .maybeSingle()
-            .then(({ data }) => {
-              const incoming: MessageRow = {
-                id: row.id,
-                channel_id: row.channel_id,
-                author_id: row.author_id,
-                parent_id: row.parent_id,
-                content: row.content,
-                attachment_path: row.attachment_path,
-                poll_id: row.poll_id,
-                pinned_at: row.pinned_at,
-                pinned_by: row.pinned_by,
-                edited_at: row.edited_at,
-                deleted_at: row.deleted_at,
-                created_at: row.created_at,
-                forwarded_from: row.forwarded_from,
-                forwarded_author_id: row.forwarded_author_id,
-                author: (data as unknown as Author | null) ?? null,
-              };
-              void loadForwardedNames([incoming]);
-              setMessages((prev) =>
-                prev.some((m) => m.id === incoming.id)
-                  ? prev
-                  : [incoming, ...prev]
-              );
-            });
+  useMessageStream<RawMessageRow>(
+    isReady && channelId && userId ? `room:${channelId}` : null,
+    {
+      onInsert: (row) => {
+        markRead();
+        if (row.parent_id) {
+          // Replies never join the main list; just bump the badge.
+          bumpReplyCount(row.parent_id, row.id, row.author_id);
+          return;
         }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "messages",
-          filter: `channel_id=eq.${channelId}`,
-        },
-        (payload: RealtimePostgresUpdatePayload<RawMessageRow>) => {
-          const row = payload.new;
-          if (row.parent_id) return; // replies aren't in this list
-          setMessages((prev) => {
-            let changed = false;
-            const next = prev.map((m) => {
-              if (m.id !== row.id) return m;
-              if (
-                m.content === row.content &&
-                m.edited_at === row.edited_at &&
-                m.deleted_at === row.deleted_at &&
-                m.pinned_at === row.pinned_at &&
-                m.pinned_by === row.pinned_by
-              ) {
-                return m;
-              }
-              changed = true;
-              return {
-                ...m,
-                content: row.content,
-                edited_at: row.edited_at,
-                deleted_at: row.deleted_at,
-                pinned_at: row.pinned_at,
-                pinned_by: row.pinned_by,
-              };
-            });
-            return changed ? next : prev;
+        if (row.author_id === userId) return;
+        // A poll announcement is a hint that a poll may have just started,
+        // never a binding. See the availability strip below.
+        if (row.content.startsWith(AVAILABILITY_ANNOUNCE)) {
+          void refreshOpenPolls();
+        }
+        void supabase
+          .from("profiles")
+          .select("id, handle, display_name, avatar_url")
+          .eq("id", row.author_id)
+          .maybeSingle()
+          .then(({ data }) => {
+            const incoming: MessageRow = {
+              id: row.id,
+              channel_id: row.channel_id,
+              author_id: row.author_id,
+              parent_id: row.parent_id,
+              content: row.content,
+              attachment_path: row.attachment_path,
+              poll_id: row.poll_id,
+              pinned_at: row.pinned_at,
+              pinned_by: row.pinned_by,
+              edited_at: row.edited_at,
+              deleted_at: row.deleted_at,
+              created_at: row.created_at,
+              forwarded_from: row.forwarded_from,
+              forwarded_author_id: row.forwarded_author_id,
+              author: (data as unknown as Author | null) ?? null,
+            };
+            void loadForwardedNames([incoming]);
+            setMessages((prev) =>
+              prev.some((m) => m.id === incoming.id)
+                ? prev
+                : [incoming, ...prev]
+            );
           });
-          // Pins can flip on rows outside the loaded window, and deleting a
-          // pinned message unlists it, so refetch whenever the state differs.
-          const isPinnedNow = Boolean(row.pinned_at) && !row.deleted_at;
-          if (pinnedIdsRef.current.has(row.id) !== isPinnedNow) {
-            void refreshPinned();
-          }
+      },
+      onUpdate: (row) => {
+        if (row.parent_id) return; // replies aren't in this list
+        setMessages((prev) => {
+          let changed = false;
+          const next = prev.map((m) => {
+            if (m.id !== row.id) return m;
+            if (
+              m.content === row.content &&
+              m.edited_at === row.edited_at &&
+              m.deleted_at === row.deleted_at &&
+              m.pinned_at === row.pinned_at &&
+              m.pinned_by === row.pinned_by
+            ) {
+              return m;
+            }
+            changed = true;
+            return {
+              ...m,
+              content: row.content,
+              edited_at: row.edited_at,
+              deleted_at: row.deleted_at,
+              pinned_at: row.pinned_at,
+              pinned_by: row.pinned_by,
+            };
+          });
+          return changed ? next : prev;
+        });
+        // Pins can flip on rows outside the loaded window, and deleting a
+        // pinned message unlists it, so refetch whenever the state differs.
+        const isPinnedNow = Boolean(row.pinned_at) && !row.deleted_at;
+        if (pinnedIdsRef.current.has(row.id) !== isPinnedNow) {
+          void refreshPinned();
         }
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(room);
-    };
-  }, [
-    isReady,
-    channelId,
-    userId,
-    markRead,
-    bumpReplyCount,
-    refreshPinned,
-    refreshOpenPolls,
-    loadForwardedNames,
-  ]);
+      },
+    }
+  );
 
   // Own display name, broadcast alongside typing events so other clients
   // (web included) can show "Ada is typing…".

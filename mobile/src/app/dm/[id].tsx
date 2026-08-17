@@ -1,8 +1,4 @@
 import Feather from "@expo/vector-icons/Feather";
-import type {
-  RealtimePostgresInsertPayload,
-  RealtimePostgresUpdatePayload,
-} from "@supabase/supabase-js";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -55,6 +51,7 @@ import {
   type ThreadPerson,
 } from "@/lib/group-dm";
 import { tapLight } from "@/lib/haptics";
+import { useMessageStream } from "@/lib/message-stream";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -640,8 +637,10 @@ export default function DmRoomScreen() {
 
   // Realtime INSERTs on this thread. Own rows are skipped, because the optimistic
   // send path already has them. UPDATEs (their edits and deletes, or ours
-  // echoed) merge into the matching row. Handlers live in refs so the
-  // channel subscribes once per thread.
+  // echoed) merge into the matching row. The stream hook keeps the handlers
+  // in refs, so the topic subscribes once per thread. Blocked authors are
+  // filtered where the messages render, not here: the topic admits any
+  // participant's rows, and unblocking should reveal what was hidden.
   const handleIncoming = useCallback(
     (row: DmMessage) => {
       if (row.author_id === userId) return;
@@ -652,9 +651,6 @@ export default function DmRoomScreen() {
     },
     [userId, markRead]
   );
-  const incomingRef = useRef(handleIncoming);
-  incomingRef.current = handleIncoming;
-
   const handleUpdated = useCallback((row: DmMessage) => {
     setMessages((prev) => {
       let changed = false;
@@ -678,42 +674,10 @@ export default function DmRoomScreen() {
       return changed ? next : prev;
     });
   }, []);
-  const updatedRef = useRef(handleUpdated);
-  updatedRef.current = handleUpdated;
-
-  useEffect(() => {
-    if (!threadId) return;
-    const channel = supabase
-      .channel(`dm-room:${threadId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "dm_messages",
-          filter: `thread_id=eq.${threadId}`,
-        },
-        (payload: RealtimePostgresInsertPayload<DmMessageRow>) => {
-          incomingRef.current(payload.new as DmMessage);
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "dm_messages",
-          filter: `thread_id=eq.${threadId}`,
-        },
-        (payload: RealtimePostgresUpdatePayload<DmMessageRow>) => {
-          updatedRef.current(payload.new as DmMessage);
-        }
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [threadId]);
+  useMessageStream<DmMessageRow>(threadId ? `dm:${threadId}` : null, {
+    onInsert: handleIncoming,
+    onUpdate: handleUpdated,
+  });
 
   async function handleSend() {
     const content = draft.trim();

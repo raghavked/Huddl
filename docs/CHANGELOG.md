@@ -1,5 +1,61 @@
 # Hearth development log
 
+## Round 21: forty thousand at once
+
+The bottleneck round. A campus of 40,000 was seeded on the isolated sim
+university (through the real signup trigger, then fully purged; the
+database ends the round holding exactly two accounts again) and every
+hot path was measured against it. Migrations 0063 through 0068 live.
+
+### Chat stops paying per listener (0064)
+
+Live chat rode Realtime's postgres_changes, which re-evaluates row
+security once per subscriber per message: one message in a room of
+40,000 meant 40,000 policy checks. Messages and DMs now broadcast from
+database triggers into private topics (room:id, dm:id) that a client is
+authorized to join exactly once, via a realtime.messages policy backed
+by the existing membership functions. Both clients switched over behind
+one shared ref-counted stream hook apiece, so a room screen and its
+thread screen share a single subscription instead of fighting over the
+topic. Old builds keep limping on the old wire; nothing was removed.
+
+### The directory pages instead of arriving whole (0065, 0067, 0068)
+
+Both clients fetched every profile on campus and filtered in memory. At
+40,000 students that is a multi-megabyte payload per open. Now the
+directory walks the new (university_id, display_name) index sixty rows
+at a time ("Show more people" on both clients, word for word), search
+runs server-side, and the studying-now list is bounded. The load test
+caught three planner diseases on the way: policies calling
+current_university_id() once per candidate row (0066 wraps every such
+call as an initplan, three orders of magnitude fewer calls), a redundant
+self-visibility arm in the profiles policy that forbade the ordered
+index walk (0067 removes it; provably the same visible set), and
+campus-scope parameters that made PostgREST search plans guess wrong on
+skewed campuses (0068 gives search a definer function that plans each
+call with the real campus and pattern in hand, and masks private
+profiles to handle + avatar server-side). Directory search fell from
+655ms cold to under 10ms typical, page walks run 1 to 9ms at any depth.
+
+### The syllabus winner becomes a column (0063)
+
+The consensus function aggregated imports and endorsements per calendar
+row per query. The winner now lives in courses.winning_import_id,
+recomputed by trigger only when an import or endorsement actually
+changes, and the function every caller already uses became a primary-key
+lookup. Same answers, same tiebreak, O(1) per row.
+
+### Measured at 40,000 profiles, under row security
+
+Message insert through the full trigger stack (slur scan, broadcast,
+notifications) about 5ms; room page 1.5ms; directory page one 2ms, page
+twenty-one 5.6ms; name search 7 to 33ms in every shape tried; unread
+badge count 0.6ms. The advisor sweep also caught winning_syllabus_import
+still executable by signed-out callers, now revoked. What code cannot
+set is plan-level: Realtime connection and throughput quotas and compute
+tier are dashboard knobs, now written into the launch plan as an owner
+step.
+
 ## Round 20: a thousand students at once
 
 No code changed this round, which was the finding. A thousand simulated

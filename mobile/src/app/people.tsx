@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -67,19 +67,21 @@ type MeRow = {
   university: { short_name: string } | null;
 };
 
-function matches(person: DirectoryPerson, query: string): boolean {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
-  // Private profiles only expose their handle, so only the handle is searchable.
-  const haystack = [
-    person.handle,
-    person.display_name,
-    person.major,
-    person.grad_year ? String(person.grad_year) : null,
-  ]
-    .filter((v): v is string => Boolean(v))
-    .map((v) => v.toLowerCase());
-  return haystack.some((v) => v.includes(q));
+/** How much of the directory one fetch carries. */
+const PAGE_SIZE = 60;
+
+/** Where the walk stands: open profiles A to Z first, private handles after. */
+type Paging = {
+  openOffset: number;
+  limitedOffset: number;
+  openDone: boolean;
+};
+
+/* PostgREST's or() is a grammar of its own, and % _ , ( ) are its
+   punctuation. A search term keeps none of them, so a term can only
+   ever be a term. */
+function sanitizeSearch(raw: string): string {
+  return raw.trim().replace(/[%_,()]/g, "");
 }
 
 /**
@@ -280,6 +282,31 @@ export default function PeopleScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [search, setSearch] = useState("");
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const pagingRef = useRef<Paging>({
+    openOffset: 0,
+    limitedOffset: 0,
+    openDone: false,
+  });
+  /** The term the loaded pages actually belong to, so a stale walk is never extended. */
+  const pagedQueryRef = useRef("");
+  /** Only the newest fetch gets to speak; the ones it lapped stay quiet. */
+  const fetchIdRef = useRef(0);
+  const meRef = useRef<{
+    userId: string;
+    universityId: string;
+    uniName: string | null;
+  } | null>(null);
+  const hasLoadedRef = useRef(false);
+
+  // The keyboard runs ahead of the network; the wire waits for a pause.
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(sanitizeSearch(query)), 300);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   /* A tap on an interest chip over on somebody's profile lands here as
      `?interest=`. It reads as a chip above the list with its own way off,
@@ -297,100 +324,190 @@ export default function PeopleScreen() {
     else router.replace("/(tabs)/home");
   }, []);
 
-  const fetchDirectory = useCallback(async (): Promise<{
-    people: DirectoryPerson[];
-    uniName: string | null;
-  }> => {
-    if (!userId) throw new Error("Not signed in");
+  const fetchPage = useCallback(
+    async (
+      q: string,
+      paging: Paging
+    ): Promise<{
+      rows: DirectoryPerson[];
+      next: Paging;
+      hasMore: boolean;
+      uniName: string | null;
+    }> => {
+      if (!userId) throw new Error("Not signed in");
 
-    const { data: meData, error: meError } = await supabase
-      .from("profiles")
-      .select("university_id, university:universities(short_name)")
-      .eq("id", userId)
-      .maybeSingle();
-    if (meError || !meData) throw meError ?? new Error("No profile");
-    const me = meData as unknown as MeRow;
+      // A first page re-reads who and where you are; later pages take it as read.
+      const firstPage =
+        paging.openOffset === 0 &&
+        paging.limitedOffset === 0 &&
+        !paging.openDone;
+      let me = meRef.current;
+      if (!me || me.userId !== userId || firstPage) {
+        const { data: meData, error: meError } = await supabase
+          .from("profiles")
+          .select("university_id, university:universities(short_name)")
+          .eq("id", userId)
+          .maybeSingle();
+        if (meError || !meData) throw meError ?? new Error("No profile");
+        const row = meData as unknown as MeRow;
+        me = {
+          userId,
+          universityId: row.university_id,
+          uniName: row.university?.short_name ?? null,
+        };
+        meRef.current = me;
+      }
 
-    /* Two queries, because the difference between them is the whole point: a
-       private classmate's name, major, year and interests are never asked
-       for, so they never leave the database. Stripping them here instead
-       would ship every hidden field to the phone first. */
-    const [openRes, limitedRes] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select(OPEN_SELECT)
-        .eq("university_id", me.university_id)
-        .or(`is_public.eq.true,id.eq.${userId}`)
-        .order("display_name", { ascending: true }),
-      supabase
-        .from("profiles")
-        .select(LIMITED_SELECT)
-        .eq("university_id", me.university_id)
-        .eq("is_public", false)
-        .neq("id", userId)
-        .order("handle", { ascending: true }),
-    ]);
-    if (openRes.error) throw openRes.error;
-    if (limitedRes.error) throw limitedRes.error;
+      /* Two queries, because the difference between them is the whole point: a
+         private classmate's name, major, year and interests are never asked
+         for, so they never leave the database. Stripping them here instead
+         would ship every hidden field to the phone first. The walk reads the
+         open profiles A to Z, then the private handles, and every fetch cuts
+         one page of sixty from wherever it stands. */
+      const rows: DirectoryPerson[] = [];
+      let { openOffset, limitedOffset, openDone } = paging;
 
-    const mapped: DirectoryPerson[] = [
-      ...((openRes.data ?? []) as unknown as OpenRow[]).map((p) => ({
-        id: p.id,
-        handle: p.handle,
-        display_name: p.display_name,
-        avatar_url: p.avatar_url,
-        major: p.major,
-        grad_year: p.grad_year,
-        interests: interestsOf(p.interests),
-        is_public: p.is_public,
-      })),
-      ...((limitedRes.data ?? []) as unknown as LimitedRow[]).map((p) => ({
-        id: p.id,
-        handle: p.handle,
-        display_name: null,
-        avatar_url: p.avatar_url,
-        major: null,
-        grad_year: null,
-        interests: [],
-        is_public: false,
-      })),
-    ];
+      if (!openDone) {
+        /* The A-to-Z walk streams the (university_id, display_name) index
+           through PostgREST. A name search goes through search_directory
+           instead: the definer function plans with the real campus and
+           pattern in hand, where the same filter phrased as a PostgREST
+           or() falls off the index at campus scale. */
+        const openRes =
+          q.length > 0
+            ? await supabase.rpc("search_directory", {
+                p_query: q,
+                p_offset: openOffset,
+                p_public_only: true,
+              })
+            : await supabase
+                .from("profiles")
+                .select(OPEN_SELECT)
+                .eq("university_id", me.universityId)
+                .or(`is_public.eq.true,id.eq.${userId}`)
+                .order("display_name", { ascending: true })
+                .range(openOffset, openOffset + PAGE_SIZE - 1);
+        if (openRes.error) throw openRes.error;
+        const open = (openRes.data ?? []) as unknown as OpenRow[];
+        rows.push(
+          ...open.map((p) => ({
+            id: p.id,
+            handle: p.handle,
+            display_name: p.display_name,
+            avatar_url: p.avatar_url,
+            major: p.major,
+            grad_year: p.grad_year,
+            interests: interestsOf(p.interests),
+            is_public: p.is_public,
+          }))
+        );
+        openOffset += open.length;
+        if (open.length < PAGE_SIZE) openDone = true;
+      }
 
-    // Full cards first (alphabetical), limited private cards after (by handle).
-    mapped.sort((a, b) => {
-      const aLimited = a.display_name === null;
-      const bLimited = b.display_name === null;
-      if (aLimited !== bLimited) return aLimited ? 1 : -1;
-      return (a.display_name ?? a.handle).localeCompare(
-        b.display_name ?? b.handle
-      );
-    });
+      if (openDone && rows.length < PAGE_SIZE) {
+        const need = PAGE_SIZE - rows.length;
+        let limitedQuery = supabase
+          .from("profiles")
+          .select(LIMITED_SELECT)
+          .eq("university_id", me.universityId)
+          .eq("is_public", false)
+          .neq("id", userId);
+        // Private profiles only expose their handle, so only the handle is searchable.
+        if (q.length > 0) {
+          limitedQuery = limitedQuery.ilike("handle", `%${q}%`);
+        }
+        const limitedRes = await limitedQuery
+          .order("handle", { ascending: true })
+          .range(limitedOffset, limitedOffset + need - 1);
+        if (limitedRes.error) throw limitedRes.error;
+        const limited = (limitedRes.data ?? []) as unknown as LimitedRow[];
+        rows.push(
+          ...limited.map((p) => ({
+            id: p.id,
+            handle: p.handle,
+            display_name: null,
+            avatar_url: p.avatar_url,
+            major: null,
+            grad_year: null,
+            interests: [],
+            is_public: false,
+          }))
+        );
+        limitedOffset += limited.length;
+      }
 
-    return { people: mapped, uniName: me.university?.short_name ?? null };
-  }, [userId]);
+      return {
+        rows,
+        next: { openOffset, limitedOffset, openDone },
+        // A full page means the walk may not be over; a short one means it is.
+        hasMore: rows.length === PAGE_SIZE,
+        uniName: me.uniName,
+      };
+    },
+    [userId]
+  );
 
   const run = useCallback(
-    async (mode: "initial" | "refresh") => {
+    async (mode: "initial" | "refresh" | "search") => {
       if (mode === "initial") setLoading(true);
       if (mode === "refresh") setRefreshing(true);
+      const fetchId = ++fetchIdRef.current;
       try {
-        const result = await fetchDirectory();
-        setPeople(result.people);
+        const result = await fetchPage(search, {
+          openOffset: 0,
+          limitedOffset: 0,
+          openDone: false,
+        });
+        if (fetchIdRef.current !== fetchId) return;
+        pagingRef.current = result.next;
+        pagedQueryRef.current = search;
+        setPeople(result.rows);
+        setHasMore(result.hasMore);
         setUniName(result.uniName);
         setError(null);
       } catch {
+        if (fetchIdRef.current !== fetchId) return;
         setError("We couldn't load the directory right now.");
       } finally {
         if (mode === "initial") setLoading(false);
         if (mode === "refresh") setRefreshing(false);
       }
     },
-    [fetchDirectory]
+    [fetchPage, search]
   );
+
+  const loadMore = useCallback(async () => {
+    if (loading || refreshing || loadingMore || !hasMore) return;
+    if (people === null || pagedQueryRef.current !== search) return;
+    setLoadingMore(true);
+    const fetchId = ++fetchIdRef.current;
+    try {
+      const result = await fetchPage(search, pagingRef.current);
+      if (fetchIdRef.current !== fetchId) return;
+      pagingRef.current = result.next;
+      // A signup upstream can shift the walk mid-scroll; nobody appears twice.
+      setPeople((prev) => {
+        const seen = new Set((prev ?? []).map((p) => p.id));
+        return [
+          ...(prev ?? []),
+          ...result.rows.filter((r) => !seen.has(r.id)),
+        ];
+      });
+      setHasMore(result.hasMore);
+    } catch {
+      // The page never arrived; the button is still there to ask again.
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loading, refreshing, loadingMore, hasMore, people, search, fetchPage]);
 
   useEffect(() => {
     if (!userId) return;
-    void run("initial");
+    // The first load owns the spinner; a new term swaps the list in place.
+    const mode = hasLoadedRef.current ? "search" : "initial";
+    hasLoadedRef.current = true;
+    void run(mode);
   }, [userId, run]);
 
   // Blocked classmates stay out of the directory; refreshed on focus so a
@@ -406,12 +523,10 @@ export default function PeopleScreen() {
     () => (people ?? []).filter((p) => p.id === userId || !blocked.has(p.id)),
     [people, blocked, userId]
   );
+  // The server already walked the search; only the interest chip narrows here.
   const filtered = useMemo(
-    () =>
-      visiblePeople.filter(
-        (p) => sharesInterest(p, interest) && matches(p, query)
-      ),
-    [visiblePeople, query, interest]
+    () => visiblePeople.filter((p) => sharesInterest(p, interest)),
+    [visiblePeople, interest]
   );
   /** Either the box or the interest chip is standing between you and the list. */
   const narrowed = query.trim().length > 0 || interest.length > 0;
@@ -422,10 +537,9 @@ export default function PeopleScreen() {
       <PersonRow
         person={item}
         isMe={item.id === userId}
-        /* The directory arrives once and is filtered in the hand after
-           that, so the stagger belongs to that first paint, not to every
-           keystroke that drops rows out and puts them back. */
-        entrance={narrowed ? undefined : index}
+        /* The stagger belongs to the first page's first paint, not to every
+           keystroke, and not to pages that arrive mid-scroll. */
+        entrance={narrowed || index >= PAGE_SIZE ? undefined : index}
       />
     ),
     [userId, narrowed]
@@ -689,7 +803,9 @@ export default function PeopleScreen() {
             ) : null
           }
           ListEmptyComponent={
-            count === 0 ? (
+            // With search on the server, an empty list under a term means
+            // no matches, not an empty school.
+            count === 0 && !narrowed ? (
               <Card
                 style={{
                   alignItems: "center",
@@ -776,6 +892,29 @@ export default function PeopleScreen() {
                 />
               </Card>
             )
+          }
+          onEndReached={() => void loadMore()}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            // onEndReached can go missing on some devices; the button cannot.
+            hasMore ? (
+              <View style={{ alignItems: "center", marginTop: space.tight }}>
+                {loadingMore ? (
+                  <ActivityIndicator
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                    color={theme.brand}
+                  />
+                ) : (
+                  <Button
+                    label="Show more people"
+                    variant="soft"
+                    size="sm"
+                    onPress={() => void loadMore()}
+                  />
+                )}
+              </View>
+            ) : null
           }
           refreshControl={
             <RefreshControl

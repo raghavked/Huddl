@@ -33,8 +33,7 @@ import {
   type ReportCategory,
 } from "@/lib/moderation";
 import { reportDmMessage } from "@/features/moderation/actions";
-import { useRealtimeInserts } from "@/lib/hooks/use-realtime-inserts";
-import { useRealtimeUpdates } from "@/lib/hooks/use-realtime-updates";
+import { useMessageStream } from "@/lib/hooks/use-message-stream";
 import { usePresence } from "@/lib/hooks/use-presence";
 import { typingLabel, useTyping } from "@/lib/hooks/use-typing";
 import { AttachmentImage } from "@/features/chat/attachment-image";
@@ -433,23 +432,16 @@ export function DmRoom({
     []
   );
 
-  useRealtimeInserts<DmMessageRow>(
-    "dm_messages",
-    `thread_id=eq.${threadId}`,
-    (row) => {
+  useMessageStream<DmMessageRow>(`dm:${threadId}`, {
+    onInsert: (row) => {
       if (row.author_id === userId) return; // own echo; optimistic path has it
       appendMessage(row as DmMessage, nearBottomRef.current ? "smooth" : null);
       markRead(); // we're looking at the thread, so it's read on arrival
-    }
-  );
-
-  // Others' edits and soft-deletes: patch the matching bubble in place. Temp
-  // optimistic rows use `temp-*` ids and never match a real id; idempotent
-  // replace-by-id means our own echoed changes collapse to a no-op.
-  useRealtimeUpdates<DmMessageRow>(
-    "dm_messages",
-    `thread_id=eq.${threadId}`,
-    (row) => {
+    },
+    // Others' edits and soft-deletes: patch the matching bubble in place. Temp
+    // optimistic rows use `temp-*` ids and never match a real id; idempotent
+    // replace-by-id means our own echoed changes collapse to a no-op.
+    onUpdate: (row) => {
       setMessages((prev) => {
         let changed = false;
         const next = prev.map((m) => {
@@ -471,8 +463,8 @@ export function DmRoom({
         });
         return changed ? next : prev;
       });
-    }
-  );
+    },
+  });
 
   // Autosize the composer with its content.
   useEffect(() => {

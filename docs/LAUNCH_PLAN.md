@@ -50,6 +50,17 @@ mailboxes, DNS, and the legal-name blanks.
   enable leaked-password protection (Auth > Providers > Password), set
   Site URL to `https://uhearth.app`, and apply the branded email
   templates + Resend SMTP per `supabase/templates/README.md`.
+- [R] **Concurrency headroom is a plan setting, not a code setting.**
+  The database and clients are built for a full campus online at once
+  (chat fans out over broadcast topics, the directory pages and searches
+  through indexes; verified against 40,000 profiles). What the code
+  cannot control is the platform ceiling: Realtime peak connections and
+  messages per second, connection pool size, and compute tier all come
+  from the Supabase plan. Before a big-campus push, open the dashboard's
+  Realtime and Compute settings and size peak concurrent connections to
+  the campus you are launching (the Pro tier's defaults comfortably cover
+  the first campuses; raise the quotas from the same page as usage
+  grows). No app release is needed when these change.
 
 ### Day 3, Wed (needs Apple approval)
 
