@@ -105,7 +105,7 @@ type Status = "loading" | "error" | "ready";
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 const MESSAGE_SELECT =
-  "id, channel_id, author_id, parent_id, content, attachment_path, poll_id, edited_at, deleted_at, created_at, forwarded_from, forwarded_author_id, author:profiles(id, handle, display_name, avatar_url)";
+  "id, channel_id, author_id, parent_id, content, attachment_path, poll_id, edited_at, deleted_at, created_at, forwarded_from, forwarded_author_id, author:profiles!messages_author_id_fkey(id, handle, display_name, avatar_url)";
 
 /** Quiet time in the composer before the draft is written to the device. */
 const DRAFT_SAVE_MS = 500;

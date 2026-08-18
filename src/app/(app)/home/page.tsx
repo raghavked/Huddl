@@ -218,7 +218,7 @@ export default async function HomePage() {
         let query = supabase
           .from("messages")
           .select(
-            "content, created_at, author:profiles(id, handle, display_name, is_public)"
+            "content, created_at, author:profiles!messages_author_id_fkey(id, handle, display_name, is_public)"
           )
           .eq("channel_id", channel.id)
           .is("deleted_at", null);

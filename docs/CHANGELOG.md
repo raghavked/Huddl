@@ -1,5 +1,22 @@
 # Hearth development log
 
+## Round 23: the first real device found the one query nobody had run
+
+Channels and messaging looked dead on the first cable-build test, and
+the API logs told the story in one line: every message-list request
+that embedded the author's profile answered HTTP 300, PostgREST's
+refusal to guess between foreign keys. Messages point at profiles three
+ways (author, forwarded author, pinned by), so the bare
+`author:profiles(...)` embed became ambiguous the day forwarding
+shipped, and nothing since had exercised the REST path: the SQL fleets
+test policies below PostgREST, and the screenshot rig injects fixtures
+above it. Eleven embeds across both clients now name their foreign key
+(`profiles!messages_author_id_fkey`), the two nested saved-items
+embeds included. Friendships, reports, blocks, and club invitations
+were already hinted; DMs never embedded. Sending, reading, and
+realtime were verified healthy at every other layer while finding
+this.
+
 ## Round 22: clubs choose their door
 
 Migration 0069 live, verified by a fifteen-check adversarial pass under

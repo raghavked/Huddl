@@ -723,7 +723,7 @@ async function fetchPreviews(
     channels.map(async (channel) => {
       let query = supabase
         .from("messages")
-        .select("content, created_at, author_id, author:profiles(display_name)")
+        .select("content, created_at, author_id, author:profiles!messages_author_id_fkey(display_name)")
         .eq("channel_id", channel.id)
         .is("deleted_at", null);
       // `not.in.()` is not a filter PostgREST will take, so an empty block

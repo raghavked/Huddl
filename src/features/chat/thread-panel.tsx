@@ -12,7 +12,7 @@ const GROUP_WINDOW_MS = 5 * 60 * 1000;
 
 /** The message row plus its joined author: one select shape everywhere. */
 const MESSAGE_WITH_AUTHOR_SELECT =
-  "*, author:profiles(id, handle, display_name, avatar_url, verified_at, major, grad_year, is_public, university_id)";
+  "*, author:profiles!messages_author_id_fkey(id, handle, display_name, avatar_url, verified_at, major, grad_year, is_public, university_id)";
 
 /** Message shaped for the realtime hook's Record constraint. */
 type MessageRow = Message & Record<string, unknown>;

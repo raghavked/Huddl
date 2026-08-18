@@ -39,10 +39,10 @@ const BODY_TEXT = {
 } as const;
 
 const CHANNEL_SELECT =
-  "created_at, message_id, message:messages(id, content, attachment_path, created_at, deleted_at, channel_id, author:profiles(display_name), channel:channels(name, slug))";
+  "created_at, message_id, message:messages(id, content, attachment_path, created_at, deleted_at, channel_id, author:profiles!messages_author_id_fkey(display_name), channel:channels(name, slug))";
 
 const DM_SELECT =
-  "created_at, dm_message_id, message:dm_messages(id, content, attachment_path, created_at, deleted_at, thread_id, author:profiles(display_name))";
+  "created_at, dm_message_id, message:dm_messages(id, content, attachment_path, created_at, deleted_at, thread_id, author:profiles!dm_messages_author_id_fkey(display_name))";
 
 /** One row on the shelf, flattened out of either side of the union. */
 type SavedItem = {

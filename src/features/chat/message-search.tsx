@@ -15,7 +15,7 @@ const DEBOUNCE_MS = 300;
  * redaction on this surface.
  */
 const RESULT_SELECT =
-  "id, content, created_at, author:profiles(id, handle, display_name, is_public)";
+  "id, content, created_at, author:profiles!messages_author_id_fkey(id, handle, display_name, is_public)";
 
 type SearchResult = {
   id: string;

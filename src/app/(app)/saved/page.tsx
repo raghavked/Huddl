@@ -44,9 +44,9 @@ type BookmarkRow = {
 const BOOKMARK_SELECT =
   "created_at, message_id, dm_message_id, " +
   "message:messages(id, channel_id, content, created_at, deleted_at, " +
-  "author:profiles(display_name, avatar_url), channel:channels(name, slug)), " +
+  "author:profiles!messages_author_id_fkey(display_name, avatar_url), channel:channels(name, slug)), " +
   "dm_message:dm_messages(id, thread_id, content, created_at, deleted_at, " +
-  "author:profiles(display_name, avatar_url))";
+  "author:profiles!dm_messages_author_id_fkey(display_name, avatar_url))";
 
 /**
  * Saved messages, private to you, newest save first. One query covers both

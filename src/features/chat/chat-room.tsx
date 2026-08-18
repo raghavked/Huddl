@@ -58,7 +58,7 @@ const PAGE_SIZE = 50;
 
 /** The message row plus its joined author: one select shape everywhere. */
 const MESSAGE_WITH_AUTHOR_SELECT =
-  "*, author:profiles(id, handle, display_name, avatar_url, verified_at, major, grad_year, is_public, university_id)";
+  "*, author:profiles!messages_author_id_fkey(id, handle, display_name, avatar_url, verified_at, major, grad_year, is_public, university_id)";
 
 const COMPOSER_ICON_BUTTON =
   "flex size-10 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50";
