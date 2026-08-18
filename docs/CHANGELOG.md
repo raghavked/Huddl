@@ -1,5 +1,38 @@
 # Hearth development log
 
+## Round 22: clubs choose their door
+
+Migration 0069 live, verified by a fifteen-check adversarial pass under
+simulated student sessions before any UI was written.
+
+A club president can now found a club as open (anyone on campus joins,
+as before) or invite only, where membership moves exclusively through
+invitations. Officers invite classmates from a directory search; the
+classmate gets a notification and answers from the club page; accepting
+creates the membership and drops them into the club's rooms in the same
+motion. One pending invitation per person per club, settled invitations
+stay settled, officers can revoke, and blocked pairs never notify each
+other. Messages, polls, announcements, and events were already carried
+by the club's rooms and event system and now sit behind whichever door
+the president chose.
+
+The presidency itself grew the guardrails it always deserved: officers
+cannot mint or unseat a president, the president cannot walk out of a
+club that still has members (hand it off or disband), and
+transfer_club_presidency moves the crown atomically, leaving the
+outgoing president as an officer. The verification pass caught a real
+ordering bug in the first draft of the transfer (a two-row update could
+strip the caller's crown before the promotion's guard checked it) and
+the fix promotes first, then steps down.
+
+Both clients gained the full surface with word-identical copy: the "Who
+can join" picker on founding and settings, the "Invite only" badge, the
+"You're invited." accept/decline card, the officers' Invitations panel
+with search, send, and revoke, President/Officer/Member roles with
+promote/demote/remove on the roster, and "Hand off presidency" behind a
+confirm. Club invitations notify under the existing club toggle, and
+the help screen explains the two doors.
+
 ## Round 21: forty thousand at once
 
 The bottleneck round. A campus of 40,000 was seeded on the isolated sim

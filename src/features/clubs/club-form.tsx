@@ -16,7 +16,8 @@ import {
 import { disbandClub, updateClub } from "@/features/clubs/actions";
 import { categoryLabel, ConfirmDialog } from "@/features/clubs/club-card";
 import { createClient } from "@/lib/supabase/client";
-import type { Club, ClubCategory } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import type { Club, ClubCategory, ClubPrivacy } from "@/lib/types";
 
 export const CLUB_CATEGORIES: readonly ClubCategory[] = [
   "academic",
@@ -62,6 +63,76 @@ function CategorySelect({
   );
 }
 
+const PRIVACY_OPTIONS: {
+  value: ClubPrivacy;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    value: "open",
+    label: "Open",
+    hint: "Anyone at your campus can join.",
+  },
+  {
+    value: "invite",
+    label: "Invite only",
+    hint: "New members join by invitation from an officer.",
+  },
+];
+
+/** The door setting, as radio cards: pick how new members get in. */
+function PrivacyField({
+  idPrefix,
+  value,
+  onChange,
+}: {
+  idPrefix: string;
+  value: ClubPrivacy;
+  onChange: (value: ClubPrivacy) => void;
+}) {
+  return (
+    <fieldset className="flex flex-col gap-1.5">
+      <legend className="block text-sm font-semibold">Who can join</legend>
+      <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+        {PRIVACY_OPTIONS.map((option) => {
+          const id = `${idPrefix}-privacy-${option.value}`;
+          const active = value === option.value;
+          return (
+            <label
+              key={option.value}
+              htmlFor={id}
+              className={cn(
+                "flex cursor-pointer items-start gap-2.5 rounded-xl border px-3.5 py-2.5 transition-colors",
+                active
+                  ? "border-brand bg-brand-soft"
+                  : "border-border bg-surface hover:border-brand/30"
+              )}
+            >
+              <input
+                id={id}
+                type="radio"
+                name={`${idPrefix}-privacy`}
+                value={option.value}
+                checked={active}
+                onChange={() => onChange(option.value)}
+                className="mt-0.5 size-4 shrink-0"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">
+                  {option.label}
+                </span>
+                <span className="mt-0.5 block text-xs text-muted">
+                  {option.hint}
+                </span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
 /**
  * Founding form. Inserts the clubs row directly (RLS: created_by must be the
  * signed-in student at their own university). DB triggers then create the
@@ -79,6 +150,7 @@ export function ClubForm({
   const router = useRouter();
   const [name, setName] = useState("");
   const [category, setCategory] = useState<ClubCategory>("other");
+  const [privacy, setPrivacy] = useState<ClubPrivacy>("open");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -107,6 +179,7 @@ export function ClubForm({
         name: trimmed,
         slug,
         category,
+        privacy,
         description: description.trim() || null,
       })
       .select("id")
@@ -161,6 +234,8 @@ export function ClubForm({
         />
       </div>
 
+      <PrivacyField idPrefix="club" value={privacy} onChange={setPrivacy} />
+
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="club-description">
           Description <span className="font-normal text-muted">(optional)</span>
@@ -199,6 +274,7 @@ export function ClubEditor({ club }: { club: Club }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(club.name);
   const [category, setCategory] = useState<ClubCategory>(club.category);
+  const [privacy, setPrivacy] = useState<ClubPrivacy>(club.privacy);
   const [description, setDescription] = useState(club.description ?? "");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -211,6 +287,7 @@ export function ClubEditor({ club }: { club: Club }) {
         onClick={() => {
           setName(club.name);
           setCategory(club.category);
+          setPrivacy(club.privacy);
           setDescription(club.description ?? "");
           setError(null);
           setOpen(true);
@@ -232,6 +309,7 @@ export function ClubEditor({ club }: { club: Club }) {
             name,
             category,
             description,
+            privacy,
           });
           if (result.error) {
             setError(result.error);
@@ -263,6 +341,11 @@ export function ClubEditor({ club }: { club: Club }) {
             onChange={setCategory}
           />
         </div>
+        <PrivacyField
+          idPrefix="edit-club"
+          value={privacy}
+          onChange={setPrivacy}
+        />
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="edit-club-description">Description</Label>
           <Textarea

@@ -60,7 +60,8 @@ export const HELP_SECTIONS: HelpSection[] = [
       },
       {
         term: "Clubs",
-        detail: "Societies and teams, their announcements and their events.",
+        detail:
+          "Societies and teams, their announcements and their events. A club is open, so anyone on campus can join, or invite only, where an officer sends you an invitation and you accept it from the club page.",
       },
       {
         term: "Events",

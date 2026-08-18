@@ -24,6 +24,7 @@ import {
 import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { type ClubRole } from "@/lib/club-announcements";
+import { toPrivacy, type ClubPrivacy } from "@/lib/club-invites";
 import { tapSuccess } from "@/lib/haptics";
 import { roomTitle } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
@@ -46,9 +47,9 @@ import { useAuth } from "@/providers/auth-provider";
  * so out loud, because a rename that silently moved the chat would be worse
  * than one that doesn't.
  *
- * It also doesn't hand over ownership or promote officers (the roster is
- * still the web app's job), and it doesn't offer "leave club", which lives on
- * the club page where it always has.
+ * It also doesn't hand over the presidency or promote officers (the roster
+ * on the club page manages roles now), and it doesn't offer "leave club",
+ * which lives on the club page where it always has.
  */
 
 /** Minimal local row shape. The web app's types live outside this tsconfig. */
@@ -76,9 +77,30 @@ type ClubRow = {
   name: string;
   description: string | null;
   category: ClubCategory;
+  privacy: ClubPrivacy;
 };
 
 type Status = "loading" | "error" | "notFound" | "ready";
+
+/* The door policy. Migration 0069 wired the join policy to it, so this is
+   the row that decides whether the club page shows Join at all. The exact
+   words are shared with the web app, letter for letter. */
+const PRIVACY_OPTIONS: readonly {
+  value: ClubPrivacy;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    value: "open",
+    label: "Open",
+    hint: "Anyone at your campus can join.",
+  },
+  {
+    value: "invite",
+    label: "Invite only",
+    hint: "New members join by invitation from an officer.",
+  },
+];
 
 /* The same window the web's updateClub action enforces. The founding form on
    this phone is stricter (60), but a club named on the web can be longer than
@@ -121,6 +143,77 @@ function canDisbandClub(role: ClubRole | null): boolean {
   return role === "owner";
 }
 
+/**
+ * The two-door picker: one bordered row per policy, label and hint together,
+ * so the choice is read as a sentence and not decoded from a pill. The same
+ * rows as the founding form, because the door is the same door.
+ */
+function PrivacyPicker({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: ClubPrivacy;
+  disabled: boolean;
+  onChange: (next: ClubPrivacy) => void;
+}) {
+  const theme = useTheme();
+  return (
+    <View style={{ gap: space.snug }}>
+      <AppText variant="label">Who can join</AppText>
+      <View style={{ gap: space.cosy }}>
+        {PRIVACY_OPTIONS.map((option) => {
+          const selected = value === option.value;
+          return (
+            <Pressable
+              key={option.value}
+              accessibilityRole="radio"
+              accessibilityState={{ selected, disabled }}
+              accessibilityLabel={`${option.label}. ${option.hint}`}
+              onPress={() => {
+                if (!disabled) onChange(option.value);
+              }}
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.close,
+                minHeight: 56,
+                paddingHorizontal: space.card,
+                paddingVertical: space.room,
+                borderRadius: radius.control,
+                borderWidth: 1,
+                borderColor: selected ? theme.brandInk : theme.border,
+                backgroundColor: selected ? theme.brandSoft : theme.surface,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Feather
+                name={option.value === "open" ? "unlock" : "lock"}
+                size={16}
+                color={selected ? theme.brandInk : theme.muted}
+              />
+              <View style={{ flex: 1, gap: space.hair }}>
+                <AppText
+                  variant="bodySemi"
+                  style={selected ? { color: theme.brandInk } : undefined}
+                >
+                  {option.label}
+                </AppText>
+                <AppText variant="caption" muted>
+                  {option.hint}
+                </AppText>
+              </View>
+              {selected ? (
+                <Feather name="check" size={16} color={theme.brandInk} />
+              ) : null}
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export default function ClubSettingsScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -143,6 +236,7 @@ export default function ClubSettingsScreen() {
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState<ClubCategory>("other");
+  const [privacy, setPrivacy] = useState<ClubPrivacy>("open");
   const [description, setDescription] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -165,7 +259,7 @@ export default function ClubSettingsScreen() {
       const [clubRes, roleRes, countRes, channelRes] = await Promise.all([
         supabase
           .from("clubs")
-          .select("id, name, description, category")
+          .select("id, name, description, category, privacy")
           .eq("id", id)
           .maybeSingle(),
         supabase
@@ -195,6 +289,7 @@ export default function ClubSettingsScreen() {
         name: string;
         description: string | null;
         category: unknown;
+        privacy: unknown;
       } | null;
       // RLS hides other campuses' clubs, so "not found" covers both cases,
       // including a club somebody else disbanded while this was open.
@@ -207,10 +302,12 @@ export default function ClubSettingsScreen() {
         name: row.name,
         description: row.description,
         category: toCategory(row.category),
+        privacy: toPrivacy(row.privacy),
       };
       setClub(loaded);
       setName(loaded.name);
       setCategory(loaded.category);
+      setPrivacy(loaded.privacy);
       setDescription(loaded.description ?? "");
       setRole(toRole((roleRes.data as { role?: unknown } | null)?.role));
       setMemberCount(countRes.count ?? 0);
@@ -252,6 +349,7 @@ export default function ClubSettingsScreen() {
       .update({
         name: cleanName,
         category,
+        privacy,
         description: description.trim() || null,
       })
       .eq("id", club.id)
@@ -274,7 +372,7 @@ export default function ClubSettingsScreen() {
     // waiting there is the receipt, so no confirmation screen is needed.
     tapSuccess();
     goBack();
-  }, [club, saving, disbanding, name, category, description, goBack]);
+  }, [club, saving, disbanding, name, category, privacy, description, goBack]);
 
   const doDisband = useCallback(async () => {
     if (!club || disbanding) return;
@@ -515,6 +613,7 @@ export default function ClubSettingsScreen() {
   const dirty =
     name.trim() !== club.name ||
     category !== club.category ||
+    privacy !== club.privacy ||
     description.trim() !== (club.description ?? "");
 
   return scaffold(
@@ -571,6 +670,8 @@ export default function ClubSettingsScreen() {
           ))}
         </View>
       </View>
+
+      <PrivacyPicker value={privacy} disabled={busy} onChange={setPrivacy} />
 
       <Field
         label="Description (optional)"

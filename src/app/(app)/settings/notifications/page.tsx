@@ -105,6 +105,8 @@ const PUSH_KINDS: {
     caption: "Updates to events you're going to.",
   },
   {
+    // Club invitations ('club_invite') ride this switch too: one dial for
+    // everything a club sends you, so there is no separate toggle to find.
     kind: "club_post",
     icon: Megaphone,
     label: "Club announcements",

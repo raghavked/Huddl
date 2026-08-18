@@ -19,10 +19,19 @@ import {
   cardClasses,
 } from "@/components/ui";
 import { AnnouncementsSection } from "@/features/clubs/announcements-section";
-import { CategoryBadge, MembershipActions } from "@/features/clubs/club-card";
+import {
+  CategoryBadge,
+  InviteOnlyBadge,
+  MembershipActions,
+} from "@/features/clubs/club-card";
 import { DateTile } from "@/features/events/event-chips";
 import { ClubEditor, DisbandClubButton } from "@/features/clubs/club-form";
-import { Roster, sortRoster, type RosterEntry } from "@/features/clubs/roster";
+import { InvitationsPanel } from "@/features/clubs/invitations-panel";
+import { Roster } from "@/features/clubs/roster";
+import {
+  sortRoster,
+  type RosterEntry,
+} from "@/features/clubs/roster-order";
 import { getCurrentUser } from "@/lib/auth";
 import {
   ANNOUNCEMENTS_PREVIEW,
@@ -30,6 +39,11 @@ import {
   fetchAnnouncements,
   type ClubAnnouncement,
 } from "@/lib/club-announcements";
+import {
+  CLUB_INVITE_SELECT,
+  toPendingInvite,
+  type PendingClubInvite,
+} from "@/lib/club-invites";
 import { createClient } from "@/lib/supabase/server";
 import { formatEventTime } from "@/lib/utils";
 import type { CampusEvent, Channel, Club } from "@/lib/types";
@@ -69,39 +83,56 @@ export default async function ClubPage({
   if (!clubRow) notFound();
   const club = clubRow as Club;
 
-  const [{ data: memberRows }, { data: channelRow }, { data: eventRows }] =
-    await Promise.all([
-      supabase
-        .from("club_members")
-        .select(
-          "*, profile:profiles(id, handle, display_name, avatar_url, verified_at, major, grad_year, is_public, university_id)"
-        )
-        .eq("club_id", club.id),
-      supabase
-        .from("channels")
-        .select("id, slug")
-        .eq("club_id", club.id)
-        .maybeSingle(),
-      supabase
-        .from("events")
-        .select("*")
-        .eq("club_id", club.id)
-        .gte("starts_at", new Date().toISOString())
-        .order("starts_at", { ascending: true })
-        .limit(20),
-    ]);
+  const [
+    { data: memberRows },
+    { data: channelRow },
+    { data: eventRows },
+    { data: inviteRows },
+  ] = await Promise.all([
+    supabase
+      .from("club_members")
+      .select(
+        "*, profile:profiles(id, handle, display_name, avatar_url, verified_at, major, grad_year, is_public, university_id)"
+      )
+      .eq("club_id", club.id),
+    supabase
+      .from("channels")
+      .select("id, slug")
+      .eq("club_id", club.id)
+      .maybeSingle(),
+    supabase
+      .from("events")
+      .select("*")
+      .eq("club_id", club.id)
+      .gte("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(20),
+    // RLS scopes this to what the viewer may see: officers get the club's
+    // whole guest list, everyone else at most their own invitation.
+    supabase
+      .from("club_invites")
+      .select(CLUB_INVITE_SELECT)
+      .eq("club_id", club.id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false }),
+  ]);
 
   const roster = sortRoster(
     ((memberRows ?? []) as RosterEntry[]).filter((m) => m.profile)
   );
   const channel = channelRow as Pick<Channel, "id" | "slug"> | null;
   const events = (eventRows ?? []) as CampusEvent[];
+  const pendingInvites = (inviteRows ?? [])
+    .map(toPendingInvite)
+    .filter((invite): invite is PendingClubInvite => invite !== null);
 
   const me = roster.find((m) => m.user_id === user.userId) ?? null;
   const myRole = me?.role ?? null;
   const isMember = myRole !== null;
   const isOfficer = myRole === "officer" || myRole === "owner";
   const isOwner = myRole === "owner";
+  const myInvite =
+    pendingInvites.find((invite) => invite.user_id === user.userId) ?? null;
 
   // The board is members-only by RLS, so it stays behind the join button,
   // and a hiccup loading it costs the board, never the whole club page.
@@ -140,13 +171,14 @@ export default async function ClubPage({
             <Users className="size-3" aria-hidden />
             {roster.length} {roster.length === 1 ? "member" : "members"}
           </Badge>
+          {club.privacy === "invite" ? <InviteOnlyBadge /> : null}
           {myRole ? (
             <Badge tone="brand">
               <Check className="size-3" aria-hidden />
               {myRole === "member"
                 ? "Joined"
                 : myRole === "owner"
-                  ? "Owner"
+                  ? "President"
                   : "Officer"}
             </Badge>
           ) : null}
@@ -185,11 +217,13 @@ export default async function ClubPage({
             clubId={club.id}
             clubName={club.name}
             role={myRole}
+            privacy={club.privacy}
+            inviteId={myInvite?.id ?? null}
           />
           {isOfficer ? <ClubEditor club={club} /> : null}
         </div>
 
-        {!isMember && channel ? (
+        {!isMember && channel && club.privacy === "open" ? (
           <p className="mt-3 text-xs text-muted">
             Join to get into{" "}
             <span className="font-semibold text-foreground">{roomTitle(null, channel.slug)}</span>{" "}
@@ -278,10 +312,28 @@ export default async function ClubPage({
             {/* The roster redacts a private member down to their handle, and
                 has to know who is reading to make the one exception: you
                 always see yourself in full. */}
-            <Roster members={roster} currentUserId={user.userId} />
+            <Roster
+              members={roster}
+              currentUserId={user.userId}
+              clubId={club.id}
+              viewerRole={myRole}
+            />
           </div>
         )}
       </section>
+
+      {/* Open clubs have a Join button doing this work; the panel exists
+          for the clubs whose door only opens from the inside. Mobile draws
+          the same line. */}
+      {isOfficer && club.privacy === "invite" ? (
+        <InvitationsPanel
+          clubId={club.id}
+          myId={user.userId}
+          myName={user.profile.display_name}
+          memberIds={roster.map((m) => m.user_id)}
+          initialInvites={pendingInvites}
+        />
+      ) : null}
 
       {isOwner ? (
         <section

@@ -121,6 +121,9 @@ export type ClubCategory =
   | "service"
   | "other";
 
+// The club's door (migration 0069): open to the campus, or invite only.
+export type ClubPrivacy = "open" | "invite";
+
 export interface Club {
   id: string;
   university_id: string;
@@ -128,6 +131,9 @@ export interface Club {
   slug: string;
   description: string | null;
   category: ClubCategory;
+  // 'open' lets anyone at the university join; 'invite' means membership
+  // moves only through club_invites and respond_to_club_invite().
+  privacy: ClubPrivacy;
   created_by: string | null;
   created_at: string;
 }
@@ -137,6 +143,20 @@ export interface ClubMember {
   user_id: string;
   role: "member" | "officer" | "owner";
   joined_at: string;
+}
+
+// One invitation into a club (migration 0069). Officers send them; only the
+// invitee settles them, through respond_to_club_invite(), which is the one
+// path that turns 'pending' into a membership. Officers can pull a pending
+// one back to 'revoked'; settled rows stay as history.
+export interface ClubInvite {
+  id: string;
+  club_id: string;
+  user_id: string;
+  invited_by: string | null;
+  status: "pending" | "accepted" | "declined" | "revoked";
+  created_at: string;
+  responded_at: string | null;
 }
 
 export type ChannelKind = "campus" | "course" | "topic" | "club";
@@ -331,7 +351,8 @@ export type NotificationKind =
   | "mention"
   | "thanks"
   | "club_post"
-  | "friend";
+  | "friend"
+  | "club_invite";
 
 export interface AppNotification {
   id: string;

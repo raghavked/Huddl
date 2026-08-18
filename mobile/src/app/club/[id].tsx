@@ -5,13 +5,14 @@ import {
   useLocalSearchParams,
   useRouter,
 } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Pressable,
   RefreshControl,
+  TextInput,
   View,
   type AccessibilityActionEvent,
   type ListRenderItemInfo,
@@ -28,7 +29,7 @@ import {
   Sheet,
   SkeletonRow,
 } from "@/components/ui";
-import { radius, space } from "@/constants/theme";
+import { fonts, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   ClubAnnouncementError,
@@ -39,6 +40,22 @@ import {
   type ClubAnnouncement,
   type ClubRole,
 } from "@/lib/club-announcements";
+import {
+  ClubInviteError,
+  cardName,
+  fetchMyClubInvite,
+  fetchPendingClubInvites,
+  respondToClubInvite,
+  revokeClubInvite,
+  roleTitle,
+  searchClassmates,
+  sendClubInvite,
+  transferClubPresidency,
+  type ClubPrivacy,
+  type DirectoryCard,
+  type MyClubInvite,
+  type PendingClubInvite,
+} from "@/lib/club-invites";
 import { roomTitle } from "@/lib/room-identity";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
@@ -47,9 +64,14 @@ import { useAuth } from "@/providers/auth-provider";
    and the door to the chat.
    Joining inserts the club_members row, and a DB trigger mirrors membership
    into the club's channel, exactly like the web app. Leaving deletes it
-   (same trigger cleans up the chat); owners can't leave, only disband,
-   which, with the rest of the club's details, lives behind the gear in the
-   header and is only drawn for the officers who can actually use it. */
+   (same trigger cleans up the chat); the president can't leave while anyone
+   else is still in the club, only hand the presidency off or disband, and
+   the button says so instead of letting the delete bounce.
+   Since migration 0069 the club also has a door: open clubs keep the join
+   button, invite clubs show the invitee their Accept / Decline banner and
+   everyone else a closed door. Officers of invite clubs get the guest list
+   here too (search, send, revoke), and the roster manages roles: promote,
+   demote, remove, and, for the president alone, the handoff. */
 
 type ClubCategory =
   | "academic"
@@ -65,6 +87,7 @@ type ClubRow = {
   name: string;
   description: string | null;
   category: ClubCategory;
+  privacy: ClubPrivacy;
 };
 
 type MemberProfile = {
@@ -115,6 +138,15 @@ function sortRoster(entries: MemberRow[]): MemberRow[] {
       ROLE_WEIGHT[a.role] - ROLE_WEIGHT[b.role] ||
       a.joined_at.localeCompare(b.joined_at)
   );
+}
+
+/* A private classmate is a handle and a face here too. The roster and the
+   role sheet must call the same person by the same name, so the naming
+   lives in one place. */
+function rosterName(row: MemberRow, viewerId: string | null): string {
+  if (!row.profile) return "A student";
+  const locked = !row.profile.is_public && row.user_id !== viewerId;
+  return locked ? `@${row.profile.handle}` : row.profile.display_name;
 }
 
 /** "Sat, Aug 9 · 3:00 PM", how upcoming events read on the club page. */
@@ -304,6 +336,28 @@ export default function ClubHomeScreen() {
   const [postError, setPostError] = useState<string | null>(null);
   const [menuPost, setMenuPost] = useState<ClubAnnouncement | null>(null);
 
+  // The viewer's own pending invitation, when the door is invite-only.
+  const [myInvite, setMyInvite] = useState<MyClubInvite | null>(null);
+  const [inviteBusy, setInviteBusy] = useState<"accept" | "decline" | null>(
+    null
+  );
+  const [inviteError, setInviteError] = useState<string | null>(null);
+
+  // The officers' guest list: search, send, pending, revoke.
+  const [pendingInvites, setPendingInvites] = useState<PendingClubInvite[]>([]);
+  const [invitesLoading, setInvitesLoading] = useState(false);
+  const [inviteQuery, setInviteQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<DirectoryCard[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  const [panelError, setPanelError] = useState<string | null>(null);
+  const searchSeq = useRef(0);
+
+  // Role management: the roster row a sheet is open on, and its errors.
+  const [manageTarget, setManageTarget] = useState<MemberRow | null>(null);
+  const [manageBusy, setManageBusy] = useState(false);
+  const [manageError, setManageError] = useState<string | null>(null);
+
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace("/(tabs)/clubs");
@@ -320,7 +374,7 @@ export default function ClubHomeScreen() {
         await Promise.all([
           supabase
             .from("clubs")
-            .select("id, name, description, category")
+            .select("id, name, description, category, privacy")
             .eq("id", clubId)
             .maybeSingle(),
           supabase
@@ -360,7 +414,41 @@ export default function ClubHomeScreen() {
         return;
       }
       setClub(clubRow);
-      setRoster(sortRoster((membersRes.data ?? []) as unknown as MemberRow[]));
+      const members = sortRoster(
+        (membersRes.data ?? []) as unknown as MemberRow[]
+      );
+      setRoster(members);
+      /* The invitation state rides the same load: a non-member of an invite
+         club may hold a pending invite (the banner), and its officers keep a
+         guest list (the panel). Either failing quietly costs a section, not
+         the club. */
+      const myRow = members.find((m) => m.user_id === userId) ?? null;
+      if (clubRow.privacy === "invite" && !myRow) {
+        try {
+          setMyInvite(await fetchMyClubInvite(clubId));
+        } catch {
+          setMyInvite(null);
+        }
+      } else {
+        setMyInvite(null);
+      }
+      if (
+        clubRow.privacy === "invite" &&
+        (myRow?.role === "owner" || myRow?.role === "officer")
+      ) {
+        setInvitesLoading(true);
+        try {
+          setPendingInvites(await fetchPendingClubInvites(clubId));
+        } catch {
+          setPanelError(
+            "We couldn't load the invitations. Give it another go."
+          );
+        } finally {
+          setInvitesLoading(false);
+        }
+      } else {
+        setPendingInvites([]);
+      }
       setChannel(
         (channelRes.data as unknown as {
           id: string;
@@ -419,6 +507,237 @@ export default function ClubHomeScreen() {
   const myRole = me?.role ?? null;
   const isMember = myRole !== null;
   const isOfficer = canPostAnnouncements(myRole);
+  const inviteClub = club?.privacy === "invite";
+  const showInvitePanel = inviteClub && isOfficer;
+
+  /* Accept or decline, through the one RPC that can turn an invitation into
+     a membership. Accepting reloads the club, since the roster, the board
+     and the chat door all just changed. */
+  const answerInvite = useCallback(
+    async (accept: boolean) => {
+      if (!myInvite || inviteBusy) return;
+      setInviteError(null);
+      setInviteBusy(accept ? "accept" : "decline");
+      try {
+        await respondToClubInvite(myInvite.id, accept);
+        setMyInvite(null);
+        if (accept) {
+          await load();
+          void loadAnnouncements();
+        }
+      } catch (caught) {
+        setInviteError(
+          caught instanceof ClubInviteError
+            ? caught.message
+            : "We couldn't answer that invitation. Give it another go."
+        );
+      } finally {
+        setInviteBusy(null);
+      }
+    },
+    [myInvite, inviteBusy, load, loadAnnouncements]
+  );
+
+  /* The guest-list search, debounced a beat behind the keyboard. The
+     sequence counter keeps a slow early answer from landing on top of a
+     fast late one. */
+  useEffect(() => {
+    if (!showInvitePanel) return;
+    const needle = inviteQuery.trim();
+    if (needle.length === 0) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const seq = ++searchSeq.current;
+    const timer = setTimeout(() => {
+      searchClassmates(needle)
+        .then((cards) => {
+          if (searchSeq.current !== seq) return;
+          setSearchResults(cards);
+        })
+        .catch(() => {
+          if (searchSeq.current !== seq) return;
+          setPanelError("The search didn't go through. Give it another go.");
+        })
+        .finally(() => {
+          if (searchSeq.current === seq) setSearching(false);
+        });
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [inviteQuery, showInvitePanel]);
+
+  /* The directory doesn't know which club is asking, so the people already
+     inside it, already invited, or doing the asking are dropped here. */
+  const invitableResults = searchResults.filter(
+    (card) =>
+      card.id !== userId &&
+      !roster.some((m) => m.user_id === card.id) &&
+      !pendingInvites.some((invite) => invite.user_id === card.id)
+  );
+
+  const handleInvite = useCallback(
+    async (card: DirectoryCard) => {
+      if (sendingId) return;
+      setPanelError(null);
+      setSendingId(card.id);
+      try {
+        const sent = await sendClubInvite(clubId, card.id);
+        // Straight onto the pending list; the card already has their face.
+        setPendingInvites((prev) => [
+          {
+            id: sent.id,
+            user_id: card.id,
+            created_at: sent.created_at,
+            profile: card,
+          },
+          ...prev,
+        ]);
+      } catch (caught) {
+        setPanelError(
+          caught instanceof ClubInviteError
+            ? caught.message
+            : "We couldn't send that invitation. Give it another go."
+        );
+      } finally {
+        setSendingId(null);
+      }
+    },
+    [clubId, sendingId]
+  );
+
+  const handleRevoke = useCallback(
+    (invite: PendingClubInvite) => {
+      // Optimistic: the row leaves the guest list and returns on failure.
+      const previous = pendingInvites;
+      setPanelError(null);
+      setPendingInvites(previous.filter((row) => row.id !== invite.id));
+      void revokeClubInvite(invite.id).catch((caught: unknown) => {
+        setPendingInvites(previous);
+        setPanelError(
+          caught instanceof ClubInviteError
+            ? caught.message
+            : "We couldn't take that invitation back. Give it another go."
+        );
+      });
+    },
+    [pendingInvites]
+  );
+
+  /* -------------------------- role management -------------------------- */
+
+  /* Promote or demote through the officer update policy. Not optimistic: a
+     role is a permission, and a chip that lies about permissions is worse
+     than a beat of waiting. Zero rows back means RLS said no. */
+  const changeRole = useCallback(
+    async (target: MemberRow, role: ClubRole) => {
+      if (manageBusy) return;
+      setManageError(null);
+      setManageBusy(true);
+      const { data, error } = await supabase
+        .from("club_members")
+        .update({ role })
+        .eq("club_id", clubId)
+        .eq("user_id", target.user_id)
+        .select("user_id");
+      setManageBusy(false);
+      if (error || !data || data.length === 0) {
+        setManageError(
+          "We couldn't change that role just now. Give it another go."
+        );
+        return;
+      }
+      setRoster((prev) =>
+        sortRoster(
+          prev.map((m) => (m.user_id === target.user_id ? { ...m, role } : m))
+        )
+      );
+    },
+    [clubId, manageBusy]
+  );
+
+  const removeMember = useCallback(
+    async (target: MemberRow) => {
+      if (manageBusy) return;
+      setManageError(null);
+      setManageBusy(true);
+      const { data, error } = await supabase
+        .from("club_members")
+        .delete()
+        .eq("club_id", clubId)
+        .eq("user_id", target.user_id)
+        .select("user_id");
+      setManageBusy(false);
+      if (error || !data || data.length === 0) {
+        setManageError(
+          "We couldn't remove them just now. Give it another go."
+        );
+        return;
+      }
+      // The DB trigger takes them out of the club chat.
+      setRoster((prev) => prev.filter((m) => m.user_id !== target.user_id));
+    },
+    [clubId, manageBusy]
+  );
+
+  const confirmRemove = useCallback(
+    (target: MemberRow) => {
+      if (!club) return;
+      const name = rosterName(target, userId);
+      Alert.alert(
+        `Remove ${name} from ${club.name}?`,
+        "They come off the roster and out of the club chat.",
+        [
+          { text: "Keep them", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: () => void removeMember(target),
+          },
+        ]
+      );
+    },
+    [club, userId, removeMember]
+  );
+
+  /* The crown moves in one transaction: they become president, you step
+     down to officer, and nobody ever sees a club without one. */
+  const handOff = useCallback(
+    async (target: MemberRow) => {
+      if (manageBusy) return;
+      setManageError(null);
+      setManageBusy(true);
+      try {
+        await transferClubPresidency(clubId, target.user_id);
+        await load();
+      } catch (caught) {
+        setManageError(
+          caught instanceof ClubInviteError
+            ? caught.message
+            : "We couldn't hand off the presidency. Give it another go."
+        );
+      } finally {
+        setManageBusy(false);
+      }
+    },
+    [clubId, manageBusy, load]
+  );
+
+  const confirmHandOff = useCallback(
+    (target: MemberRow) => {
+      const name = rosterName(target, userId);
+      Alert.alert(
+        "Hand off presidency?",
+        `The presidency moves to ${name}. You stay on as an officer.`,
+        [
+          { text: "Keep it", style: "cancel" },
+          { text: "Hand off", onPress: () => void handOff(target) },
+        ]
+      );
+    },
+    [userId, handOff]
+  );
 
   /* Officers and the owner get the gear. Both can edit the club's details;
      the disband half of that screen is the owner's alone, and it decides
@@ -552,16 +871,16 @@ export default function ClubHomeScreen() {
          the one list in the app that drew their real name and their major
          whatever they'd set, and being in a club isn't consent to that. */
       const locked = item.profile !== null && !item.profile.is_public && !isMe;
-      const name = item.profile
-        ? locked
-          ? `@${item.profile.handle}`
-          : item.profile.display_name
-        : "A student";
+      const name = rosterName(item, userId);
       const caption = item.profile
         ? locked
           ? "Private profile"
           : `@${item.profile.handle}${item.profile.major ? ` · ${item.profile.major}` : ""}`
         : null;
+      /* Officers manage everyone but themselves and the president: the DB
+         refuses any change that touches the crown unless the president asks,
+         so the button never appears where the write would bounce. */
+      const manageable = isOfficer && !isMe && item.role !== "owner";
       const row = (
         <Card
           padded={false}
@@ -593,7 +912,7 @@ export default function ClubHomeScreen() {
               </AppText>
               {isMe ? <Chip label="You" tone="brand" /> : null}
               {item.role === "owner" ? (
-                <Chip label="Owner" tone="brand" />
+                <Chip label="President" tone="brand" />
               ) : item.role === "officer" ? (
                 <Chip label="Officer" tone="accent" />
               ) : null}
@@ -615,6 +934,24 @@ export default function ClubHomeScreen() {
               </View>
             ) : null}
           </View>
+          {manageable ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Manage ${name}`}
+              accessibilityHint="Change their role or remove them"
+              onPress={() => setManageTarget(item)}
+              hitSlop={8}
+              style={({ pressed }) => ({
+                width: 44,
+                height: 44,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Feather name="more-vertical" size={18} color={theme.muted} />
+            </Pressable>
+          ) : null}
         </Card>
       );
       if (!item.profile) return row;
@@ -630,7 +967,7 @@ export default function ClubHomeScreen() {
         </Pressable>
       );
     },
-    [userId, router, theme]
+    [userId, router, theme, isOfficer]
   );
 
   // Deep links land here directly, so signed-out visitors get a proper door.
@@ -771,6 +1108,14 @@ export default function ClubHomeScreen() {
                     tone="brand"
                     size="md"
                   />
+                  {inviteClub ? (
+                    <Chip
+                      label="Invite only"
+                      tone="neutral"
+                      size="md"
+                      icon="lock"
+                    />
+                  ) : null}
                   <View
                     style={{
                       flexDirection: "row",
@@ -786,13 +1131,7 @@ export default function ClubHomeScreen() {
                   </View>
                   {myRole ? (
                     <Chip
-                      label={
-                        myRole === "owner"
-                          ? "Owner"
-                          : myRole === "officer"
-                            ? "Officer"
-                            : "Joined"
-                      }
+                      label={myRole === "member" ? "Joined" : roleTitle(myRole)}
                       tone="brand"
                     />
                   ) : null}
@@ -816,7 +1155,58 @@ export default function ClubHomeScreen() {
                 />
               ) : null}
 
-              {!isMember ? (
+              {!isMember && myInvite ? (
+                /* The invitee's moment: the club asked, they answer. */
+                <Card style={{ gap: space.close }}>
+                  <AppText variant="bodySemi">You're invited.</AppText>
+                  <View style={{ flexDirection: "row", gap: space.cosy }}>
+                    <Button
+                      label="Accept"
+                      size="sm"
+                      pending={inviteBusy === "accept"}
+                      disabled={inviteBusy === "decline"}
+                      icon={
+                        <Feather name="check" size={14} color={theme.brandFg} />
+                      }
+                      onPress={() => void answerInvite(true)}
+                    />
+                    <Button
+                      label="Decline"
+                      variant="secondary"
+                      size="sm"
+                      pending={inviteBusy === "decline"}
+                      disabled={inviteBusy === "accept"}
+                      onPress={() => void answerInvite(false)}
+                    />
+                  </View>
+                  {inviteError ? (
+                    <AppText
+                      variant="caption"
+                      accessibilityLiveRegion="polite"
+                      style={{ color: theme.danger }}
+                    >
+                      {inviteError}
+                    </AppText>
+                  ) : null}
+                </Card>
+              ) : !isMember && inviteClub ? (
+                /* The closed door, where the join button would stand. */
+                <View style={{ gap: space.tight }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: space.cosy,
+                    }}
+                  >
+                    <Feather name="lock" size={14} color={theme.muted} />
+                    <AppText variant="bodySemi">Invite only</AppText>
+                  </View>
+                  <AppText variant="caption" muted>
+                    An officer can invite you.
+                  </AppText>
+                </View>
+              ) : !isMember ? (
                 <View style={{ gap: space.cosy }}>
                   <Button
                     label="Join club"
@@ -846,7 +1236,25 @@ export default function ClubHomeScreen() {
                     </AppText>
                   ) : null}
                 </View>
-              ) : myRole !== "owner" ? (
+              ) : myRole === "owner" ? (
+                /* The president leaves last: the button stays visible so the
+                   rule is legible, and the caption says the way out. */
+                <View style={{ gap: space.tight }}>
+                  <Button
+                    label="Leave club"
+                    variant="secondary"
+                    size="sm"
+                    disabled
+                    icon={
+                      <Feather name="log-out" size={14} color={theme.muted} />
+                    }
+                    style={{ alignSelf: "flex-start" }}
+                  />
+                  <AppText variant="caption" muted>
+                    Hand the presidency to someone first, or disband the club.
+                  </AppText>
+                </View>
+              ) : (
                 <>
                   <Button
                     label="Leave club"
@@ -869,7 +1277,7 @@ export default function ClubHomeScreen() {
                     </AppText>
                   ) : null}
                 </>
-              ) : null}
+              )}
             </View>
 
             {/* The board: officers writing to the whole club at once. It's
@@ -1031,7 +1439,211 @@ export default function ClubHomeScreen() {
               ) : null}
             </View>
 
+            {/* The guest list: officers of an invite club search the campus
+                directory, send invitations, and take pending ones back. */}
+            {showInvitePanel ? (
+              <>
+                <SectionLabel text="Invitations" />
+                <View style={{ gap: space.room }}>
+                  <View style={{ justifyContent: "center" }}>
+                    <Feather
+                      accessibilityElementsHidden
+                      importantForAccessibility="no-hide-descendants"
+                      name="search"
+                      size={16}
+                      color={theme.muted}
+                      style={{ position: "absolute", left: 14, zIndex: 1 }}
+                    />
+                    <TextInput
+                      value={inviteQuery}
+                      onChangeText={setInviteQuery}
+                      placeholder="Invite a classmate"
+                      placeholderTextColor={theme.muted + "b3"}
+                      accessibilityLabel="Invite a classmate by name or handle"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      cursorColor={theme.brand}
+                      selectionColor={theme.brandSoft}
+                      style={{
+                        height: 44,
+                        borderWidth: 1,
+                        borderColor: theme.border,
+                        borderRadius: radius.full,
+                        backgroundColor: theme.surface,
+                        paddingLeft: 40,
+                        paddingRight: 44,
+                        fontFamily: fonts.body,
+                        fontSize: 15,
+                        color: theme.foreground,
+                      }}
+                    />
+                    {inviteQuery.length > 0 ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Clear search"
+                        onPress={() => setInviteQuery("")}
+                        style={({ pressed }) => ({
+                          position: "absolute",
+                          right: 0,
+                          width: 44,
+                          height: 44,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          opacity: pressed ? 0.6 : 1,
+                        })}
+                      >
+                        <Feather
+                          accessibilityElementsHidden
+                          importantForAccessibility="no-hide-descendants"
+                          name="x"
+                          size={16}
+                          color={theme.muted}
+                        />
+                      </Pressable>
+                    ) : null}
+                  </View>
+
+                  {searching ? (
+                    <SkeletonRow />
+                  ) : invitableResults.length > 0 ? (
+                    <Card padded={false}>
+                      {invitableResults.map((card, index) => {
+                        const name = cardName(card);
+                        return (
+                          <View
+                            key={card.id}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: space.close,
+                              paddingHorizontal: space.card,
+                              paddingVertical: space.room,
+                              minHeight: 56,
+                              borderTopWidth: index === 0 ? 0 : 1,
+                              borderTopColor: theme.border,
+                            }}
+                          >
+                            <Avatar
+                              url={card.avatar_url}
+                              name={name}
+                              size={36}
+                            />
+                            <View
+                              style={{ flex: 1, minWidth: 0, gap: space.hair }}
+                            >
+                              <AppText variant="bodySemi" numberOfLines={1}>
+                                {name}
+                              </AppText>
+                              <AppText
+                                variant="caption"
+                                muted
+                                numberOfLines={1}
+                              >
+                                {card.display_name
+                                  ? `@${card.handle}`
+                                  : "Private profile"}
+                              </AppText>
+                            </View>
+                            <Button
+                              label="Invite"
+                              variant="soft"
+                              size="sm"
+                              pending={sendingId === card.id}
+                              disabled={sendingId !== null}
+                              accessibilityLabel={`Invite ${name}`}
+                              onPress={() => void handleInvite(card)}
+                            />
+                          </View>
+                        );
+                      })}
+                    </Card>
+                  ) : inviteQuery.trim().length > 0 ? (
+                    <AppText variant="caption" muted>
+                      Nobody left to invite matched that.
+                    </AppText>
+                  ) : null}
+
+                  {panelError ? (
+                    <AppText
+                      variant="caption"
+                      accessibilityLiveRegion="polite"
+                      style={{ color: theme.danger }}
+                    >
+                      {panelError}
+                    </AppText>
+                  ) : null}
+
+                  {invitesLoading ? (
+                    <SkeletonRow />
+                  ) : pendingInvites.length > 0 ? (
+                    <Card padded={false}>
+                      {pendingInvites.map((invite, index) => {
+                        const name = invite.profile
+                          ? cardName(invite.profile)
+                          : "A classmate";
+                        return (
+                          <View
+                            key={invite.id}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: space.close,
+                              paddingHorizontal: space.card,
+                              paddingVertical: space.room,
+                              minHeight: 56,
+                              borderTopWidth: index === 0 ? 0 : 1,
+                              borderTopColor: theme.border,
+                            }}
+                          >
+                            <Avatar
+                              url={invite.profile?.avatar_url}
+                              name={name}
+                              size={36}
+                            />
+                            <View
+                              style={{ flex: 1, minWidth: 0, gap: space.hair }}
+                            >
+                              <AppText variant="bodySemi" numberOfLines={1}>
+                                {name}
+                              </AppText>
+                              <AppText
+                                variant="caption"
+                                muted
+                                numberOfLines={1}
+                              >
+                                Invited {timeAgo(invite.created_at)}
+                              </AppText>
+                            </View>
+                            <Button
+                              label="Revoke"
+                              variant="secondary"
+                              size="sm"
+                              accessibilityLabel={`Revoke ${name}'s invitation`}
+                              onPress={() => handleRevoke(invite)}
+                            />
+                          </View>
+                        );
+                      })}
+                    </Card>
+                  ) : (
+                    <AppText variant="caption" muted>
+                      No invitations out right now.
+                    </AppText>
+                  )}
+                </View>
+              </>
+            ) : null}
+
             <SectionLabel text={`Members · ${roster.length}`} />
+            {manageError ? (
+              <AppText
+                variant="caption"
+                accessibilityLiveRegion="polite"
+                style={{ color: theme.danger, marginBottom: space.room }}
+              >
+                {manageError}
+              </AppText>
+            ) : null}
           </View>
         }
         ListEmptyComponent={
@@ -1056,6 +1668,59 @@ export default function ClubHomeScreen() {
             const post = menuPost;
             setMenuPost(null);
             if (post) confirmRemovePost(post);
+          }}
+        />
+      </Sheet>
+
+      {/* The role sheet: what an officer can do with the row they pressed.
+          The presidency handoff is the president's alone, and removal never
+          appears on the president because the sheet never opens on one. */}
+      <Sheet
+        visible={manageTarget !== null}
+        onClose={() => setManageTarget(null)}
+        title={manageTarget ? rosterName(manageTarget, userId) : "Member"}
+      >
+        {manageTarget?.role === "member" ? (
+          <Sheet.Row
+            icon="award"
+            label="Make officer"
+            onPress={() => {
+              const target = manageTarget;
+              setManageTarget(null);
+              if (target) void changeRole(target, "officer");
+            }}
+          />
+        ) : null}
+        {manageTarget?.role === "officer" ? (
+          <Sheet.Row
+            icon="user"
+            label="Make member"
+            onPress={() => {
+              const target = manageTarget;
+              setManageTarget(null);
+              if (target) void changeRole(target, "member");
+            }}
+          />
+        ) : null}
+        {myRole === "owner" ? (
+          <Sheet.Row
+            icon="key"
+            label="Hand off presidency"
+            onPress={() => {
+              const target = manageTarget;
+              setManageTarget(null);
+              if (target) confirmHandOff(target);
+            }}
+          />
+        ) : null}
+        <Sheet.Row
+          icon="user-x"
+          label="Remove from club"
+          danger
+          onPress={() => {
+            const target = manageTarget;
+            setManageTarget(null);
+            if (target) confirmRemove(target);
           }}
         />
       </Sheet>

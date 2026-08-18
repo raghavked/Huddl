@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Field } from "@/components/ui";
 import { radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { type ClubPrivacy } from "@/lib/club-invites";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -48,6 +49,25 @@ const CATEGORIES: readonly ClubCategory[] = [
   "other",
 ];
 
+/* The door policy, chosen at the founding and changeable later in settings.
+   The exact words are shared with the web app, letter for letter. */
+const PRIVACY_OPTIONS: readonly {
+  value: ClubPrivacy;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    value: "open",
+    label: "Open",
+    hint: "Anyone at your campus can join.",
+  },
+  {
+    value: "invite",
+    label: "Invite only",
+    hint: "New members join by invitation from an officer.",
+  },
+];
+
 /** "academic" -> "Academic". Every category is a single word. */
 function categoryLabel(category: ClubCategory): string {
   return category.charAt(0).toUpperCase() + category.slice(1);
@@ -61,6 +81,77 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 50)
     .replace(/-+$/g, "");
+}
+
+/**
+ * The two-door picker: one bordered row per policy, label and hint together,
+ * so the choice is read as a sentence and not decoded from a pill. Shared
+ * words with the club settings screen, which draws the same rows.
+ */
+function PrivacyPicker({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: ClubPrivacy;
+  disabled: boolean;
+  onChange: (next: ClubPrivacy) => void;
+}) {
+  const theme = useTheme();
+  return (
+    <View style={{ gap: space.snug }}>
+      <AppText variant="label">Who can join</AppText>
+      <View style={{ gap: space.cosy }}>
+        {PRIVACY_OPTIONS.map((option) => {
+          const selected = value === option.value;
+          return (
+            <Pressable
+              key={option.value}
+              accessibilityRole="radio"
+              accessibilityState={{ selected, disabled }}
+              accessibilityLabel={`${option.label}. ${option.hint}`}
+              onPress={() => {
+                if (!disabled) onChange(option.value);
+              }}
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.close,
+                minHeight: 56,
+                paddingHorizontal: space.card,
+                paddingVertical: space.room,
+                borderRadius: radius.control,
+                borderWidth: 1,
+                borderColor: selected ? theme.brandInk : theme.border,
+                backgroundColor: selected ? theme.brandSoft : theme.surface,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Feather
+                name={option.value === "open" ? "unlock" : "lock"}
+                size={16}
+                color={selected ? theme.brandInk : theme.muted}
+              />
+              <View style={{ flex: 1, gap: space.hair }}>
+                <AppText
+                  variant="bodySemi"
+                  style={selected ? { color: theme.brandInk } : undefined}
+                >
+                  {option.label}
+                </AppText>
+                <AppText variant="caption" muted>
+                  {option.hint}
+                </AppText>
+              </View>
+              {selected ? (
+                <Feather name="check" size={16} color={theme.brandInk} />
+              ) : null}
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
 }
 
 const PERKS: readonly { icon: FeatherName; text: string }[] = [
@@ -87,6 +178,7 @@ export default function NewClubScreen() {
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState<ClubCategory>("other");
+  const [privacy, setPrivacy] = useState<ClubPrivacy>("open");
   const [description, setDescription] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -142,6 +234,7 @@ export default function NewClubScreen() {
         name: trimmed,
         slug,
         category,
+        privacy,
         description: description.trim() || null,
       })
       .select("id")
@@ -158,7 +251,7 @@ export default function NewClubScreen() {
     const clubId = (insertRes.data as unknown as { id: string }).id;
 
     router.replace(`/club/${clubId}`);
-  }, [userId, pending, name, slug, category, description, router]);
+  }, [userId, pending, name, slug, category, privacy, description, router]);
 
   // Deep links land here directly, so signed-out visitors get a proper door.
   if (ready && !session) {
@@ -296,6 +389,12 @@ export default function NewClubScreen() {
               })}
             </View>
           </View>
+
+          <PrivacyPicker
+            value={privacy}
+            disabled={pending}
+            onChange={setPrivacy}
+          />
 
           <Field
             label="Description (optional)"

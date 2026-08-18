@@ -51,6 +51,8 @@ const KIND_ICONS: Partial<Record<string, keyof typeof Feather.glyphMap>> = {
   course_calendar: "book-open",
   // Feather has no megaphone; volume-2 reads as an announcement here.
   club_post: "volume-2",
+  // An invitation is a letter; its link walks to the club's page.
+  club_invite: "mail",
   thanks: "heart",
   // A friend request or an accepted one; its link walks to /u/<handle>.
   friend: "user-plus",

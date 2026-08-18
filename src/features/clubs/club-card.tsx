@@ -2,10 +2,23 @@
 
 import Link from "next/link";
 import { useId, useState, useTransition } from "react";
-import { Check, Loader2, LogOut, UserPlus, Users, UsersRound } from "lucide-react";
+import {
+  Check,
+  Loader2,
+  Lock,
+  LogOut,
+  MailOpen,
+  UserPlus,
+  Users,
+  UsersRound,
+} from "lucide-react";
 import { Badge, Button, cardClasses } from "@/components/ui";
-import { joinClub, leaveClub } from "@/features/clubs/actions";
-import type { Club, ClubCategory, ClubMember } from "@/lib/types";
+import {
+  joinClub,
+  leaveClub,
+  respondToClubInvite,
+} from "@/features/clubs/actions";
+import type { Club, ClubCategory, ClubMember, ClubPrivacy } from "@/lib/types";
 
 /** "academic" -> "Academic". Every category is a single word. */
 export function categoryLabel(category: ClubCategory): string {
@@ -22,6 +35,16 @@ export function CategoryBadge({
   return (
     <Badge tone="brand" className={className}>
       {categoryLabel(category)}
+    </Badge>
+  );
+}
+
+/** The closed-door marker, worn by invite clubs on cards and the club page. */
+export function InviteOnlyBadge({ className }: { className?: string }) {
+  return (
+    <Badge tone="neutral" className={className}>
+      <Lock className="size-3" aria-hidden />
+      Invite only
     </Badge>
   );
 }
@@ -92,25 +115,123 @@ export function ConfirmDialog({
 }
 
 /**
- * Join / Leave controls for the club detail page. Owners get neither, since
- * their exit is the disband flow.
+ * Join / Leave controls for the club detail page. Open clubs keep the plain
+ * join button; an invite club's door only opens from the inside, so a
+ * non-member sees the closed door, or their invitation when one is waiting.
+ * The president's leave stays visible but disabled: the database would
+ * refuse it anyway, and the caption says the way out instead.
  */
 export function MembershipActions({
   clubId,
   clubName,
   role,
+  privacy,
+  inviteId,
 }: {
   clubId: string;
   clubName: string;
   role: ClubMember["role"] | null;
+  privacy: ClubPrivacy;
+  /** The viewer's own pending invitation to this club, when one exists. */
+  inviteId: string | null;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [confirmingLeave, setConfirmingLeave] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  if (role === "owner") return null;
+  if (role === "owner") {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <Button
+          variant="secondary"
+          size="sm"
+          className="self-start text-muted"
+          disabled
+        >
+          <LogOut className="size-4" aria-hidden />
+          Leave
+        </Button>
+        <p className="text-xs text-muted">
+          Hand the presidency to someone first, or disband the club.
+        </p>
+      </div>
+    );
+  }
 
   if (role === null) {
+    // An invitation outranks the door policy: answering it is the point.
+    if (inviteId !== null) {
+      return (
+        <div className="w-full rounded-xl bg-brand-soft px-4 py-3">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-brand-ink">
+            <MailOpen className="size-4 text-brand" aria-hidden />
+            {"You're invited."}
+          </p>
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              disabled={isPending}
+              onClick={() => {
+                setError(null);
+                startTransition(async () => {
+                  const result = await respondToClubInvite(
+                    inviteId,
+                    clubId,
+                    true
+                  );
+                  if (result.error) setError(result.error);
+                });
+              }}
+            >
+              {isPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Check className="size-4" aria-hidden />
+              )}
+              Accept
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={isPending}
+              onClick={() => {
+                setError(null);
+                startTransition(async () => {
+                  const result = await respondToClubInvite(
+                    inviteId,
+                    clubId,
+                    false
+                  );
+                  if (result.error) setError(result.error);
+                });
+              }}
+            >
+              Decline
+            </Button>
+          </div>
+          {error ? (
+            <p role="alert" className="mt-2 text-xs font-medium text-danger">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (privacy === "invite") {
+      return (
+        <div>
+          <p className="flex items-center gap-1.5 text-sm font-semibold">
+            <Lock className="size-4 text-muted" aria-hidden />
+            Invite only
+          </p>
+          <p className="mt-0.5 text-xs text-muted">
+            An officer can invite you.
+          </p>
+        </div>
+      );
+    }
+
     return (
       <>
         <Button
@@ -221,6 +342,7 @@ export function ClubCard({
               <Users className="size-3" aria-hidden />
               {memberCount} {memberCount === 1 ? "member" : "members"}
             </Badge>
+            {club.privacy === "invite" ? <InviteOnlyBadge /> : null}
           </div>
         </div>
         {myRole !== null ? (
@@ -229,10 +351,10 @@ export function ClubCard({
             {myRole === "member"
               ? "Joined"
               : myRole === "owner"
-                ? "Owner"
+                ? "President"
                 : "Officer"}
           </Badge>
-        ) : (
+        ) : club.privacy === "invite" ? null : (
           <Button
             variant="soft"
             size="sm"

@@ -22,6 +22,7 @@ import {
 import { fonts, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { type ClubRole } from "@/lib/club-announcements";
+import { type ClubPrivacy } from "@/lib/club-invites";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -44,6 +45,7 @@ type RawClubRow = {
   name: string;
   description: string | null;
   category: ClubCategory;
+  privacy: ClubPrivacy;
   club_members: { count: number }[];
 };
 
@@ -52,6 +54,7 @@ type ClubItem = {
   name: string;
   description: string | null;
   category: ClubCategory;
+  privacy: ClubPrivacy;
   memberCount: number;
 };
 
@@ -79,14 +82,14 @@ function matches(club: ClubItem, query: string): boolean {
 }
 
 function roleLabel(role: ClubRole): string {
-  if (role === "owner") return "Owner";
+  if (role === "owner") return "President";
   if (role === "officer") return "Officer";
   return "Joined";
 }
 
 /** The role pill in words, for the row's own label. */
 function roleWords(role: ClubRole): string {
-  if (role === "owner") return "you're the owner";
+  if (role === "owner") return "you're the president";
   if (role === "officer") return "you're an officer";
   return "you've joined";
 }
@@ -107,6 +110,35 @@ function CategoryPill({ category }: { category: ClubCategory }) {
     >
       <AppText variant="label" style={{ color: theme.brandInk }}>
         {categoryLabel(category)}
+      </AppText>
+    </View>
+  );
+}
+
+/**
+ * The badge on an invite club's card. It sits beside the category, and for
+ * a non-member it also answers the missing Join button: you don't tap your
+ * way in here, an officer invites you.
+ */
+function InviteOnlyPill() {
+  const theme = useTheme();
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: space.tight,
+        paddingHorizontal: space.room,
+        paddingVertical: 3,
+        borderRadius: radius.full,
+        backgroundColor: theme.surface2,
+      }}
+    >
+      <Feather name="lock" size={11} color={theme.muted} />
+      <AppText variant="label" muted>
+        Invite only
       </AppText>
     </View>
   );
@@ -165,6 +197,7 @@ function ClubRow({
   const label = [
     `Open ${club.name}`,
     myRole ? roleWords(myRole) : null,
+    club.privacy === "invite" ? "Invite only" : null,
     categoryLabel(club.category),
     members,
     club.description,
@@ -223,7 +256,7 @@ function ClubRow({
         </Pressable>
         {myRole ? (
           <RolePill role={myRole} />
-        ) : (
+        ) : club.privacy === "invite" ? null : (
           <Button
             label="Join"
             variant="soft"
@@ -257,6 +290,7 @@ function ClubRow({
           }}
         >
           <CategoryPill category={club.category} />
+          {club.privacy === "invite" ? <InviteOnlyPill /> : null}
           <View
             style={{
               flexDirection: "row",
@@ -326,7 +360,7 @@ export default function ClubsScreen() {
     const [clubsRes, membershipRes] = await Promise.all([
       supabase
         .from("clubs")
-        .select("id, name, description, category, club_members(count)")
+        .select("id, name, description, category, privacy, club_members(count)")
         .eq("university_id", universityId)
         .order("name"),
       supabase
@@ -352,6 +386,7 @@ export default function ClubsScreen() {
         name: row.name,
         description: row.description,
         category: row.category,
+        privacy: row.privacy,
         memberCount: row.club_members?.[0]?.count ?? 0,
       })),
       roles: myRoles,

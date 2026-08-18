@@ -14,6 +14,7 @@ import {
   Info,
   LayoutGrid,
   Loader2,
+  Mail,
   Megaphone,
   MessageCircle,
   Reply,
@@ -44,6 +45,7 @@ const KIND_META: Record<NotificationKind, { icon: LucideIcon; label: string }> =
     thanks: { icon: Heart, label: "Thanks" },
     club_post: { icon: Megaphone, label: "Club post" },
     friend: { icon: UserPlus, label: "Friend" },
+    club_invite: { icon: Mail, label: "Club invitation" },
   };
 
 /**

@@ -124,7 +124,7 @@ const PUSH_KINDS: {
     // Feather has no megaphone; volume-2 is this app's, in the inbox too.
     icon: "volume-2",
     label: "Club announcements",
-    caption: "When an officer posts in a club you've joined.",
+    caption: "When an officer posts in a club you've joined, or a club invites you.",
   },
   {
     kind: "system",
@@ -133,6 +133,13 @@ const PUSH_KINDS: {
     caption: "Your Monday look-ahead, plus the rare heads-up from Hearth.",
   },
 ];
+
+/* Kinds that ride another kind's switch instead of getting their own row.
+   A club invitation is club news the same way a club post is, and two
+   switches for one club would ask the student to know our schema. */
+const RIDES_WITH: Partial<Record<PushKind, readonly string[]>> = {
+  club_post: ["club_invite"],
+};
 
 /* ---------------------------- quiet hours ---------------------------- */
 
@@ -508,11 +515,17 @@ export default function PushSettingsScreen() {
     async (kind: PushKind, next: boolean) => {
       if (!userId || prefs === null) return;
       setToggleError(null);
-      const wasOff = prefs[kind] === "off";
+      // One switch can carry passengers: flipping club posts flips club
+      // invitations with it, so the keys move as a set.
+      const kinds = [kind, ...(RIDES_WITH[kind] ?? [])];
+      const before: Record<string, string | undefined> = {};
+      for (const k of kinds) before[k] = prefs[k];
       // Keep the stored object minimal: only 'off' keys, never 'on'.
       const updated: NotificationPrefs = { ...prefs };
-      if (next) delete updated[kind];
-      else updated[kind] = "off";
+      for (const k of kinds) {
+        if (next) delete updated[k];
+        else updated[k] = "off";
+      }
       setPrefs(updated);
       const saved = await saveProfileSettings(userId, {
         notification_prefs: updated,
@@ -522,8 +535,11 @@ export default function PushSettingsScreen() {
         setPrefs((current) => {
           if (current === null) return current;
           const rolled = { ...current };
-          if (wasOff) rolled[kind] = "off";
-          else delete rolled[kind];
+          for (const k of kinds) {
+            const previous = before[k];
+            if (previous === undefined) delete rolled[k];
+            else rolled[k] = previous;
+          }
           return rolled;
         });
         setToggleError(
