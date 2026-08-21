@@ -30,8 +30,14 @@ import {
 } from "@/lib/communities";
 import { useAuth } from "@/providers/auth-provider";
 
-/* Browsing the campus's communities: the ones you're in first, then
- * everything else, each card a name, a line about it, and a headcount.
+/* Browsing the campus's communities: The Quad up top, then the ones you're
+ * in, then everything else, each card a name, a line about it, and a
+ * headcount.
+ *
+ * The Quad is the campus's own feed, the one community everybody is in
+ * from the day they sign up, so it doesn't queue with the rest: it gets
+ * the wide card first, wearing "Your campus" instead of "Joined", because
+ * a membership nobody chose isn't news.
  *
  * There is no Join button out here on purpose. A community is a place, not
  * a subscription, and the club directory's one-tap join has taught people
@@ -39,10 +45,111 @@ import { useAuth } from "@/providers/auth-provider";
  * community) and joining from inside its own doorway is the whole flow.
  */
 
-/** One row of the list: a group heading, or a community. */
+/** One row of the list: the campus feed, a group heading, or a community. */
 type ListRow =
+  | { type: "quad"; key: string; community: Community }
   | { type: "label"; key: string; text: string }
   | { type: "community"; key: string; community: Community };
+
+/**
+ * The Quad's wide card: the same bones as a community card, drawn a size
+ * up so the campus's own feed reads as the ground the list stands on
+ * rather than one more doorway in it.
+ */
+function QuadCard({
+  community,
+  onOpen,
+}: {
+  community: Community;
+  onOpen: () => void;
+}) {
+  const theme = useTheme();
+  const members = membersLabel(community.member_count);
+  const label = [
+    `Open ${community.name}`,
+    "your campus's own feed",
+    members,
+    community.description,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return (
+    <Card padded={false} entrance={0} style={{ marginBottom: space.close }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={onOpen}
+        style={({ pressed }) => ({
+          gap: space.close,
+          padding: space.card,
+          minHeight: 88,
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.close,
+          }}
+        >
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: radius.control,
+              backgroundColor: theme.brandSoft,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Feather name="home" size={22} color={theme.brand} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0, gap: space.tight }}>
+            <AppText variant="title" numberOfLines={2}>
+              {community.name}
+            </AppText>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.cosy,
+              }}
+            >
+              <Chip label="Your campus" tone="brand" icon="home" />
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: space.tight,
+                }}
+              >
+                <Feather name="user" size={12} color={theme.muted} />
+                <AppText variant="caption" muted>
+                  {members}
+                </AppText>
+              </View>
+            </View>
+          </View>
+        </View>
+        {community.description ? (
+          <AppText
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            variant="caption"
+            muted
+            numberOfLines={2}
+          >
+            {community.description}
+          </AppText>
+        ) : null}
+      </Pressable>
+    </Card>
+  );
+}
 
 function CommunityCard({
   community,
@@ -202,15 +309,21 @@ export default function CommunitiesScreen() {
   }, []);
 
   /**
-   * Yours first, then the rest, both keeping the alphabetical order the
-   * query gave them. With no memberships there is nothing to separate, so
-   * the list stays unlabelled.
+   * The Quad first, then yours, then the rest, the last two keeping the
+   * alphabetical order the query gave them. With no memberships beyond the
+   * campus feed there is nothing to separate, so the list stays
+   * unlabelled.
    */
   const rows = useMemo<ListRow[]>(() => {
     if (!communities) return [];
-    const mine = communities.filter((c) => roles[c.id] !== undefined);
-    const rest = communities.filter((c) => roles[c.id] === undefined);
+    const quad = communities.find((c) => c.is_default) ?? null;
+    const others = communities.filter((c) => !c.is_default);
+    const mine = others.filter((c) => roles[c.id] !== undefined);
+    const rest = others.filter((c) => roles[c.id] === undefined);
     const out: ListRow[] = [];
+    if (quad) {
+      out.push({ type: "quad", key: quad.id, community: quad });
+    }
     if (mine.length === 0) {
       for (const community of rest) {
         out.push({ type: "community", key: community.id, community });
@@ -232,6 +345,14 @@ export default function CommunitiesScreen() {
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<ListRow>) => {
+      if (item.type === "quad") {
+        return (
+          <QuadCard
+            community={item.community}
+            onOpen={() => router.push(`/communities/${item.community.id}`)}
+          />
+        );
+      }
       if (item.type === "label") {
         return <SectionLabel text={item.text} first={index === 0} />;
       }

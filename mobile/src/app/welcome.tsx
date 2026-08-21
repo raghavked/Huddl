@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Doorway,
+  Lantern,
   Mug,
   Pennant,
   type IllustrationProps,
@@ -42,12 +43,13 @@ import {
 import { tapSuccess } from "@/lib/haptics";
 import { useAuth } from "@/providers/auth-provider";
 
-/* The first thing a new student sees after their profile is saved.
+/* The first thing a new student sees after picking their communities.
  *
- * Three panels they swipe through (what a class brings with it, what else is
- * on campus, who is on the other side of a message) and then the checklist,
- * which is the only page that touches the network. The panels are the
- * promise; the checklist is the first hour of keeping it.
+ * Four panels they swipe through (the feed the whole campus shares, what a
+ * class brings with it, what else is on campus, who is on the other side of
+ * a message) and then the checklist, which is the only page that touches
+ * the network. The panels are the promise; the checklist is the first hour
+ * of keeping it.
  *
  * The checklist does not open with a score. On the first pass every step is
  * unticked, and "0 of 5 done" is a scoreboard reading nothing. So the tally
@@ -55,7 +57,7 @@ import { useAuth } from "@/providers/auth-provider";
  * offers the first step itself instead. Come back with a class added and the
  * count is there, honest and earned.
  *
- * One horizontal paged ScrollView holds all four pages, so the swipe never
+ * One horizontal paged ScrollView holds all five pages, so the swipe never
  * changes character halfway through and the dots can count the whole thing.
  * The checklist re-reads its state every time this screen regains focus,
  * which is what makes "add a course, come back, see it ticked" work.
@@ -66,13 +68,15 @@ import { useAuth } from "@/providers/auth-provider";
  */
 
 /**
- * The three tour panels, in order. Copy lives here, not in the render.
+ * The four tour panels, in order. Copy lives here, not in the render.
  *
- * One panel each for the three reasons someone opens Hearth: the classes
- * they're taking, the people they haven't met yet, and whether this is a
- * place they can be honest in. Coursework gets one panel, not two. A transfer
- * student who knows nobody is not helped by hearing about syllabi twice, and the calendar belongs in the same breath as the class it came
- * from.
+ * The feed leads because it asks nothing: The Quad already has every
+ * student in it, so there is something to read before there is anything
+ * to set up. Classes come second because they are the spine everything
+ * else grows from, then the rest of campus in one breath, and last the
+ * promise that makes the whole place safe to speak in. Coursework still
+ * gets one panel, not two: the calendar belongs in the same breath as the
+ * class it came from.
  */
 const PANELS: {
   key: string;
@@ -81,6 +85,12 @@ const PANELS: {
   body: string;
 }[] = [
   {
+    key: "quad",
+    illustration: Pennant,
+    title: "Start on The Quad",
+    body: "The Quad is the campus-wide feed, and you're already in it. Communities run feeds of their own for whatever your campus cares about, and any student can start one. Every post wears a real name; nothing on Hearth is anonymous.",
+  },
+  {
     key: "classes",
     illustration: Doorway,
     title: "Your classes, your call",
@@ -88,9 +98,9 @@ const PANELS: {
   },
   {
     key: "campus",
-    illustration: Pennant,
+    illustration: Lantern,
     title: "The rest of campus",
-    body: "Clubs, events, and a board for rides, textbooks and lost keys. You can look classmates up by name, major or year. You don't have to already know someone to say hello.",
+    body: "Clubs keep an open door or send invitations. Friends and messages are a tap from any profile. Notes and flashcard decks pool what each class knows, and events put the study sessions where everyone can see them.",
   },
   {
     key: "verified",
@@ -100,7 +110,7 @@ const PANELS: {
   },
 ];
 
-/** Three panels plus the checklist. */
+/** Four panels plus the checklist. */
 const PAGE_COUNT = PANELS.length + 1;
 
 const CHECKLIST_INDEX = PANELS.length;
@@ -513,7 +523,7 @@ export default function WelcomeScreen() {
                     onPress={() => router.push(step.route)}
                   />
                 ))}
-                {/* The tour is three panels; some people want the whole thing
+                {/* The tour is four panels; some people want the whole thing
                     up front. This is the same page Settings links to, and
                     coming back re-reads the checklist on focus. */}
                 <Pressable

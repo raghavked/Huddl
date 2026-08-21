@@ -971,10 +971,12 @@ export default function HomeScreen() {
         (): BoardPost[] | null => null
       ),
       // Communities make the same bargain the board does: campus-scoped by
-      // RLS, and a failed fetch costs the card, never the front door.
+      // RLS, and a failed fetch costs the card, never the front door. The
+      // Quad, the campus's own feed, leads; the newest spaces follow it.
       supabase
         .from("communities")
         .select("id, name, community_members(count)")
+        .order("is_default", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(COMMUNITIES_PREVIEW),
     ]);

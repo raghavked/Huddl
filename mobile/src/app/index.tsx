@@ -15,7 +15,8 @@ const HOME: Href = "/(tabs)/home";
  * A signed-in student gets one extra beat before the tabs, to answer two
  * questions in parallel: have they been through first run, and have they seen
  * the welcome on this device? Someone who hasn't been through first run goes
- * to onboarding (which hands off to the welcome itself), someone who has but
+ * to onboarding (which hands off through the communities step to the
+ * welcome itself), someone who has but
  * hasn't been welcomed on this device goes to the welcome, and everyone else
  * goes straight home.
  *

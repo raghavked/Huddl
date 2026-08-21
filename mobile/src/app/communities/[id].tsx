@@ -5,13 +5,14 @@ import {
   useFocusEffect,
   useLocalSearchParams,
 } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   TextInput,
   View,
   type ListRenderItemInfo,
@@ -37,12 +38,16 @@ import {
   CommunityError,
   closeCommunity,
   commentsLabel,
+  COMMUNITY_RULES_MAX,
   createCommunityPost,
   fetchCommunity,
   fetchCommunityRooms,
   fetchFeedPage,
   fetchMyRole,
+  fetchMySavedPostIds,
   fetchMyVotes,
+  fetchPinnedPosts,
+  fetchUpcomingEvents,
   isMine,
   joinCommunity,
   leaveCommunity,
@@ -52,14 +57,25 @@ import {
   POST_TITLE_MIN,
   POSTS_PAGE,
   removeCommunityPost,
+  savePost,
+  setPostPinned,
+  unsavePost,
+  updateCommunityRules,
   type Community,
   type CommunityPost,
   type CommunityRole,
   type CommunityRoom,
+  type PostEvent,
   type PostSort,
   type VoteValue,
 } from "@/lib/communities";
+import {
+  CourseArchiveError,
+  fetchMyCourses,
+  type MyCourse,
+} from "@/lib/course-archive";
 import { tapSuccess } from "@/lib/haptics";
+import { amIModerator } from "@/lib/moderation";
 import { roomTitle } from "@/lib/room-identity";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -76,6 +92,13 @@ import { useAuth } from "@/providers/auth-provider";
  * channels wearing the community's id, so opening one is the normal channel
  * screen and starting one is the normal channel-create flow with the
  * community preset.
+ *
+ * Migration 0071's craft lands here too. Pinned posts sit above the feed
+ * under either sort, fetched on their own so the pages never echo them. A
+ * post can carry an event or a course out of the composer's two pickers.
+ * The steward writes rules from the tools sheet, and The Quad, the campus
+ * default, offers no Leave and no Close: a door the whole campus walks
+ * through doesn't get a lock.
  */
 
 type Status = "loading" | "error" | "notFound" | "ready";
@@ -129,12 +152,91 @@ function VoteArrow({
   );
 }
 
+/** "Sat, Aug 23" for a carried event. Pure. */
+function eventDay(iso: string): string {
+  return new Date(iso).toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/**
+ * The event a post carries, at arm's length: a compact card that walks to
+ * the event itself. Twin of the one on the post screen, kept in step by
+ * hand the way timeAgo already is.
+ */
+function EventCarry({ event }: { event: PostEvent }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={[
+        `Open the event ${event.title}`,
+        eventDay(event.starts_at),
+        event.location,
+      ]
+        .filter(Boolean)
+        .join(", ")}
+      onPress={() => router.push(`/event/${event.id}`)}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        gap: space.close,
+        minHeight: 44,
+        padding: space.room,
+        borderWidth: 1,
+        borderColor: theme.border,
+        borderRadius: radius.control,
+        backgroundColor: theme.surface2,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: radius.control,
+          backgroundColor: theme.accentSoft,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Feather name="calendar" size={15} color={theme.accent} />
+      </View>
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{ flex: 1, minWidth: 0, gap: space.hair }}
+      >
+        <AppText variant="bodyMedium" numberOfLines={1}>
+          {event.title}
+        </AppText>
+        <AppText variant="caption" muted numberOfLines={1}>
+          {eventDay(event.starts_at)}
+          {event.location ? ` · ${event.location}` : ""}
+        </AppText>
+      </View>
+      <Feather
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        name="chevron-right"
+        size={16}
+        color={theme.muted}
+      />
+    </Pressable>
+  );
+}
+
 /**
  * One post at arm's length: headline, the first lines of the body, who and
  * when, then the row that makes a feed a feed: the arrows, the score, and
  * the comment count. A folded or removed post keeps its bones and says what
  * happened to it, because only the people who can act on it receive it at
- * all.
+ * all. A pinned post wears its chip, and a carried event or tagged course
+ * rides along in miniature.
  */
 function FeedRow({
   post,
@@ -171,7 +273,7 @@ function FeedRow({
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Open ${post.title}${removed ? ". This post was removed." : folded ? ". Hidden by downvotes." : ""}`}
+        accessibilityLabel={`Open ${post.title}${post.pinned_at !== null ? ". Pinned." : ""}${removed ? ". This post was removed." : folded ? ". Hidden by downvotes." : ""}`}
         onPress={onOpen}
         style={({ pressed }) => ({
           gap: space.cosy,
@@ -195,6 +297,24 @@ function FeedRow({
           </View>
         ) : null}
 
+        {post.pinned_at !== null || post.course ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.cosy,
+              flexWrap: "wrap",
+            }}
+          >
+            {post.pinned_at !== null ? (
+              <Chip label="Pinned" tone="brand" icon="map-pin" />
+            ) : null}
+            {post.course ? (
+              <Chip label={post.course.code} tone="brand" icon="book" />
+            ) : null}
+          </View>
+        ) : null}
+
         <AppText variant="bodySemi" numberOfLines={2}>
           {post.title}
         </AppText>
@@ -208,6 +328,8 @@ function FeedRow({
             {post.body}
           </AppText>
         ) : null}
+
+        {!removed && post.event ? <EventCarry event={post.event} /> : null}
 
         <AppText variant="caption" muted numberOfLines={1}>
           {author} · {timeAgo(post.created_at, now)}
@@ -295,7 +417,9 @@ export default function CommunityScreen() {
 
   const [sort, setSort] = useState<PostSort>("new");
   const [posts, setPosts] = useState<CommunityPost[] | null>(null);
+  const [pinnedPosts, setPinnedPosts] = useState<CommunityPost[]>([]);
   const [votes, setVotes] = useState<Record<string, VoteValue>>({});
+  const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set());
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
@@ -311,9 +435,29 @@ export default function CommunityScreen() {
   const [posting, setPosting] = useState(false);
   const [composerError, setComposerError] = useState<string | null>(null);
 
+  /* The composer's two carries and the pickers that fill them. The picker
+     lists load once per visit, on first open, because the campus calendar
+     and my class list don't shift under a half-written post. */
+  const [carryEvent, setCarryEvent] = useState<PostEvent | null>(null);
+  const [carryCourse, setCarryCourse] = useState<MyCourse | null>(null);
+  const [eventPickerOpen, setEventPickerOpen] = useState(false);
+  const [pickerEvents, setPickerEvents] = useState<PostEvent[] | null>(null);
+  const [eventPickerError, setEventPickerError] = useState<string | null>(null);
+  const [coursePickerOpen, setCoursePickerOpen] = useState(false);
+  const [myCourses, setMyCourses] = useState<MyCourse[] | null>(null);
+  const [coursePickerError, setCoursePickerError] = useState<string | null>(
+    null
+  );
+
   const [toolsOpen, setToolsOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [menuPost, setMenuPost] = useState<CommunityPost | null>(null);
+
+  /* The rules editor: the steward's inline card, opened from the tools. */
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [rulesDraft, setRulesDraft] = useState("");
+  const [rulesSaving, setRulesSaving] = useState(false);
+  const [rulesError, setRulesError] = useState<string | null>(null);
 
   /* The page the feed is on, held in a ref because pagination mutates it
      without wanting a re-render of its own. */
@@ -321,6 +465,25 @@ export default function CommunityScreen() {
 
   const steward = myRole === "steward";
   const member = myRole !== null;
+
+  /* Whether this account carries the moderator badge, because pinning is
+     theirs too. False until known; a menu row appearing a beat late beats
+     one that vanishes. */
+  const [moderator, setModerator] = useState(false);
+  useEffect(() => {
+    let live = true;
+    amIModerator()
+      .then((yes) => {
+        if (live) setModerator(yes);
+      })
+      .catch(() => {
+        if (live) setModerator(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+  const canPin = steward || moderator;
 
   /* The block-list promise reaches the feed too: a blocked classmate's
      posts stay out of sight, refreshed alongside the list. */
@@ -357,22 +520,40 @@ export default function CommunityScreen() {
   }, [communityId]);
 
   /**
-   * One page of the feed, and the caller's own votes on it, merged in.
-   * `reset` starts over at page zero: the first load, a sort change, a
-   * pull-to-refresh. Anything else appends.
+   * One page of the feed, and the caller's own votes and saves on it,
+   * merged in. `reset` starts over at page zero (the first load, a sort
+   * change, a pull-to-refresh) and refetches the pinned posts with it;
+   * anything else appends, and the pins stand where they are.
    */
   const loadFeed = useCallback(
     async (reset: boolean) => {
       if (!communityId) return;
       const page = reset ? 0 : pageRef.current + 1;
       try {
-        const rows = await fetchFeedPage(communityId, sort, page);
-        const pageVotes = await fetchMyVotes(rows.map((row) => row.id));
+        const [rows, pinnedRows] = await Promise.all([
+          fetchFeedPage(communityId, sort, page),
+          reset ? fetchPinnedPosts(communityId) : Promise.resolve(null),
+        ]);
+        const ids = [
+          ...rows.map((row) => row.id),
+          ...(pinnedRows ?? []).map((row) => row.id),
+        ];
+        const [pageVotes, pageSaves] = await Promise.all([
+          fetchMyVotes(ids),
+          fetchMySavedPostIds(ids),
+        ]);
         pageRef.current = page;
         setHasMore(rows.length === POSTS_PAGE);
         setNow(new Date());
         setFeedError(null);
         setVotes((prev) => (reset ? pageVotes : { ...prev, ...pageVotes }));
+        setSavedIds((prev) => {
+          if (reset) return pageSaves;
+          const out = new Set(prev);
+          for (const id of pageSaves) out.add(id);
+          return out;
+        });
+        if (pinnedRows) setPinnedPosts(pinnedRows);
         setPosts((prev) => {
           if (reset || prev === null) return rows;
           // A post can straddle two pages when the feed moved under us;
@@ -530,6 +711,25 @@ export default function CommunityScreen() {
   /* ------------------------------ voting ------------------------------ */
 
   /**
+   * One patch to one post, wherever it stands: a post lives either above
+   * the feed or in it, and every optimistic write goes through here so
+   * neither list is left holding the stale copy.
+   */
+  const patchPost = useCallback(
+    (postId: string, patch: Partial<CommunityPost>) => {
+      const apply = <T extends CommunityPost[] | null>(prev: T): T =>
+        (prev === null
+          ? prev
+          : prev.map((row) =>
+              row.id === postId ? { ...row, ...patch } : row
+            )) as T;
+      setPosts(apply);
+      setPinnedPosts(apply);
+    },
+    []
+  );
+
+  /**
    * Tap an arrow: cast, flip, or take back, decided against the vote the
    * screen is already showing. The score moves immediately and only a
    * refusal moves it back, because the voter is the one person who already
@@ -548,13 +748,14 @@ export default function CommunityScreen() {
         return out;
       });
       const shift = (by: number) => {
-        setPosts((prev) =>
-          prev === null
+        const apply = <T extends CommunityPost[] | null>(prev: T): T =>
+          (prev === null
             ? prev
             : prev.map((row) =>
                 row.id === post.id ? { ...row, score: row.score + by } : row
-              )
-        );
+              )) as T;
+        setPosts(apply);
+        setPinnedPosts(apply);
       };
       shift(delta);
       void (next === null ? clearVote(post.id) : castVote(post.id, next))
@@ -576,6 +777,75 @@ export default function CommunityScreen() {
     [votes]
   );
 
+  /* ------------------------------ pinning ------------------------------ */
+
+  /**
+   * Pin or unpin, optimistically: the post crosses between the feed and
+   * the shelf above it right away. A refusal refetches both halves rather
+   * than untangling the move by hand; the honest state is one query away.
+   */
+  const applyPin = useCallback(
+    (post: CommunityPost, pin: boolean) => {
+      setFeedError(null);
+      if (pin) {
+        const stamp = new Date().toISOString();
+        setPosts((prev) =>
+          prev === null ? prev : prev.filter((row) => row.id !== post.id)
+        );
+        setPinnedPosts((prev) => [{ ...post, pinned_at: stamp }, ...prev]);
+      } else {
+        setPinnedPosts((prev) => prev.filter((row) => row.id !== post.id));
+        // Back onto the top of the page; the next refresh files it where
+        // the sort actually wants it.
+        setPosts((prev) => {
+          const freed = { ...post, pinned_at: null, pinned_by: null };
+          return prev === null ? [freed] : [freed, ...prev];
+        });
+      }
+      void setPostPinned(post.id, pin).catch((caught: unknown) => {
+        setFeedError(
+          caught instanceof CommunityError
+            ? caught.message
+            : "That didn't save just now. Give it another go."
+        );
+        void loadFeed(true);
+      });
+    },
+    [loadFeed]
+  );
+
+  /* ----------------------------- the shelf ------------------------------ */
+
+  /** Save or unsave, optimistically; the bookmark is the reader's own. */
+  const toggleSave = useCallback(
+    (post: CommunityPost) => {
+      const wasSaved = savedIds.has(post.id);
+      setFeedError(null);
+      setSavedIds((prev) => {
+        const out = new Set(prev);
+        if (wasSaved) out.delete(post.id);
+        else out.add(post.id);
+        return out;
+      });
+      void (wasSaved ? unsavePost(post.id) : savePost(post.id)).catch(
+        (caught: unknown) => {
+          setSavedIds((prev) => {
+            const out = new Set(prev);
+            if (wasSaved) out.add(post.id);
+            else out.delete(post.id);
+            return out;
+          });
+          setFeedError(
+            caught instanceof CommunityError
+              ? caught.message
+              : "That didn't save just now. Give it another try."
+          );
+        }
+      );
+    },
+    [savedIds]
+  );
+
   /* ---------------------------- the composer ---------------------------- */
 
   const handlePost = useCallback(async () => {
@@ -583,11 +853,21 @@ export default function CommunityScreen() {
     setComposerError(null);
     setPosting(true);
     try {
-      const post = await createCommunityPost(communityId, draftTitle, draftBody);
+      const post = await createCommunityPost(
+        communityId,
+        draftTitle,
+        draftBody,
+        {
+          eventId: carryEvent?.id ?? null,
+          courseId: carryCourse?.course_id ?? null,
+        }
+      );
       // It's on the feed: the completion moment.
       tapSuccess();
       setDraftTitle("");
       setDraftBody("");
+      setCarryEvent(null);
+      setCarryCourse(null);
       setComposerOpen(false);
       setNow(new Date());
       // Newest-first shows it on top where it just landed; Top would bury a
@@ -607,7 +887,71 @@ export default function CommunityScreen() {
     } finally {
       setPosting(false);
     }
-  }, [posting, communityId, draftTitle, draftBody, sort]);
+  }, [
+    posting,
+    communityId,
+    draftTitle,
+    draftBody,
+    carryEvent,
+    carryCourse,
+    sort,
+  ]);
+
+  /** The event picker's list, fetched on first open and kept for the visit. */
+  const openEventPicker = useCallback(() => {
+    setEventPickerOpen(true);
+    if (pickerEvents !== null) return;
+    setEventPickerError(null);
+    fetchUpcomingEvents()
+      .then(setPickerEvents)
+      .catch((caught: unknown) => {
+        setEventPickerError(
+          caught instanceof CommunityError
+            ? caught.message
+            : "We couldn't load the calendar. Give it another go."
+        );
+      });
+  }, [pickerEvents]);
+
+  /** The course picker's list: my active classes, same bargain as above. */
+  const openCoursePicker = useCallback(() => {
+    setCoursePickerOpen(true);
+    if (myCourses !== null) return;
+    setCoursePickerError(null);
+    fetchMyCourses()
+      .then((mine) => setMyCourses(mine.active))
+      .catch((caught: unknown) => {
+        setCoursePickerError(
+          caught instanceof CourseArchiveError
+            ? caught.message
+            : "We couldn't load your classes. Give it another go."
+        );
+      });
+  }, [myCourses]);
+
+  /* ----------------------------- the rules ------------------------------ */
+
+  const handleSaveRules = useCallback(async () => {
+    if (!community || rulesSaving) return;
+    setRulesError(null);
+    setRulesSaving(true);
+    try {
+      await updateCommunityRules(community.id, rulesDraft);
+      // They're on the doorway: the completion moment.
+      tapSuccess();
+      const clean = rulesDraft.trim();
+      setCommunity((prev) => (prev ? { ...prev, rules: clean || null } : prev));
+      setRulesOpen(false);
+    } catch (caught) {
+      setRulesError(
+        caught instanceof CommunityError
+          ? caught.message
+          : "We couldn't save the rules just now. Give it another go."
+      );
+    } finally {
+      setRulesSaving(false);
+    }
+  }, [community, rulesSaving, rulesDraft]);
 
   /* --------------------------- post overflow ---------------------------- */
 
@@ -626,21 +970,9 @@ export default function CommunityScreen() {
               // back whole with a warm line if the server refuses.
               const stamp = new Date().toISOString();
               setFeedError(null);
-              setPosts((prev) =>
-                prev === null
-                  ? prev
-                  : prev.map((row) =>
-                      row.id === post.id ? { ...row, deleted_at: stamp } : row
-                    )
-              );
+              patchPost(post.id, { deleted_at: stamp });
               void removeCommunityPost(post.id).catch((caught: unknown) => {
-                setPosts((prev) =>
-                  prev === null
-                    ? prev
-                    : prev.map((row) =>
-                        row.id === post.id ? { ...row, deleted_at: null } : row
-                      )
-                );
+                patchPost(post.id, { deleted_at: null });
                 setFeedError(
                   caught instanceof CommunityError
                     ? caught.message
@@ -652,7 +984,7 @@ export default function CommunityScreen() {
         ]
       );
     },
-    []
+    [patchPost]
   );
 
   const openReport = useCallback((post: CommunityPost) => {
@@ -668,10 +1000,13 @@ export default function CommunityScreen() {
 
   /* ------------------------------ render ------------------------------ */
 
-  const visiblePosts = useMemo(
-    () => (posts ?? []).filter((post) => !blocked.has(post.author_id)),
-    [posts, blocked]
-  );
+  /* Pins first, then the feed, one list: the block-list promise covers
+     both halves, and a pinned post from a blocked classmate stays hidden
+     no matter whose hand pinned it. */
+  const visiblePosts = useMemo(() => {
+    const keep = (post: CommunityPost) => !blocked.has(post.author_id);
+    return [...pinnedPosts.filter(keep), ...(posts ?? []).filter(keep)];
+  }, [pinnedPosts, posts, blocked]);
 
   const openPost = useCallback(
     (post: CommunityPost) => {
@@ -818,6 +1153,10 @@ export default function CommunityScreen() {
           >
             {steward ? (
               <Chip label="Steward" tone="brand" icon="feather" />
+            ) : community.is_default ? (
+              /* Nobody chose this membership, so "Joined" would be a fib.
+                 The chip says what the place is instead. */
+              <Chip label="Your campus" tone="brand" icon="home" />
             ) : member ? (
               <Chip label="Joined" tone="accent" icon="check" />
             ) : null}
@@ -837,6 +1176,12 @@ export default function CommunityScreen() {
           {community.description ? (
             <AppText muted>{community.description}</AppText>
           ) : null}
+          {community.rules ? (
+            <View style={{ gap: space.tight }}>
+              <AppText variant="title">Rules</AppText>
+              <AppText muted>{community.rules}</AppText>
+            </View>
+          ) : null}
         </View>
 
         {!member ? (
@@ -846,6 +1191,12 @@ export default function CommunityScreen() {
             icon={<Feather name="user-plus" size={16} color={theme.brandFg} />}
             onPress={() => void handleJoin()}
           />
+        ) : community.is_default ? (
+          /* The campus feed has no Leave and no Close: everyone is in it
+             from their first day, and the door has no lock to offer. */
+          <AppText variant="caption" muted>
+            The whole campus is in this one, from day one.
+          </AppText>
         ) : steward ? (
           /* The steward closes the doors rather than slipping out of them:
              a community whose steward left is a room nobody tends. */
@@ -872,6 +1223,65 @@ export default function CommunityScreen() {
           >
             {membershipError}
           </AppText>
+        ) : null}
+
+        {steward && rulesOpen ? (
+          /* The rules editor, inline like the composer: a steward writing
+             house rules is still just writing. */
+          <Card style={{ gap: space.close }}>
+            <AppText variant="title">Community rules</AppText>
+            <TextInput
+              value={rulesDraft}
+              onChangeText={(text) => {
+                setRulesDraft(text);
+                if (rulesError) setRulesError(null);
+              }}
+              placeholder="What keeps this place good"
+              placeholderTextColor={theme.muted + "b3"}
+              accessibilityLabel="Community rules"
+              maxLength={COMMUNITY_RULES_MAX}
+              multiline
+              editable={!rulesSaving}
+              cursorColor={theme.brand}
+              selectionColor={theme.brandSoft}
+              style={{
+                minHeight: 96,
+                textAlignVertical: "top",
+                borderWidth: 1,
+                borderColor: theme.border,
+                borderRadius: radius.control,
+                backgroundColor: theme.surface,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                fontFamily: fonts.body,
+                fontSize: 15,
+                color: theme.foreground,
+              }}
+            />
+            {rulesError ? (
+              <AppText variant="caption" style={{ color: theme.danger }}>
+                {rulesError}
+              </AppText>
+            ) : null}
+            <View style={{ flexDirection: "row", gap: space.cosy }}>
+              <Button
+                label="Save rules"
+                size="sm"
+                pending={rulesSaving}
+                onPress={() => void handleSaveRules()}
+              />
+              <Button
+                label="Never mind"
+                variant="ghost"
+                size="sm"
+                disabled={rulesSaving}
+                onPress={() => {
+                  setRulesOpen(false);
+                  setRulesError(null);
+                }}
+              />
+            </View>
+          </Card>
         ) : null}
       </View>
 
@@ -1052,6 +1462,55 @@ export default function CommunityScreen() {
               color: theme.foreground,
             }}
           />
+          {/* The two carries: each ghost button trades places with the
+              removable chip it earns. Tapping the chip takes it back off. */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.cosy,
+              flexWrap: "wrap",
+            }}
+          >
+            {carryEvent ? (
+              <Chip
+                label={carryEvent.title}
+                tone="accent"
+                icon="calendar"
+                size="md"
+                onPress={() => setCarryEvent(null)}
+                accessibilityLabel={`Remove the event ${carryEvent.title}`}
+              />
+            ) : (
+              <Button
+                label="Attach an event"
+                variant="ghost"
+                size="sm"
+                disabled={posting}
+                icon={<Feather name="calendar" size={14} color={theme.muted} />}
+                onPress={openEventPicker}
+              />
+            )}
+            {carryCourse ? (
+              <Chip
+                label={carryCourse.code}
+                tone="brand"
+                icon="book"
+                size="md"
+                onPress={() => setCarryCourse(null)}
+                accessibilityLabel={`Remove the course tag ${carryCourse.code}`}
+              />
+            ) : (
+              <Button
+                label="Tag a course"
+                variant="ghost"
+                size="sm"
+                disabled={posting}
+                icon={<Feather name="book" size={14} color={theme.muted} />}
+                onPress={openCoursePicker}
+              />
+            )}
+          </View>
           {composerError ? (
             <AppText variant="caption" style={{ color: theme.danger }}>
               {composerError}
@@ -1199,68 +1658,212 @@ export default function CommunityScreen() {
         }
       />
 
-      {/* Steward tools: the one destructive thing a steward can do here. */}
+      {/* Steward tools: the rules, and, anywhere but the campus feed, the
+          one destructive thing a steward can do here. */}
       <Sheet
         visible={toolsOpen}
         onClose={() => setToolsOpen(false)}
         title={community.name}
       >
         <Sheet.Row
-          icon="x-circle"
-          label="Close community"
-          danger
+          icon="file-text"
+          label="Community rules"
           onPress={() => {
             setToolsOpen(false);
-            confirmClose();
+            setRulesDraft(community.rules ?? "");
+            setRulesError(null);
+            setRulesOpen(true);
           }}
         />
+        {!community.is_default ? (
+          <Sheet.Row
+            icon="x-circle"
+            label="Close community"
+            danger
+            onPress={() => {
+              setToolsOpen(false);
+              confirmClose();
+            }}
+          />
+        ) : null}
       </Sheet>
 
-      {/* The overflow on one post: yours to take down, the steward's to
-          remove, anyone's to report. */}
+      {/* The overflow on one post: anyone's to save, yours to edit or take
+          down, the steward's to pin or remove, anyone else's to report. */}
       <Sheet
         visible={menuPost !== null}
         onClose={() => setMenuPost(null)}
         title={menuPost?.title ?? "This post"}
       >
-        {menuPost && isMine(menuPost, myId) ? (
-          <Sheet.Row
-            icon="trash-2"
-            label="Delete post"
-            danger
-            onPress={() => {
-              const post = menuPost;
-              setMenuPost(null);
-              if (post && post.deleted_at === null) {
-                confirmRemovePost(post, false);
-              }
-            }}
-          />
-        ) : (
+        {menuPost ? (
           <>
-            {steward && menuPost?.deleted_at === null ? (
+            <Sheet.Row
+              icon="bookmark"
+              label={savedIds.has(menuPost.id) ? "Unsave post" : "Save post"}
+              onPress={() => {
+                const post = menuPost;
+                setMenuPost(null);
+                toggleSave(post);
+              }}
+            />
+            {isMine(menuPost, myId) && menuPost.deleted_at === null ? (
+              <Sheet.Row
+                icon="edit-2"
+                label="Edit post"
+                onPress={() => {
+                  const post = menuPost;
+                  setMenuPost(null);
+                  // The editor lives on the post screen, beside the whole
+                  // body it's about to change.
+                  router.push({
+                    pathname: "/communities/post",
+                    params: { communityId, postId: post.id, edit: "1" },
+                  });
+                }}
+              />
+            ) : null}
+            {canPin && menuPost.deleted_at === null ? (
+              <Sheet.Row
+                icon="map-pin"
+                label={menuPost.pinned_at !== null ? "Unpin post" : "Pin post"}
+                onPress={() => {
+                  const post = menuPost;
+                  setMenuPost(null);
+                  applyPin(post, post.pinned_at === null);
+                }}
+              />
+            ) : null}
+            {isMine(menuPost, myId) ? (
               <Sheet.Row
                 icon="trash-2"
-                label="Remove post"
+                label="Delete post"
                 danger
                 onPress={() => {
                   const post = menuPost;
                   setMenuPost(null);
-                  if (post) confirmRemovePost(post, true);
+                  if (post.deleted_at === null) {
+                    confirmRemovePost(post, false);
+                  }
                 }}
               />
-            ) : null}
-            <Sheet.Row
-              icon="flag"
-              label="Report post"
-              danger
-              onPress={() => {
-                const post = menuPost;
-                setMenuPost(null);
-                if (post) openReport(post);
-              }}
-            />
+            ) : (
+              <>
+                {steward && menuPost.deleted_at === null ? (
+                  <Sheet.Row
+                    icon="trash-2"
+                    label="Remove post"
+                    danger
+                    onPress={() => {
+                      const post = menuPost;
+                      setMenuPost(null);
+                      confirmRemovePost(post, true);
+                    }}
+                  />
+                ) : null}
+                <Sheet.Row
+                  icon="flag"
+                  label="Report post"
+                  danger
+                  onPress={() => {
+                    const post = menuPost;
+                    setMenuPost(null);
+                    openReport(post);
+                  }}
+                />
+              </>
+            )}
           </>
+        ) : null}
+      </Sheet>
+
+      {/* The event picker: upcoming campus events, soonest first. */}
+      <Sheet
+        visible={eventPickerOpen}
+        onClose={() => setEventPickerOpen(false)}
+        title="Attach an event"
+      >
+        {eventPickerError ? (
+          <AppText
+            variant="caption"
+            style={{ color: theme.danger, paddingVertical: space.room }}
+          >
+            {eventPickerError}
+          </AppText>
+        ) : pickerEvents === null ? (
+          <ActivityIndicator
+            size="small"
+            color={theme.brand}
+            style={{ marginVertical: space.card }}
+          />
+        ) : pickerEvents.length === 0 ? (
+          <AppText
+            variant="caption"
+            muted
+            style={{ paddingVertical: space.room }}
+          >
+            Nothing on the campus calendar yet. Plan something, then carry it
+            here.
+          </AppText>
+        ) : (
+          <ScrollView style={{ maxHeight: 360 }}>
+            {pickerEvents.map((event) => (
+              <Sheet.Row
+                key={event.id}
+                icon="calendar"
+                label={`${event.title} · ${eventDay(event.starts_at)}`}
+                selected={carryEvent?.id === event.id}
+                onPress={() => {
+                  setCarryEvent(event);
+                  setEventPickerOpen(false);
+                }}
+              />
+            ))}
+          </ScrollView>
+        )}
+      </Sheet>
+
+      {/* The course picker: my active classes, code first. */}
+      <Sheet
+        visible={coursePickerOpen}
+        onClose={() => setCoursePickerOpen(false)}
+        title="Tag a course"
+      >
+        {coursePickerError ? (
+          <AppText
+            variant="caption"
+            style={{ color: theme.danger, paddingVertical: space.room }}
+          >
+            {coursePickerError}
+          </AppText>
+        ) : myCourses === null ? (
+          <ActivityIndicator
+            size="small"
+            color={theme.brand}
+            style={{ marginVertical: space.card }}
+          />
+        ) : myCourses.length === 0 ? (
+          <AppText
+            variant="caption"
+            muted
+            style={{ paddingVertical: space.room }}
+          >
+            No classes on your list yet. Add a course and tag away.
+          </AppText>
+        ) : (
+          <ScrollView style={{ maxHeight: 360 }}>
+            {myCourses.map((course) => (
+              <Sheet.Row
+                key={course.course_id}
+                icon="book"
+                label={`${course.code} · ${course.title}`}
+                selected={carryCourse?.course_id === course.course_id}
+                onPress={() => {
+                  setCarryCourse(course);
+                  setCoursePickerOpen(false);
+                }}
+              />
+            ))}
+          </ScrollView>
         )}
       </Sheet>
     </View>

@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { Redirect, router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -21,12 +21,15 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /* Saved messages: the private shelf behind every long-press "Save".
-   Two tables feed one list (channel bookmarks and DM bookmarks), so both
-   halves are fetched side by side and merged here, newest save first.
+   One table, three kinds of subject (channel messages, DM messages, and
+   community posts since 0071), so the three halves are fetched side by
+   side and merged here, newest save first, with a filter row to read one
+   kind at a time.
 
-   Reading a bookmark's message still goes through that message's own RLS:
+   Reading a bookmark's subject still goes through that subject's own RLS:
    leave a room and its saves quietly return a null embed instead of a row.
-   Those rows are dropped on the floor rather than rendered as blanks. */
+   Those rows are dropped on the floor rather than rendered as blanks, and
+   a post that was taken down leaves the shelf the same way. */
 
 /** Both queries are capped here, and so is the merged list. */
 const SAVED_LIMIT = 100;
@@ -44,25 +47,35 @@ const CHANNEL_SELECT =
 const DM_SELECT =
   "created_at, dm_message_id, message:dm_messages(id, content, attachment_path, created_at, deleted_at, thread_id, author:profiles!dm_messages_author_id_fkey(display_name))";
 
-/** One row on the shelf, flattened out of either side of the union. */
+const POST_SELECT =
+  "created_at, community_post_id, post:community_posts(id, community_id, title, score, created_at, deleted_at, community:communities(name))";
+
+/** Which slice of the shelf is showing. "All" is the default and the merge. */
+type KindFilter = "all" | "messages" | "posts";
+
+/** One row on the shelf, flattened out of any side of the union. */
 type SavedItem = {
-  /** List key: the subject id, namespaced because the two tables differ. */
+  /** List key: the subject id, namespaced because the subjects differ. */
   key: string;
-  kind: "channel" | "dm";
-  /** messages.id or dm_messages.id: the bookmark's subject. */
+  kind: "channel" | "dm" | "post";
+  /** messages.id, dm_messages.id, or community_posts.id: the subject. */
   messageId: string;
-  /** Where tapping the row lands: the channel, or the DM thread. */
+  /** Where tapping lands: the channel, the DM thread, or the community. */
   roomId: string;
   /** message_bookmarks.created_at: the sort key for the whole list. */
   savedAt: string;
-  /** When the message itself was sent, which is what the caption shows. */
+  /** When the subject itself was written, which is what the caption shows. */
   sentAt: string;
   authorName: string;
-  /** "Study hall" for a room, "DM" for a direct message. */
+  /** "Study hall" for a room, "DM" for a direct message, the community's
+      name for a post. */
   context: string;
+  /** The message's words, or the post's title. */
   content: string;
   /** A caption-less photo send: the body is a placeholder, not real text. */
   attachmentOnly: boolean;
+  /** The post's score at fetch time. Null on the message kinds. */
+  score: number | null;
 };
 
 /* ------------------------- defensive narrowing -------------------------- */
@@ -119,10 +132,56 @@ function flatten(row: unknown, kind: SavedItem["kind"]): SavedItem | null {
     content,
     attachmentOnly:
       asString(message["attachment_path"]) !== null && content === "Photo",
+    score: null,
+  };
+}
+
+/** The post half of the shelf, same bargain: a post that RLS won't show or
+    that came down renders nothing rather than a blank card. */
+function flattenPost(row: unknown): SavedItem | null {
+  if (typeof row !== "object" || row === null) return null;
+  const record = row as Record<string, unknown>;
+  const savedAt = asString(record["created_at"]);
+  const post = embedded(record["post"]);
+  if (savedAt === null || post === null) return null;
+  if (asString(post["deleted_at"]) !== null) return null;
+
+  const postId = asString(post["id"]);
+  const communityId = asString(post["community_id"]);
+  const title = asString(post["title"]);
+  const sentAt = asString(post["created_at"]);
+  if (
+    postId === null ||
+    communityId === null ||
+    title === null ||
+    sentAt === null
+  ) {
+    return null;
+  }
+  const rawScore = post["score"];
+
+  return {
+    key: `p:${postId}`,
+    kind: "post",
+    messageId: postId,
+    roomId: communityId,
+    savedAt,
+    sentAt,
+    authorName: title,
+    context:
+      asString(embedded(post["community"])?.["name"]) ?? "a community",
+    content: title,
+    attachmentOnly: false,
+    score: typeof rawScore === "number" ? Math.trunc(rawScore) : 0,
   };
 }
 
 /* ---------------------------- small helpers ----------------------------- */
+
+/** "{n} points" with the singular handled, for a saved post's caption. */
+function scoreLabel(score: number): string {
+  return score === 1 ? "1 point" : `${score} points`;
+}
 
 /** "Just now", "5m ago", "3h ago", "2d ago", then "Aug 2". */
 function timeAgo(iso: string): string {
@@ -145,6 +204,13 @@ function timeAgo(iso: string): string {
  * saying which side of the app it came from, so the word goes in here.
  */
 function savedLabel(item: SavedItem): string {
+  if (item.kind === "post") {
+    return [
+      `Open the post ${item.content} in ${item.context}`,
+      scoreLabel(item.score ?? 0),
+      timeAgo(item.sentAt),
+    ].join(", ");
+  }
   return [
     `Open ${item.authorName}'s message in ${
       item.kind === "channel" ? item.context : "your DMs"
@@ -197,46 +263,87 @@ function SavedRow({
           opacity: pressed ? 0.7 : 1,
         })}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: space.cosy,
-          }}
-        >
-          <AppText variant="bodySemi" numberOfLines={1} style={{ flexShrink: 1 }}>
-            {item.authorName}
-          </AppText>
-          {/* Rooms wear ember, DMs wear fern, so one glance tells you where
-              it's from. */}
-          <Chip
-            label={item.context}
-            tone={item.kind === "channel" ? "brand" : "accent"}
-            style={{ maxWidth: 160 }}
-          />
-        </View>
-
-        {item.attachmentOnly ? (
-          <AppText muted style={{ fontStyle: "italic" }}>
-            Photo
-          </AppText>
+        {item.kind === "post" ? (
+          /* A post leads with its title; the community's name is the chip,
+             and the score rides in the caption where a message keeps its
+             clock. */
+          <>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: space.cosy,
+              }}
+            >
+              <AppText
+                variant="bodySemi"
+                numberOfLines={2}
+                style={{ flex: 1, minWidth: 0 }}
+              >
+                {item.content}
+              </AppText>
+              <Chip
+                label={item.context}
+                tone="brand"
+                style={{ maxWidth: 160 }}
+              />
+            </View>
+            <AppText variant="caption" muted>
+              {scoreLabel(item.score ?? 0)} · {timeAgo(item.sentAt)}
+            </AppText>
+          </>
         ) : (
-          <MentionText
-            text={item.content}
-            baseStyle={{ ...BODY_TEXT, color: theme.foreground }}
-            highlightColor={theme.brand}
-            numberOfLines={4}
-          />
-        )}
+          <>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.cosy,
+              }}
+            >
+              <AppText
+                variant="bodySemi"
+                numberOfLines={1}
+                style={{ flexShrink: 1 }}
+              >
+                {item.authorName}
+              </AppText>
+              {/* Rooms wear ember, DMs wear fern, so one glance tells you
+                  where it's from. */}
+              <Chip
+                label={item.context}
+                tone={item.kind === "channel" ? "brand" : "accent"}
+                style={{ maxWidth: 160 }}
+              />
+            </View>
 
-        <AppText variant="caption" muted>
-          {timeAgo(item.sentAt)}
-        </AppText>
+            {item.attachmentOnly ? (
+              <AppText muted style={{ fontStyle: "italic" }}>
+                Photo
+              </AppText>
+            ) : (
+              <MentionText
+                text={item.content}
+                baseStyle={{ ...BODY_TEXT, color: theme.foreground }}
+                highlightColor={theme.brand}
+                numberOfLines={4}
+              />
+            )}
+
+            <AppText variant="caption" muted>
+              {timeAgo(item.sentAt)}
+            </AppText>
+          </>
+        )}
       </Pressable>
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Remove ${item.authorName}'s message from saved`}
+        accessibilityLabel={
+          item.kind === "post"
+            ? `Remove the post ${item.content} from saved`
+            : `Remove ${item.authorName}'s message from saved`
+        }
         accessibilityState={{ disabled: removing, busy: removing }}
         disabled={removing}
         onPress={onRemove}
@@ -276,6 +383,7 @@ export default function SavedMessagesScreen() {
   const userId = session?.user.id ?? null;
 
   const [items, setItems] = useState<SavedItem[] | null>(null);
+  const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -287,10 +395,10 @@ export default function SavedMessagesScreen() {
     else router.replace("/settings");
   }, []);
 
-  /** Both halves of the shelf at once, merged on the bookmark's own clock. */
+  /** All three halves of the shelf at once, merged on the bookmark's clock. */
   const fetchSaved = useCallback(async (): Promise<SavedItem[]> => {
     if (!userId) throw new Error("Not signed in");
-    const [channelRes, dmRes] = await Promise.all([
+    const [channelRes, dmRes, postRes] = await Promise.all([
       supabase
         .from("message_bookmarks")
         .select(CHANNEL_SELECT)
@@ -305,9 +413,17 @@ export default function SavedMessagesScreen() {
         .not("dm_message_id", "is", null)
         .order("created_at", { ascending: false })
         .limit(SAVED_LIMIT),
+      supabase
+        .from("message_bookmarks")
+        .select(POST_SELECT)
+        .eq("user_id", userId)
+        .not("community_post_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(SAVED_LIMIT),
     ]);
     if (channelRes.error) throw channelRes.error;
     if (dmRes.error) throw dmRes.error;
+    if (postRes.error) throw postRes.error;
 
     const merged: SavedItem[] = [];
     for (const row of Array.isArray(channelRes.data) ? channelRes.data : []) {
@@ -316,6 +432,10 @@ export default function SavedMessagesScreen() {
     }
     for (const row of Array.isArray(dmRes.data) ? dmRes.data : []) {
       const item = flatten(row, "dm");
+      if (item) merged.push(item);
+    }
+    for (const row of Array.isArray(postRes.data) ? postRes.data : []) {
+      const item = flattenPost(row);
       if (item) merged.push(item);
     }
     merged.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
@@ -345,9 +465,17 @@ export default function SavedMessagesScreen() {
     void run("initial");
   }, [userId, run]);
 
-  /** The shelf points at a message, not a room, so the message id rides
-      along and the room lands on it rather than at the bottom. */
+  /** The shelf points at a subject, not a room, so the subject id rides
+      along and the destination lands on it rather than at the bottom. A
+      post opens its own screen, thread and all. */
   const handleOpen = useCallback((item: SavedItem) => {
+    if (item.kind === "post") {
+      router.push({
+        pathname: "/communities/post",
+        params: { communityId: item.roomId, postId: item.messageId },
+      });
+      return;
+    }
     router.push({
       pathname: item.kind === "channel" ? "/channel/[id]" : "/dm/[id]",
       params: { id: item.roomId, messageId: item.messageId },
@@ -371,11 +499,17 @@ export default function SavedMessagesScreen() {
               .delete()
               .eq("user_id", userId)
               .eq("message_id", item.messageId)
-          : await supabase
-              .from("message_bookmarks")
-              .delete()
-              .eq("user_id", userId)
-              .eq("dm_message_id", item.messageId);
+          : item.kind === "dm"
+            ? await supabase
+                .from("message_bookmarks")
+                .delete()
+                .eq("user_id", userId)
+                .eq("dm_message_id", item.messageId)
+            : await supabase
+                .from("message_bookmarks")
+                .delete()
+                .eq("user_id", userId)
+                .eq("community_post_id", item.messageId);
       setRemovingKey(null);
       if (deleteError) {
         setItems(previous);
@@ -397,6 +531,16 @@ export default function SavedMessagesScreen() {
     ),
     [removingKey, handleOpen, handleRemove]
   );
+
+  /** The slice the filter row picked. "Messages" is both message kinds. */
+  const visibleItems = useMemo(() => {
+    const rows = items ?? [];
+    if (kindFilter === "posts") return rows.filter((r) => r.kind === "post");
+    if (kindFilter === "messages") {
+      return rows.filter((r) => r.kind !== "post");
+    }
+    return rows;
+  }, [items, kindFilter]);
 
   // Deep links land here directly, so a signed-out visitor gets a proper door.
   if (ready && !session) {
@@ -456,6 +600,43 @@ export default function SavedMessagesScreen() {
           : `${count} kept, newest save first. Only you can see this.`}
       </AppText>
 
+      {/* The filter row appears once there's a shelf worth slicing. */}
+      {!loading && items !== null && count > 0 ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.cosy,
+            marginBottom: space.close,
+          }}
+        >
+          <Chip
+            label="All"
+            tone="brand"
+            size="md"
+            selected={kindFilter === "all"}
+            onPress={() => setKindFilter("all")}
+            accessibilityLabel="Show everything saved"
+          />
+          <Chip
+            label="Messages"
+            tone="brand"
+            size="md"
+            selected={kindFilter === "messages"}
+            onPress={() => setKindFilter("messages")}
+            accessibilityLabel="Show saved messages"
+          />
+          <Chip
+            label="Posts"
+            tone="brand"
+            size="md"
+            selected={kindFilter === "posts"}
+            onPress={() => setKindFilter("posts")}
+            accessibilityLabel="Show saved posts"
+          />
+        </View>
+      ) : null}
+
       {loading ? (
         <View
           style={{
@@ -512,7 +693,7 @@ export default function SavedMessagesScreen() {
         </View>
       ) : (
         <FlatList
-          data={items ?? []}
+          data={visibleItems}
           keyExtractor={(item) => item.key}
           renderItem={renderItem}
           style={{ flex: 1 }}
@@ -534,11 +715,29 @@ export default function SavedMessagesScreen() {
             ) : null
           }
           ListEmptyComponent={
-            <EmptyState
-              illustration={PaperPlane}
-              title="Nothing saved yet."
-              body="Long-press any message to keep it handy."
-            />
+            count > 0 ? (
+              /* The shelf has things; this slice of it is bare. */
+              <EmptyState
+                compact
+                icon="bookmark"
+                title={
+                  kindFilter === "posts"
+                    ? "No posts saved yet."
+                    : "No messages saved yet."
+                }
+                body={
+                  kindFilter === "posts"
+                    ? "Save post lives in any post's overflow menu."
+                    : "Long-press any message to keep it handy."
+                }
+              />
+            ) : (
+              <EmptyState
+                illustration={PaperPlane}
+                title="Nothing saved yet."
+                body="Long-press any message, or save a post from its menu, to keep it handy."
+              />
+            )
           }
           ListFooterComponent={
             count >= SAVED_LIMIT ? (

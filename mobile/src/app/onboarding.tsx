@@ -174,7 +174,7 @@ export default function OnboardingScreen() {
     } catch {
       // Offline, most likely. The exit still happens; the gate asks again.
     }
-    router.replace("/welcome");
+    router.replace("/onboarding-communities");
   }
 
   async function handleSave() {
@@ -263,9 +263,9 @@ export default function OnboardingScreen() {
       return;
     }
 
-    // First-run handoff: profile's saved, so hand off to the welcome, which
-    // shows what the app does and then walks them into adding classes.
-    router.replace("/welcome");
+    // First-run handoff: profile's saved, so hand off to picking
+    // communities, which hands off to the welcome in its turn.
+    router.replace("/onboarding-communities");
   }
 
   if (!ready) {

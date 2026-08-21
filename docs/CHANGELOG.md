@@ -1,5 +1,40 @@
 # Hearth development log
 
+## Round 25: the feed learns its craft, and onboarding learns the feed
+
+The finishing pass on communities, all in the app (migration 0071's
+columns grew their UI):
+
+The Quad leads everywhere now: first on the communities screen as the
+wide campus card, first in the home preview, unleavable and uncloseable
+in the ways that matter. Stewards pin posts, which float above both
+sorts wearing their chip. A post's author crowns the comment that
+solved it, "Most helpful" rises to the top, and the helper is thanked
+by name under their own name, which is the whole point of an identity
+feed. Authors edit their posts and the Edited marker tells the truth.
+The composer carries things a campus actually shares: an attached
+event renders as a tappable card in the feed, a tagged course wears its
+code chip. Communities write their own Rules under the campus
+guidelines, and any post can be saved, with the Saved shelf growing a
+Posts filter beside its messages.
+
+Onboarding was rebuilt around all of it: after profile setup a new
+"Pick your communities" step greets every student with The Quad already
+theirs and the campus's communities one tap away, and the welcome tour
+now opens on the feed, says plainly that every post wears a real name
+and nothing on Hearth is anonymous, then walks classes, clubs and their
+two doors, friends and messages, notes and decks, and events in order.
+
+## Round 24: the product moves home to the app
+
+The website stripped to marketing, legal, and the email funnel; the
+whole web product surface (twenty-two feature directories and the
+signed-in route group) was deleted, with /login left as an honest
+pointer into the app. Mobile gained the entire communities surface,
+The Quad opened on all ten campuses, and 0071 closed 0070's over-broad
+update grant. Details in that commit; recorded here so the round
+numbering stays honest.
+
 ## Round 23: the first real device found the one query nobody had run
 
 Channels and messaging looked dead on the first cable-build test, and

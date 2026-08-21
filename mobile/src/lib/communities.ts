@@ -24,6 +24,17 @@ import { supabase } from "@/lib/supabase";
  *                      trigger-maintained, and the post's author gets a
  *                      'post_comment' notification.
  *
+ * Migration 0071 added the craft on top. One community per campus is the
+ * default, The Quad, which every student joins at signup and nobody can
+ * close. Stewards write `rules`. Stewards and moderators pin posts, with
+ * the trigger stamping who pinned. A post's author crowns one live comment
+ * as `best_comment_id`, which notifies the comment's author. A post can
+ * carry an event or a course, author-set, cleared by the DB if the target
+ * goes. `edited_at` records a saved change, and a post can sit on the
+ * private shelf via `message_bookmarks.community_post_id`. The aggregates
+ * (`score`, `comment_count`, `hidden_at`) are the triggers' alone now:
+ * nothing here writes them, and nothing here should.
+ *
  * Removal here is SOFT, and that is the design decision the module leans on:
  * a post or comment comes down by `deleted_at`, never by DELETE, so the
  * author, the steward, and moderators can still see what was said, and a
@@ -45,6 +56,9 @@ export const COMMUNITY_NAME_MAX = 48;
 
 /** Longest description the database accepts. */
 export const COMMUNITY_DESCRIPTION_MAX = 280;
+
+/** Longest rules text the database accepts. */
+export const COMMUNITY_RULES_MAX = 1000;
 
 /** Shortest post title the database accepts, after trimming. */
 export const POST_TITLE_MIN = 3;
@@ -117,9 +131,30 @@ export type Community = {
   created_by: string | null;
   /** ISO timestamp it opened. */
   created_at: string;
+  /**
+   * True on exactly one community per campus: The Quad, the campus-wide
+   * feed every student joins at signup. It renders first, offers no Leave,
+   * and cannot be closed; the DB holds that line even if a screen forgets.
+   */
+  is_default: boolean;
+  /** The steward's house rules, up to 1000 characters, or null. */
+  rules: string | null;
   /** How many people are in it, counted by the same query that read it. */
   member_count: number;
 };
+
+/** The event a post carries, as the compact card draws it. */
+export type PostEvent = {
+  /** `events.id`. Push `/event/<id>` when the card is tapped. */
+  id: string;
+  title: string;
+  /** ISO timestamp it starts. The card shows the day. */
+  starts_at: string;
+  location: string | null;
+};
+
+/** The course a post tags. The code is the chip. */
+export type PostCourse = { id: string; code: string };
 
 /** One `community_posts` row with its author attached. */
 export type CommunityPost = {
@@ -142,6 +177,27 @@ export type CommunityPost = {
   hidden_at: string | null;
   /** Set when the author saved a change. Null on an untouched post. */
   edited_at: string | null;
+  /**
+   * Set while a steward or moderator holds this post above the feed. The
+   * trigger stamps `pinned_by`; the client only ever moves this one field.
+   */
+  pinned_at: string | null;
+  /** Who pinned it. The trigger's to write, never ours. */
+  pinned_by: string | null;
+  /**
+   * The comment the post's author crowned most helpful, or null. Only the
+   * author may set it, it must be a live comment on this post, and setting
+   * it tells the comment's author. All three rules live in the DB.
+   */
+  best_comment_id: string | null;
+  /** The carried event's id, or null. `event` is the readable half. */
+  event_id: string | null;
+  /** The tagged course's id, or null. `course` is the readable half. */
+  course_id: string | null;
+  /** The carried event, embedded, or null when there isn't one to read. */
+  event: PostEvent | null;
+  /** The tagged course, embedded, or null. */
+  course: PostCourse | null;
   /**
    * Set when the author, the steward, or a moderator took it down. The row
    * survives for exactly those three, so "This post was removed." can be an
@@ -265,8 +321,36 @@ function toCommunity(raw: unknown): Community | null {
     description: optionalText(record["description"]),
     created_by: optionalText(record["created_by"]),
     created_at: createdAt,
+    is_default: record["is_default"] === true,
+    rules: optionalText(record["rules"]),
     member_count: wholeNumber(countRow?.["count"], 0),
   };
+}
+
+/** Narrow an embedded `events` row into a {@link PostEvent}, or null. */
+function toPostEvent(raw: unknown): PostEvent | null {
+  const record = embedded(raw);
+  if (!record) return null;
+  const id = optionalText(record["id"]);
+  const title = optionalText(record["title"]);
+  const startsAt = optionalText(record["starts_at"]);
+  if (!id || !title || !startsAt) return null;
+  return {
+    id,
+    title,
+    starts_at: startsAt,
+    location: optionalText(record["location"]),
+  };
+}
+
+/** Narrow an embedded `courses` row into a {@link PostCourse}, or null. */
+function toPostCourse(raw: unknown): PostCourse | null {
+  const record = embedded(raw);
+  if (!record) return null;
+  const id = optionalText(record["id"]);
+  const code = optionalText(record["code"]);
+  if (!id || !code) return null;
+  return { id, code };
 }
 
 /** Narrow one joined post row, or null. Better an honest drop than a blank card. */
@@ -289,6 +373,13 @@ function toPost(raw: unknown, myId: string | null): CommunityPost | null {
     comment_count: wholeNumber(record["comment_count"], 0),
     hidden_at: optionalText(record["hidden_at"]),
     edited_at: optionalText(record["edited_at"]),
+    pinned_at: optionalText(record["pinned_at"]),
+    pinned_by: optionalText(record["pinned_by"]),
+    best_comment_id: optionalText(record["best_comment_id"]),
+    event_id: optionalText(record["event_id"]),
+    course_id: optionalText(record["course_id"]),
+    event: toPostEvent(record["event"]),
+    course: toPostCourse(record["course"]),
     deleted_at: optionalText(record["deleted_at"]),
     created_at: createdAt,
     author: toAuthor(record["author"], myId),
@@ -327,9 +418,9 @@ const AUTHOR_EMBED =
   "author:profiles(id, handle, display_name, avatar_url, is_public)";
 
 const COMMUNITY_SELECT =
-  "id, university_id, name, slug, description, created_by, created_at, community_members(count)";
+  "id, university_id, name, slug, description, created_by, created_at, is_default, rules, community_members(count)";
 
-const POST_SELECT = `id, community_id, author_id, title, body, score, comment_count, hidden_at, edited_at, deleted_at, created_at, ${AUTHOR_EMBED}`;
+const POST_SELECT = `id, community_id, author_id, title, body, score, comment_count, hidden_at, edited_at, pinned_at, pinned_by, best_comment_id, event_id, course_id, deleted_at, created_at, event:events(id, title, starts_at, location), course:courses(id, code), ${AUTHOR_EMBED}`;
 
 const COMMENT_SELECT = `id, post_id, author_id, body, deleted_at, created_at, ${AUTHOR_EMBED}`;
 
@@ -672,6 +763,9 @@ export async function fetchCommunityRooms(
  * honestly carry a "Hidden by downvotes." row for exactly the people who
  * can do something about it.
  *
+ * Pinned posts never appear here: {@link fetchPinnedPosts} carries them, so
+ * the same post can't arrive twice as the pages walk past it.
+ *
  * @param page Zero-based. A page shorter than {@link POSTS_PAGE} is the last.
  * @throws {CommunityError} With copy that's ready to render.
  */
@@ -685,7 +779,8 @@ export async function fetchFeedPage(
   let query = supabase
     .from("community_posts")
     .select(POST_SELECT)
-    .eq("community_id", communityId);
+    .eq("community_id", communityId)
+    .is("pinned_at", null);
   query =
     sort === "top"
       ? query
@@ -693,6 +788,36 @@ export async function fetchFeedPage(
           .order("created_at", { ascending: false })
       : query.order("created_at", { ascending: false });
   const { data, error } = await query.range(from, from + POSTS_PAGE - 1);
+  if (error) {
+    throw new CommunityError(
+      "We couldn't load the feed. Check your connection and give it another go."
+    );
+  }
+  const posts: CommunityPost[] = [];
+  for (const row of data ?? []) {
+    const post = toPost(row, myId);
+    if (post) posts.push(post);
+  }
+  return posts;
+}
+
+/**
+ * The community's pinned posts, newest pin first, however the feed under
+ * them is sorted. A handful at most; a steward pinning thirty posts has
+ * reinvented the feed and will notice on their own.
+ *
+ * @throws {CommunityError} With copy that's ready to render.
+ */
+export async function fetchPinnedPosts(
+  communityId: string
+): Promise<CommunityPost[]> {
+  const myId = await currentUserId();
+  const { data, error } = await supabase
+    .from("community_posts")
+    .select(POST_SELECT)
+    .eq("community_id", communityId)
+    .not("pinned_at", "is", null)
+    .order("pinned_at", { ascending: false });
   if (error) {
     throw new CommunityError(
       "We couldn't load the feed. Check your connection and give it another go."
@@ -738,13 +863,17 @@ export async function fetchCommunityPost(
  * Not optimistic-friendly: wait for the row before adding it to the list,
  * so the feed never shows a post the database refused.
  *
+ * A post can carry an event or tag a course, or both; either id is the
+ * author's to set and the DB clears it if the target is ever deleted.
+ *
  * @returns The inserted post, author attached. Prepend it to your list.
  * @throws {CommunityError} With copy that's ready to render.
  */
 export async function createCommunityPost(
   communityId: string,
   title: string,
-  body: string
+  body: string,
+  carries?: { eventId?: string | null; courseId?: string | null }
 ): Promise<CommunityPost> {
   const cleanTitle = title.trim();
   if (cleanTitle.length < POST_TITLE_MIN) {
@@ -771,6 +900,8 @@ export async function createCommunityPost(
       author_id: userId,
       title: cleanTitle,
       body: cleanBody || null,
+      event_id: carries?.eventId ?? null,
+      course_id: carries?.courseId ?? null,
     })
     .select(POST_SELECT)
     .single();
@@ -807,6 +938,146 @@ export async function removeCommunityPost(postId: string): Promise<void> {
   if (error || !data || data.length === 0) {
     throw new CommunityError(
       "We couldn't take that post down. Give it another go."
+    );
+  }
+}
+
+/**
+ * Save the author's changes to their own post: the title, the body, and
+ * `edited_at` in one update, so the "Edited" marker lights up with the
+ * words that earned it. Author-only by policy; asking for the row back
+ * turns a refusal into an honest error.
+ *
+ * Not optimistic-friendly: wait for the row, then swap it in.
+ *
+ * @returns The updated post, author attached.
+ * @throws {CommunityError} With copy that's ready to render.
+ */
+export async function updateCommunityPost(
+  postId: string,
+  title: string,
+  body: string
+): Promise<CommunityPost> {
+  const cleanTitle = title.trim();
+  if (cleanTitle.length < POST_TITLE_MIN) {
+    throw new CommunityError(
+      "Give your post a title. A few words is plenty, and it's what people scan."
+    );
+  }
+  if (cleanTitle.length > POST_TITLE_MAX) {
+    throw new CommunityError(
+      `Titles stop at ${POST_TITLE_MAX} characters. Say the rest underneath.`
+    );
+  }
+  const cleanBody = body.trim();
+  if (cleanBody.length > POST_BODY_MAX) {
+    throw new CommunityError(
+      `Posts stop at ${POST_BODY_MAX} characters. Trim it, or carry on in the comments.`
+    );
+  }
+  const userId = await requireUserId();
+  const { data, error } = await supabase
+    .from("community_posts")
+    .update({
+      title: cleanTitle,
+      body: cleanBody || null,
+      edited_at: new Date().toISOString(),
+    })
+    .eq("id", postId)
+    .is("deleted_at", null)
+    .select(POST_SELECT);
+  const post = toPost(
+    Array.isArray(data) ? data[0] : null,
+    userId
+  );
+  if (error || !post) {
+    throw new CommunityError(
+      "We couldn't save those changes. Give it another go."
+    );
+  }
+  return post;
+}
+
+/**
+ * Pin a post above the feed, or take it back down. Stewards and moderators
+ * only; the trigger stamps `pinned_by`, so the client moves exactly one
+ * field. Safe to run optimistically; the screen owns the rollback.
+ *
+ * @throws {CommunityError} With copy that's ready to render.
+ */
+export async function setPostPinned(
+  postId: string,
+  pinned: boolean
+): Promise<void> {
+  await requireUserId();
+  const { data, error } = await supabase
+    .from("community_posts")
+    .update({ pinned_at: pinned ? new Date().toISOString() : null })
+    .eq("id", postId)
+    .select("id");
+  if (error || !data || data.length === 0) {
+    throw new CommunityError(
+      pinned
+        ? "We couldn't pin that post just now. Give it another go."
+        : "We couldn't unpin that post just now. Give it another go."
+    );
+  }
+}
+
+/**
+ * Crown one comment most helpful, or take the crown back with null. The
+ * author's call alone, the comment must be live and on this post, and the
+ * comment's author hears about it; all three rules are the DB's, so a
+ * refusal here is the database saying no, not a guess.
+ *
+ * Safe to run optimistically; the screen owns the rollback.
+ *
+ * @throws {CommunityError} With copy that's ready to render.
+ */
+export async function setBestComment(
+  postId: string,
+  commentId: string | null
+): Promise<void> {
+  await requireUserId();
+  const { data, error } = await supabase
+    .from("community_posts")
+    .update({ best_comment_id: commentId })
+    .eq("id", postId)
+    .select("id");
+  if (error || !data || data.length === 0) {
+    throw new CommunityError(
+      commentId
+        ? "We couldn't mark that comment just now. Give it another go."
+        : "We couldn't unmark that comment just now. Give it another go."
+    );
+  }
+}
+
+/**
+ * Write the community's rules. Steward's pen; an empty draft clears them
+ * rather than leaving a blank heading on the doorway.
+ *
+ * @throws {CommunityError} With copy that's ready to render.
+ */
+export async function updateCommunityRules(
+  communityId: string,
+  rules: string
+): Promise<void> {
+  const clean = rules.trim();
+  if (clean.length > COMMUNITY_RULES_MAX) {
+    throw new CommunityError(
+      `Rules stop at ${COMMUNITY_RULES_MAX} characters. Short rules get read.`
+    );
+  }
+  await requireUserId();
+  const { data, error } = await supabase
+    .from("communities")
+    .update({ rules: clean || null })
+    .eq("id", communityId)
+    .select("id");
+  if (error || !data || data.length === 0) {
+    throw new CommunityError(
+      "We couldn't save the rules just now. Give it another go."
     );
   }
 }
@@ -973,6 +1244,107 @@ export async function removeComment(commentId: string): Promise<void> {
       "We couldn't take that comment down. Give it another go."
     );
   }
+}
+
+/* ═════════════════════════════ the shelf ═════════════════════════════ */
+
+/**
+ * Which of these posts the caller has saved, as a set of post ids. The
+ * same shelf as saved messages, one subject per bookmark, private to its
+ * owner. A failure resolves empty rather than throwing: a bookmark icon
+ * that hasn't lit yet is a lesser wrong than a feed that won't draw.
+ */
+export async function fetchMySavedPostIds(
+  postIds: readonly string[]
+): Promise<Set<string>> {
+  const saved = new Set<string>();
+  if (postIds.length === 0) return saved;
+  const myId = await currentUserId();
+  if (!myId) return saved;
+  const { data, error } = await supabase
+    .from("message_bookmarks")
+    .select("community_post_id")
+    .eq("user_id", myId)
+    .in("community_post_id", [...postIds]);
+  if (error) return saved;
+  for (const raw of data ?? []) {
+    const id = optionalText(
+      (raw as Record<string, unknown>)["community_post_id"]
+    );
+    if (id) saved.add(id);
+  }
+  return saved;
+}
+
+/**
+ * Put a post on the private shelf. A 23505 means it's already there,
+ * which is the state the tap wanted anyway. Safe to run optimistically.
+ *
+ * @throws {CommunityError} With copy that's ready to render.
+ */
+export async function savePost(postId: string): Promise<void> {
+  const userId = await requireUserId();
+  const { error } = await supabase
+    .from("message_bookmarks")
+    .insert({ user_id: userId, community_post_id: postId });
+  if (error && errorCode(error) !== "23505") {
+    throw new CommunityError(
+      "We couldn't save that post just now. Give it another try."
+    );
+  }
+}
+
+/**
+ * Take a post off the shelf. Deleting a bookmark that's already gone
+ * resolves quietly: the intent holds either way. Safe to run
+ * optimistically.
+ *
+ * @throws {CommunityError} With copy that's ready to render.
+ */
+export async function unsavePost(postId: string): Promise<void> {
+  const userId = await requireUserId();
+  const { error } = await supabase
+    .from("message_bookmarks")
+    .delete()
+    .eq("user_id", userId)
+    .eq("community_post_id", postId);
+  if (error) {
+    throw new CommunityError(
+      "We couldn't take that off your shelf just now. Give it another try."
+    );
+  }
+}
+
+/* ════════════════════════════ the carries ════════════════════════════ */
+
+/**
+ * Upcoming events on this campus, soonest first, for the composer's
+ * picker: the same rows the events tab reads, trimmed to what a carried
+ * post needs. Read-only reuse; the events screens stay the authority on
+ * everything else about an event.
+ *
+ * @throws {CommunityError} With copy that's ready to render.
+ */
+export async function fetchUpcomingEvents(): Promise<PostEvent[]> {
+  const { universityId } = await requireCampus();
+  const { data, error } = await supabase
+    .from("events")
+    .select("id, title, starts_at, location")
+    .eq("university_id", universityId)
+    .gte("starts_at", new Date().toISOString())
+    .order("starts_at", { ascending: true })
+    .limit(50);
+  if (error) {
+    throw new CommunityError(
+      "We couldn't load the calendar. Check your connection and give it another go."
+    );
+  }
+  const events: PostEvent[] = [];
+  for (const row of data ?? []) {
+    const event = toPostEvent(row);
+    if (event) events.push(event);
+  }
+  return events;
 }
 
 /* ═══════════════════════════ pure helpers ════════════════════════════ */

@@ -5,7 +5,7 @@ import {
   useFocusEffect,
   useLocalSearchParams,
 } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,6 +24,7 @@ import {
   AppText,
   Button,
   Card,
+  Chip,
   EmptyState,
   Sheet,
   Skeleton,
@@ -41,15 +42,26 @@ import {
   fetchComments,
   fetchCommunityPost,
   fetchMyRole,
+  fetchMySavedPostIds,
   fetchMyVotes,
   isMine,
+  POST_BODY_MAX,
+  POST_TITLE_MAX,
+  POST_TITLE_MIN,
   removeComment,
   removeCommunityPost,
+  savePost,
+  setBestComment,
+  setPostPinned,
+  unsavePost,
+  updateCommunityPost,
   type CommunityPost,
   type PostComment,
+  type PostEvent,
   type VoteValue,
 } from "@/lib/communities";
 import { tapSuccess } from "@/lib/haptics";
+import { amIModerator } from "@/lib/moderation";
 import { useAuth } from "@/providers/auth-provider";
 
 /* One post, held up to the light: the whole body, the arrows, and the
@@ -64,6 +76,12 @@ import { useAuth } from "@/providers/auth-provider";
  * The notification trigger writes links in this screen's shape
  * (`/communities/<id>/posts/<id>`), so a tap on "someone commented" lands
  * here with both params in hand.
+ *
+ * Migration 0071's craft: the author edits their post right here, beside
+ * the whole body it changes, and crowns one comment most helpful, which
+ * floats it to the top wearing its chip and tells its author. Anyone
+ * shelves the post; a steward or moderator pins it. An `edit=1` param,
+ * sent by the feed's overflow, opens the editor on arrival.
  */
 
 type Status = "loading" | "error" | "missing" | "ready";
@@ -117,19 +135,101 @@ function VoteArrow({
   );
 }
 
+/** "Sat, Aug 23" for a carried event. Pure. */
+function eventDay(iso: string): string {
+  return new Date(iso).toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/**
+ * The event this post carries: a compact card that walks to the event
+ * itself. Twin of the one on the feed, kept in step by hand the way
+ * timeAgo already is.
+ */
+function EventCarry({ event }: { event: PostEvent }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={[
+        `Open the event ${event.title}`,
+        eventDay(event.starts_at),
+        event.location,
+      ]
+        .filter(Boolean)
+        .join(", ")}
+      onPress={() => router.push(`/event/${event.id}`)}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        gap: space.close,
+        minHeight: 44,
+        padding: space.room,
+        borderWidth: 1,
+        borderColor: theme.border,
+        borderRadius: radius.control,
+        backgroundColor: theme.surface2,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: radius.control,
+          backgroundColor: theme.accentSoft,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Feather name="calendar" size={15} color={theme.accent} />
+      </View>
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{ flex: 1, minWidth: 0, gap: space.hair }}
+      >
+        <AppText variant="bodyMedium" numberOfLines={1}>
+          {event.title}
+        </AppText>
+        <AppText variant="caption" muted numberOfLines={1}>
+          {eventDay(event.starts_at)}
+          {event.location ? ` · ${event.location}` : ""}
+        </AppText>
+      </View>
+      <Feather
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        name="chevron-right"
+        size={16}
+        color={theme.muted}
+      />
+    </Pressable>
+  );
+}
+
 /**
  * One comment: who, when, what. A removed one keeps its place and its
  * shape and says only that it was removed, so the thread stays legible.
+ * The crowned one wears "Most helpful", the author's word, not a vote's.
  */
 function CommentRow({
   comment,
   now,
   mine,
+  best,
   onMenu,
 }: {
   comment: PostComment;
   now: Date;
   mine: boolean;
+  /** Whether the post's author crowned this comment most helpful. */
+  best: boolean;
   onMenu: () => void;
 }) {
   const theme = useTheme();
@@ -181,6 +281,14 @@ function CommentRow({
         size={32}
       />
       <View style={{ flex: 1, minWidth: 0, gap: space.tight }}>
+        {best ? (
+          <Chip
+            label="Most helpful"
+            tone="accent"
+            icon="award"
+            style={{ alignSelf: "flex-start" }}
+          />
+        ) : null}
         <AppText variant="caption" muted numberOfLines={1}>
           {name} · {timeAgo(comment.created_at, now)}
         </AppText>
@@ -215,16 +323,19 @@ export default function CommunityPostScreen() {
   const params = useLocalSearchParams<{
     communityId?: string;
     postId?: string;
+    edit?: string;
   }>();
   const postId = typeof params.postId === "string" ? params.postId : "";
   const communityIdParam =
     typeof params.communityId === "string" ? params.communityId : "";
+  const wantsEdit = params.edit === "1";
 
   const [status, setStatus] = useState<Status>("loading");
   const [post, setPost] = useState<CommunityPost | null>(null);
   const [steward, setSteward] = useState(false);
   const [comments, setComments] = useState<PostComment[] | null>(null);
   const [myVote, setMyVote] = useState<VoteValue | null>(null);
+  const [saved, setSaved] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
@@ -233,8 +344,33 @@ export default function CommunityPostScreen() {
   const [sending, setSending] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
 
+  /* The editor: the author's own words, held apart from the post until
+     "Save changes" lands them. */
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
   const [postMenuOpen, setPostMenuOpen] = useState(false);
   const [menuComment, setMenuComment] = useState<PostComment | null>(null);
+
+  /* Whether this account carries the moderator badge; pinning is theirs
+     too. False until known, same bargain the settings screen strikes. */
+  const [moderator, setModerator] = useState(false);
+  useEffect(() => {
+    let live = true;
+    amIModerator()
+      .then((yes) => {
+        if (live) setModerator(yes);
+      })
+      .catch(() => {
+        if (live) setModerator(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   /* A link or a notification can land straight on one post, and the block
      list's promise has to hold here too. */
@@ -258,14 +394,16 @@ export default function CommunityPostScreen() {
         setStatus("missing");
         return;
       }
-      const [commentRows, votes, role] = await Promise.all([
+      const [commentRows, votes, role, savedSet] = await Promise.all([
         fetchComments(postId).catch((): PostComment[] | null => null),
         fetchMyVotes([postId]),
         fetchMyRole(row.community_id).catch(() => null),
+        fetchMySavedPostIds([postId]),
       ]);
       setPost(row);
       setComments(commentRows);
       setMyVote(votes[postId] ?? null);
+      setSaved(savedSet.has(postId));
       setSteward(role === "steward");
       setPageError(
         commentRows === null
@@ -326,6 +464,131 @@ export default function CommunityPostScreen() {
     },
     [post, myVote]
   );
+
+  /* ----------------------------- the shelf ------------------------------ */
+
+  /** Save or unsave, optimistically; the bookmark is the reader's own. */
+  const toggleSave = useCallback(() => {
+    if (!post) return;
+    const wasSaved = saved;
+    setPageError(null);
+    setSaved(!wasSaved);
+    void (wasSaved ? unsavePost(post.id) : savePost(post.id)).catch(
+      (caught: unknown) => {
+        setSaved(wasSaved);
+        setPageError(
+          caught instanceof CommunityError
+            ? caught.message
+            : "That didn't save just now. Give it another try."
+        );
+      }
+    );
+  }, [post, saved]);
+
+  /* ------------------------------ pinning ------------------------------ */
+
+  /** Pin or unpin from here too; the feed files it on the next visit. */
+  const applyPin = useCallback(() => {
+    if (!post) return;
+    const wasPinnedAt = post.pinned_at;
+    const pin = wasPinnedAt === null;
+    setPageError(null);
+    setPost((prev) =>
+      prev
+        ? {
+            ...prev,
+            pinned_at: pin ? new Date().toISOString() : null,
+            pinned_by: pin ? prev.pinned_by : null,
+          }
+        : prev
+    );
+    void setPostPinned(post.id, pin).catch((caught: unknown) => {
+      setPost((prev) =>
+        prev ? { ...prev, pinned_at: wasPinnedAt } : prev
+      );
+      setPageError(
+        caught instanceof CommunityError
+          ? caught.message
+          : "That didn't save just now. Give it another go."
+      );
+    });
+  }, [post]);
+
+  /* --------------------------- most helpful ----------------------------- */
+
+  /**
+   * Crown a comment, or take the crown back: the author's call, made
+   * optimistically because the reorder is the whole point of the tap. The
+   * DB tells the comment's author; the screen only moves the chip.
+   */
+  const applyBest = useCallback(
+    (comment: PostComment) => {
+      if (!post) return;
+      const current = post.best_comment_id;
+      const next = current === comment.id ? null : comment.id;
+      setPageError(null);
+      setPost((prev) =>
+        prev ? { ...prev, best_comment_id: next } : prev
+      );
+      void setBestComment(post.id, next).catch((caught: unknown) => {
+        setPost((prev) =>
+          prev ? { ...prev, best_comment_id: current } : prev
+        );
+        setPageError(
+          caught instanceof CommunityError
+            ? caught.message
+            : "That didn't save just now. Give it another go."
+        );
+      });
+    },
+    [post]
+  );
+
+  /* ------------------------------ editing ------------------------------- */
+
+  const startEdit = useCallback(() => {
+    if (!post) return;
+    setEditTitle(post.title);
+    setEditBody(post.body ?? "");
+    setEditError(null);
+    setEditing(true);
+  }, [post]);
+
+  /* The feed's "Edit post" arrives wearing `edit=1`; open the editor once
+     the post is here and provably the reader's own, and only once, so a
+     later refresh doesn't reopen it under their feet. */
+  const editOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!wantsEdit || editOpenedRef.current) return;
+    if (status !== "ready" || !post) return;
+    if (!isMine(post, myId) || post.deleted_at !== null) return;
+    editOpenedRef.current = true;
+    setEditTitle(post.title);
+    setEditBody(post.body ?? "");
+    setEditing(true);
+  }, [wantsEdit, status, post, myId]);
+
+  const saveEdit = useCallback(async () => {
+    if (!post || savingEdit) return;
+    setEditError(null);
+    setSavingEdit(true);
+    try {
+      const updated = await updateCommunityPost(post.id, editTitle, editBody);
+      // The words changed and the marker lit: the completion moment.
+      tapSuccess();
+      setPost(updated);
+      setEditing(false);
+      setNow(new Date());
+    } catch (caught) {
+      setEditError(
+        caught instanceof CommunityError
+          ? caught.message
+          : "We couldn't save those changes. Give it another go."
+      );
+    } finally {
+      setSavingEdit(false);
+    }
+  }, [post, savingEdit, editTitle, editBody]);
 
   /* ----------------------------- comments ------------------------------ */
 
@@ -477,16 +740,23 @@ export default function CommunityPostScreen() {
 
   /* ------------------------------ render ------------------------------ */
 
-  const visibleComments = useMemo(
-    () =>
-      (comments ?? []).filter(
-        // A removed comment stays: the tombstone carries no words. A blocked
-        // classmate's live words are exactly what the promise hides.
-        (comment) =>
-          comment.deleted_at !== null || !blocked.has(comment.author_id)
-      ),
-    [comments, blocked]
-  );
+  const bestCommentId = post?.best_comment_id ?? null;
+
+  const visibleComments = useMemo(() => {
+    const rows = (comments ?? []).filter(
+      // A removed comment stays: the tombstone carries no words. A blocked
+      // classmate's live words are exactly what the promise hides.
+      (comment) =>
+        comment.deleted_at !== null || !blocked.has(comment.author_id)
+    );
+    // The crowned comment reads first; everyone else stays oldest-first.
+    // A crown on a removed comment is left where it fell, uncelebrated.
+    const crowned = rows.find(
+      (comment) => comment.id === bestCommentId && comment.deleted_at === null
+    );
+    if (!crowned) return rows;
+    return [crowned, ...rows.filter((comment) => comment.id !== crowned.id)];
+  }, [comments, blocked, bestCommentId]);
 
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<PostComment>) => (
@@ -494,10 +764,11 @@ export default function CommunityPostScreen() {
         comment={item}
         now={now}
         mine={isMine(item, myId)}
+        best={item.id === bestCommentId && item.deleted_at === null}
         onMenu={() => setMenuComment(item)}
       />
     ),
-    [now, myId]
+    [now, myId, bestCommentId]
   );
 
   // A deep link can land here signed out. Send them to a proper door.
@@ -686,103 +957,215 @@ export default function CommunityPostScreen() {
         </AppText>
       ) : null}
 
-      <AppText variant="display">{post.title}</AppText>
-      <AppText variant="caption" muted style={{ marginTop: space.snug }}>
-        {authorName} · {timeAgo(post.created_at, now)}
-        {post.edited_at ? " · Edited" : ""}
-      </AppText>
-
-      {removed ? (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "flex-start",
-            gap: space.room,
-            padding: space.close,
-            borderRadius: radius.control,
-            backgroundColor: theme.surface2,
-            marginTop: space.card,
-          }}
-        >
-          <Feather
-            name="trash-2"
-            size={14}
-            color={theme.muted}
-            style={{ marginTop: space.hair }}
+      {editing ? (
+        /* The editor sits where the post was, so the author changes the
+           words in the words' own place. */
+        <Card style={{ gap: space.close }}>
+          <AppText variant="title">Edit post</AppText>
+          <TextInput
+            value={editTitle}
+            onChangeText={(text) => {
+              setEditTitle(text);
+              if (editError) setEditError(null);
+            }}
+            placeholder="Title"
+            placeholderTextColor={theme.muted + "b3"}
+            accessibilityLabel="Title"
+            maxLength={POST_TITLE_MAX}
+            editable={!savingEdit}
+            cursorColor={theme.brand}
+            selectionColor={theme.brandSoft}
+            style={{
+              borderWidth: 1,
+              borderColor: theme.border,
+              borderRadius: radius.control,
+              backgroundColor: theme.surface,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              fontFamily: fonts.body,
+              fontSize: 15,
+              color: theme.foreground,
+            }}
           />
-          <AppText variant="caption" muted style={{ flex: 1, lineHeight: 17 }}>
-            This post was removed.
-          </AppText>
-        </View>
-      ) : folded ? (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "flex-start",
-            gap: space.room,
-            padding: space.close,
-            borderRadius: radius.control,
-            backgroundColor: theme.surface2,
-            marginTop: space.card,
-          }}
-        >
-          <Feather
-            name="eye-off"
-            size={14}
-            color={theme.muted}
-            style={{ marginTop: space.hair }}
+          <TextInput
+            value={editBody}
+            onChangeText={(text) => {
+              setEditBody(text);
+              if (editError) setEditError(null);
+            }}
+            placeholder="Say more (optional)"
+            placeholderTextColor={theme.muted + "b3"}
+            accessibilityLabel="Say more (optional)"
+            maxLength={POST_BODY_MAX}
+            multiline
+            editable={!savingEdit}
+            cursorColor={theme.brand}
+            selectionColor={theme.brandSoft}
+            style={{
+              minHeight: 96,
+              textAlignVertical: "top",
+              borderWidth: 1,
+              borderColor: theme.border,
+              borderRadius: radius.control,
+              backgroundColor: theme.surface,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              fontFamily: fonts.body,
+              fontSize: 15,
+              color: theme.foreground,
+            }}
           />
-          <AppText variant="caption" muted style={{ flex: 1, lineHeight: 17 }}>
-            Hidden by downvotes. The campus doesn't see it unless the score
-            recovers.
+          {editError ? (
+            <AppText variant="caption" style={{ color: theme.danger }}>
+              {editError}
+            </AppText>
+          ) : null}
+          <View style={{ flexDirection: "row", gap: space.cosy }}>
+            <Button
+              label="Save changes"
+              size="sm"
+              pending={savingEdit}
+              disabled={editTitle.trim().length < POST_TITLE_MIN}
+              onPress={() => void saveEdit()}
+            />
+            <Button
+              label="Never mind"
+              variant="ghost"
+              size="sm"
+              disabled={savingEdit}
+              onPress={() => {
+                setEditing(false);
+                setEditError(null);
+              }}
+            />
+          </View>
+        </Card>
+      ) : (
+        <>
+          <AppText variant="display">{post.title}</AppText>
+          <AppText variant="caption" muted style={{ marginTop: space.snug }}>
+            {authorName} · {timeAgo(post.created_at, now)}
+            {post.edited_at ? " · Edited" : ""}
           </AppText>
-        </View>
-      ) : null}
 
-      {!removed && post.body ? (
-        <AppText style={{ marginTop: space.card, lineHeight: 22 }}>
-          {post.body}
-        </AppText>
-      ) : null}
+          {post.pinned_at !== null || post.course ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.cosy,
+                flexWrap: "wrap",
+                marginTop: space.cosy,
+              }}
+            >
+              {post.pinned_at !== null ? (
+                <Chip label="Pinned" tone="brand" icon="map-pin" />
+              ) : null}
+              {post.course ? (
+                <Chip label={post.course.code} tone="brand" icon="book" />
+              ) : null}
+            </View>
+          ) : null}
 
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginTop: space.close,
-          marginLeft: -space.close,
-        }}
-      >
-        <VoteArrow
-          direction="up"
-          lit={myVote === 1}
-          onPress={() => applyVote(1)}
-        />
-        <AppText
-          variant="bodySemi"
-          style={{ minWidth: 20, textAlign: "center" }}
-        >
-          {post.score}
-        </AppText>
-        <VoteArrow
-          direction="down"
-          lit={myVote === -1}
-          onPress={() => applyVote(-1)}
-        />
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: space.snug,
-            paddingHorizontal: space.cosy,
-          }}
-        >
-          <Feather name="message-circle" size={14} color={theme.muted} />
-          <AppText variant="caption" muted>
-            {commentsLabel(post.comment_count)}
-          </AppText>
-        </View>
-      </View>
+          {removed ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: space.room,
+                padding: space.close,
+                borderRadius: radius.control,
+                backgroundColor: theme.surface2,
+                marginTop: space.card,
+              }}
+            >
+              <Feather
+                name="trash-2"
+                size={14}
+                color={theme.muted}
+                style={{ marginTop: space.hair }}
+              />
+              <AppText variant="caption" muted style={{ flex: 1, lineHeight: 17 }}>
+                This post was removed.
+              </AppText>
+            </View>
+          ) : folded ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: space.room,
+                padding: space.close,
+                borderRadius: radius.control,
+                backgroundColor: theme.surface2,
+                marginTop: space.card,
+              }}
+            >
+              <Feather
+                name="eye-off"
+                size={14}
+                color={theme.muted}
+                style={{ marginTop: space.hair }}
+              />
+              <AppText variant="caption" muted style={{ flex: 1, lineHeight: 17 }}>
+                Hidden by downvotes. The campus doesn't see it unless the score
+                recovers.
+              </AppText>
+            </View>
+          ) : null}
+
+          {!removed && post.body ? (
+            <AppText style={{ marginTop: space.card, lineHeight: 22 }}>
+              {post.body}
+            </AppText>
+          ) : null}
+
+          {!removed && post.event ? (
+            <View style={{ marginTop: space.close }}>
+              <EventCarry event={post.event} />
+            </View>
+          ) : null}
+
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginTop: space.close,
+              marginLeft: -space.close,
+            }}
+          >
+            <VoteArrow
+              direction="up"
+              lit={myVote === 1}
+              onPress={() => applyVote(1)}
+            />
+            <AppText
+              variant="bodySemi"
+              style={{ minWidth: 20, textAlign: "center" }}
+            >
+              {post.score}
+            </AppText>
+            <VoteArrow
+              direction="down"
+              lit={myVote === -1}
+              onPress={() => applyVote(-1)}
+            />
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.snug,
+                paddingHorizontal: space.cosy,
+              }}
+            >
+              <Feather name="message-circle" size={14} color={theme.muted} />
+              <AppText variant="caption" muted>
+                {commentsLabel(post.comment_count)}
+              </AppText>
+            </View>
+          </View>
+        </>
+      )}
     </View>
   );
 
@@ -907,13 +1290,41 @@ export default function CommunityPostScreen() {
         overflow
       )}
 
-      {/* The post's own overflow: yours to take down, the steward's to
-          remove, anyone's to report. */}
+      {/* The post's own overflow: anyone's to save, yours to edit or take
+          down, the steward's to pin or remove, anyone else's to report. */}
       <Sheet
         visible={postMenuOpen}
         onClose={() => setPostMenuOpen(false)}
         title={post.title}
       >
+        <Sheet.Row
+          icon="bookmark"
+          label={saved ? "Unsave post" : "Save post"}
+          onPress={() => {
+            setPostMenuOpen(false);
+            toggleSave();
+          }}
+        />
+        {mine && !removed ? (
+          <Sheet.Row
+            icon="edit-2"
+            label="Edit post"
+            onPress={() => {
+              setPostMenuOpen(false);
+              startEdit();
+            }}
+          />
+        ) : null}
+        {(steward || moderator) && !removed ? (
+          <Sheet.Row
+            icon="map-pin"
+            label={post.pinned_at !== null ? "Unpin post" : "Pin post"}
+            onPress={() => {
+              setPostMenuOpen(false);
+              applyPin();
+            }}
+          />
+        ) : null}
         {mine ? (
           <Sheet.Row
             icon="trash-2"
@@ -950,12 +1361,28 @@ export default function CommunityPostScreen() {
         )}
       </Sheet>
 
-      {/* One comment's overflow, same three-way split as the post's. */}
+      {/* One comment's overflow: the same three-way split as the post's,
+          with the author's crown on top of it. */}
       <Sheet
         visible={menuComment !== null}
         onClose={() => setMenuComment(null)}
         title="This comment"
       >
+        {mine && menuComment?.deleted_at === null ? (
+          <Sheet.Row
+            icon="award"
+            label={
+              bestCommentId === menuComment.id
+                ? "Unmark most helpful"
+                : "Mark most helpful"
+            }
+            onPress={() => {
+              const comment = menuComment;
+              setMenuComment(null);
+              if (comment) applyBest(comment);
+            }}
+          />
+        ) : null}
         {menuComment && isMine(menuComment, myId) ? (
           <Sheet.Row
             icon="trash-2"
