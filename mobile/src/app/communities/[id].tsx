@@ -18,6 +18,7 @@ import {
   type ListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Avatar } from "@/components/avatar";
 import { RoomTile } from "@/components/room-tile";
 import {
   AppText,
@@ -41,6 +42,7 @@ import {
   COMMUNITY_RULES_MAX,
   createCommunityPost,
   fetchCommunity,
+  fetchCommunityMembers,
   fetchCommunityRooms,
   fetchFeedPage,
   fetchMyRole,
@@ -51,17 +53,21 @@ import {
   isMine,
   joinCommunity,
   leaveCommunity,
+  makeSteward,
+  MEMBERS_PAGE,
   membersLabel,
   POST_BODY_MAX,
   POST_TITLE_MAX,
   POST_TITLE_MIN,
   POSTS_PAGE,
+  removeCommunityMember,
   removeCommunityPost,
   savePost,
   setPostPinned,
   unsavePost,
   updateCommunityRules,
   type Community,
+  type CommunityMember,
   type CommunityPost,
   type CommunityRole,
   type CommunityRoom,
@@ -92,6 +98,11 @@ import { useAuth } from "@/providers/auth-provider";
  * channels wearing the community's id, so opening one is the normal channel
  * screen and starting one is the normal channel-create flow with the
  * community preset.
+ *
+ * The roster sits under the rooms: sixty people a page, stewards first. A
+ * steward manages every row but their own, promoting a member (stewards can
+ * share the trowel; several is a healthy sign, not a conflict) or removing
+ * one, both behind confirmations that name the consequence out loud.
  *
  * Migration 0071's craft lands here too. Pinned posts sit above the feed
  * under either sort, fetched on their own so the pages never echo them. A
@@ -150,6 +161,13 @@ function VoteArrow({
       />
     </Pressable>
   );
+}
+
+/* The roster row and the manage sheet must call the same person by the
+   same name, so the naming lives in one place. toAuthor has already
+   stripped a private classmate to their handle before the row arrives. */
+function memberName(row: CommunityMember): string {
+  return row.profile?.display_name ?? "A student";
 }
 
 /** "Sat, Aug 23" for a carried event. Pure. */
@@ -415,6 +433,19 @@ export default function CommunityScreen() {
   const [rooms, setRooms] = useState<CommunityRoom[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
+  /* The roster: null while it hasn't loaded (or wouldn't), so a fetch that
+     failed never masquerades as an empty community. */
+  const [members, setMembers] = useState<CommunityMember[] | null>(null);
+  const [membersHasMore, setMembersHasMore] = useState(false);
+  const [membersLoadingMore, setMembersLoadingMore] = useState(false);
+  const [rosterError, setRosterError] = useState<string | null>(null);
+  const [manageTarget, setManageTarget] = useState<CommunityMember | null>(
+    null
+  );
+  const [manageBusy, setManageBusy] = useState(false);
+  /* The page the roster is on, a ref for the same reason the feed's is. */
+  const memberPageRef = useRef(0);
+
   const [sort, setSort] = useState<PostSort>("new");
   const [posts, setPosts] = useState<CommunityPost[] | null>(null);
   const [pinnedPosts, setPinnedPosts] = useState<CommunityPost[]>([]);
@@ -494,17 +525,22 @@ export default function CommunityScreen() {
     else router.replace("/communities");
   }, []);
 
-  /** The doorway: the community, my seat in it, and its rooms, together. */
+  /** The doorway: the community, my seat, its rooms, and its roster. */
   const load = useCallback(async () => {
     if (!communityId) {
       setStatus("notFound");
       return;
     }
     try {
-      const [row, role, roomRows] = await Promise.all([
+      const [row, role, roomRows, memberRows] = await Promise.all([
         fetchCommunity(communityId),
         fetchMyRole(communityId),
         fetchCommunityRooms(communityId).catch((): CommunityRoom[] => []),
+        // A roster that won't load shouldn't take the doorway down with it;
+        // null keeps the failure honest and the section says so in a line.
+        fetchCommunityMembers(communityId, 0).catch(
+          (): CommunityMember[] | null => null
+        ),
       ]);
       if (!row) {
         setStatus("notFound");
@@ -513,6 +549,16 @@ export default function CommunityScreen() {
       setCommunity(row);
       setMyRole(role);
       setRooms(roomRows);
+      memberPageRef.current = 0;
+      setMembers(memberRows);
+      setMembersHasMore(
+        memberRows !== null && memberRows.length === MEMBERS_PAGE
+      );
+      setRosterError(
+        memberRows === null
+          ? "We couldn't load the members. Pull down to try again."
+          : null
+      );
       setStatus("ready");
     } catch {
       setStatus((current) => (current === "ready" ? current : "error"));
@@ -618,6 +664,8 @@ export default function CommunityScreen() {
     );
     try {
       await joinCommunity(communityId);
+      // The roster below now has a new name on it: yours. Refetch quietly.
+      void load();
     } catch (caught) {
       setMyRole(null);
       setCommunity((prev) =>
@@ -633,7 +681,7 @@ export default function CommunityScreen() {
     } finally {
       setMembershipBusy(false);
     }
-  }, [membershipBusy, communityId]);
+  }, [membershipBusy, communityId, load]);
 
   const doLeave = useCallback(async () => {
     if (membershipBusy) return;
@@ -649,6 +697,8 @@ export default function CommunityScreen() {
     );
     try {
       await leaveCommunity(communityId);
+      // And your name comes off the roster below. Refetch quietly.
+      void load();
     } catch (caught) {
       setMyRole(previousRole);
       setCommunity((prev) =>
@@ -662,7 +712,7 @@ export default function CommunityScreen() {
     } finally {
       setMembershipBusy(false);
     }
-  }, [membershipBusy, myRole, communityId]);
+  }, [membershipBusy, myRole, communityId, load]);
 
   const confirmLeave = useCallback(() => {
     if (!community) return;
@@ -707,6 +757,133 @@ export default function CommunityScreen() {
       ]
     );
   }, [community, closing, goBack]);
+
+  /* ----------------------------- the roster ----------------------------- */
+
+  const loadMoreMembers = useCallback(() => {
+    if (membersLoadingMore || members === null) return;
+    setMembersLoadingMore(true);
+    const page = memberPageRef.current + 1;
+    fetchCommunityMembers(communityId, page)
+      .then((rows) => {
+        memberPageRef.current = page;
+        setMembersHasMore(rows.length === MEMBERS_PAGE);
+        setRosterError(null);
+        setMembers((prev) => {
+          if (prev === null) return rows;
+          // Someone joining mid-scroll can straddle two pages; keep the
+          // first copy, drop the echo.
+          const seen = new Set(prev.map((row) => row.user_id));
+          return [...prev, ...rows.filter((row) => !seen.has(row.user_id))];
+        });
+      })
+      .catch((caught: unknown) => {
+        setRosterError(
+          caught instanceof CommunityError
+            ? caught.message
+            : "We couldn't load the members. Give it another go."
+        );
+      })
+      .finally(() => setMembersLoadingMore(false));
+  }, [communityId, membersLoadingMore, members]);
+
+  /* Promote through the trowel-sharing policy. Not optimistic: a role is a
+     permission, and a chip that lies about permissions is worse than a
+     beat of waiting. */
+  const promote = useCallback(
+    async (target: CommunityMember) => {
+      if (manageBusy) return;
+      setRosterError(null);
+      setManageBusy(true);
+      try {
+        await makeSteward(communityId, target.user_id);
+        setMembers((prev) =>
+          prev === null
+            ? prev
+            : prev.map((row) =>
+                row.user_id === target.user_id
+                  ? { ...row, role: "steward" }
+                  : row
+              )
+        );
+      } catch (caught) {
+        setRosterError(
+          caught instanceof CommunityError
+            ? caught.message
+            : "We couldn't make them a steward just now. Give it another go."
+        );
+      } finally {
+        setManageBusy(false);
+      }
+    },
+    [communityId, manageBusy]
+  );
+
+  const confirmPromote = useCallback(
+    (target: CommunityMember) => {
+      if (!community) return;
+      const name = memberName(target);
+      Alert.alert(
+        `Make ${name} a steward?`,
+        `They gain every steward power: pinning and removing posts, managing this roster, writing the rules, and closing ${community.name}. You keep yours; stewards share the trowel.`,
+        [
+          { text: "Not now", style: "cancel" },
+          { text: "Make steward", onPress: () => void promote(target) },
+        ]
+      );
+    },
+    [community, promote]
+  );
+
+  const removeMember = useCallback(
+    async (target: CommunityMember) => {
+      if (manageBusy) return;
+      setRosterError(null);
+      setManageBusy(true);
+      try {
+        await removeCommunityMember(communityId, target.user_id);
+        setMembers((prev) =>
+          prev === null
+            ? prev
+            : prev.filter((row) => row.user_id !== target.user_id)
+        );
+        setCommunity((prev) =>
+          prev
+            ? { ...prev, member_count: Math.max(prev.member_count - 1, 0) }
+            : prev
+        );
+      } catch (caught) {
+        setRosterError(
+          caught instanceof CommunityError
+            ? caught.message
+            : "We couldn't remove them just now. Give it another go."
+        );
+      } finally {
+        setManageBusy(false);
+      }
+    },
+    [communityId, manageBusy]
+  );
+
+  const confirmRemoveMember = useCallback(
+    (target: CommunityMember) => {
+      if (!community) return;
+      const name = memberName(target);
+      Alert.alert(
+        `Remove ${name} from ${community.name}?`,
+        "They come off the roster and stop being able to post. Nothing bars the way back: they can rejoin like anyone else.",
+        [
+          { text: "Keep them", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: () => void removeMember(target),
+          },
+        ]
+      );
+    },
+    [community, removeMember]
+  );
 
   /* ------------------------------ voting ------------------------------ */
 
@@ -1369,6 +1546,156 @@ export default function CommunityScreen() {
         />
       )}
 
+      {/* The roster: stewards first, then everyone in the order they came.
+          A steward gets the overflow on every row but their own. */}
+      <SectionLabel text="Members" />
+      {rosterError ? (
+        <AppText
+          variant="caption"
+          accessibilityLiveRegion="polite"
+          style={{ color: theme.danger, marginBottom: space.room }}
+        >
+          {rosterError}
+        </AppText>
+      ) : null}
+      {members === null ? (
+        rosterError ? null : <SkeletonRow />
+      ) : members.length === 0 ? (
+        <EmptyState
+          compact
+          icon="users"
+          title="No members yet"
+          body="Join, and yours is the first name on it."
+        />
+      ) : (
+        <>
+          <Card padded={false}>
+            {members.map((entry, index) => {
+              const isMe = myId !== null && entry.user_id === myId;
+              const name = memberName(entry);
+              const locked = entry.profile?.locked === true;
+              const handle = entry.profile?.handle ?? null;
+              /* Stewards manage everyone but themselves; leaving is a
+                 different door and it already exists up top. */
+              const manageable = steward && !isMe;
+              const row = (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: space.close,
+                    paddingHorizontal: space.card,
+                    paddingVertical: space.room,
+                    minHeight: 56,
+                    borderTopWidth: index === 0 ? 0 : 1,
+                    borderTopColor: theme.border,
+                  }}
+                >
+                  <Avatar
+                    url={entry.profile?.avatar_url}
+                    name={name}
+                    size={36}
+                  />
+                  <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: space.snug,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <AppText
+                        variant="bodySemi"
+                        numberOfLines={1}
+                        style={{ flexShrink: 1 }}
+                      >
+                        {name}
+                      </AppText>
+                      {isMe ? <Chip label="You" tone="brand" /> : null}
+                      {entry.role === "steward" ? (
+                        <Chip label="Steward" tone="brand" icon="feather" />
+                      ) : null}
+                    </View>
+                    {handle ? (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: space.tight,
+                        }}
+                      >
+                        {locked ? (
+                          <Feather
+                            name="lock"
+                            size={11}
+                            color={theme.muted}
+                          />
+                        ) : null}
+                        <AppText variant="caption" muted numberOfLines={1}>
+                          {locked ? "Private profile" : `@${handle}`}
+                        </AppText>
+                      </View>
+                    ) : null}
+                  </View>
+                  {manageable ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Manage ${name}`}
+                      accessibilityHint="Make them a steward or remove them"
+                      onPress={() => setManageTarget(entry)}
+                      hitSlop={8}
+                      style={({ pressed }) => ({
+                        width: 44,
+                        height: 44,
+                        marginRight: -space.cosy,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        opacity: pressed ? 0.6 : 1,
+                      })}
+                    >
+                      <Feather
+                        name="more-vertical"
+                        size={18}
+                        color={theme.muted}
+                      />
+                    </Pressable>
+                  ) : null}
+                </View>
+              );
+              return handle ? (
+                <Pressable
+                  key={entry.user_id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${name}'s profile`}
+                  onPress={() => router.push(`/u/${handle}`)}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                >
+                  {row}
+                </Pressable>
+              ) : (
+                <View key={entry.user_id}>{row}</View>
+              );
+            })}
+          </Card>
+          {membersLoadingMore ? (
+            <ActivityIndicator
+              size="small"
+              color={theme.brand}
+              style={{ marginTop: space.close }}
+            />
+          ) : membersHasMore ? (
+            <Button
+              label="Show more people"
+              variant="soft"
+              size="sm"
+              onPress={loadMoreMembers}
+              style={{ alignSelf: "center", marginTop: space.close }}
+            />
+          ) : null}
+        </>
+      )}
+
       {/* The feed's controls: how it's sorted, and the way onto it. */}
       <SectionLabel text="Feed" />
       <View
@@ -1686,6 +2013,37 @@ export default function CommunityScreen() {
             }}
           />
         ) : null}
+      </Sheet>
+
+      {/* The roster's manage sheet: what a steward can do with the row they
+          pressed. It never opens on their own row, so there's no seat here
+          for stepping down or slipping out. */}
+      <Sheet
+        visible={manageTarget !== null}
+        onClose={() => setManageTarget(null)}
+        title={manageTarget ? memberName(manageTarget) : "Member"}
+      >
+        {manageTarget?.role === "member" ? (
+          <Sheet.Row
+            icon="feather"
+            label="Make steward"
+            onPress={() => {
+              const target = manageTarget;
+              setManageTarget(null);
+              if (target) confirmPromote(target);
+            }}
+          />
+        ) : null}
+        <Sheet.Row
+          icon="user-x"
+          label="Remove from community"
+          danger
+          onPress={() => {
+            const target = manageTarget;
+            setManageTarget(null);
+            if (target) confirmRemoveMember(target);
+          }}
+        />
       </Sheet>
 
       {/* The overflow on one post: anyone's to save, yours to edit or take

@@ -75,6 +75,9 @@ export const COMMENT_MAX = 2000;
 /** How many posts one page of the feed carries. */
 export const POSTS_PAGE = 30;
 
+/** How many people one page of the roster carries. */
+export const MEMBERS_PAGE = 60;
+
 /** The score at which the trigger folds a post away. For copy, not logic. */
 export const FOLD_SCORE = -5;
 
@@ -113,6 +116,22 @@ export type CommunityAuthor = {
    * already been stripped to their handle. Always false on your own rows.
    */
   locked: boolean;
+};
+
+/**
+ * One seat on a community's roster, its holder attached, as the Members
+ * section draws a row. The profile passes through {@link toAuthor}, so a
+ * private classmate arrives already stripped to their handle.
+ */
+export type CommunityMember = {
+  /** Their `profiles.id`, and the roster's list key. */
+  user_id: string;
+  /** Their seat: 'member', or 'steward' with every steward power. */
+  role: CommunityRole;
+  /** ISO timestamp they joined. */
+  joined_at: string;
+  /** Their profile, stripped when private, or null when unreadable. */
+  profile: CommunityAuthor | null;
 };
 
 /** One community, with its headcount attached: a browse card, entire. */
@@ -408,6 +427,23 @@ function toComment(raw: unknown, myId: string | null): PostComment | null {
   };
 }
 
+/** Narrow one roster row, or null. Better an honest drop than a blank seat. */
+function toMember(raw: unknown, myId: string | null): CommunityMember | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const record = raw as Record<string, unknown>;
+  const userId = optionalText(record["user_id"]);
+  const joinedAt = optionalText(record["joined_at"]);
+  const role = record["role"];
+  if (!userId || !joinedAt) return null;
+  if (role !== "member" && role !== "steward") return null;
+  return {
+    user_id: userId,
+    role,
+    joined_at: joinedAt,
+    profile: toAuthor(record["profile"], myId),
+  };
+}
+
 /* ═════════════════════════════ selects ═══════════════════════════════ */
 
 /**
@@ -423,6 +459,9 @@ const COMMUNITY_SELECT =
 const POST_SELECT = `id, community_id, author_id, title, body, score, comment_count, hidden_at, edited_at, pinned_at, pinned_by, best_comment_id, event_id, course_id, deleted_at, created_at, event:events(id, title, starts_at, location), course:courses(id, code), ${AUTHOR_EMBED}`;
 
 const COMMENT_SELECT = `id, post_id, author_id, body, deleted_at, created_at, ${AUTHOR_EMBED}`;
+
+const MEMBER_SELECT =
+  "user_id, role, joined_at, profile:profiles(id, handle, display_name, avatar_url, is_public)";
 
 /* ═════════════════════════════ identity ══════════════════════════════ */
 
@@ -713,6 +752,99 @@ export async function leaveCommunity(communityId: string): Promise<void> {
   }
 }
 
+/* ═════════════════════════════ the roster ════════════════════════════ */
+
+/**
+ * One page of the community's roster, sixty people at a time: stewards
+ * first, then everyone else in the order they joined. A page shorter than
+ * {@link MEMBERS_PAGE} is the last.
+ *
+ * @param page Zero-based.
+ * @throws {CommunityError} With copy that's ready to render.
+ */
+export async function fetchCommunityMembers(
+  communityId: string,
+  page: number
+): Promise<CommunityMember[]> {
+  const myId = await currentUserId();
+  const from = page * MEMBERS_PAGE;
+  const { data, error } = await supabase
+    .from("community_members")
+    .select(MEMBER_SELECT)
+    .eq("community_id", communityId)
+    // 'steward' sorts after 'member', so descending puts the stewards first.
+    .order("role", { ascending: false })
+    .order("joined_at", { ascending: true })
+    .range(from, from + MEMBERS_PAGE - 1);
+  if (error) {
+    throw new CommunityError(
+      "We couldn't load the members. Give it another go."
+    );
+  }
+  const members: CommunityMember[] = [];
+  for (const raw of data ?? []) {
+    const member = toMember(raw, myId);
+    if (member) members.push(member);
+  }
+  return members;
+}
+
+/**
+ * Hand a member the trowel: their seat becomes 'steward', with every
+ * steward power that comes with it. The update policy is named "stewards
+ * can share the trowel" for a reason: a community can have several, and
+ * yours doesn't go anywhere. Asking for the row back turns an RLS refusal
+ * into an honest error instead of a silent no-op.
+ *
+ * Not optimistic-friendly: a role is a permission, and a chip that lies
+ * about permissions is worse than a beat of waiting.
+ *
+ * @throws {CommunityError} With copy that's ready to render.
+ */
+export async function makeSteward(
+  communityId: string,
+  userId: string
+): Promise<void> {
+  await requireUserId();
+  const { data, error } = await supabase
+    .from("community_members")
+    .update({ role: "steward" })
+    .eq("community_id", communityId)
+    .eq("user_id", userId)
+    .select("user_id");
+  if (error || !data || data.length === 0) {
+    throw new CommunityError(
+      "We couldn't make them a steward just now. Give it another go."
+    );
+  }
+}
+
+/**
+ * Take someone off the roster. A steward's delete on somebody else's row;
+ * {@link leaveCommunity} is the door for your own. Nothing bars the way
+ * back: they can rejoin like anyone else, and the confirmation should say
+ * so. Asking for the row back turns a refusal into an honest error.
+ *
+ * @throws {CommunityError} With copy that's ready to render.
+ */
+export async function removeCommunityMember(
+  communityId: string,
+  userId: string
+): Promise<void> {
+  await requireUserId();
+  const { data, error } = await supabase
+    .from("community_members")
+    .delete()
+    .eq("community_id", communityId)
+    .eq("user_id", userId)
+    .select("user_id");
+  if (error || !data || data.length === 0) {
+    throw new CommunityError(
+      "We couldn't remove them just now. Give it another go."
+    );
+  }
+}
+
 /* ══════════════════════════════ rooms ════════════════════════════════ */
 
 /** A topic room that belongs to a community, as its Rooms list draws one. */
@@ -756,9 +888,10 @@ export async function fetchCommunityRooms(
 /**
  * One page of a community's feed, thirty posts at a time.
  *
- * "New" is strictly newest first. "Top" is score first, newest breaking
- * ties, so two posts the campus liked equally keep arriving in the order
- * they happened. RLS keeps folded and deleted rows out of everyone's page
+ * "New" is strictly newest first. "Top" is score first within the last
+ * seven days, newest breaking ties, so two posts the campus liked equally
+ * keep arriving in the order they happened. RLS keeps folded and deleted
+ * rows out of everyone's page
  * except the author's, the steward's, and a moderator's, so a page can
  * honestly carry a "Hidden by downvotes." row for exactly the people who
  * can do something about it.
@@ -781,9 +914,16 @@ export async function fetchFeedPage(
     .select(POST_SELECT)
     .eq("community_id", communityId)
     .is("pinned_at", null);
+  // Top reads the last seven days only. An all-time Top fossilizes: the
+  // first posts to gather votes hold the front page forever, and a feed
+  // that never changes stops being worth opening. A week keeps it alive.
   query =
     sort === "top"
       ? query
+          .gte(
+            "created_at",
+            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+          )
           .order("score", { ascending: false })
           .order("created_at", { ascending: false })
       : query.order("created_at", { ascending: false });

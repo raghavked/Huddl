@@ -35,6 +35,7 @@ import {
 } from "@/components/ui";
 import { courseTintsFor, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { commentsLabel } from "@/lib/communities";
 import { colorForCourse } from "@/lib/course-color";
 import { tapLight } from "@/lib/haptics";
 import {
@@ -151,6 +152,45 @@ type CourseEventRow = {
   title: string;
   starts_at: string;
 };
+
+/* Feed posts wearing this course's tag, previewed on the hub. */
+type FeedPostRow = {
+  id: string;
+  community_id: string;
+  title: string;
+  score: number;
+  comment_count: number;
+  author: {
+    id: string;
+    handle: string;
+    display_name: string;
+    avatar_url: string | null;
+    /** Whether they let the campus see them by name. See {@link postAuthorName}. */
+    is_public: boolean;
+  } | null;
+  community: { id: string; name: string } | null;
+};
+
+/**
+ * Who to say wrote a feed post. The same redaction the feed itself applies
+ * (`toAuthor` in `@/lib/communities`): a private author stands under their
+ * handle, so this preview never says a name the post's own screen would
+ * withhold. Fails closed, exactly like {@link mateName}: anything other than
+ * a literal `true` reads as private. You always see yourself as "You".
+ */
+function postAuthorName(
+  author: FeedPostRow["author"],
+  isMe: boolean
+): string {
+  if (!author) return "Someone on campus";
+  if (isMe) return "You";
+  return author.is_public === true ? author.display_name : author.handle;
+}
+
+/** "{n} points" with the singular handled, the way the saved shelf reads. */
+function scoreLabel(score: number): string {
+  return score === 1 ? "1 point" : `${score} points`;
+}
 
 /* Per-note gratitude: how many classmates said thanks, and whether I did. */
 type NoteThanksEntry = { count: number; mine: boolean };
@@ -452,6 +492,7 @@ export default function CourseHubScreen() {
   const [myColor, setMyColor] = useState<string | null>(null);
   const [upcoming, setUpcoming] = useState<UpcomingItem[]>([]);
   const [sessions, setSessions] = useState<CourseEventRow[]>([]);
+  const [feedPosts, setFeedPosts] = useState<FeedPostRow[]>([]);
   const [linkCount, setLinkCount] = useState(0);
   const [buddyCount, setBuddyCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -503,6 +544,7 @@ export default function CourseHubScreen() {
         matesRes,
         upcomingRes,
         sessionsRes,
+        feedRes,
         linksRes,
         buddyTally,
       ] = await Promise.all([
@@ -540,6 +582,19 @@ export default function CourseHubScreen() {
             .eq("course_id", courseId)
             .gte("starts_at", new Date().toISOString())
             .order("starts_at", { ascending: true })
+            .limit(3),
+          // The three newest feed posts wearing this course's tag. RLS
+          // already keeps folded and removed rows from ordinary readers; the
+          // deleted_at filter is for moderators, whose hub should show the
+          // same section as everyone else's.
+          supabase
+            .from("community_posts")
+            .select(
+              "id, community_id, title, score, comment_count, community:communities(id, name), author:profiles(id, handle, display_name, avatar_url, is_public)"
+            )
+            .eq("course_id", courseId)
+            .is("deleted_at", null)
+            .order("created_at", { ascending: false })
             .limit(3),
           // The Links doorway shows a tally; the list lives on its own screen.
           supabase
@@ -605,6 +660,8 @@ export default function CourseHubScreen() {
       setSessions(
         (sessionsRes.data ?? []) as unknown as CourseEventRow[]
       );
+      // And for the feed preview: a hiccup just leaves the section out.
+      setFeedPosts((feedRes.data ?? []) as unknown as FeedPostRow[]);
       // And for the pinned-links tally: best-effort too.
       setLinkCount(linksRes.count ?? 0);
       // Same for the study-partner tally: `countBuddies` returns 0 rather
@@ -1861,6 +1918,76 @@ export default function CourseHubScreen() {
                 style={{ alignSelf: "flex-start" }}
               />
             </View>
+
+            {/* From the feed: campus posts wearing this course's tag. A
+                course nobody has posted about draws nothing at all, no
+                header, no empty state, because recruiting for the feed is
+                the communities tab's job, not this hub's. */}
+            {feedPosts.length > 0 ? (
+              <View>
+                <SectionLabel text="From the feed" />
+                <Card padded={false}>
+                  {feedPosts.map((post, index) => {
+                    const authorName = postAuthorName(
+                      post.author,
+                      post.author?.id === userId
+                    );
+                    const communityName =
+                      post.community?.name ?? "a community";
+                    return (
+                      <Pressable
+                        key={post.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open the post ${post.title} in ${communityName}`}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/communities/post",
+                            params: {
+                              communityId: post.community_id,
+                              postId: post.id,
+                            },
+                          })
+                        }
+                        style={({ pressed }) => ({
+                          opacity: pressed ? 0.7 : 1,
+                        })}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: space.room,
+                            paddingHorizontal: space.card,
+                            paddingVertical: space.room,
+                            minHeight: 48,
+                            borderTopWidth: index === 0 ? 0 : 1,
+                            borderTopColor: theme.border,
+                          }}
+                        >
+                          <View
+                            style={{ flex: 1, minWidth: 0, gap: space.hair }}
+                          >
+                            <AppText variant="bodyMedium" numberOfLines={1}>
+                              {post.title}
+                            </AppText>
+                            <AppText variant="caption" muted numberOfLines={1}>
+                              {authorName} · {communityName} ·{" "}
+                              {scoreLabel(post.score)} ·{" "}
+                              {commentsLabel(post.comment_count)}
+                            </AppText>
+                          </View>
+                          <Feather
+                            name="chevron-right"
+                            size={16}
+                            color={theme.muted}
+                          />
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </Card>
+              </View>
+            ) : null}
           </View>
         }
       />

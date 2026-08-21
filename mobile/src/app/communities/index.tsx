@@ -5,11 +5,12 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
+  TextInput,
   View,
   type ListRenderItemInfo,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Lantern } from "@/components/illustrations";
+import { Lantern, MagnifyingGlass } from "@/components/illustrations";
 import {
   AppText,
   Button,
@@ -19,7 +20,7 @@ import {
   SectionLabel,
   SkeletonRow,
 } from "@/components/ui";
-import { radius, space } from "@/constants/theme";
+import { fonts, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   CommunityError,
@@ -43,6 +44,10 @@ import { useAuth } from "@/providers/auth-provider";
  * a subscription, and the club directory's one-tap join has taught people
  * to collect memberships they never look at. Walking in (the card opens the
  * community) and joining from inside its own doorway is the whole flow.
+ *
+ * Search filters the loaded list right here, by name and description. A
+ * campus holds dozens of communities, not thousands, so the whole list is
+ * already in hand and a server round trip would only add a spinner.
  */
 
 /** One row of the list: the campus feed, a group heading, or a community. */
@@ -263,6 +268,7 @@ export default function CommunitiesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -312,12 +318,22 @@ export default function CommunitiesScreen() {
    * The Quad first, then yours, then the rest, the last two keeping the
    * alphabetical order the query gave them. With no memberships beyond the
    * campus feed there is nothing to separate, so the list stays
-   * unlabelled.
+   * unlabelled. A search narrows the whole pool, The Quad included, before
+   * any of that grouping happens.
    */
   const rows = useMemo<ListRow[]>(() => {
     if (!communities) return [];
-    const quad = communities.find((c) => c.is_default) ?? null;
-    const others = communities.filter((c) => !c.is_default);
+    const needle = query.trim().toLowerCase();
+    const pool =
+      needle.length === 0
+        ? communities
+        : communities.filter(
+            (c) =>
+              c.name.toLowerCase().includes(needle) ||
+              (c.description ?? "").toLowerCase().includes(needle)
+          );
+    const quad = pool.find((c) => c.is_default) ?? null;
+    const others = pool.filter((c) => !c.is_default);
     const mine = others.filter((c) => roles[c.id] !== undefined);
     const rest = others.filter((c) => roles[c.id] === undefined);
     const out: ListRow[] = [];
@@ -341,7 +357,7 @@ export default function CommunitiesScreen() {
       }
     }
     return out;
-  }, [communities, roles]);
+  }, [communities, roles, query]);
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<ListRow>) => {
@@ -477,23 +493,98 @@ export default function CommunitiesScreen() {
           }}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
+            (communities !== null && communities.length > 0) ||
             error !== null ? (
-              <AppText
-                variant="caption"
-                accessibilityLiveRegion="polite"
-                style={{ color: theme.danger, marginBottom: space.room }}
-              >
-                {error}
-              </AppText>
+              <View style={{ gap: space.room, marginBottom: space.close }}>
+                {communities !== null && communities.length > 0 ? (
+                  /* Search sits with the list it narrows; with nothing to
+                     narrow, the empty state has the floor to itself. */
+                  <View style={{ justifyContent: "center" }}>
+                    <Feather
+                      accessibilityElementsHidden
+                      importantForAccessibility="no-hide-descendants"
+                      name="search"
+                      size={16}
+                      color={theme.muted}
+                      style={{ position: "absolute", left: 14, zIndex: 1 }}
+                    />
+                    <TextInput
+                      value={query}
+                      onChangeText={setQuery}
+                      placeholder="Search communities"
+                      placeholderTextColor={theme.muted + "b3"}
+                      accessibilityLabel="Search communities by name or description"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      cursorColor={theme.brand}
+                      selectionColor={theme.brandSoft}
+                      style={{
+                        height: 44,
+                        borderWidth: 1,
+                        borderColor: theme.border,
+                        borderRadius: radius.full,
+                        backgroundColor: theme.surface,
+                        paddingLeft: 40,
+                        paddingRight: 44,
+                        fontFamily: fonts.body,
+                        fontSize: 15,
+                        color: theme.foreground,
+                      }}
+                    />
+                    {query.length > 0 ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Clear search"
+                        onPress={() => setQuery("")}
+                        style={({ pressed }) => ({
+                          position: "absolute",
+                          right: 0,
+                          width: 44,
+                          height: 44,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          opacity: pressed ? 0.6 : 1,
+                        })}
+                      >
+                        <Feather
+                          accessibilityElementsHidden
+                          importantForAccessibility="no-hide-descendants"
+                          name="x"
+                          size={16}
+                          color={theme.muted}
+                        />
+                      </Pressable>
+                    ) : null}
+                  </View>
+                ) : null}
+                {error !== null ? (
+                  <AppText
+                    variant="caption"
+                    accessibilityLiveRegion="polite"
+                    style={{ color: theme.danger }}
+                  >
+                    {error}
+                  </AppText>
+                ) : null}
+              </View>
             ) : null
           }
           ListEmptyComponent={
-            <EmptyState
-              illustration={Lantern}
-              title="No communities yet. Start the first one."
-              body="A community is a feed for whatever your campus cares about: posts, votes, comments, and rooms that stem off for live talk."
-              action={{ label: "Start a community", onPress: openNew }}
-            />
+            query.trim().length > 0 ? (
+              <EmptyState
+                illustration={MagnifyingGlass}
+                title="No community by that name yet."
+                body={`Nothing here answers to "${query.trim()}". Try a shorter word, or start it yourself.`}
+                action={{ label: "Start a community", onPress: openNew }}
+              />
+            ) : (
+              <EmptyState
+                illustration={Lantern}
+                title="No communities yet. Start the first one."
+                body="A community is a feed for whatever your campus cares about: posts, votes, comments, and rooms that stem off for live talk."
+                action={{ label: "Start a community", onPress: openNew }}
+              />
+            )
           }
           refreshControl={
             <RefreshControl

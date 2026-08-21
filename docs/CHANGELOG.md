@@ -1,5 +1,40 @@
 # Hearth development log
 
+## Round 26: the feed era meets a simulated campus, and holds
+
+A full stress and interaction round on the live database, on an
+isolated simulated campus that was purged to nothing afterward. Two
+migrations shipped first: 0072 gives the feed flood control (5 posts,
+20 comments, 120 votes per author per ten minutes, caps no honest
+student ever meets, plus the indexes that count them and the index
+that lets a course page wear its feed posts) and 0073 makes every
+newly opened campus born with its Quad, closing the trap the fresh
+sim campus walked into.
+
+What the simulated campus proved: 2,000 students auto-joined their
+Quad on signup (2,000 of 2,000), 31 communities, 1,200 posts through
+the full trigger stack at under 5ms each, 5,000 comments with zero
+comment-count drift. Six overlapping transaction waves fired 1,100
+ballots at one hot post and the stored score matched the true sum
+exactly; the delta-trigger design is concurrency-safe. Both flood
+limits tripped exactly at their line. Five downvotes folded a post out
+of a bystander's sight and one changed mind brought it back. Steward
+pins, the most-helpful crown and its thank-you, event and course
+carries, and the saved shelf all worked as real users under RLS. An
+invite-only club seated 41 through forty individual acceptances. A
+community room took 300 messages and wrote 300 realtime broadcast
+rows. Ten disguised slurs across posts and comments filed all ten
+autoflag reports. Every page a phone actually renders (feed New and
+Top, a post with its comments, browse, roster, saved, the course
+section) answered in under 6ms under load.
+
+The app grew what the round exercised: community doorways show their
+people (a Members roster with steward chips, and stewards can share
+the trowel or show someone the door), the communities screen learned
+search, Top became a seven-day window so it stays a conversation
+instead of a museum, and course pages surface the three newest feed
+posts wearing their tag.
+
 ## Round 25: the feed learns its craft, and onboarding learns the feed
 
 The finishing pass on communities, all in the app (migration 0071's
