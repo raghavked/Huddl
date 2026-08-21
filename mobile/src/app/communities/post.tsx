@@ -99,39 +99,89 @@ function timeAgo(iso: string, now: Date): string {
   return then.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-/** One 44px arrow. Lit in ember going up, in danger going down. */
-function VoteArrow({
-  direction,
-  lit,
-  onPress,
+/**
+ * The vote capsule: both arrows and the score in one warm pill, so the
+ * feed's most-used control reads as a crafted object rather than loose
+ * icons. The up arrow lights in ember, the down arrow in danger, and the
+ * score wears the lit color while a vote of yours is on it. Twin of the
+ * one on the community screen, kept in step by hand the way timeAgo
+ * already is.
+ */
+function VotePill({
+  score,
+  myVote,
+  onVote,
 }: {
-  direction: "up" | "down";
-  lit: boolean;
-  onPress: () => void;
+  score: number;
+  myVote: VoteValue | null;
+  onVote: (value: VoteValue) => void;
 }) {
   const theme = useTheme();
-  const litColor = direction === "up" ? theme.brand : theme.danger;
+  const scoreColor =
+    myVote === 1 ? theme.brand : myVote === -1 ? theme.danger : undefined;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={direction === "up" ? "Upvote" : "Downvote"}
-      accessibilityState={{ selected: lit }}
-      onPress={onPress}
-      hitSlop={4}
-      style={({ pressed }) => ({
-        width: 44,
-        height: 44,
+    <View
+      style={{
+        flexDirection: "row",
         alignItems: "center",
-        justifyContent: "center",
-        opacity: pressed ? 0.6 : 1,
-      })}
+        alignSelf: "flex-start",
+        borderRadius: radius.full,
+        borderWidth: 1,
+        borderColor: theme.border,
+        backgroundColor: theme.surface2,
+      }}
     >
-      <Feather
-        name={direction === "up" ? "arrow-up" : "arrow-down"}
-        size={20}
-        color={lit ? litColor : theme.muted}
-      />
-    </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Upvote"
+        accessibilityState={{ selected: myVote === 1 }}
+        onPress={() => onVote(1)}
+        hitSlop={{ top: 6, bottom: 6, left: 6 }}
+        style={({ pressed }) => ({
+          width: 40,
+          height: 38,
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <Feather
+          name="arrow-up"
+          size={17}
+          color={myVote === 1 ? theme.brand : theme.muted}
+        />
+      </Pressable>
+      <AppText
+        variant="bodySemi"
+        style={{
+          minWidth: 22,
+          textAlign: "center",
+          ...(scoreColor ? { color: scoreColor } : {}),
+        }}
+      >
+        {score}
+      </AppText>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Downvote"
+        accessibilityState={{ selected: myVote === -1 }}
+        onPress={() => onVote(-1)}
+        hitSlop={{ top: 6, bottom: 6, right: 6 }}
+        style={({ pressed }) => ({
+          width: 40,
+          height: 38,
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <Feather
+          name="arrow-down"
+          size={17}
+          color={myVote === -1 ? theme.danger : theme.muted}
+        />
+      </Pressable>
+    </View>
   );
 }
 
@@ -1042,11 +1092,33 @@ export default function CommunityPostScreen() {
         </Card>
       ) : (
         <>
+          {/* The dateline first, the way a letter opens: a real face and a
+              real name over the words they signed. */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.cosy,
+              marginBottom: space.close,
+            }}
+          >
+            <Avatar
+              url={post.author?.avatar_url ?? null}
+              name={authorName}
+              size={32}
+            />
+            <View style={{ flex: 1, minWidth: 0, gap: space.hair }}>
+              <AppText variant="bodyMedium" numberOfLines={1}>
+                {authorName}
+              </AppText>
+              <AppText variant="caption" muted numberOfLines={1}>
+                {timeAgo(post.created_at, now)}
+                {post.edited_at ? " · Edited" : ""}
+              </AppText>
+            </View>
+          </View>
+
           <AppText variant="display">{post.title}</AppText>
-          <AppText variant="caption" muted style={{ marginTop: space.snug }}>
-            {authorName} · {timeAgo(post.created_at, now)}
-            {post.edited_at ? " · Edited" : ""}
-          </AppText>
 
           {post.pinned_at !== null || post.course ? (
             <View
@@ -1130,35 +1202,23 @@ export default function CommunityPostScreen() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              marginTop: space.close,
-              marginLeft: -space.close,
+              gap: space.close,
+              marginTop: space.card,
             }}
           >
-            <VoteArrow
-              direction="up"
-              lit={myVote === 1}
-              onPress={() => applyVote(1)}
-            />
-            <AppText
-              variant="bodySemi"
-              style={{ minWidth: 20, textAlign: "center" }}
-            >
-              {post.score}
-            </AppText>
-            <VoteArrow
-              direction="down"
-              lit={myVote === -1}
-              onPress={() => applyVote(-1)}
+            <VotePill
+              score={post.score}
+              myVote={myVote}
+              onVote={(value) => applyVote(value)}
             />
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
                 gap: space.snug,
-                paddingHorizontal: space.cosy,
               }}
             >
-              <Feather name="message-circle" size={14} color={theme.muted} />
+              <Feather name="message-circle" size={15} color={theme.muted} />
               <AppText variant="caption" muted>
                 {commentsLabel(post.comment_count)}
               </AppText>

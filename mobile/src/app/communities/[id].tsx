@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
+import { PinnedNote } from "@/components/illustrations";
 import { RoomTile } from "@/components/room-tile";
 import {
   AppText,
@@ -127,39 +128,87 @@ function timeAgo(iso: string, now: Date): string {
   return then.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-/** One 44px arrow. Lit in ember going up, in danger going down. */
-function VoteArrow({
-  direction,
-  lit,
-  onPress,
+/**
+ * The vote capsule: both arrows and the score in one warm pill, so the
+ * feed's most-used control reads as a crafted object rather than loose
+ * icons. The up arrow lights in ember, the down arrow in danger, and the
+ * score wears the lit color while a vote of yours is on it. Twin of the
+ * one on the post screen, kept in step by hand the way timeAgo already is.
+ */
+function VotePill({
+  score,
+  myVote,
+  onVote,
 }: {
-  direction: "up" | "down";
-  lit: boolean;
-  onPress: () => void;
+  score: number;
+  myVote: VoteValue | null;
+  onVote: (value: VoteValue) => void;
 }) {
   const theme = useTheme();
-  const litColor = direction === "up" ? theme.brand : theme.danger;
+  const scoreColor =
+    myVote === 1 ? theme.brand : myVote === -1 ? theme.danger : undefined;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={direction === "up" ? "Upvote" : "Downvote"}
-      accessibilityState={{ selected: lit }}
-      onPress={onPress}
-      hitSlop={4}
-      style={({ pressed }) => ({
-        width: 44,
-        height: 44,
+    <View
+      style={{
+        flexDirection: "row",
         alignItems: "center",
-        justifyContent: "center",
-        opacity: pressed ? 0.6 : 1,
-      })}
+        borderRadius: radius.full,
+        borderWidth: 1,
+        borderColor: theme.border,
+        backgroundColor: theme.surface2,
+      }}
     >
-      <Feather
-        name={direction === "up" ? "arrow-up" : "arrow-down"}
-        size={20}
-        color={lit ? litColor : theme.muted}
-      />
-    </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Upvote"
+        accessibilityState={{ selected: myVote === 1 }}
+        onPress={() => onVote(1)}
+        hitSlop={{ top: 6, bottom: 6, left: 6 }}
+        style={({ pressed }) => ({
+          width: 40,
+          height: 38,
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <Feather
+          name="arrow-up"
+          size={17}
+          color={myVote === 1 ? theme.brand : theme.muted}
+        />
+      </Pressable>
+      <AppText
+        variant="bodySemi"
+        style={{
+          minWidth: 22,
+          textAlign: "center",
+          ...(scoreColor ? { color: scoreColor } : {}),
+        }}
+      >
+        {score}
+      </AppText>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Downvote"
+        accessibilityState={{ selected: myVote === -1 }}
+        onPress={() => onVote(-1)}
+        hitSlop={{ top: 6, bottom: 6, right: 6 }}
+        style={({ pressed }) => ({
+          width: 40,
+          height: 38,
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <Feather
+          name="arrow-down"
+          size={17}
+          color={myVote === -1 ? theme.danger : theme.muted}
+        />
+      </Pressable>
+    </View>
   );
 }
 
@@ -249,12 +298,14 @@ function EventCarry({ event }: { event: PostEvent }) {
 }
 
 /**
- * One post at arm's length: headline, the first lines of the body, who and
- * when, then the row that makes a feed a feed: the arrows, the score, and
- * the comment count. A folded or removed post keeps its bones and says what
- * happened to it, because only the people who can act on it receive it at
- * all. A pinned post wears its chip, and a carried event or tagged course
- * rides along in miniature.
+ * One post at arm's length, built like a note left on the table: who and
+ * when across the top the way a letter opens, the headline in the house
+ * display face, the first lines of the body, then the shelf along the
+ * bottom that makes a feed a feed: the vote capsule, the comment pill, a
+ * bookmark within reach, and the overflow. A folded or removed post keeps
+ * its bones and says what happened to it, because only the people who can
+ * act on it receive it at all. A pinned post wears its chip, and a carried
+ * event or tagged course rides along in miniature.
  */
 function FeedRow({
   post,
@@ -262,8 +313,10 @@ function FeedRow({
   now,
   mine,
   myVote,
+  saved,
   onOpen,
   onVote,
+  onSave,
   onMenu,
 }: {
   post: CommunityPost;
@@ -272,8 +325,10 @@ function FeedRow({
   now: Date;
   mine: boolean;
   myVote: VoteValue | null;
+  saved: boolean;
   onOpen: () => void;
   onVote: (value: VoteValue) => void;
+  onSave: () => void;
   onMenu: () => void;
 }) {
   const theme = useTheme();
@@ -287,11 +342,11 @@ function FeedRow({
     <Card
       padded={false}
       entrance={index}
-      style={{ marginBottom: space.room }}
+      style={{ marginBottom: space.card }}
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Open ${post.title}${post.pinned_at !== null ? ". Pinned." : ""}${removed ? ". This post was removed." : folded ? ". Hidden by downvotes." : ""}`}
+        accessibilityLabel={`Open ${post.title}, by ${author}, ${timeAgo(post.created_at, now)}${post.pinned_at !== null ? ". Pinned." : ""}${removed ? ". This post was removed." : folded ? ". Hidden by downvotes." : ""}`}
         onPress={onOpen}
         style={({ pressed }) => ({
           gap: space.cosy,
@@ -315,25 +370,41 @@ function FeedRow({
           </View>
         ) : null}
 
-        {post.pinned_at !== null || post.course ? (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: space.cosy,
-              flexWrap: "wrap",
-            }}
+        {/* The dateline: a real face and a real name, because that's the
+            whole difference between this feed and an anonymous one. */}
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.cosy,
+          }}
+        >
+          <Avatar
+            url={post.author?.avatar_url ?? null}
+            name={author}
+            size={28}
+          />
+          <AppText
+            variant="bodyMedium"
+            numberOfLines={1}
+            style={{ flexShrink: 1 }}
           >
-            {post.pinned_at !== null ? (
-              <Chip label="Pinned" tone="brand" icon="map-pin" />
-            ) : null}
-            {post.course ? (
-              <Chip label={post.course.code} tone="brand" icon="book" />
-            ) : null}
-          </View>
-        ) : null}
+            {author}
+          </AppText>
+          <AppText variant="caption" muted>
+            {timeAgo(post.created_at, now)}
+          </AppText>
+          <View style={{ flex: 1 }} />
+          {post.pinned_at !== null ? (
+            <Chip label="Pinned" tone="brand" icon="map-pin" />
+          ) : post.course ? (
+            <Chip label={post.course.code} tone="brand" icon="book" />
+          ) : null}
+        </View>
 
-        <AppText variant="bodySemi" numberOfLines={2}>
+        <AppText variant="title" numberOfLines={2}>
           {post.title}
         </AppText>
 
@@ -342,63 +413,80 @@ function FeedRow({
             This post was removed.
           </AppText>
         ) : post.body ? (
-          <AppText muted numberOfLines={2}>
+          <AppText muted numberOfLines={3}>
             {post.body}
           </AppText>
         ) : null}
 
-        {!removed && post.event ? <EventCarry event={post.event} /> : null}
+        {/* A pinned post that also wears a course tag keeps both: the pin
+            took the dateline seat, so the course chip files in down here. */}
+        {post.pinned_at !== null && post.course && !removed ? (
+          <View style={{ flexDirection: "row" }}>
+            <Chip label={post.course.code} tone="brand" icon="book" />
+          </View>
+        ) : null}
 
-        <AppText variant="caption" muted numberOfLines={1}>
-          {author} · {timeAgo(post.created_at, now)}
-        </AppText>
+        {!removed && post.event ? <EventCarry event={post.event} /> : null}
       </Pressable>
 
-      {/* The arrows keep working on a folded post: recovery is the campus
-          voting it back up, so taking the vote away would seal the fold. */}
+      {/* The shelf. The arrows keep working on a folded post: recovery is
+          the campus voting it back up, so taking the vote away would seal
+          the fold. */}
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
-          paddingHorizontal: space.cosy,
-          paddingBottom: space.tight,
+          gap: space.cosy,
+          paddingHorizontal: space.close,
+          paddingTop: space.room,
+          paddingBottom: space.close,
         }}
       >
-        <VoteArrow
-          direction="up"
-          lit={myVote === 1}
-          onPress={() => onVote(1)}
-        />
-        <AppText
-          variant="bodySemi"
-          style={{ minWidth: 20, textAlign: "center" }}
-        >
-          {post.score}
-        </AppText>
-        <VoteArrow
-          direction="down"
-          lit={myVote === -1}
-          onPress={() => onVote(-1)}
-        />
+        <VotePill score={post.score} myVote={myVote} onVote={onVote} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Open comments, ${commentsLabel(post.comment_count)}`}
           onPress={onOpen}
+          hitSlop={{ top: 6, bottom: 6 }}
           style={({ pressed }) => ({
             flexDirection: "row",
             alignItems: "center",
             gap: space.snug,
-            minHeight: 44,
-            paddingHorizontal: space.cosy,
+            height: 38,
+            paddingHorizontal: space.close,
+            borderRadius: radius.full,
+            borderWidth: 1,
+            borderColor: theme.border,
+            backgroundColor: theme.surface2,
             opacity: pressed ? 0.6 : 1,
           })}
         >
-          <Feather name="message-circle" size={14} color={theme.muted} />
+          <Feather name="message-circle" size={15} color={theme.muted} />
           <AppText variant="caption" muted>
             {commentsLabel(post.comment_count)}
           </AppText>
         </Pressable>
         <View style={{ flex: 1 }} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={saved ? "Unsave post" : "Save post"}
+          accessibilityState={{ selected: saved }}
+          onPress={onSave}
+          hitSlop={4}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Feather
+            name="bookmark"
+            size={17}
+            color={saved ? theme.brand : theme.muted}
+          />
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Post options"
@@ -407,6 +495,7 @@ function FeedRow({
           style={({ pressed }) => ({
             width: 44,
             height: 44,
+            marginLeft: -space.cosy,
             alignItems: "center",
             justifyContent: "center",
             opacity: pressed ? 0.6 : 1,
@@ -1203,12 +1292,14 @@ export default function CommunityScreen() {
         now={now}
         mine={isMine(item, myId)}
         myVote={votes[item.id] ?? null}
+        saved={savedIds.has(item.id)}
         onOpen={() => openPost(item)}
         onVote={(value) => applyVote(item, value)}
+        onSave={() => toggleSave(item)}
         onMenu={() => setMenuPost(item)}
       />
     ),
-    [now, myId, votes, openPost, applyVote]
+    [now, myId, votes, savedIds, openPost, applyVote, toggleSave]
   );
 
   // A deep link can land here signed out. Send them to a proper door.
@@ -1319,7 +1410,41 @@ export default function CommunityScreen() {
     <View>
       <View style={{ gap: space.close }}>
         <View style={{ gap: space.cosy }}>
-          <AppText variant="display">{community.name}</AppText>
+          {/* The doorplate: the place's mark beside its name. The campus
+              feed wears the home; every other community wears the globe. */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.close,
+            }}
+          >
+            <View
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: radius.control,
+                backgroundColor: theme.brandSoft,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Feather
+                name={community.is_default ? "home" : "globe"}
+                size={22}
+                color={theme.brand}
+              />
+            </View>
+            <AppText
+              variant="display"
+              numberOfLines={2}
+              style={{ flex: 1, minWidth: 0 }}
+            >
+              {community.name}
+            </AppText>
+          </View>
           <View
             style={{
               flexDirection: "row",
@@ -1337,22 +1462,51 @@ export default function CommunityScreen() {
             ) : member ? (
               <Chip label="Joined" tone="accent" icon="check" />
             ) : null}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: space.tight,
-              }}
-            >
-              <Feather name="user" size={12} color={theme.muted} />
-              <AppText variant="caption" muted>
-                {membersLabel(community.member_count)}
-              </AppText>
-            </View>
           </View>
           {community.description ? (
             <AppText muted>{community.description}</AppText>
           ) : null}
+          {/* The first faces through the door, and the count of the rest.
+              The whole roster lives below the feed, under "Who's here". */}
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.cosy,
+            }}
+          >
+            {members !== null && members.length > 0 ? (
+              <View style={{ flexDirection: "row" }}>
+                {members.slice(0, 5).map((entry, index) => (
+                  <View
+                    key={entry.user_id}
+                    style={{
+                      marginLeft: index === 0 ? 0 : -space.cosy,
+                      borderRadius: radius.full,
+                      borderWidth: 2,
+                      // The ring is the page showing through, so the
+                      // overlap reads as faces around one table.
+                      borderColor: theme.background,
+                      backgroundColor: theme.background,
+                    }}
+                  >
+                    <Avatar
+                      url={entry.profile?.avatar_url}
+                      name={memberName(entry)}
+                      size={26}
+                    />
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Feather name="user" size={12} color={theme.muted} />
+            )}
+            <AppText variant="caption" muted>
+              {membersLabel(community.member_count)}
+            </AppText>
+          </View>
           {community.rules ? (
             <View style={{ gap: space.tight }}>
               <AppText variant="title">Rules</AppText>
@@ -1479,8 +1633,17 @@ export default function CommunityScreen() {
         }
       />
       {rooms.length > 0 ? (
-        <Card padded={false}>
-          {rooms.map((room, index) => {
+        /* The rooms as a shelf of doors: a sideways stroll instead of a
+           column standing between the doorway and the feed. */
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            gap: space.cosy,
+            paddingVertical: space.hair,
+          }}
+        >
+          {rooms.map((room) => {
             const title = roomTitle(room.name, room.slug);
             return (
               <Pressable
@@ -1488,39 +1651,33 @@ export default function CommunityScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`Open ${title}`}
                 onPress={() => router.push(`/channel/${room.id}`)}
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                style={({ pressed }) => ({
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: space.cosy,
+                  height: 44,
+                  paddingLeft: space.snug,
+                  paddingRight: space.close,
+                  borderRadius: radius.full,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
+                  opacity: pressed ? 0.7 : 1,
+                })}
               >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: space.close,
-                    paddingHorizontal: space.card,
-                    paddingVertical: space.room,
-                    minHeight: 52,
-                    borderTopWidth: index === 0 ? 0 : 1,
-                    borderTopColor: theme.border,
-                  }}
-                >
-                  <RoomTile
-                    kind="topic"
-                    name={room.name ?? room.slug}
-                    slug={room.slug}
-                    size={32}
-                  />
-                  <AppText
-                    variant="bodyMedium"
-                    numberOfLines={1}
-                    style={{ flex: 1, minWidth: 0 }}
-                  >
-                    {title}
-                  </AppText>
-                  <Feather name="chevron-right" size={16} color={theme.muted} />
-                </View>
+                <RoomTile
+                  kind="topic"
+                  name={room.name ?? room.slug}
+                  slug={room.slug}
+                  size={30}
+                />
+                <AppText variant="bodyMedium" numberOfLines={1}>
+                  {title}
+                </AppText>
               </Pressable>
             );
           })}
-        </Card>
+        </ScrollView>
       ) : (
         <EmptyState
           compact
@@ -1546,9 +1703,52 @@ export default function CommunityScreen() {
         />
       )}
 
-      {/* The roster: stewards first, then everyone in the order they came.
-          A steward gets the overflow on every row but their own. */}
-      <SectionLabel text="Members" />
+      {/* The feed's controls: how it's sorted, and the way onto it. */}
+      <SectionLabel text="Feed" />
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: space.cosy,
+          marginBottom: space.close,
+        }}
+      >
+        <Chip
+          label="New"
+          tone="brand"
+          size="md"
+          selected={sort === "new"}
+          onPress={() => pickSort("new")}
+          accessibilityLabel="Sort by newest"
+        />
+        <Chip
+          label="Top"
+          tone="brand"
+          size="md"
+          selected={sort === "top"}
+          onPress={() => pickSort("top")}
+          accessibilityLabel="Sort by score"
+        />
+        <View style={{ flex: 1 }} />
+        {member && !composerOpen ? (
+          <Button
+            label="New post"
+            size="sm"
+            icon={<Feather name="edit-3" size={14} color={theme.brandFg} />}
+            onPress={() => setComposerOpen(true)}
+          />
+        ) : null}
+      </View>
+    </View>
+  );
+
+  /* The roster: stewards first, then everyone in the order they came. A
+     steward gets the overflow on every row but their own. It lives below
+     the feed on purpose: the homely reading order is the doorway, then
+     what people are saying, then who's here. */
+  const whoIsHere = (
+    <View>
+      <SectionLabel text="Who's here" />
       {rosterError ? (
         <AppText
           variant="caption"
@@ -1696,43 +1896,13 @@ export default function CommunityScreen() {
         </>
       )}
 
-      {/* The feed's controls: how it's sorted, and the way onto it. */}
-      <SectionLabel text="Feed" />
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: space.cosy,
-          marginBottom: space.close,
-        }}
-      >
-        <Chip
-          label="New"
-          tone="brand"
-          size="md"
-          selected={sort === "new"}
-          onPress={() => pickSort("new")}
-          accessibilityLabel="Sort by newest"
-        />
-        <Chip
-          label="Top"
-          tone="brand"
-          size="md"
-          selected={sort === "top"}
-          onPress={() => pickSort("top")}
-          accessibilityLabel="Sort by score"
-        />
-        <View style={{ flex: 1 }} />
-        {member && !composerOpen ? (
-          <Button
-            label="New post"
-            size="sm"
-            icon={<Feather name="edit-3" size={14} color={theme.brandFg} />}
-            onPress={() => setComposerOpen(true)}
-          />
-        ) : null}
-      </View>
+    </View>
+  );
 
+  /* The composer and the feed's inline notices, rendered right under the
+     header so a half-written post sits beside the feed it's about to join. */
+  const feedLead = (
+    <View>
       {member && composerOpen ? (
         <Card style={{ gap: space.close, marginBottom: space.close }}>
           <AppText variant="title">New post</AppText>
@@ -1742,7 +1912,7 @@ export default function CommunityScreen() {
               setDraftTitle(text);
               if (composerError) setComposerError(null);
             }}
-            placeholder="Title"
+            placeholder="What's the headline?"
             placeholderTextColor={theme.muted + "b3"}
             accessibilityLabel="Title"
             maxLength={POST_TITLE_MAX}
@@ -1938,7 +2108,12 @@ export default function CommunityScreen() {
         keyboardDismissMode="on-drag"
         onEndReached={loadMore}
         onEndReachedThreshold={0.4}
-        ListHeaderComponent={header}
+        ListHeaderComponent={
+          <View>
+            {header}
+            {feedLead}
+          </View>
+        }
         ListEmptyComponent={
           posts === null ? (
             <View>
@@ -1947,33 +2122,53 @@ export default function CommunityScreen() {
             </View>
           ) : (
             <EmptyState
-              compact
-              icon="edit-3"
-              title="Nothing posted yet. Be the first."
+              illustration={PinnedNote}
+              title="The board is up. Nothing's on it yet."
               body={
                 member
                   ? "Whatever goes up first is what the campus reads."
                   : "Join, and whatever you post first is what the campus reads."
               }
+              action={
+                member && !composerOpen
+                  ? {
+                      label: "Write the first post",
+                      onPress: () => setComposerOpen(true),
+                    }
+                  : undefined
+              }
             />
           )
         }
         ListFooterComponent={
-          loadingMore ? (
-            <ActivityIndicator
-              size="small"
-              color={theme.brand}
-              style={{ marginTop: space.close }}
-            />
-          ) : hasMore ? (
-            <Button
-              label="Show more posts"
-              variant="soft"
-              size="sm"
-              onPress={loadMore}
-              style={{ alignSelf: "center", marginTop: space.close }}
-            />
-          ) : null
+          <View>
+            {loadingMore ? (
+              <ActivityIndicator
+                size="small"
+                color={theme.brand}
+                style={{ marginTop: space.close }}
+              />
+            ) : hasMore ? (
+              <Button
+                label="Show more posts"
+                variant="soft"
+                size="sm"
+                onPress={loadMore}
+                style={{ alignSelf: "center", marginTop: space.close }}
+              />
+            ) : posts !== null && visiblePosts.length > 0 ? (
+              /* The bottom of the pot: say so warmly instead of just
+                 running out of cards. */
+              <AppText
+                variant="caption"
+                muted
+                style={{ textAlign: "center", marginTop: space.close }}
+              >
+                That's everything for now. Pull down for fresh posts.
+              </AppText>
+            ) : null}
+            {whoIsHere}
+          </View>
         }
         refreshControl={
           <RefreshControl

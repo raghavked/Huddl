@@ -1,5 +1,29 @@
 # Hearth development log
 
+## Round 27: The Quad learns to feel like a place
+
+A design pass over the feed surfaces, aimed at homely. A community
+screen used to read as an admin page: a wall of text, a sixty-row
+roster standing between the doorway and the first post, vote arrows
+floating loose beside a number.
+
+Now the doorway is a doorplate: the place's mark in a warm clay tile
+beside its name, the campus feed wearing the home and every other
+community the globe, with the first five faces through the door
+overlapping above the headcount. Rooms became a shelf of doors you
+stroll sideways instead of a column you scroll past. The roster moved
+below the feed under "Who's here", because the homely reading order is
+the doorway, then what people are saying, then who's here.
+
+Post cards are built like notes left on the table: a real face and a
+real name across the top the way a letter opens, the headline in the
+house display face, then a shelf along the bottom where the vote
+capsule (both arrows and the score in one warm pill), the comment
+pill, and a bookmark all sit within reach. The post screen opens the
+same way. An empty feed shows the pinned-note board waiting for its
+first post, and the bottom of the feed says "That's everything for
+now" instead of just running out of cards.
+
 ## Round 26: the feed era meets a simulated campus, and holds
 
 A full stress and interaction round on the live database, on an
