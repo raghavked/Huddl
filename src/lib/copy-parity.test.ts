@@ -151,10 +151,13 @@ describe("copy parity between the two clients", () => {
   it("keeps enough copy genuinely shared to be worth checking", () => {
     // A guard on the guard: if the extractor silently stops matching, the
     // test above passes vacuously and the drift it exists to catch walks
-    // straight back in.
+    // straight back in. The floor shrank when the website slimmed down to
+    // marketing plus the email funnel: the shared surface is now the legal
+    // documents and the handful of funnel sentences, not a whole second
+    // product.
     const native = sentences("mobile/src");
     const web = sentences("src");
     const shared = [...native.keys()].filter((s) => web.has(s));
-    expect(shared.length).toBeGreaterThan(150);
+    expect(shared.length).toBeGreaterThan(10);
   });
 });

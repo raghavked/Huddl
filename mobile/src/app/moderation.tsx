@@ -315,6 +315,53 @@ function Subject({ report }: { report: ModerationReport }) {
     );
   }
 
+  /* A community post reads like a board post, except its afterlife has two
+     shapes: folded by downvotes, or removed outright. The RLS policy admits
+     moderators to both on purpose, so the words are here to be judged, and
+     the stamp underneath says what the feed did with them since. */
+  if (subject.kind === "community_post") {
+    const { post } = subject;
+    return (
+      <View style={{ gap: space.snug }}>
+        <AppText variant="label" muted>
+          The post
+        </AppText>
+        <Well>
+          <AppText variant="bodySemi">{post.title}</AppText>
+          {post.body ? <AppText>{post.body}</AppText> : null}
+          {post.deleted_at ? (
+            <AppText variant="caption" muted>
+              This post was removed.
+            </AppText>
+          ) : post.hidden_at ? (
+            <AppText variant="caption" muted>
+              Hidden by downvotes.
+            </AppText>
+          ) : null}
+        </Well>
+      </View>
+    );
+  }
+
+  if (subject.kind === "comment") {
+    const { comment } = subject;
+    return (
+      <View style={{ gap: space.snug }}>
+        <AppText variant="label" muted>
+          The comment
+        </AppText>
+        <Well>
+          <AppText>{comment.body}</AppText>
+          {comment.deleted_at ? (
+            <AppText variant="caption" muted>
+              This comment was removed.
+            </AppText>
+          ) : null}
+        </Well>
+      </View>
+    );
+  }
+
   const { profile } = subject;
   return (
     <View style={{ gap: space.snug }}>
@@ -349,7 +396,8 @@ function Subject({ report }: { report: ModerationReport }) {
 
 /**
  * Where tapping a report should take you: the room it happened in, the board
- * post, or the person. A report whose message sits in a channel this moderator
+ * post, the community post (a reported comment counts as one, seen under its
+ * post), or the person. A report whose message sits in a channel this moderator
  * hasn't joined still leads somewhere useful (the reported student's profile),
  * so the row is only inert when there is genuinely nothing left to look at.
  */
@@ -359,6 +407,14 @@ function subjectRoute(report: ModerationReport): Href | null {
     return `/channel/${subject.message.channel.id}`;
   }
   if (subject.kind === "post") return `/board/${subject.post.id}`;
+  if (subject.kind === "community_post") {
+    return `/communities/${subject.post.community_id}/posts/${subject.post.id}`;
+  }
+  // A comment leads to the post it sits under, seen in place. When the post
+  // isn't readable the route falls through to the person, like a message's.
+  if (subject.kind === "comment" && subject.comment.community_id !== null) {
+    return `/communities/${subject.comment.community_id}/posts/${subject.comment.post_id}`;
+  }
   if (subject.kind === "profile") return `/u/${subject.profile.handle}`;
   if (report.reported !== null) return `/u/${report.reported.handle}`;
   return null;

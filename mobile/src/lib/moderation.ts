@@ -9,7 +9,8 @@ import { supabase } from "@/lib/supabase";
 /* The moderation queue: the data layer.
  *
  * Reports have existed since migration 0015: a student flags a message, a
- * classmate, or (since 0034) a post on the campus board, and the row lands in
+ * classmate, or (since 0034) a post on the campus board, and (since 0070) a
+ * community post or a comment under one, and the row lands in
  * `public.reports` with a category, a reason in their own words, and a status
  * of `open`. What 0015 did NOT give anyone was a way to act on one. Triage
  * lived with the service role, so the queue filled up and nothing emptied it.
@@ -148,6 +149,45 @@ export type ReportedMessage = {
   channel: ReportedChannel | null;
 };
 
+/**
+ * A reported post in a community feed (0070). Unlike a board post it can be
+ * folded by downvotes (`hidden_at`) or taken down (`deleted_at`), and the
+ * select policy admits moderators to both states on purpose: the queue is
+ * exactly the place that should still read them.
+ */
+export type ReportedCommunityPost = {
+  /** `community_posts.id`. */
+  id: string;
+  /** The community it lives in. The route needs both ids. */
+  community_id: string;
+  /** The headline. */
+  title: string;
+  /** The details, or null. */
+  body: string | null;
+  /** Set while the herd's downvotes have it folded. Still readable here. */
+  hidden_at: string | null;
+  /** Set once someone took it down. The content stays for triage. */
+  deleted_at: string | null;
+};
+
+/**
+ * A reported comment under a community post (0070). The community id rides
+ * along through the comment's own post embed, because the route to look at a
+ * comment in place is the post's screen.
+ */
+export type ReportedPostComment = {
+  /** `post_comments.id`. */
+  id: string;
+  /** The post it sits under. */
+  post_id: string;
+  /** The community that post lives in, or null when the post isn't readable. */
+  community_id: string | null;
+  /** What was actually said. Never truncated on the way through here. */
+  body: string;
+  /** Set once someone took it down. The content stays for triage. */
+  deleted_at: string | null;
+};
+
 /** A reported post on the campus board. */
 export type ReportedBoardPost = {
   /** `board_posts.id`. Push `/board/<id>` with it. */
@@ -185,10 +225,22 @@ export type ModerationReport = {
   message: ReportedMessage | null;
   /** The reported board post, or null. */
   post: ReportedBoardPost | null;
+  /**
+   * The reported community post (0070), or null. Unlike a DM this one embeds:
+   * the select policy admits moderators to hidden and removed rows, so the
+   * queue reads the post straight from `community_posts`.
+   */
+  community_post: ReportedCommunityPost | null;
+  /** The reported comment (0070), or null. Embeds for the same reason. */
+  post_comment: ReportedPostComment | null;
   /** Raw `reports.message_id`. Non-null with a null `message` means unreadable. */
   message_id: string | null;
   /** Raw `reports.board_post_id`. Same story as `message_id`. */
   board_post_id: string | null;
+  /** Raw `reports.community_post_id`. Same story again. */
+  community_post_id: string | null;
+  /** Raw `reports.post_comment_id`. Same story again. */
+  post_comment_id: string | null;
   /**
    * Raw `reports.dm_message_id` (migration 0038). There is deliberately NO
    * embedded `dm_message` beside it: `dm_messages` is readable only to the
@@ -221,11 +273,20 @@ export type ModerationReport = {
 export type ReportSubject =
   | { kind: "message"; message: ReportedMessage }
   | { kind: "post"; post: ReportedBoardPost }
+  | { kind: "community_post"; post: ReportedCommunityPost }
+  | { kind: "comment"; comment: ReportedPostComment }
   | { kind: "profile"; profile: ReportedProfile }
   | {
       kind: "gone";
       /** What it used to point at, as far as the columns still say. */
-      was: "message" | "announcement" | "post" | "profile" | "unknown";
+      was:
+        | "message"
+        | "announcement"
+        | "post"
+        | "community_post"
+        | "comment"
+        | "profile"
+        | "unknown";
       /** A finished sentence for the reader. Never a code, never blank. */
       note: string;
     };
@@ -240,12 +301,16 @@ export const QUEUE_LIMIT = 100;
 
 /** Columns every queue query selects. Keep selects consistent. */
 export const REPORT_SELECT =
-  "id, status, category, reason, created_at, message_id, dm_message_id, club_announcement_id, board_post_id, reported_user_id, " +
+  "id, status, category, reason, created_at, message_id, dm_message_id, club_announcement_id, board_post_id, community_post_id, post_comment_id, reported_user_id, " +
   // Two foreign keys point at `profiles`, so both embeds need naming.
   "reporter:profiles!reports_reporter_id_fkey(id, handle, display_name, avatar_url), " +
   "reported:profiles!reports_reported_user_id_fkey(id, handle, display_name, avatar_url, bio), " +
   "message:messages(id, content, created_at, deleted_at, channel:channels(id, name, slug)), " +
-  "post:board_posts(id, title, body, category, closed_at)";
+  "post:board_posts(id, title, body, category, closed_at), " +
+  // Both community embeds are bare: one foreign key each, no naming needed.
+  // The comment brings its post along for the community id the route wants.
+  "community_post:community_posts(id, community_id, title, body, hidden_at, deleted_at), " +
+  "post_comment:post_comments(id, post_id, body, deleted_at, post:community_posts(community_id))";
 
 /* ═════════════════════════════ failures ══════════════════════════════ */
 
@@ -368,6 +433,46 @@ function toPost(raw: unknown): ReportedBoardPost | null {
 }
 
 /**
+ * Narrow an embedded `community_posts` row; null when it isn't readable. A
+ * folded or removed post is kept, stamps and all, for the same reason a
+ * soft-deleted message is: what happened to it since is part of the story.
+ */
+function toCommunityPost(raw: unknown): ReportedCommunityPost | null {
+  const record = embedded(raw);
+  if (!record) return null;
+  const id = text(record["id"]);
+  const communityId = text(record["community_id"]);
+  const title = text(record["title"]);
+  if (id === null || communityId === null || title === null) return null;
+  return {
+    id,
+    community_id: communityId,
+    title,
+    body: text(record["body"]),
+    hidden_at: text(record["hidden_at"]),
+    deleted_at: text(record["deleted_at"]),
+  };
+}
+
+/** Narrow an embedded `post_comments` row; null when it isn't readable. */
+function toPostComment(raw: unknown): ReportedPostComment | null {
+  const record = embedded(raw);
+  if (!record) return null;
+  const id = text(record["id"]);
+  const postId = text(record["post_id"]);
+  const body = text(record["body"]);
+  if (id === null || postId === null || body === null) return null;
+  const post = embedded(record["post"]);
+  return {
+    id,
+    post_id: postId,
+    community_id: text(post?.["community_id"]),
+    body,
+    deleted_at: text(record["deleted_at"]),
+  };
+}
+
+/**
  * Narrow one joined queue row. A report with no id, no reason, or no filing
  * time isn't a report we can render honestly, so it's dropped rather than
  * shown as a blank card. Everything else, every single join, is allowed to be
@@ -390,8 +495,12 @@ function toReport(raw: unknown): ModerationReport | null {
     reported: toReportedProfile(record["reported"]),
     message: toMessage(record["message"]),
     post: toPost(record["post"]),
+    community_post: toCommunityPost(record["community_post"]),
+    post_comment: toPostComment(record["post_comment"]),
     message_id: text(record["message_id"]),
     board_post_id: text(record["board_post_id"]),
+    community_post_id: text(record["community_post_id"]),
+    post_comment_id: text(record["post_comment_id"]),
     dm_message_id: text(record["dm_message_id"]),
     club_announcement_id: text(record["club_announcement_id"]),
     reported_user_id: text(record["reported_user_id"]),
@@ -591,11 +700,12 @@ export function triageActions(
 /**
  * What a report is about, and whether it's still there to look at.
  *
- * Precedence is message → board post → profile, which matches how reports are
- * filed: a message report also records its author (so the report keeps a
- * subject after the message goes), and the message is the more specific of the
- * two. A report whose subject columns have all nulled out still resolves to
- * `gone`, with a sentence saying so.
+ * Precedence runs message, then board post, then community post, then
+ * comment, then profile, which matches how reports are filed: a content
+ * report also records its author (so the report keeps a subject after the
+ * content goes), and the content is the more specific of the two. A report
+ * whose subject columns have all nulled out still resolves to `gone`, with a
+ * sentence saying so.
  *
  * Pure.
  */
@@ -630,6 +740,26 @@ export function reportSubject(report: ModerationReport): ReportSubject {
       kind: "gone",
       was: "post",
       note: "We couldn't pull that board post up just now.",
+    };
+  }
+  if (report.community_post !== null) {
+    return { kind: "community_post", post: report.community_post };
+  }
+  if (report.community_post_id !== null) {
+    return {
+      kind: "gone",
+      was: "community_post",
+      note: "We couldn't pull that community post up just now.",
+    };
+  }
+  if (report.post_comment !== null) {
+    return { kind: "comment", comment: report.post_comment };
+  }
+  if (report.post_comment_id !== null) {
+    return {
+      kind: "gone",
+      was: "comment",
+      note: "We couldn't pull that comment up just now.",
     };
   }
   if (report.reported !== null) {
@@ -688,6 +818,10 @@ export function summarize(report: ModerationReport): string {
         ? `A board post: ${subject.post.title}, ${board}`
         : `A board post: ${subject.post.title}`;
     }
+    case "community_post":
+      return `A community post: ${subject.post.title}`;
+    case "comment":
+      return who !== null ? `A comment from ${firstName(who)}` : "A comment";
     case "profile":
       return `${firstName(subject.profile)}'s profile`;
     default:
@@ -701,6 +835,10 @@ export function summarize(report: ModerationReport): string {
       return "A club announcement";
     case "post":
       return "A board post";
+    case "community_post":
+      return "A community post";
+    case "comment":
+      return who !== null ? `A comment from ${firstName(who)}` : "A comment";
     case "profile":
       return "A profile";
     default:

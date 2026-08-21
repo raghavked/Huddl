@@ -59,6 +59,11 @@ export const HELP_SECTIONS: HelpSection[] = [
         detail: "Direct messages, one to one or with a group you pick.",
       },
       {
+        term: "Communities",
+        detail:
+          "Interest spaces anyone can start, with a feed instead of a chat: posts, votes, and comments, plus rooms that stem off for live talk. A post the campus downvotes far enough folds itself away.",
+      },
+      {
         term: "Clubs",
         detail:
           "Societies and teams, their announcements and their events. A club is open, so anyone on campus can join, or invite only, where an officer sends you an invitation and you accept it from the club page.",

@@ -12,17 +12,18 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 
 /* The app-wide report flow. Pushed from anywhere with
-   { messageId?, dmMessageId?, userId?, boardPostId?, label?, context? }.
+   { messageId?, dmMessageId?, userId?, boardPostId?, communityPostId?,
+   postCommentId?, label?, context? }.
    Label is a short human subject (a display name, or a post's title) for the
    header, and context is the reported words themselves, quoted back so she
    can see exactly which message she's flagging.
 
-   Four things can be reported, and public.reports takes any one of them: a
-   room message, a direct message, a person, or a post on the campus board.
-   Whichever it is, the author rides along in reported_user_id, because every
-   subject column is `on delete set null`: the report has to keep a subject
-   when the thing it named is deleted, which is the most likely moment for
-   someone to try.
+   Six things can be reported, and public.reports takes any one of them: a
+   room message, a direct message, a person, a post on the campus board, a
+   community post (0070), or a comment under one. Whichever it is, the author
+   rides along in reported_user_id, because every subject column is
+   `on delete set null`: the report has to keep a subject when the thing it
+   named is deleted, which is the most likely moment for someone to try.
 
    Direct messages were the gap. Until migration 0038 there was no
    dm_message_id, so a reported DM filed against the PERSON with the words
@@ -100,6 +101,8 @@ export default function ReportScreen() {
     dmMessageId?: string;
     userId?: string;
     boardPostId?: string;
+    communityPostId?: string;
+    postCommentId?: string;
     label?: string;
     context?: string;
   }>();
@@ -116,6 +119,14 @@ export default function ReportScreen() {
   const boardPostId =
     typeof params.boardPostId === "string" && params.boardPostId
       ? params.boardPostId
+      : null;
+  const communityPostId =
+    typeof params.communityPostId === "string" && params.communityPostId
+      ? params.communityPostId
+      : null;
+  const postCommentId =
+    typeof params.postCommentId === "string" && params.postCommentId
+      ? params.postCommentId
       : null;
   const label =
     typeof params.label === "string" && params.label.trim()
@@ -175,16 +186,17 @@ export default function ReportScreen() {
     }
   }
 
-  /* Message, then post, then person: the same precedence `reportSubject` in
-     `@/lib/moderation` reads them back with, so the sentence a student sees
-     here and the one a moderator sees later name the same thing. A board post
-     arrives with its author attached, and naming the post is what keeps this
-     from reading as a report about them. A direct message is a message like
-     any other now that 0038 gave it a column. */
+  /* Message, then post, then comment, then person: the same precedence
+     `reportSubject` in `@/lib/moderation` reads them back with, so the
+     sentence a student sees here and the one a moderator sees later name the
+     same thing. A post arrives with its author attached, and naming the post
+     is what keeps this from reading as a report about them. A direct message
+     is a message like any other now that 0038 gave it a column, and 0070 gave
+     community posts and their comments columns of their own. */
   const aboutAMessage =
     Boolean(messageId) ||
     Boolean(dmMessageId) ||
-    (Boolean(context) && !boardPostId);
+    (Boolean(context) && !boardPostId && !communityPostId && !postCommentId);
   const subject = aboutAMessage
     ? label
       ? `a message from ${label}`
@@ -193,13 +205,24 @@ export default function ReportScreen() {
       ? label
         ? `this post (${label})`
         : "this post"
-      : (label ?? "this person");
+      : communityPostId
+        ? label
+          ? `a community post (${label})`
+          : "a community post"
+        : postCommentId
+          ? "a comment"
+          : (label ?? "this person");
   /* The one case where the words still don't travel: a screen quoted a
      message at us without naming which row it was. The reason field has to
      carry it, and the copy below says so rather than letting a student assume
      the message went with it. */
   const wordsDontTravel =
-    Boolean(context) && !messageId && !dmMessageId && !boardPostId;
+    Boolean(context) &&
+    !messageId &&
+    !dmMessageId &&
+    !boardPostId &&
+    !communityPostId &&
+    !postCommentId;
 
   async function handleSubmit() {
     if (!myId || submitting) return;
@@ -239,6 +262,8 @@ export default function ReportScreen() {
         message_id: messageId,
         dm_message_id: dmMessageId,
         board_post_id: boardPostId,
+        community_post_id: communityPostId,
+        post_comment_id: postCommentId,
         reported_user_id: reportedUserId,
         category,
         reason: trimmed,
@@ -279,7 +304,14 @@ export default function ReportScreen() {
   );
 
   /* Nothing to report: pushed without a subject. */
-  if (!messageId && !dmMessageId && !reportedUserParam && !boardPostId) {
+  if (
+    !messageId &&
+    !dmMessageId &&
+    !reportedUserParam &&
+    !boardPostId &&
+    !communityPostId &&
+    !postCommentId
+  ) {
     return (
       <View
         style={{

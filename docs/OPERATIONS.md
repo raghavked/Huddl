@@ -126,8 +126,9 @@ YikYak lesson).
   board post. Eight categories, an optional note, and a rate limit so the
   flow cannot itself be used to harass. A report keeps its subject even if the
   message is later hard-deleted.
-- **The moderation queue** at `/moderation` on both clients, open to anyone
-  with `profiles.is_moderator`. Open / reviewed / dismissed with counts, the
+- **The moderation queue** in the app (the website is marketing plus the
+  email funnel; every product surface, moderation included, lives in the
+  app), open to anyone with `profiles.is_moderator`. Open / reviewed / dismissed with counts, the
   reported content rendered in place, and one tap through to the message, the
   profile, or the board post.
 - **Automatic slur flagging.** A database trigger normalizes every message,

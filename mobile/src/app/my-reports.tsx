@@ -55,12 +55,14 @@ type FiledReport = {
   created_at: string;
   messageId: string | null;
   boardPostId: string | null;
+  communityPostId: string | null;
+  postCommentId: string | null;
   reportedUserId: string | null;
   reported: ReportedPerson | null;
 };
 
 const SELECT =
-  "id, status, category, reason, created_at, message_id, board_post_id, reported_user_id, " +
+  "id, status, category, reason, created_at, message_id, board_post_id, community_post_id, post_comment_id, reported_user_id, " +
   "reported:profiles!reports_reported_user_id_fkey(handle, display_name, is_public)";
 
 /** A student's own pile is small; a hundred is far more than anyone files. */
@@ -127,6 +129,8 @@ function toReport(raw: unknown): FiledReport | null {
     created_at: createdAt,
     messageId: text(row["message_id"]),
     boardPostId: text(row["board_post_id"]),
+    communityPostId: text(row["community_post_id"]),
+    postCommentId: text(row["post_comment_id"]),
     reportedUserId: text(row["reported_user_id"]),
     reported: toPerson(row["reported"]),
   };
@@ -147,7 +151,7 @@ function statusLine(status: ReportStatus): { label: string; accent: boolean } {
   return { label: "Waiting on a moderator", accent: false };
 }
 
-/** "A message", "A board post", "Maya Chen's profile". */
+/** "A message", "A board post", "A community post", "Maya Chen's profile". */
 function subjectLine(report: FiledReport): string {
   const who = report.reported
     ? report.reported.is_public
@@ -159,6 +163,12 @@ function subjectLine(report: FiledReport): string {
   }
   if (report.boardPostId !== null) {
     return who ? `A board post by ${who}` : "A board post";
+  }
+  if (report.communityPostId !== null) {
+    return who ? `A community post by ${who}` : "A community post";
+  }
+  if (report.postCommentId !== null) {
+    return who ? `A comment from ${who}` : "A comment";
   }
   if (who) return `${who}'s profile`;
   if (report.reportedUserId !== null) return "A classmate's profile";

@@ -108,8 +108,9 @@ mailboxes, DNS, and the legal-name blanks.
   notes. Recruit 10-30 UC Davis students; the per-campus playbook in
   `docs/OPERATIONS.md` section 2 starts at "T-minus 2 weeks" and this is
   that moment.
-- [R] **Web + privacy URL**: DONE for the deploy itself. The site is
-  live on Vercel (project `uhearth`, linked to the GitHub repo, so every
+- [R] **Web + privacy URL**: DONE for the deploy itself. The website is
+  the marketing site plus the email funnel and legal pages; the product
+  lives entirely in the app. The site is live on Vercel (project `uhearth`, linked to the GitHub repo, so every
   push to `main` redeploys): `https://uhearth-raghav14.vercel.app`, with
   the Supabase env carried by `vercel.json`. Still yours to do: point
   `uhearth.app` DNS at the Vercel project (Vercel dashboard > uhearth >

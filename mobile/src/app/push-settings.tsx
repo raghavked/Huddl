@@ -87,7 +87,7 @@ const PUSH_KINDS: {
     kind: "thread_reply",
     icon: "corner-down-right",
     label: "Thread replies",
-    caption: "Replies in threads you're part of.",
+    caption: "Replies in threads you're part of, and comments on your community posts.",
   },
   {
     kind: "thanks",
@@ -136,9 +136,13 @@ const PUSH_KINDS: {
 
 /* Kinds that ride another kind's switch instead of getting their own row.
    A club invitation is club news the same way a club post is, and two
-   switches for one club would ask the student to know our schema. */
+   switches for one club would ask the student to know our schema. A comment
+   on your community post is a reply to something you wrote, exactly what
+   the thread-replies switch already means, so 'post_comment' rides it
+   rather than earning an eleventh row. */
 const RIDES_WITH: Partial<Record<PushKind, readonly string[]>> = {
   club_post: ["club_invite"],
+  thread_reply: ["post_comment"],
 };
 
 /* ---------------------------- quiet hours ---------------------------- */

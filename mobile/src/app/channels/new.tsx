@@ -1,5 +1,5 @@
 import Feather from "@expo/vector-icons/Feather";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -50,6 +50,15 @@ export default function NewChannelScreen() {
   const insets = useSafeAreaInsets();
   const { session, ready } = useAuth();
   const userId = session?.user.id ?? null;
+
+  /* A community can preset itself here: the room is created wearing its
+     `community_id` and lands in that community's Rooms list. RLS requires
+     the creator to be a member, which the community screen already is. */
+  const params = useLocalSearchParams<{ communityId?: string }>();
+  const communityId =
+    typeof params.communityId === "string" && params.communityId.trim().length > 0
+      ? params.communityId.trim()
+      : null;
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -107,6 +116,7 @@ export default function NewChannelScreen() {
             slug: slugAttempt,
             description: trimmedDescription || null,
             created_by: userId,
+            community_id: communityId,
           })
           .select("id")
           .single();
@@ -144,7 +154,7 @@ export default function NewChannelScreen() {
     } finally {
       setCreating(false);
     }
-  }, [userId, creating, name, description]);
+  }, [userId, creating, name, description, communityId]);
 
   // Deep links land here directly, so a signed-out visitor gets a proper door.
   if (ready && !session) {

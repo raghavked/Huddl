@@ -56,6 +56,8 @@ const KIND_ICONS: Partial<Record<string, keyof typeof Feather.glyphMap>> = {
   thanks: "heart",
   // A friend request or an accepted one; its link walks to /u/<handle>.
   friend: "user-plus",
+  // A comment on your community post; its link walks to the post itself.
+  post_comment: "message-circle",
   system: "bell",
 };
 

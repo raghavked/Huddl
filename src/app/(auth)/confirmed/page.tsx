@@ -40,21 +40,6 @@ export default function ConfirmedPage() {
         </p>
       </div>
 
-      <div className="mt-4 rounded-xl border border-border px-4 py-4 text-left">
-        <p className="text-sm font-semibold">Signed up here in the browser?</p>
-        <p className="mt-1.5 text-sm text-muted text-pretty">
-          You&apos;re already logged in on this device. Keep going and set up
-          your profile.
-        </p>
-        <Link
-          href="/onboarding"
-          className={buttonClasses({ size: "md", className: "mt-3" })}
-        >
-          Continue in the browser
-          <ArrowRight className="size-4" aria-hidden />
-        </Link>
-      </div>
-
       <div className="mt-6 border-t border-border pt-4 text-sm text-muted">
         <p>
           Curious what Hearth is all about?{" "}

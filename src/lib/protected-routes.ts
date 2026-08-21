@@ -1,42 +1,12 @@
 /**
- * The signed-in surface, as one list.
- *
- * Three separate places need to agree on which routes are private, and until
- * now each kept its own copy: the middleware (which redirects to login and
- * carries `?next=` so the student lands where they were going), the robots
- * file (which keeps crawlers off the app), and `app/(app)/layout.tsx` (which
- * redirects too, but bare). They drifted, in the way three hand-maintained
- * copies of one list always do. Eight routes added since launch were in the
- * app and in none of the copies, so a link to a board post survived login by
- * dumping the student on /home, and the same eight paths were left crawlable.
- *
- * A route is private if it lives under `app/(app)`. Adding a new one means
- * adding one line here and nowhere else.
+ * The signed-in surface, as one list. Since the website slimmed down to
+ * marketing plus the email funnel, the product lives entirely in the app
+ * and this list is empty. It stays as the single place a private route
+ * would be declared if the website ever grows one again: middleware,
+ * robots, and the sitemap all read from here, so a future addition is one
+ * line in one file rather than three copies drifting apart.
  */
-export const PROTECTED_PREFIXES = [
-  "/home",
-  "/channels",
-  "/messages",
-  "/events",
-  "/people",
-  "/clubs",
-  "/courses",
-  "/board",
-  "/friends",
-  "/saved",
-  "/focus",
-  "/plan",
-  "/semester",
-  "/calendar",
-  "/decks",
-  "/moderation",
-  "/setup",
-  "/notifications",
-  "/settings",
-  "/onboarding",
-  "/help",
-  "/u",
-] as const;
+export const PROTECTED_PREFIXES = [] as const;
 
 /**
  * True when this path sits behind the sign-in wall.

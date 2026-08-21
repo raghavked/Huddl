@@ -47,6 +47,18 @@ export function routeForLink(link: string | null): Href | null {
   const standalone = STANDALONE[path];
   if (standalone) return standalone;
 
+  // The post-comment trigger writes `/communities/<id>/posts/<post id>`,
+  // and the post screen wants both halves; a bare community link opens the
+  // community itself.
+  const community = /^\/communities\/([^/]+)(?:\/posts\/([^/]+))?$/.exec(path);
+  if (community?.[1]) {
+    const communityId = community[1];
+    const postId = community[2];
+    return postId
+      ? { pathname: "/communities/post", params: { communityId, postId } }
+      : `/communities/${communityId}`;
+  }
+
   const match = /^\/(messages|events|courses|channels|clubs|u)\/([^/]+)/.exec(
     path
   );

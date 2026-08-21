@@ -35,6 +35,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useUnreadNotifications } from "@/hooks/use-unread";
 import { fetchBlockedIds } from "@/lib/blocks";
 import { categoryInfo, fetchBoard, type BoardPost } from "@/lib/board";
+import { membersLabel } from "@/lib/communities";
 import { roomTitle } from "@/lib/room-identity";
 import { buildPlan, toPlanKind, type PlanItem } from "@/lib/study-plan";
 import { supabase } from "@/lib/supabase";
@@ -44,6 +45,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** How many open board posts the front door previews before "See all". */
 const BOARD_PREVIEW = 3;
+
+/** How many communities the front door previews before "See all". */
+const COMMUNITIES_PREVIEW = 3;
 
 /* ---- local row types (mirror the web home's query shapes) ---- */
 
@@ -72,6 +76,9 @@ type MessagePreview = {
   author_id: string;
   author: { display_name: string } | null;
 };
+
+/** A community as the front door previews one: a name and a headcount. */
+type CommunityPreview = { id: string; name: string; memberCount: number };
 
 /** My membership extras per channel. The campus rows' unread dots hang off
     these (latest preview newer than my last_read_at, not mine, not muted). */
@@ -124,10 +131,13 @@ type HomeData = {
   memberMeta: Record<string, MemberMeta>;
   plan: PlanSummary;
   today: TodaySummary;
-  /** The newest open board posts, or null when the board didn't load. This is
-      the only piece of Home allowed to come back missing instead of failing
-      the screen. */
+  /** The newest open board posts, or null when the board didn't load. Like
+      the communities below, it may come back missing instead of failing the
+      screen. */
   board: BoardPost[] | null;
+  /** The newest communities, or null when they didn't load. Same bargain as
+      the board: a doorway that didn't open is no reason to bar the door. */
+  communities: CommunityPreview[] | null;
   /** Everyone I've blocked. It travels with the rest of the data because
       hiding their content is the client's job (see `lib/blocks`), and the
       previews were fetched against this exact set. Keeping the two apart is
@@ -153,6 +163,7 @@ type ListRow =
   | { type: "courses"; key: string; left: CourseCell; right: CourseCell | null }
   | { type: "event"; key: string; event: EventRow }
   | { type: "board"; key: string; posts: BoardPost[] }
+  | { type: "communities"; key: string; communities: CommunityPreview[] }
   | {
       type: "empty";
       key: string;
@@ -697,6 +708,75 @@ function BoardCard({ posts }: { posts: BoardPost[] }) {
 }
 
 /**
+ * The communities' front door, drawn the way the board's is: the newest few
+ * spaces, each a name and a headcount, or one warm line when nobody has
+ * started one. The whole card is the tap target, a doorway to the list.
+ */
+function CommunitiesCard({
+  communities,
+}: {
+  communities: CommunityPreview[];
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Communities"
+      onPress={() => router.push("/communities")}
+      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+    >
+      <Card padded={false} style={{ minHeight: 64 }}>
+        {communities.length === 0 ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space.room,
+              paddingHorizontal: space.card,
+              paddingVertical: space.close,
+              minHeight: 64,
+            }}
+          >
+            <Feather name="globe" size={15} color={theme.brand} />
+            <AppText variant="caption" muted style={{ flex: 1 }}>
+              No communities yet. Start the first one.
+            </AppText>
+          </View>
+        ) : (
+          communities.map((community, index) => (
+            <View
+              key={community.id}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space.room,
+                paddingHorizontal: space.card,
+                paddingVertical: space.room,
+                minHeight: 48,
+                borderTopWidth: index === 0 ? 0 : 1,
+                borderTopColor: theme.border,
+              }}
+            >
+              <Feather name="globe" size={15} color={theme.brand} />
+              <AppText
+                variant="bodyMedium"
+                numberOfLines={1}
+                style={{ flex: 1 }}
+              >
+                {community.name}
+              </AppText>
+              <AppText variant="caption" muted>
+                {membersLabel(community.memberCount)}
+              </AppText>
+            </View>
+          ))
+        )}
+      </Card>
+    </Pressable>
+  );
+}
+
+/**
  * The newest readable message in each of these channels, keyed by channel id.
  *
  * One tiny indexed lookup per channel, all in flight together: the same shape
@@ -879,7 +959,7 @@ export default function HomeScreen() {
     // but a board that didn't load is no reason for the front door not to
     // open, so it resolves to null and the card simply isn't drawn. RLS scopes
     // the read to this campus, which is why there's no university to pass.
-    const [eventsRes, board] = await Promise.all([
+    const [eventsRes, board, communitiesRes] = await Promise.all([
       supabase
         .from("events")
         .select("id, kind, title, location, starts_at, ends_at")
@@ -890,9 +970,31 @@ export default function HomeScreen() {
       fetchBoard({ limit: BOARD_PREVIEW }).catch(
         (): BoardPost[] | null => null
       ),
+      // Communities make the same bargain the board does: campus-scoped by
+      // RLS, and a failed fetch costs the card, never the front door.
+      supabase
+        .from("communities")
+        .select("id, name, community_members(count)")
+        .order("created_at", { ascending: false })
+        .limit(COMMUNITIES_PREVIEW),
     ]);
     if (eventsRes.error) throw eventsRes.error;
     const events = (eventsRes.data ?? []) as unknown as EventRow[];
+
+    // `community_members(count)` arrives as [{ count }] beside each row.
+    const communities: CommunityPreview[] | null = communitiesRes.error
+      ? null
+      : (
+          (communitiesRes.data ?? []) as unknown as {
+            id: string;
+            name: string;
+            community_members: { count: number }[];
+          }[]
+        ).map((row) => ({
+          id: row.id,
+          name: row.name,
+          memberCount: row.community_members?.[0]?.count ?? 0,
+        }));
 
     // The plan card's week: class-calendar items from 7 days back (missed
     // deadlines still count) through 7 days ahead, scored against my
@@ -989,6 +1091,7 @@ export default function HomeScreen() {
       plan,
       today,
       board,
+      communities,
       blocked,
     };
   }, [userId]);
@@ -1206,8 +1309,23 @@ export default function HomeScreen() {
       }
     }
 
-    // Last on the page, because the board is somewhere you browse rather than
-    // something waiting on you. A board that didn't load draws nothing at all.
+    // Communities sit with the board at the bottom of the page: both are
+    // places you browse rather than things waiting on you, at the same
+    // prominence. A card that didn't load draws nothing at all.
+    if (data.communities !== null) {
+      out.push({
+        type: "label",
+        key: "label-communities",
+        text: "Communities",
+        action: { label: "See all", onPress: () => router.push("/communities") },
+      });
+      out.push({
+        type: "communities",
+        key: "communities",
+        communities: data.communities,
+      });
+    }
+
     if (data.board !== null) {
       out.push({
         type: "label",
@@ -1276,6 +1394,12 @@ export default function HomeScreen() {
         return (
           <View style={{ marginBottom: space.close }}>
             <BoardCard posts={item.posts} />
+          </View>
+        );
+      case "communities":
+        return (
+          <View style={{ marginBottom: space.close }}>
+            <CommunitiesCard communities={item.communities} />
           </View>
         );
       case "empty":

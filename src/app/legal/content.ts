@@ -167,7 +167,7 @@ export const COMMUNITY_GUIDELINES: LegalDoc = {
   sections: [
     {
       heading: "Why these exist",
-      body: "Hearth is your campus, the same people you sit next to in lecture. These guidelines keep it a place worth showing up to, and they apply everywhere on Hearth: course chats, campus channels, clubs, events, direct messages, notes, and profiles.",
+      body: "Hearth is your campus, the same people you sit next to in lecture. These guidelines keep it a place worth showing up to, and they apply everywhere on Hearth: course chats, campus channels, communities and their feeds, clubs, events, direct messages, notes, and profiles.",
     },
     {
       heading: "Be a good classmate",
