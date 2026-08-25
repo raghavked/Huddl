@@ -2,13 +2,21 @@ import { ImageResponse } from "next/og";
 
 /* Social share card. ImageResponse renders outside the app's CSS, so token
    classes don't exist here. That makes this file the one sanctioned home for
-   raw hex (brand violet #b5502f → raspberry #d97742, the v2 gradient). The
-   mark geometry is copied verbatim from src/components/logo.tsx; keep them in
-   sync if the logo ever changes. */
+   raw hex (flat ember #b5502f; the old v2 gradient is retired with the rest
+   of them). The mark geometry is copied verbatim from
+   src/components/logo.tsx; keep them in sync if the logo ever changes. */
 
 export const alt = "Hearth · Your campus, gathered.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+
+/* The ember bubble in its chosen colorway: white even-odd path on the ember
+   ground, so the flame reads as a window of ember inside a white bubble
+   with a white core. */
+const MARK_PATH =
+  "M9 4h14a6 6 0 0 1 6 6v6a6 6 0 0 1-6 6h-8.5l-5.6 5.1c-.9.8-2.2.1-2.2-1V22H9a6 6 0 0 1-6-6v-6a6 6 0 0 1 6-6z " +
+  "M16 8c2.8 2.2 4.9 4.7 4.9 7.4a4.9 4.9 0 0 1-9.8 0C11.1 12.7 13.2 10.2 16 8z " +
+  "M16 12.6c1.3 1.2 2.3 2.4 2.3 3.7a2.3 2.3 0 0 1-4.6 0c0-1.3 1-2.5 2.3-3.7z";
 
 export default function OpengraphImage() {
   return new ImageResponse(
@@ -21,27 +29,15 @@ export default function OpengraphImage() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #b5502f 0%, #d97742 100%)",
+          background: "#b5502f",
           color: "#ffffff",
           fontFamily:
             'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 36 }}>
-          {/* The hearth mark: four rounded students leaning together */}
           <svg width={150} height={150} viewBox="0 0 32 32" aria-hidden>
-            <circle cx="16" cy="7.5" r="4.1" fill="#ffffff" />
-            <circle cx="7" cy="14.5" r="3.4" fill="rgba(255, 255, 255, 0.75)" />
-            <circle
-              cx="25"
-              cy="14.5"
-              r="3.4"
-              fill="rgba(255, 255, 255, 0.75)"
-            />
-            <path
-              d="M16 13.5c-5.6 0-9.5 3.6-9.5 9.2 0 2.6 1.9 4.3 4.6 4.3h9.8c2.7 0 4.6-1.7 4.6-4.3 0-5.6-3.9-9.2-9.5-9.2z"
-              fill="#ffffff"
-            />
+            <path d={MARK_PATH} fill="#ffffff" fillRule="evenodd" />
           </svg>
           <div
             style={{

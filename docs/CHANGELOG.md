@@ -1,5 +1,22 @@
 # Hearth development log
 
+## Round 28: the ember bubble takes the crest
+
+The logo decision landed: direction 03 from the brand canvas, in the
+colorway where everything comes from one even-odd path. On the ember
+app-icon square the mark fills white, so the bubble renders white, the
+flame inside it becomes a window showing the ember through, and the
+flame's core comes back white. One artwork, four layers of story.
+
+Swapped everywhere in one round: the web mark and wordmark component,
+the social share card (which was still carrying a v2-era gradient and
+a mark two generations old), the PWA icons, the website favicon, and
+all six mobile assets: the App Store icon, Android's adaptive
+foreground and monochrome, the notification tray icon, the in-app
+favicon, and the splash mark, which burns ember on the cream splash
+screen. BRAND.md now tells the ember bubble's story, and the old
+three-heads mark retires into git history with its lessons recorded.
+
 ## Round 27: The Quad learns to feel like a place
 
 A design pass over the feed surfaces, aimed at homely. A community

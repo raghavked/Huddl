@@ -77,22 +77,25 @@ notes anyway. Specifically:
 
 ## 3. Logo
 
-The mark is **three heads leaning together inside a speech bubble**.
+The mark is **the ember bubble**: a speech bubble with a flame burning inside
+it, and a lit core inside the flame. Chosen as direction 03 on the brand
+canvas, it kept the bubble silhouette from the earlier three-heads mark and
+traded the heads for one flame.
 
-The bubble is the category: this is a place where people talk, and an icon on a
-home screen has about a tenth of a second to say so. The three heads inside are
-the gathering. The middle one sits a little larger and a little higher, the way
-the person leaning furthest in always is. They're *cut out* of the bubble rather
-than drawn on top of it, so the entire mark is one path in one color, drawn in
-`currentColor`. That's what lets it sit on an ember tile, in a cream nav bar,
-and in a monochrome Android notification tray without a second artwork existing
-anywhere.
+The bubble is the category: this is a place where people talk, and an icon on
+a home screen has about a tenth of a second to say so. The flame is the name:
+the fire people actually gather around. Flame and core are *cut out* of the
+bubble rather than drawn on top of it, so the entire mark is one even-odd
+path in one color, drawn in `currentColor`. That's what makes the chosen
+colorway need no second artwork: filled white on the ember tile, the bubble
+renders white, the flame becomes a window showing the ember through it, and
+the core comes back white. The same path filled ember on cream gives the
+inverse, and it survives a monochrome Android notification tray untouched.
 
-Two arrangements were tried and rejected; they're recorded here so nobody
-re-discovers them. Heads evenly spaced around a **closed** ring always resolve
-into a flower: five petals, or a four-leaf clover at four. And **two heads
-above one below** reads as a face (two eyes and an open mouth) at any size over
-about 40 px.
+The earlier three-heads-in-a-bubble mark served from the first brand pass
+until this decision; its rejected arrangements (heads on a closed ring
+resolve into a flower; two heads above one reads as a face) stay recorded in
+the git history should heads ever return.
 
 | Usage | Rule |
 | --- | --- |
