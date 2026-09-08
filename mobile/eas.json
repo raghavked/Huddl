@@ -6,7 +6,12 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://eeriyaokbknxduztnawr.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_R0tZdPnlSnLMSIiyN9MACw_C9MCZYlo",
+        "EXPO_PUBLIC_WEB_URL": "https://uhearth.app"
+      }
     },
     "preview": {
       "distribution": "internal",
@@ -15,12 +20,22 @@
       },
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://eeriyaokbknxduztnawr.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_R0tZdPnlSnLMSIiyN9MACw_C9MCZYlo",
+        "EXPO_PUBLIC_WEB_URL": "https://uhearth.app"
       }
     },
     "production": {
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://eeriyaokbknxduztnawr.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_R0tZdPnlSnLMSIiyN9MACw_C9MCZYlo",
+        "EXPO_PUBLIC_WEB_URL": "https://uhearth.app"
       }
     }
   },
