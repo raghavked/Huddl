@@ -6,15 +6,16 @@ cannot drift apart; the copy is the app's voice, and the reset email reuses
 the exact sentence the web reset screen shows ("Reset links work once, and
 they don't stay good for long"), so the email and the screen agree.
 
-All four link to the website's visible confirmation page,
-`{{ .SiteURL }}/confirm?token_hash={{ .TokenHash }}&type=...`, rather than
-to `{{ .ConfirmationURL }}`. The difference matters: the old link spent the
+All four link to the website's visible confirmation page with a hardcoded
+origin, `https://uhearth.app/confirm?token_hash={{ .TokenHash }}&type=...`,
+rather than to `{{ .ConfirmationURL }}` or `{{ .SiteURL }}`. The difference matters: the old link spent the
 one-time token the instant anything fetched it, and inbox link scanners
 fetch everything, so students saw "expired" on links they never touched.
 The page shows what is about to happen and only its button spends the
 token. The `type` per template: `email` (signup and magic link),
-`recovery` (reset), `email_change` (change email). Site URL in the
-Supabase dashboard must be `https://uhearth.app` or the links go nowhere.
+`recovery` (reset), `email_change` (change email). The origin is spelled
+out on purpose: the links no longer depend on the dashboard's Site URL
+setting, so nothing in the dashboard can quietly point them elsewhere.
 The change-email template also prints `{{ .Email }}`, the address the
 account is moving from.
 

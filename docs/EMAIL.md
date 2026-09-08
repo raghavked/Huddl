@@ -67,9 +67,10 @@ Authentication → **URL Configuration**:
 
 - **Site URL**: `https://uhearth.app`
 - **Redirect URLs**: add `https://uhearth.app/**` and `hearth://` for the
-  native app. The templates now build their links from the Site URL
-  (`{{ .SiteURL }}/confirm?token_hash=...`), so the Site URL is the one
-  that decides where every email lands.
+  native app. The templates hardcode `https://uhearth.app/confirm?...` as
+  their link, so the dashboard's Site URL no longer decides where an
+  email lands; keep it set to `https://uhearth.app` anyway for the
+  redirect allowlist.
 
 After changing templates in the repo, paste them into the dashboard again
 (Authentication → Emails → Templates); the dashboard copy is the one that
