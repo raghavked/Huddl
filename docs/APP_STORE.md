@@ -10,12 +10,19 @@ checklist.
 - **Subtitle** (30 chars): Your campus, gathered.
 - **Category**: Social Networking (secondary: Education)
 - **Keywords** (100 chars):
-  `college,campus,classes,study,flashcards,notes,grades,focus,student,clubs,rideshare,friends`
+  `college,campus,classes,study,flashcards,notes,grades,focus,student,clubs,friends,davis,aggies,feed`
 
 **Description**:
 
 > Hearth is your whole campus in one app: every class, club, and study
 > session, with the people actually in them.
+>
+> The Quad is your campus feed: one place the whole school reads, where
+> every post wears a real name and a real face. Vote up what matters,
+> comment, save what you'll need later, and start a community for
+> whatever your campus cares about, from gardening to the bike barn,
+> each with its own feed, its own rooms for live talk, and its own
+> stewards. Nothing on Hearth is anonymous, and that is the point.
 >
 > Add your classes in seconds: type a course code and the campus catalog
 > fills in the rest, or add any class by hand. Each course opens into a
