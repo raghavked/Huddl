@@ -100,7 +100,9 @@
       "versionCode": 1,
       "predictiveBackGestureEnabled": false,
       "package": "app.uhearth.mobile",
-      "blockedPermissions": ["android.permission.RECORD_AUDIO"],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -179,6 +181,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bbf5cde7-97e2-4396-98a0-ac428c8eecd8"
+      }
+    },
+    "owner": "raghavkedia"
   }
 }
