@@ -147,6 +147,10 @@ stranger understands with no context, so it earns a slot near the front.
 
 ## Pre-submission checklist
 
+The ordered, click-by-click version of this list (and the Google Play
+equivalent, with the Play assets in `mobile/store/play/`) is
+`docs/STORE_RUNBOOK.md`.
+
 - [ ] Apple Developer Program membership active
 - [ ] `eas build --platform ios --profile production`
 - [ ] `eas submit --platform ios` (uses mobile/eas.json)

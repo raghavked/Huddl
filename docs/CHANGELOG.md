@@ -1,5 +1,29 @@
 # Hearth development log
 
+## Round 29: the address settles, and both store doors get their keys
+
+The legal address is final: Apt 146, changed in the terms and the
+privacy policy on both clients (parity verified) and in the launch plan.
+
+Store readiness for both platforms in one round. `eas.json` now carries
+a complete production story: iOS archive and Android app bundle with
+remote build numbers, an installable APK preview profile, and submit
+targets for App Store Connect and Play's internal track. The Android
+manifest blocks the microphone permission the image picker would
+otherwise request, so Play's data-safety form never asks about audio.
+Google's store assets exist for the first time: the 512 icon, a
+1024x500 feature graphic in the brand, and the ten iPhone screenshots
+re-framed to the 9:16 ratio Play accepts. The Play service-account key
+is gitignored ahead of its arrival.
+
+`docs/STORE_RUNBOOK.md` is the new click-by-click sequence for the
+account holder: Apple enrollment, App ID and Connect record, the EAS
+path and the Xcode archive path side by side, TestFlight, then the
+Google Play personal account (identity verification, the mandatory
+12-tester 14-day closed test, the manual first upload, the service
+account for later submits), and the two Vercel variables that switch on
+deep links for each platform.
+
 ## Round 28: the ember bubble takes the crest
 
 The logo decision landed: direction 03 from the brand canvas, in the

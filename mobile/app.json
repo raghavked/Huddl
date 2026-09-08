@@ -99,6 +99,7 @@
       "versionCode": 1,
       "predictiveBackGestureEnabled": false,
       "package": "app.uhearth.mobile",
+      "blockedPermissions": ["android.permission.RECORD_AUDIO"],
       "intentFilters": [
         {
           "action": "VIEW",

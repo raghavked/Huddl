@@ -10,6 +10,15 @@ the store copy, the screenshots, and the App Review sandbox are DONE. What
 remains is almost entirely account plumbing: Apple enrollment, EAS setup,
 mailboxes, DNS, and the legal-name blanks.
 
+> **2026-09-08 update.** The click-by-click sequence for both stores now
+> lives in `docs/STORE_RUNBOOK.md`: Apple enrollment, the App Store
+> Connect record, EAS or Xcode upload, TestFlight; and the Google Play
+> personal developer account (identity verification, the mandatory
+> 12-tester / 14-day closed test, Play assets, the manual first upload,
+> service-account submits). The Android track was not in the original
+> three-week plan; the runbook adds it without changing the iOS dates.
+> The legal address is final: 625 Cantrill Dr, Apt 146.
+
 ## Already done (no action needed)
 
 - App config is store-ready: bundle id `app.uhearth.mobile`, version
@@ -40,7 +49,7 @@ mailboxes, DNS, and the legal-name blanks.
   name on the store page; the sole-proprietor decision is recorded in
   `docs/COMPLIANCE.md`.)
 - ~~Fill the legal blanks~~ **DONE 2026-08-16**: the legal documents now
-  name Raghav Kedia, doing business as Hearth, 625 Cantrill Dr, Apt 345,
+  name Raghav Kedia, doing business as Hearth, 625 Cantrill Dr, Apt 146,
   Davis, CA 95618, governed by California law with venue in Yolo County.
   Both files, parity-verified.
 - [R] **Mailboxes**: `hello@uhearth.app` and `dmca@uhearth.app` must
@@ -157,11 +166,16 @@ Everything below blocks SUBMISSION (not development), and every one is
 [R]:
 
 1. Apple Developer enrollment approved
-2. ~~Legal name/address blanks filled~~ DONE 2026-08-16
+2. ~~Legal name/address blanks filled~~ DONE 2026-08-16 (Apt 146 as of
+   2026-09-08)
 3. `hello@` and `dmca@` mailboxes receiving
 4. Privacy policy URL live (web deployed + DNS)
 5. EAS build submitted to App Store Connect
 6. Listing + App Privacy + screenshots entered in Connect
+
+Google Play has its own list, in `docs/STORE_RUNBOOK.md` Part 2: account
+verified, app record + declarations, first manual `.aab` upload, 12
+opted-in closed testers for 14 days, production access granted.
 
 ## Standing cautions
 
