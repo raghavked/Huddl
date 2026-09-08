@@ -6,9 +6,17 @@ cannot drift apart; the copy is the app's voice, and the reset email reuses
 the exact sentence the web reset screen shows ("Reset links work once, and
 they don't stay good for long"), so the email and the screen agree.
 
-All four hang everything off `{{ .ConfirmationURL }}` because both clients
-use link-based flows, not one-time codes. The change-email template also
-prints `{{ .Email }}`, the address the account is moving from.
+All four link to the website's visible confirmation page,
+`{{ .SiteURL }}/confirm?token_hash={{ .TokenHash }}&type=...`, rather than
+to `{{ .ConfirmationURL }}`. The difference matters: the old link spent the
+one-time token the instant anything fetched it, and inbox link scanners
+fetch everything, so students saw "expired" on links they never touched.
+The page shows what is about to happen and only its button spends the
+token. The `type` per template: `email` (signup and magic link),
+`recovery` (reset), `email_change` (change email). Site URL in the
+Supabase dashboard must be `https://uhearth.app` or the links go nowhere.
+The change-email template also prints `{{ .Email }}`, the address the
+account is moving from.
 
 ## Where each one goes
 

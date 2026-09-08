@@ -4,10 +4,13 @@ import { safeNextPath } from "@/lib/safe-next";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 /**
- * Email-confirmation landing. Supabase confirmation emails link here either with
- * `token_hash` + `type` (OTP verification) or with `code` (PKCE flow, the
- * default for hosted Supabase auth). Either path signs the student in (sets the
+ * Where the one-time token gets spent. Auth emails link to the visible
+ * /confirm page, whose button carries `token_hash` + `type` here (OTP
+ * verification); the older `code` form (PKCE flow) is still accepted for
+ * links already in inboxes. Either path signs the student in (sets the
  * session cookies); where they land afterwards is the interesting part.
+ * A failed signup link bounces back to /confirm with `?error=` so the dead
+ * end explains itself there.
  *
  * A brand-new account goes to /confirmed, which tells an app signup to head
  * back to the app and hands a web signup (now holding fresh session cookies)
@@ -46,11 +49,11 @@ export async function GET(request: Request) {
           "/forgot-password",
           "That reset link has expired or was already used. Enter your email and we'll send a fresh one."
         )
-      : bounceWithError("/login", message);
+      : bounceWithError("/confirm", message);
 
   if (!isSupabaseConfigured() || (!code && (!tokenHash || !type))) {
     return linkFailed(
-      "That confirmation link is invalid. Try logging in, or sign up again to get a new one."
+      "That confirmation link is missing a piece. Sign up again to get a fresh one."
     );
   }
 
@@ -63,7 +66,7 @@ export async function GET(request: Request) {
 
   if (error) {
     return linkFailed(
-      "That confirmation link has expired or was already used. Log in with your email and password to request a fresh one."
+      "That confirmation link has expired or was already used. Sign up again to get a fresh one, or if you already confirmed, just log in inside the app."
     );
   }
 

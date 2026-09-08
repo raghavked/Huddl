@@ -40,12 +40,16 @@ export default function ConfirmedPage() {
         </p>
       </div>
 
-      <div className="mt-6 border-t border-border pt-4 text-sm text-muted">
-        <p>
-          Curious what Hearth is all about?{" "}
-          <Link href="/" className="font-semibold text-brand hover:underline">
-            Take the tour
-          </Link>
+      <div className="mt-6 flex flex-col items-center gap-3 border-t border-border pt-5">
+        <Link
+          href="/"
+          className={buttonClasses({ variant: "secondary", size: "md" })}
+        >
+          <ArrowRight className="size-4" aria-hidden />
+          Back to uhearth.app
+        </Link>
+        <p className="text-xs text-muted">
+          Curious what Hearth is all about? The tour is on the front page.
         </p>
       </div>
     </Card>

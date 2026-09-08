@@ -66,8 +66,14 @@ Subjects worth setting while you're there:
 Authentication → **URL Configuration**:
 
 - **Site URL**: `https://uhearth.app`
-- **Redirect URLs**: add `https://uhearth.app/auth/confirm`,
-  `https://uhearth.app/reset-password`, and `hearth://` for the native app.
+- **Redirect URLs**: add `https://uhearth.app/**` and `hearth://` for the
+  native app. The templates now build their links from the Site URL
+  (`{{ .SiteURL }}/confirm?token_hash=...`), so the Site URL is the one
+  that decides where every email lands.
+
+After changing templates in the repo, paste them into the dashboard again
+(Authentication → Emails → Templates); the dashboard copy is the one that
+sends.
 
 These currently reflect the old domain or the Supabase default. Every link in
 every auth email is built from them, so the emails above go to the wrong

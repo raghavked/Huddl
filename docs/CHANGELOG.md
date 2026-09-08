@@ -1,5 +1,20 @@
 # Hearth development log
 
+## Round 30: the confirmation link gets a page of its own
+
+Auth emails linked straight at the route that spends the one-time token,
+and anything that fetched the link spent it: inbox link scanners and
+preview bots did exactly that, so students met "expired or already used"
+on links they had never tapped. The emails now land on `/confirm`, a
+visible page that says what is about to happen (confirm, reset, sign
+in, or change email, each in its own words) and waits for a real press.
+Only its button carries the token on, as a plain anchor so nothing
+prefetches it. Missing or used-up links explain themselves on the same
+page with a fresh-start button, and the confirmed page grew a proper
+"Back to uhearth.app" button. All four Supabase templates were rewritten
+to the new link (they need pasting into the dashboard again), and the
+page's query parsing is pure and tested.
+
 ## Round 29: the address settles, and both store doors get their keys
 
 The legal address is final: Apt 146, changed in the terms and the
