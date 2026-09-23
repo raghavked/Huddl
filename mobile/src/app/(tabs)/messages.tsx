@@ -388,7 +388,7 @@ export default function MessagesScreen() {
       supabase
         .from("dm_participants")
         .select(
-          "thread_id, user_id, profile:profiles(id, handle, display_name, avatar_url)"
+          "thread_id, user_id, profile:profiles!dm_participants_user_id_fkey(id, handle, display_name, avatar_url)"
         )
         .in("thread_id", threadIds),
       Promise.all(

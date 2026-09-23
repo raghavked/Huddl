@@ -339,7 +339,7 @@ export default function EventDetailScreen() {
         .from("events")
         .select(
           "id, kind, title, description, location, starts_at, ends_at, capacity, creator_id, " +
-            "creator:profiles(id, handle, display_name, avatar_url, is_public)"
+            "creator:profiles!events_creator_id_fkey(id, handle, display_name, avatar_url, is_public)"
         )
         .eq("id", eventId)
         .maybeSingle(),
@@ -348,7 +348,7 @@ export default function EventDetailScreen() {
       supabase
         .from("event_rsvps")
         .select(
-          "user_id, status, profile:profiles(id, handle, display_name, avatar_url, is_public)"
+          "user_id, status, profile:profiles!event_rsvps_user_id_fkey(id, handle, display_name, avatar_url, is_public)"
         )
         .eq("event_id", eventId),
     ]);

@@ -36,7 +36,7 @@ type LinkRow = {
 };
 
 const LINK_SELECT =
-  "id, kind, title, url, added_by, created_at, author:profiles(display_name)";
+  "id, kind, title, url, added_by, created_at, author:profiles!course_links_added_by_fkey(display_name)";
 
 const KINDS: LinkKind[] = [
   "syllabus",

@@ -188,7 +188,7 @@ export default function DeckHomeScreen() {
       supabase
         .from("decks")
         .select(
-          "id, course_id, created_by, title, source_note_id, creator:profiles(display_name), course:courses(code)"
+          "id, course_id, created_by, title, source_note_id, creator:profiles!decks_created_by_fkey(display_name), course:courses(code)"
         )
         .eq("id", deckId)
         .maybeSingle(),

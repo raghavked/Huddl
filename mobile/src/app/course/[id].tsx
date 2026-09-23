@@ -566,7 +566,7 @@ export default function CourseHubScreen() {
           supabase
             .from("enrollments")
             .select(
-              "id, user_id, role, catalog_course_id, color, profile:profiles(id, handle, display_name, avatar_url, major, is_public)"
+              "id, user_id, role, catalog_course_id, color, profile:profiles!enrollments_user_id_fkey(id, handle, display_name, avatar_url, major, is_public)"
             )
             .eq("course_id", courseId),
           supabase
@@ -590,7 +590,7 @@ export default function CourseHubScreen() {
           supabase
             .from("community_posts")
             .select(
-              "id, community_id, title, score, comment_count, community:communities(id, name), author:profiles(id, handle, display_name, avatar_url, is_public)"
+              "id, community_id, title, score, comment_count, community:communities(id, name), author:profiles!community_posts_author_id_fkey(id, handle, display_name, avatar_url, is_public)"
             )
             .eq("course_id", courseId)
             .is("deleted_at", null)

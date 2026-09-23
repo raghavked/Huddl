@@ -380,7 +380,7 @@ export default function ClubHomeScreen() {
           supabase
             .from("club_members")
             .select(
-              "user_id, role, joined_at, profile:profiles(id, handle, display_name, avatar_url, major, is_public)"
+              "user_id, role, joined_at, profile:profiles!club_members_user_id_fkey(id, handle, display_name, avatar_url, major, is_public)"
             )
             .eq("club_id", clubId),
           supabase

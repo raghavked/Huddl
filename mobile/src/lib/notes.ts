@@ -83,7 +83,7 @@ export type CourseTag = {
 };
 
 const NOTE_SELECT =
-  "id, course_id, uploader_id, title, description, storage_path, file_name, file_size, mime_type, tags, created_at, uploader:profiles(id, display_name, avatar_url)";
+  "id, course_id, uploader_id, title, description, storage_path, file_name, file_size, mime_type, tags, created_at, uploader:profiles!notes_uploader_id_fkey(id, display_name, avatar_url)";
 
 /** Warm, user-facing failures, safe to show as-is. */
 export class NotesError extends Error {}

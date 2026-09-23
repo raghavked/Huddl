@@ -93,7 +93,7 @@ export const ANNOUNCEMENTS_MAX = 100;
 
 /** Columns every announcement query selects. Keep selects consistent. */
 export const ANNOUNCEMENT_SELECT =
-  "id, club_id, author_id, title, body, created_at, author:profiles(id, display_name, avatar_url)";
+  "id, club_id, author_id, title, body, created_at, author:profiles!club_announcements_author_id_fkey(id, display_name, avatar_url)";
 
 /* ----------------------------- failures ----------------------------- */
 

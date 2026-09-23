@@ -100,7 +100,7 @@ export const BUDDY_SELECT = "user_id, course_id, note, created_at";
  * along because the list has to strip private profiles itself. See
  * {@link toStudyBuddy}.
  */
-const BUDDY_LIST_SELECT = `${BUDDY_SELECT}, profile:profiles(id, handle, display_name, avatar_url, major, grad_year, is_public)`;
+const BUDDY_LIST_SELECT = `${BUDDY_SELECT}, profile:profiles!study_buddy_optins_user_id_fkey(id, handle, display_name, avatar_url, major, grad_year, is_public)`;
 
 /* ----------------------------- failures ----------------------------- */
 

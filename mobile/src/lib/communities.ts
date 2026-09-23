@@ -450,18 +450,25 @@ function toMember(raw: unknown, myId: string | null): CommunityMember | null {
  * `is_public` rides along everywhere an author does, because stripping a
  * private classmate to their handle is this module's job; see {@link toAuthor}.
  */
-const AUTHOR_EMBED =
-  "author:profiles(id, handle, display_name, avatar_url, is_public)";
+/* Every profiles embed names its foreign key. community_posts points at
+   profiles twice (author_id and pinned_by, since 0071), and a bare embed
+   there is exactly the HTTP 300 that took the feed down on the first
+   TestFlight build; naming the key everywhere means the next such column
+   cannot do it again. src/lib/embed-hints.test.ts enforces the rule. */
+const POST_AUTHOR_EMBED =
+  "author:profiles!community_posts_author_id_fkey(id, handle, display_name, avatar_url, is_public)";
+const COMMENT_AUTHOR_EMBED =
+  "author:profiles!post_comments_author_id_fkey(id, handle, display_name, avatar_url, is_public)";
 
 const COMMUNITY_SELECT =
   "id, university_id, name, slug, description, created_by, created_at, is_default, rules, community_members(count)";
 
-const POST_SELECT = `id, community_id, author_id, title, body, score, comment_count, hidden_at, edited_at, pinned_at, pinned_by, best_comment_id, event_id, course_id, deleted_at, created_at, event:events(id, title, starts_at, location), course:courses(id, code), ${AUTHOR_EMBED}`;
+const POST_SELECT = `id, community_id, author_id, title, body, score, comment_count, hidden_at, edited_at, pinned_at, pinned_by, best_comment_id, event_id, course_id, deleted_at, created_at, event:events(id, title, starts_at, location), course:courses(id, code), ${POST_AUTHOR_EMBED}`;
 
-const COMMENT_SELECT = `id, post_id, author_id, body, deleted_at, created_at, ${AUTHOR_EMBED}`;
+const COMMENT_SELECT = `id, post_id, author_id, body, deleted_at, created_at, ${COMMENT_AUTHOR_EMBED}`;
 
 const MEMBER_SELECT =
-  "user_id, role, joined_at, profile:profiles(id, handle, display_name, avatar_url, is_public)";
+  "user_id, role, joined_at, profile:profiles!community_members_user_id_fkey(id, handle, display_name, avatar_url, is_public)";
 
 /* ═════════════════════════════ identity ══════════════════════════════ */
 

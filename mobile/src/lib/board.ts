@@ -360,7 +360,7 @@ export const BOARD_SELECT =
  * because the board has to strip private profiles itself; see
  * {@link toAuthor}.
  */
-const BOARD_LIST_SELECT = `${BOARD_SELECT}, author:profiles(id, handle, display_name, avatar_url, is_public)`;
+const BOARD_LIST_SELECT = `${BOARD_SELECT}, author:profiles!board_posts_author_id_fkey(id, handle, display_name, avatar_url, is_public)`;
 
 /* ═════════════════════════════ failures ══════════════════════════════ */
 

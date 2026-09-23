@@ -171,11 +171,11 @@ export const AVAILABILITY_TITLE_MAX = 120;
 
 /** Columns every poll query selects, creator included. Keep selects consistent. */
 export const AVAILABILITY_POLL_SELECT =
-  "id, channel_id, creator_id, title, closed_at, event_id, created_at, creator:profiles(id, display_name, handle, avatar_url)";
+  "id, channel_id, creator_id, title, closed_at, event_id, created_at, creator:profiles!availability_polls_creator_id_fkey(id, display_name, handle, avatar_url)";
 
 /** Columns every vote query selects, voter included. */
 export const AVAILABILITY_VOTE_SELECT =
-  "slot_id, user_id, response, created_at, voter:profiles(id, display_name, handle, avatar_url)";
+  "slot_id, user_id, response, created_at, voter:profiles!availability_votes_user_id_fkey(id, display_name, handle, avatar_url)";
 
 /**
  * The whole poll in one request: slots nested under the poll, votes nested

@@ -361,7 +361,7 @@ export async function fetchThreadPeople(
 ): Promise<ThreadPerson[]> {
   const { data, error } = await supabase
     .from("dm_participants")
-    .select("user_id, profile:profiles(id, display_name, handle, avatar_url)")
+    .select("user_id, profile:profiles!dm_participants_user_id_fkey(id, display_name, handle, avatar_url)")
     .eq("thread_id", threadId);
   if (error) {
     throw new GroupDmError("We couldn't load who's in this conversation.");

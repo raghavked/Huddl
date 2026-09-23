@@ -137,7 +137,7 @@ export const FOCUS_SELECT =
  * nothing about `is_public` (migration 0012 leaves the redaction to the app),
  * so if this column isn't asked for, nothing else stops the name going out.
  */
-const STUDYING_NOW_SELECT = `${FOCUS_SELECT}, person:profiles(id, display_name, handle, avatar_url, is_public), course:courses(code)`;
+const STUDYING_NOW_SELECT = `${FOCUS_SELECT}, person:profiles!focus_sessions_user_id_fkey(id, display_name, handle, avatar_url, is_public), course:courses(code)`;
 
 /* ----------------------------- failures ----------------------------- */
 

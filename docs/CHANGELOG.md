@@ -1,5 +1,24 @@
 # Hearth development log
 
+## Round 31: the feed comes back, and every embed learns its name
+
+The first TestFlight build that launched showed an empty Quad with
+"couldn't load the feed." The API logs told the story in one line:
+every request for community posts answered HTTP 300, PostgREST
+refusing to guess between two foreign keys. Migration 0071 gave posts
+a `pinned_by` column pointing at profiles, and the bare
+`author:profiles(...)` embed the feed shipped with became ambiguous
+the moment it landed, the same disease that took down channels on
+the first cable build. Neither the SQL fleets nor the screenshot rig
+sit at the PostgREST layer, so nothing caught it.
+
+The fix is universal rather than local: all nineteen profile embeds
+across the mobile app now name their foreign key, and a root test
+fails the build on any bare `alias:profiles(` anywhere under
+mobile/src, so the next column pointing at profiles is a non-event.
+Also in this round: the redundant `ios.buildNumber` left app.json
+since EAS numbers builds remotely.
+
 ## Round 30: the confirmation link gets a page of its own
 
 Auth emails linked straight at the route that spends the one-time token,

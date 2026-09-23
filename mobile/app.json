@@ -9,7 +9,6 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "app.uhearth.mobile",
-      "buildNumber": "1",
       "supportsTablet": false,
       "associatedDomains": [
         "applinks:uhearth.app"

@@ -338,7 +338,7 @@ const CHANNEL_TARGET_SELECT =
  * side to a single round trip.
  */
 const DM_TARGET_SELECT =
-  "thread_id, user_id, last_read_at, thread:dm_threads(id, is_group, title), profile:profiles(id, display_name, handle, avatar_url)";
+  "thread_id, user_id, last_read_at, thread:dm_threads(id, is_group, title), profile:profiles!dm_participants_user_id_fkey(id, display_name, handle, avatar_url)";
 
 /** A target plus the moment used to rank it, before the two sides merge. */
 type RankedTarget = { target: ForwardTarget; activityAt: number };
