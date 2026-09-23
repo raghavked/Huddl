@@ -459,3 +459,16 @@ Weekly campus review: every campus gets a one-line status (stage, WAU trend,
 messages/DAU, coverage). Any Active campus that misses two weeks in a row gets
 a Loop-2 intervention (events push + notes drive) before we spend a minute on
 the next launch. Density before breadth applies to attention, too.
+
+
+## PostgREST conformance sweep (before every store build)
+
+The SQL fleets test policies below PostgREST and the screenshot rig
+injects fixtures above it, so the one layer nothing exercises is the
+REST contract itself: table and column names, embed relationships, RPC
+names and argument names, storage buckets. Two launch-blocking bugs
+lived exactly there (HTTP 300 on ambiguous profile embeds, twice). Run
+`python3 mobile/scripts/schema-check.py` and execute the printed SQL
+against production; an empty result is a pass, and the script's docstring
+explains the one known false positive. `src/lib/embed-hints.test.ts`
+covers the profiles half of this permanently.
