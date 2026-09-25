@@ -100,7 +100,9 @@ checklist.
   reviewer; `student@demo.uhearth.app`, a classmate (Sam Demo) who has
   posted in the rooms, on The Quad, sent the reviewer a DM, started a
   club, and planned an event, so reporting, blocking, and every
-  interaction has a real target; and `deleteme@demo.uhearth.app`, a
+  interaction has a real target; `maya@demo.uhearth.app`, an ordinary
+  student (Maya Demo) with a class, a club, a friend and a waiting DM; and
+  `deleteme@demo.uhearth.app`, a
   throwaway for the account-deletion check, recreated after each review
   (the seed lives in `docs/APP_REVIEW_REPLY.md`).
 - **Account deletion** (Guideline 5.1.1(v)): Settings → Delete account.

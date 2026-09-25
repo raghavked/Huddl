@@ -7,25 +7,33 @@ Submit for Review again. Written 2026-09-25.
 
 ## Recording shot list (you, on the iPhone, 3 to 4 minutes)
 
-Settings > Control Center > Screen Recording. Record one continuous take
-on the TestFlight build. Order matters: Apple wants registration first.
+Settings > Control Center > Screen Recording. One continuous take on the
+current TestFlight build. Apple wants registration first, then the flow.
+No real inbox is needed: the registration step only has to show the
+sign-up form working, and the rest of the take uses the preloaded
+account.
+
+Accounts (all `HearthReview-2026!`): `maya@demo.uhearth.app` is yours
+for the take (Maya Demo: profile filled in, enrolled in DEMO 101, in the
+Board Games Club, friends with Sam, a DM from Sam waiting, one Quad
+post). `deleteme@demo.uhearth.app` is for the deletion step.
 
 1. Cold-launch Hearth from the home screen.
-2. Sign up with a fresh UC Davis address (a plus alias of your own works,
-   for example `you+review@ucdavis.edu`). Show the "check your inbox" state.
-3. Switch to Mail, open the confirmation email, tap Confirm, show the
-   "You're confirmed" page, switch back to Hearth, log in.
-4. Onboarding: set a display name, pick a community, land on Home.
-5. The Quad: scroll, upvote a post, open it, add a comment.
-6. Open Sam Demo's post menu > Report, pick a reason, submit.
-7. Open Sam's profile > Block. Show the feed and DMs no longer showing them.
+2. Tap Create account, enter `newstudent@demo.uhearth.app` and a
+   password, submit. Show the "check your inbox" screen. (This creates an
+   unconfirmed account on the review campus; harmless.)
+3. Back to Log in. Sign in as Maya. Land on Home.
+4. The Quad: scroll, upvote Sam's post, open it, add a comment.
+5. Sam's post menu > Report > pick a reason > submit.
+6. Open Sam's profile > Block > confirm. Show the feed without Sam.
    Settings > Privacy > Blocked > Unblock.
-8. Rooms: open General, send a message, long-press it to react.
-9. Add a course (DEMO 101), open its chat, open the calendar.
-10. Events tab: RSVP to the review session. Clubs tab: join Board Games Club.
-11. Settings > Privacy > Your data (export). Then Settings > Delete
-    account, confirm, land back on the sign-up screen. That deletes the
-    account created in step 2, so the demo credentials stay intact.
+7. Rooms: open General, send a message, long-press it to react.
+8. Courses: open DEMO 101, its chat, its calendar.
+9. Events: RSVP to the DEMO 101 review session. Clubs: open Board Games.
+10. Messages: open Sam's DM, reply.
+11. Settings > Privacy > Your data (export). Log out.
+12. Log in as `deleteme@demo.uhearth.app`. Settings > Delete account >
+    confirm. Land on the sign-up screen. Stop recording.
 
 Upload the .mov in the reply (Connect accepts attachments in the thread).
 
@@ -63,6 +71,10 @@ that no real student can join; nothing done there touches a real campus.
   Quad, sent the reviewer a direct message, planned an event and started
   a club, so every report, block, reply, RSVP and join has a real target.
   Logging in as Sam on a second device shows both sides of a DM.
+- Student account: `maya@demo.uhearth.app` / `HearthReview-2026!`
+  ("Maya Demo"): an ordinary student with a filled-in profile, a class,
+  a club, a friend, and a waiting DM, for seeing the app as a regular
+  member rather than a moderator.
 - Deletion account: `deleteme@demo.uhearth.app` / `HearthReview-2026!`.
   Settings > Delete account removes it and everything it wrote. We recreate
   it after each review.
