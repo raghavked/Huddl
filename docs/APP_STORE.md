@@ -95,9 +95,14 @@ checklist.
   student can join (its email domain resolves nowhere public), so nothing
   the reviewer does touches a real campus. The account carries the
   moderator badge so the review can open Settings > Reports and see the
-  moderation queue working end to end. The demo campus is already seeded
-  in production: four default rooms and a two-course catalog, everything
-  else intentionally empty so the reviewer sees honest first-run states.
+  moderation queue working end to end. The demo campus is seeded in
+  production with three accounts (all with the password above): the
+  reviewer; `student@demo.uhearth.app`, a classmate (Sam Demo) who has
+  posted in the rooms, on The Quad, sent the reviewer a DM, started a
+  club, and planned an event, so reporting, blocking, and every
+  interaction has a real target; and `deleteme@demo.uhearth.app`, a
+  throwaway for the account-deletion check, recreated after each review
+  (the seed lives in `docs/APP_REVIEW_REPLY.md`).
 - **Account deletion** (Guideline 5.1.1(v)): Settings → Delete account.
 - **Data export** (Guideline 5.1.1(v) companion): Settings → Privacy → Your
   data. Returns the caller's own rows as one JSON document; self-only by
