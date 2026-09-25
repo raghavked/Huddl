@@ -12,6 +12,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText, Button, Card, Field } from "@/components/ui";
 import { fonts, radius, space } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import {
+  checkPassword,
+  describeProblem,
+  PASSWORD_RULE_HINT,
+} from "@/lib/password";
 import { supabase } from "@/lib/supabase";
 
 /* Where the confirmation email's link lands. The website's /confirmed page
@@ -91,10 +96,19 @@ export default function SignupScreen() {
 
   const confirmMismatch = confirm.length > 0 && confirm !== password;
 
+  /* One rule for every password field in the product, and the same rule
+     Supabase Auth enforces server-side, so the field says why before the
+     server ever gets to. */
+  const passwordCheck = checkPassword(password, { email: email.trim() });
+  const passwordProblem =
+    password.length > 0 && !passwordCheck.ok
+      ? describeProblem(passwordCheck.problems[0])
+      : null;
+
   const canSubmit =
     !pending &&
     Boolean(email.trim()) &&
-    password.length >= 8 &&
+    passwordCheck.ok &&
     confirm === password &&
     !unsupportedDomain;
 
@@ -131,6 +145,11 @@ export default function SignupScreen() {
         );
       } else if (/already registered/i.test(signUpError.message)) {
         setAccountExists(true);
+      } else if (/password/i.test(signUpError.message)) {
+        // Auth's own password policy said no. Say the rule in our words.
+        setError(
+          `That password doesn't meet the rule. ${PASSWORD_RULE_HINT}`
+        );
       } else {
         setError(
           "We couldn't create your account just now. Give it a moment and try again."
@@ -330,11 +349,12 @@ export default function SignupScreen() {
           <View style={{ gap: space.snug }}>
             <Field
               label="Password"
-              placeholder="At least 8 characters"
+              placeholder={PASSWORD_RULE_HINT}
               secureTextEntry
               autoComplete="new-password"
               value={password}
               onChangeText={setPassword}
+              error={passwordProblem}
             />
             <AppText variant="caption" muted>
               At least 8 characters.

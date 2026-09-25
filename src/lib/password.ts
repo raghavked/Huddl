@@ -47,12 +47,21 @@ export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 72;
 
 /**
+ * The one sentence every password field shows before anyone types. It
+ * states the whole rule, because a rule the student only learns from a
+ * refusal is a rule that reads as a trap.
+ */
+export const PASSWORD_RULE_HINT =
+  "At least 8 characters, with a lowercase letter, an uppercase letter, a number, and a symbol.";
+
+/**
  * How a password can fail. Each maps to one sentence in
  * {@link describeProblem}. A student sees the sentence, never the tag.
  */
 export type PasswordProblem =
   | "too-short"
   | "too-long"
+  | "needs-variety"
   | "too-common"
   | "looks-like-email";
 
@@ -95,6 +104,23 @@ const COMMON_PASSWORDS: ReadonlySet<string> = new Set([
   "hearth123", "hearthhearth", "gohearth1", "aggies123", "ucdavis1", "ucdavis123",
   "davis123", "california", "sacramento", "graduate1", "freshman1", "senior123",
 ]);
+
+/*
+ * Supabase Auth is configured to require one character from each of four
+ * classes (lowercase, uppercase, digit, symbol), and it refuses a password
+ * that misses one with a 422 the client cannot dress up. The same test lives
+ * here so the refusal happens in the field, in our words, before the
+ * request is ever sent. The four classes match Auth's own definition: a
+ * symbol is anything that is not a letter or a digit.
+ */
+function hasVariety(password: string): boolean {
+  return (
+    /[a-z]/.test(password) &&
+    /[A-Z]/.test(password) &&
+    /\d/.test(password) &&
+    /[^A-Za-z0-9]/.test(password)
+  );
+}
 
 /** Anything a person would read as one word: letters, digits, or both. */
 function normalize(value: string): string {
@@ -153,6 +179,7 @@ export function checkPassword(
 
   if (password.length < PASSWORD_MIN_LENGTH) problems.push("too-short");
   if (password.length > PASSWORD_MAX_LENGTH) problems.push("too-long");
+  if (!hasVariety(password)) problems.push("needs-variety");
   if (COMMON_PASSWORDS.has(normalize(password))) problems.push("too-common");
   if (looksLikeEmail(password, options?.email)) problems.push("looks-like-email");
 
@@ -198,6 +225,8 @@ export function describeProblem(problem: PasswordProblem): string {
       return `Passwords need at least ${PASSWORD_MIN_LENGTH} characters.`;
     case "too-long":
       return `That's longer than ${PASSWORD_MAX_LENGTH} characters. Trim it a little.`;
+    case "needs-variety":
+      return "Mix in a lowercase letter, an uppercase letter, a number, and a symbol.";
     case "too-common":
       return "That one turns up in every leaked-password list. Pick something else.";
     case "looks-like-email":

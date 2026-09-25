@@ -1,5 +1,19 @@
 # Hearth development log
 
+## Round 32: the password rule says its name
+
+The first sign-up attempt on a real phone got "couldn't create your
+account just now." The auth log had the reason: Supabase's password
+policy (a lowercase letter, an uppercase letter, a digit, a symbol)
+refused it with a 422, and neither client knew the rule. Now both
+copies of `password.ts` carry it as `needs-variety`, the sign-up
+screens gate on `checkPassword` and show the reason under the field
+before anything is sent (the reset and change-password screens already
+did), the field states the whole rule up front, and a server refusal
+that still arrives is translated into the same sentence. The review
+campus gained Maya Demo, a preloaded student account for the App Review
+recording, alongside the classmate and deletion accounts.
+
 ## Round 31: the feed comes back, and every embed learns its name
 
 The first TestFlight build that launched showed an empty Quad with

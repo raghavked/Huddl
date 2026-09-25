@@ -12,6 +12,11 @@ import {
 } from "lucide-react";
 import { Button, Hint, Input, Label } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import {
+  checkPassword,
+  describeProblem,
+  PASSWORD_RULE_HINT,
+} from "@/lib/password";
 import type { University } from "@/lib/types";
 
 export function SignupForm() {
@@ -58,6 +63,7 @@ export function SignupForm() {
     );
   }, [domain, universities]);
 
+  const passwordCheck = checkPassword(password, { email: email.trim() });
   const unsupportedDomain = Boolean(
     domain && universities && universities.length > 0 && !matched
   );
@@ -100,6 +106,8 @@ export function SignupForm() {
         );
       } else if (/already registered/i.test(signUpError.message)) {
         setAccountExists(true);
+      } else if (/password/i.test(signUpError.message)) {
+        setError(`That password doesn't meet the rule. ${PASSWORD_RULE_HINT}`);
       } else {
         setError(signUpError.message);
       }
@@ -243,7 +251,11 @@ export function SignupForm() {
             )}
           </button>
         </div>
-        <Hint id="signup-password-hint">At least 8 characters.</Hint>
+        <Hint id="signup-password-hint">
+          {password.length > 0 && !passwordCheck.ok
+            ? describeProblem(passwordCheck.problems[0])
+            : PASSWORD_RULE_HINT}
+        </Hint>
       </div>
 
       <Button
@@ -254,7 +266,7 @@ export function SignupForm() {
           pending ||
           !displayName.trim() ||
           !email.trim() ||
-          password.length < 8 ||
+          !passwordCheck.ok ||
           unsupportedDomain
         }
       >

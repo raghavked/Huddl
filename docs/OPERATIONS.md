@@ -472,3 +472,15 @@ lived exactly there (HTTP 300 on ambiguous profile embeds, twice). Run
 against production; an empty result is a pass, and the script's docstring
 explains the one known false positive. `src/lib/embed-hints.test.ts`
 covers the profiles half of this permanently.
+
+
+## Password policy: one rule, three places
+
+Supabase Auth (Authentication > Sign In / Providers > Password) requires
+a lowercase letter, an uppercase letter, a digit, and a symbol, with
+leaked-password protection on. Both clients carry the same rule in
+`password.ts` (`checkPassword`, problem `needs-variety`), so a password
+is refused in the field, in our words, before the request is sent, and a
+server refusal that still gets through is translated rather than shown
+as a generic failure. If the dashboard setting ever changes, change
+`hasVariety` in both copies of `password.ts` in the same commit.

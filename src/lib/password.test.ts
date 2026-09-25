@@ -45,7 +45,7 @@ describe("checkPassword: common passwords", () => {
   });
 
   it("leaves an ordinary passphrase alone", () => {
-    expect(checkPassword("wandering kettle dusk").ok).toBe(true);
+    expect(checkPassword("Wandering kettle dusk 9!").ok).toBe(true);
   });
 });
 
@@ -78,7 +78,7 @@ describe("checkPassword: the student's own email", () => {
   });
 
   it("does not refuse an unrelated password", () => {
-    const check = checkPassword("wandering kettle dusk", {
+    const check = checkPassword("Wandering kettle dusk 9!", {
       email: "adalovelace@ucdavis.edu",
     });
     expect(check.ok).toBe(true);
@@ -92,17 +92,23 @@ describe("checkPassword: strength is a label, not a gate", () => {
   });
 
   it("rates a long passphrase strong", () => {
-    expect(checkPassword("wandering kettle dusk").strength).toBe("strong");
+    expect(checkPassword("Wandering kettle dusk 9!").strength).toBe("strong");
   });
 
   it("rates a short-but-varied password ok rather than strong", () => {
     expect(checkPassword("Kx7!qzab").strength).toBe("ok");
   });
 
-  it("never blocks submission on strength alone", () => {
-    const check = checkPassword("kettledusk");
-    expect(check.strength).toBe("weak");
-    expect(check.ok).toBe(true);
+  it("never lets the label contradict the gate", () => {
+    // Under the four-class rule an accepted password always has variety, so
+    // "weak" is reserved for refusals: a student never reads "weak" over a
+    // password we accepted, or "strong" over one we refused.
+    const accepted = checkPassword("Kettle-dusk9");
+    expect(accepted.ok).toBe(true);
+    expect(accepted.strength).not.toBe("weak");
+    const refused = checkPassword("kettledusk");
+    expect(refused.ok).toBe(false);
+    expect(refused.strength).toBe("weak");
   });
 });
 
@@ -146,5 +152,24 @@ describe("the copy a student reads", () => {
     expect(describeStrength("weak")).toBe("Weak");
     expect(describeStrength("ok")).toBe("Good");
     expect(describeStrength("strong")).toBe("Strong");
+  });
+});
+
+describe("checkPassword: the four character classes Supabase Auth requires", () => {
+  it("refuses a password missing any one class", () => {
+    expect(checkPassword("alllowercase1!").problems).toContain("needs-variety");
+    expect(checkPassword("ALLUPPERCASE1!").problems).toContain("needs-variety");
+    expect(checkPassword("NoDigitsHere!").problems).toContain("needs-variety");
+    expect(checkPassword("NoSymbols123").problems).toContain("needs-variety");
+  });
+
+  it("accepts one with all four", () => {
+    const check = checkPassword("HearthReview-2026!");
+    expect(check.ok).toBe(true);
+    expect(check.problems).toEqual([]);
+  });
+
+  it("has a sentence for it", () => {
+    expect(describeProblem("needs-variety")).toMatch(/lowercase/);
   });
 });
