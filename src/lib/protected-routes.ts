@@ -36,4 +36,5 @@ export const PUBLIC_PATHS = [
   "/legal/terms",
   "/legal/privacy",
   "/legal/guidelines",
+  "/delete-account",
 ] as const;

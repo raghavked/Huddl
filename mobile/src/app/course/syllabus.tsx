@@ -495,7 +495,7 @@ export default function SyllabusImportScreen() {
                       value={row.title}
                       onChangeText={(value) => retitle(row.key, value)}
                       placeholder="What's due?"
-                      placeholderTextColor={theme.muted + "b3"}
+                      placeholderTextColor={theme.muted + "d9"}
                       cursorColor={theme.brand}
                       maxLength={120}
                       editable={!adding}

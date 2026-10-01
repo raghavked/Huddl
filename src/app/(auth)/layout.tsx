@@ -26,7 +26,7 @@ export default function AuthLayout({
         <LogoTile />
         <span className="text-xl font-bold tracking-tight">hearth</span>
       </Link>
-      <main className="w-full max-w-md">{children}</main>
+      <main id="main" className="w-full max-w-md">{children}</main>
     </div>
   );
 }

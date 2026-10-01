@@ -60,13 +60,6 @@ const FAQS: { q: string; a: string }[] = [
 export default function LandingPage() {
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-brand-fg"
-      >
-        Skip to content
-      </a>
-
       {/* ---------------------------------------------------------- */}
       {/* Header                                                      */}
       {/* ---------------------------------------------------------- */}
@@ -360,6 +353,12 @@ export default function LandingPage() {
               <p className="mt-2 text-sm text-muted">
                 Made in Davis, between classes.
               </p>
+              <p className="mt-1 text-xs text-muted">
+                Operated by Raghav Kedia ·{" "}
+                <a href="mailto:hello@uhearth.app" className="hover:underline">
+                  hello@uhearth.app
+                </a>
+              </p>
             </div>
             <nav aria-label="Footer" className="flex items-center gap-2">
               <Link
@@ -373,6 +372,12 @@ export default function LandingPage() {
                 className={buttonClasses({ variant: "soft", size: "sm" })}
               >
                 Sign up
+              </Link>
+              <Link
+                href="/delete-account"
+                className={buttonClasses({ variant: "ghost", size: "sm" })}
+              >
+                Delete account
               </Link>
             </nav>
           </div>

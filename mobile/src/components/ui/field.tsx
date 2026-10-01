@@ -15,7 +15,7 @@ export function Field({
       <AppText variant="label">{label}</AppText>
       <TextInput
         accessibilityLabel={label}
-        placeholderTextColor={theme.muted + "b3"}
+        placeholderTextColor={theme.muted + "d9"}
         cursorColor={theme.brand}
         selectionColor={theme.brandSoft}
         style={[

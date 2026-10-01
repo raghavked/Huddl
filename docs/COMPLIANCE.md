@@ -95,10 +95,11 @@ list of things to hand to one.
     says a deleted message "can sit in our host's routine backups for a short
     while" rather than naming a number. Move to a paid plan and you can state
     a real figure.
-12. **When the web app is deployed, name the host as a processor.** Today it
-    is not deployed anywhere, so the policy naming Supabase and Expo is
-    complete. A Vercel deployment adds a processor that handles IP addresses,
-    and the "When we share" section has to grow by one name.
+12. **The web host is named as a processor.** Done in October 2026: the
+    marketing and legal site runs on Vercel at uhearth.app, and the "When
+    we share" section of the privacy policy now names Supabase, Expo,
+    Resend and Vercel, each with the job it does. `docs/THIRD_PARTY.md`
+    is the audit behind that sentence.
 
 ## The no-entity path, examined
 
@@ -196,3 +197,34 @@ the trade was made knowingly.
 - **Under-18 users still exist** at a 16+ floor. If Hearth ever opens beyond a
   single verified campus, or lets adults outside the campus start
   conversations, that changes and the minor-safety analysis has to be redone.
+
+## The twenty-point sweep, October 2026
+
+A checklist that circulates as "twenty things to do so your app doesn't
+get sued", worked through item by item against the code. Most were
+already true; the rest were done in Round 33. "Both" means the website
+and the mobile app carry the same text, which the copy-parity test
+enforces.
+
+| # | Item | Status | Where |
+| --- | --- | --- | --- |
+| 1 | Privacy policy | Done | uhearth.app/legal/privacy and Settings in the app; both copies identical |
+| 2 | Terms of service | Done | uhearth.app/legal/terms; accepted at sign-up, with `accepted_terms_at` stamped on the profile |
+| 3 | Refund policy | Done | Terms, "Payments and refunds": Hearth is free, there is nothing to refund, and what happens if that changes |
+| 4 | Cookie policy | Done | Privacy, "Cookies and local storage": the one session cookie, the device-local preferences, and no tracking cookies |
+| 5 | Cookie consent banner | Not needed, by design | No advertising, analytics or cross-site cookies exist, so no consent is required and no banner is shown. Add one the day the first such cookie lands |
+| 6 | Form consents | Done | Both sign-up forms carry the Terms and Privacy links, the 16+ caption, and nothing is pre-checked |
+| 7 | No unnecessary data collection | Done | Email, name, user content, and an optional photo. No phone, location, contacts, or advertising ID. Mirrored in the iOS privacy manifest |
+| 8 | Third-party SDK audit | Done | `docs/THIRD_PARTY.md`: four processors, no analytics or ad SDK, with a grep that proves it |
+| 9 | Dark patterns | Audited, none found | Every destructive confirmation names the consequence; delete is one tap from Settings, not buried; no countdown timers, no guilt-trip decline buttons, no pre-selected options |
+| 10 | Hidden fees | None | The app is free and says so in the Terms; there is no purchase surface to hide anything in |
+| 11 | Fake reviews or testimonials | None | The website carries no testimonials; the store listing quotes nobody |
+| 12 | Unsupported claims | Audited | Every claim in the listing and on the site was checked against a feature that ships: twelve colour schemes, no ads, campus-only accounts, in-app export and deletion, automatic slur flagging |
+| 13 | Alt text | Done | Every informative image has alt text; decorative icons are `aria-hidden`; the logo link is labelled "Hearth home" |
+| 14 | Colour contrast | Done | Every text and background pair in both themes clears WCAG AA 4.5:1 (`docs/DESIGN.md`); placeholder text raised from 70% to 85% opacity in Round 33 so it clears too |
+| 15 | Keyboard navigation | Done | A skip-to-content link is the first focusable element on every web page; every page has a `main` landmark; all controls are real buttons and links with visible focus rings |
+| 16 | Business details | Done | Footer on every web page names the operator and hello@uhearth.app; the Terms name the operator, address and DMCA agent |
+| 17 | Age consent | Done | 16+ floor in the Terms and in both sign-up captions; the app is not directed at children and is rated accordingly on both stores |
+| 18 | Unsubscribe link | Not applicable, stated | Hearth sends only transactional auth email. Each template's footer says so and gives the contact address. No marketing list exists; if one is ever started it needs a one-click unsubscribe from the first send |
+| 19 | Font and image licenses | Done | `docs/LICENSES.md`: all three faces OFL, icons ISC and MIT, no stock imagery, starter-template SVGs removed |
+| 20 | Data deletion request | Done | In-app one-tap deletion; uhearth.app/delete-account for anyone locked out, with a 30-day email path; the URL is in both store listings |

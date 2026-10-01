@@ -641,7 +641,7 @@ export default function PeopleScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="Search by name, handle or major"
-          placeholderTextColor={theme.muted + "b3"}
+          placeholderTextColor={theme.muted + "d9"}
           accessibilityLabel="Search people by name, handle or major"
           autoCapitalize="none"
           autoCorrect={false}

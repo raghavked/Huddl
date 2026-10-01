@@ -22,7 +22,7 @@ export type LegalDoc = {
 
 export const TERMS_OF_SERVICE: LegalDoc = {
   title: "Terms of Service",
-  updated: "August 2026",
+  updated: "October 2026",
   sections: [
     {
       heading: "Welcome",
@@ -81,6 +81,10 @@ export const TERMS_OF_SERVICE: LegalDoc = {
       body: "These terms are governed by the laws of California, without regard to its conflict of laws rules, and any dispute goes to the state or federal courts located in Yolo County, California. If you live somewhere whose law gives you the right to bring a claim locally, this doesn't take that away.",
     },
     {
+      heading: "Payments and refunds",
+      body: "Hearth is free. There are no paid features, subscriptions, in-app purchases, or fees of any kind, hidden or otherwise, so there is nothing to refund. If that ever changes, we'll tell you in the app before it does, every price will be shown before you pay it, and these terms will say how refunds work.",
+    },
+    {
       heading: "Changes to these terms",
       body: "If we update these terms, we'll change the date at the top, and for anything significant we'll let you know in the app before it takes effect. Continuing to use Hearth after that means you accept the update.",
     },
@@ -93,7 +97,7 @@ export const TERMS_OF_SERVICE: LegalDoc = {
 
 export const PRIVACY_POLICY: LegalDoc = {
   title: "Privacy Policy",
-  updated: "August 2026",
+  updated: "October 2026",
   sections: [
     {
       heading: "The short version",
@@ -137,11 +141,11 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: "When we share",
-      body: "We never sell your data, full stop. We share it only with the services that make Hearth run (Supabase for hosting and Expo for delivering push notifications) and only as needed for them to do that job. Beyond that, we would disclose data only if the law requires it or it's necessary to prevent serious harm to someone.",
+      body: "We never sell your data, full stop. We share it only with the services that make Hearth run (Supabase for hosting, Expo for delivering push notifications, Resend for sending confirmation and password-reset emails, and Vercel for hosting the website) and only as needed for them to do that job. Beyond that, we would disclose data only if the law requires it or it's necessary to prevent serious harm to someone.",
     },
     {
       heading: "Deleting your data",
-      body: "You're in control: edit or clear your profile any time, drop courses, and leave channels whenever you like. Removing your profile photo deletes the file, not just the link to it. Deleting your account, from Settings, then Delete account, removes everything at once: profile, messages, files, courses, blocks, and push tokens, immediately and permanently. There's no recovery window and no archive. The one thing that outlives it is a message of yours a classmate forwarded somewhere else: that copy is their message now, and it keeps the text with your name taken off it.",
+      body: "You're in control: edit or clear your profile any time, drop courses, and leave channels whenever you like. Removing your profile photo deletes the file, not just the link to it. Deleting your account, from Settings, then Delete account, removes everything at once: profile, messages, files, courses, blocks, and push tokens, immediately and permanently. There's no recovery window and no archive. The one thing that outlives it is a message of yours a classmate forwarded somewhere else: that copy is their message now, and it keeps the text with your name taken off it. If you can't get into the app, email hello@uhearth.app from your university address and we'll delete the account for you within 30 days; the same steps are written out at uhearth.app/delete-account.",
     },
     {
       heading: "Your rights over your data",
@@ -150,6 +154,10 @@ export const PRIVACY_POLICY: LegalDoc = {
     {
       heading: "Age",
       body: "Hearth is for people 16 and older who are enrolled at or affiliated with a supported university. We don't knowingly collect data from anyone under 16, and if we learn that we have, we'll delete the account and everything in it. If you're a parent or guardian and think your child has an account, email hello@uhearth.app and we'll take care of it.",
+    },
+    {
+      heading: "Cookies and local storage",
+      body: "The website uses only the cookies it needs to work: a session cookie while you confirm your email or reset your password, which expires on its own. The website and the app also keep a few preferences on your own device, like your colour scheme and text size, and never send them anywhere. There are no advertising, analytics, or tracking cookies, which is why there is no cookie banner: there is nothing to consent to.",
     },
     {
       heading: "Changes to this policy",

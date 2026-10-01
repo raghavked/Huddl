@@ -1,5 +1,28 @@
 # Hearth development log
 
+## Round 33: the twenty-point sweep
+
+A checklist of the twenty things an app gets sued over, run against the
+code rather than nodded at. Fifteen were already true and are now
+written down as such in `docs/COMPLIANCE.md`, with a row each saying
+where to look. The rest got done: the Terms gained a "Payments and
+refunds" section that says plainly the app is free and what would
+happen if that changed; the Privacy Policy gained "Cookies and local
+storage" and now names all four processors, Vercel included, since the
+site has been live on it for a month; the deletion section grew an
+email path for anyone locked out, with a public page at
+uhearth.app/delete-account that both store listings now cite. On the
+website, a skip-to-content link leads every page, each page has a main
+landmark, and the footer names the operator and the contact address.
+Placeholder text in both clients moved from 70% to 85% opacity so it
+clears the same contrast bar as everything else. The four auth email
+templates say in their footer that they are transactional and that
+there is nothing to unsubscribe from. Two new reference files,
+`docs/LICENSES.md` (fonts, icons, imagery) and `docs/THIRD_PARTY.md`
+(every SDK and who it talks to, with a grep that re-proves it), carry
+the audit so it can be re-run in minutes. Five starter-template SVGs
+that nothing referenced left `public/`.
+
 ## Round 32: the password rule says its name
 
 The first sign-up attempt on a real phone got "couldn't create your

@@ -512,7 +512,7 @@ export default function CommunitiesScreen() {
                       value={query}
                       onChangeText={setQuery}
                       placeholder="Search communities"
-                      placeholderTextColor={theme.muted + "b3"}
+                      placeholderTextColor={theme.muted + "d9"}
                       accessibilityLabel="Search communities by name or description"
                       autoCapitalize="none"
                       autoCorrect={false}

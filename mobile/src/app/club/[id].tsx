@@ -1458,7 +1458,7 @@ export default function ClubHomeScreen() {
                       value={inviteQuery}
                       onChangeText={setInviteQuery}
                       placeholder="Invite a classmate"
-                      placeholderTextColor={theme.muted + "b3"}
+                      placeholderTextColor={theme.muted + "d9"}
                       accessibilityLabel="Invite a classmate by name or handle"
                       autoCapitalize="none"
                       autoCorrect={false}

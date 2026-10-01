@@ -43,7 +43,7 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6 sm:py-16">
+      <main id="main" className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6 sm:py-16">
         <h1 className="text-3xl font-bold tracking-tight text-balance sm:text-4xl">
           {doc.title}
         </h1>
@@ -84,7 +84,12 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
         <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4 py-8 text-xs text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>
             Made for students, between classes. Never selling your data, never
-            running ads in your course channels.
+            running ads in your course channels.{" "}
+            <Link href="/delete-account" className="font-semibold hover:underline">
+              Delete your account
+            </Link>
+            . Type set in Bricolage Grotesque and Plus Jakarta Sans under the
+            SIL Open Font License; icons by Lucide and Feather, MIT.
           </p>
           <p>&copy; {new Date().getFullYear()} Hearth</p>
         </div>

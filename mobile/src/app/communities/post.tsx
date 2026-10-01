@@ -1019,7 +1019,7 @@ export default function CommunityPostScreen() {
               if (editError) setEditError(null);
             }}
             placeholder="Title"
-            placeholderTextColor={theme.muted + "b3"}
+            placeholderTextColor={theme.muted + "d9"}
             accessibilityLabel="Title"
             maxLength={POST_TITLE_MAX}
             editable={!savingEdit}
@@ -1044,7 +1044,7 @@ export default function CommunityPostScreen() {
               if (editError) setEditError(null);
             }}
             placeholder="Say more (optional)"
-            placeholderTextColor={theme.muted + "b3"}
+            placeholderTextColor={theme.muted + "d9"}
             accessibilityLabel="Say more (optional)"
             maxLength={POST_BODY_MAX}
             multiline
@@ -1303,7 +1303,7 @@ export default function CommunityPostScreen() {
                   if (commentError) setCommentError(null);
                 }}
                 placeholder="Add a comment"
-                placeholderTextColor={theme.muted + "b3"}
+                placeholderTextColor={theme.muted + "d9"}
                 accessibilityLabel="Add a comment"
                 maxLength={COMMENT_MAX}
                 multiline

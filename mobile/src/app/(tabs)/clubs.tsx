@@ -608,7 +608,7 @@ export default function ClubsScreen() {
                   value={query}
                   onChangeText={setQuery}
                   placeholder="Search clubs"
-                  placeholderTextColor={theme.muted + "b3"}
+                  placeholderTextColor={theme.muted + "d9"}
                   accessibilityLabel="Search clubs by name, category or description"
                   autoCapitalize="none"
                   autoCorrect={false}

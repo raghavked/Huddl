@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 const CONTROL =
   "w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm text-foreground " +
-  "placeholder:text-muted/70 transition-colors " +
+  "placeholder:text-muted/85 transition-colors " +
   "focus:border-brand focus:outline-none focus:ring-[3px] focus:ring-brand/15 " +
   "disabled:cursor-not-allowed disabled:opacity-60";
 

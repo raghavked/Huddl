@@ -218,7 +218,9 @@ Review.
      **Messages** (chat, DMs, board posts), **Other user-generated
      content** (notes, flashcards, private grade entries). Data is
      encrypted in transit; users can request deletion (Settings > Delete
-     account) and export (Settings > Privacy > Your data). No location,
+     account, or https://uhearth.app/delete-account for the "account
+     deletion URL" field in the Data deletion section of the form) and
+     export (Settings > Privacy > Your data). No location,
      no contacts, no device identifiers for advertising.
    - **Advertising ID**: the app does not use it.
 3. **Store listing** (Grow > Store presence > Main store listing):

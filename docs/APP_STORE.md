@@ -106,6 +106,8 @@ checklist.
   throwaway for the account-deletion check, recreated after each review
   (the seed lives in `docs/APP_REVIEW_REPLY.md`).
 - **Account deletion** (Guideline 5.1.1(v)): Settings → Delete account.
+  The public page for anyone locked out is https://uhearth.app/delete-account
+  (paste it in the review notes and in the App Privacy section).
 - **Data export** (Guideline 5.1.1(v) companion): Settings → Privacy → Your
   data. Returns the caller's own rows as one JSON document; self-only by
   construction, since every subquery in the function filters on `auth.uid()`.

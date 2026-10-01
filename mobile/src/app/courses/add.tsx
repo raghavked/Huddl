@@ -324,7 +324,7 @@ function PasteDraftRow({
           value={row.title}
           onChangeText={(value) => onChangeTitle(row.code, value)}
           placeholder="Add a title"
-          placeholderTextColor={theme.muted + "b3"}
+          placeholderTextColor={theme.muted + "d9"}
           cursorColor={theme.brand}
           selectionColor={theme.brandSoft}
           maxLength={120}

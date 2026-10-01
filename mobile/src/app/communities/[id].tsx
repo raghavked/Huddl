@@ -1568,7 +1568,7 @@ export default function CommunityScreen() {
                 if (rulesError) setRulesError(null);
               }}
               placeholder="What keeps this place good"
-              placeholderTextColor={theme.muted + "b3"}
+              placeholderTextColor={theme.muted + "d9"}
               accessibilityLabel="Community rules"
               maxLength={COMMUNITY_RULES_MAX}
               multiline
@@ -1913,7 +1913,7 @@ export default function CommunityScreen() {
               if (composerError) setComposerError(null);
             }}
             placeholder="What's the headline?"
-            placeholderTextColor={theme.muted + "b3"}
+            placeholderTextColor={theme.muted + "d9"}
             accessibilityLabel="Title"
             maxLength={POST_TITLE_MAX}
             editable={!posting}
@@ -1938,7 +1938,7 @@ export default function CommunityScreen() {
               if (composerError) setComposerError(null);
             }}
             placeholder="Say more (optional)"
-            placeholderTextColor={theme.muted + "b3"}
+            placeholderTextColor={theme.muted + "d9"}
             accessibilityLabel="Say more (optional)"
             maxLength={POST_BODY_MAX}
             multiline
